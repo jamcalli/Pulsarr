@@ -1,9 +1,10 @@
 import {
   getCurrentLabels,
+  lookupMetadata,
   removeSpecificLabels,
 } from '@services/plex-server/labels/label-operations.js'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { server } from '../../../../setup/msw-setup.js'
 
@@ -73,5 +74,91 @@ describe('label-operations', () => {
 
     expect(removed).toBe(false)
     expect(writes).toBe(0)
+  })
+
+  describe('lookupMetadata', () => {
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    const lookup = () =>
+      lookupMetadata('123', SERVER_URL, 'token', createMockLogger())
+
+    const timedOutSignal = () =>
+      AbortSignal.abort(new DOMException('timed out', 'TimeoutError'))
+
+    it('reports missing on a 404', async () => {
+      serveMetadata(() => new HttpResponse(null, { status: 404 }))
+
+      expect(await lookup()).toEqual({ status: 'missing' })
+    })
+
+    it('reports missing on an empty Metadata array', async () => {
+      serveMetadata(() =>
+        HttpResponse.json({ MediaContainer: { Metadata: [] } }),
+      )
+
+      expect(await lookup()).toEqual({ status: 'missing' })
+    })
+
+    it('reports an error on a 500 without retrying it', async () => {
+      let hits = 0
+      serveMetadata(() => {
+        hits++
+        return new HttpResponse(null, { status: 500 })
+      })
+
+      expect(await lookup()).toEqual({ status: 'error' })
+      expect(hits).toBe(1)
+    })
+
+    it('reports an error when fetch throws on both attempts', async () => {
+      serveMetadata(() => HttpResponse.error())
+
+      expect(await lookup()).toEqual({ status: 'error' })
+    })
+
+    it('returns the item when it exists', async () => {
+      serveMetadata(() =>
+        HttpResponse.json({
+          MediaContainer: { Metadata: [{ ratingKey: '123', title: 'Movie' }] },
+        }),
+      )
+
+      expect(await lookup()).toEqual({
+        status: 'found',
+        metadata: { ratingKey: '123', title: 'Movie' },
+      })
+    })
+
+    it('retries a timed-out read once and returns the item', async () => {
+      vi.spyOn(AbortSignal, 'timeout').mockReturnValueOnce(timedOutSignal())
+      serveMetadata(() =>
+        HttpResponse.json({
+          MediaContainer: { Metadata: [{ ratingKey: '123', title: 'Movie' }] },
+        }),
+      )
+
+      expect(await lookup()).toEqual({
+        status: 'found',
+        metadata: { ratingKey: '123', title: 'Movie' },
+      })
+    })
+
+    it('reports an error when both attempts time out', async () => {
+      let hits = 0
+      vi.spyOn(AbortSignal, 'timeout')
+        .mockReturnValueOnce(timedOutSignal())
+        .mockReturnValueOnce(timedOutSignal())
+      serveMetadata(() => {
+        hits++
+        return HttpResponse.json({
+          MediaContainer: { Metadata: [{ ratingKey: '123', title: 'Movie' }] },
+        })
+      })
+
+      expect(await lookup()).toEqual({ status: 'error' })
+      expect(hits).toBe(0)
+    })
   })
 })

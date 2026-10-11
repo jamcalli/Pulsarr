@@ -33,9 +33,11 @@ import {
 import {
   getCurrentLabels,
   getMetadata,
+  lookupMetadata,
+  type MetadataLookup,
   removeSpecificLabels,
   updateLabels,
-} from './plex-server/labels/index.js'
+} from './plex-server/labels/label-operations.js'
 import {
   getMetadataChildren,
   getShowMetadata,
@@ -1668,6 +1670,12 @@ export class PlexServerService {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return getMetadata(ratingKey, serverUrl, token, this.log)
+  }
+
+  async lookupMetadata(ratingKey: string): Promise<MetadataLookup> {
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return lookupMetadata(ratingKey, serverUrl, token, this.log)
   }
 
   async getCurrentLabels(ratingKey: string): Promise<string[] | null> {

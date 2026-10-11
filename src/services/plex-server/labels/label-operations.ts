@@ -13,40 +13,67 @@ import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 const PLEX_API_TIMEOUT = 30000 // 30 seconds
+const PLEX_API_ATTEMPTS = 2
+const PLEX_API_RETRY_DELAY_MS = 500
 
-/**
- * Retrieves metadata for a specific Plex item by rating key
- *
- * @param ratingKey - The Plex rating key identifying the item
- * @param serverUrl - The Plex server base URL
- * @param token - Authentication token for API access
- * @param log - Logger instance for operation tracking
- * @returns Promise resolving to metadata object, or null if not found or on error
- */
-export async function getMetadata(
+/** Retries a timed-out or unreachable request, never one that got an HTTP response. */
+async function fetchPlex(
+  url: URL,
+  init: Omit<RequestInit, 'signal'>,
+): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url.toString(), {
+        ...init,
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
+      })
+    } catch (error) {
+      const transient =
+        error instanceof TypeError ||
+        (error instanceof Error && error.name === 'TimeoutError')
+      if (!transient || attempt >= PLEX_API_ATTEMPTS) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, PLEX_API_RETRY_DELAY_MS),
+      )
+    }
+  }
+}
+
+export type MetadataLookup =
+  | { status: 'found'; metadata: PlexMetadata }
+  | { status: 'missing' }
+  | { status: 'error' }
+
+/** `missing` means Plex has no item under this rating key, `error` means the read itself failed. */
+export async function lookupMetadata(
   ratingKey: string,
   serverUrl: string,
   token: string,
   log: FastifyBaseLogger,
-): Promise<PlexMetadata | null> {
+): Promise<MetadataLookup> {
   try {
     if (!token) {
       log.warn('No Plex token provided for metadata retrieval')
-      return null
+      return { status: 'error' }
     }
 
     const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
 
     log.debug(`Fetching metadata for rating key: ${ratingKey}`)
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchPlex(url, {
       headers: {
         Accept: 'application/json',
         'X-Plex-Token': token,
         'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
-      signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })
+
+    // A 404 on /library/metadata is definitive, the key was deleted or re-issued
+    if (response.status === 404) {
+      log.warn(`No metadata found for rating key: ${ratingKey}`)
+      return { status: 'missing' }
+    }
 
     if (!response.ok) {
       throw new Error(
@@ -55,22 +82,38 @@ export async function getMetadata(
     }
 
     const data = (await response.json()) as PlexMetadataResponse
-    const metadata = data.MediaContainer.Metadata?.[0] || null
+    const metadata = data.MediaContainer.Metadata?.[0]
 
     if (!metadata) {
       log.warn(`No metadata found for rating key: ${ratingKey}`)
-      return null
+      return { status: 'missing' }
     }
 
     log.debug(`Retrieved metadata for: ${metadata.title}`)
-    return metadata
+    return { status: 'found', metadata }
   } catch (error) {
     log.error(
       { error },
       `Error fetching metadata for rating key "${ratingKey}":`,
     )
-    return null
+    return { status: 'error' }
   }
+}
+
+export async function getMetadata(
+  ratingKey: string,
+  serverUrl: string,
+  token: string,
+  log: FastifyBaseLogger,
+): Promise<PlexMetadata | null> {
+  const lookup = await lookupMetadata(ratingKey, serverUrl, token, log)
+  return lookup.status === 'found' ? lookup.metadata : null
+}
+
+export function metadataLabels(metadata: PlexMetadata): string[] {
+  return (metadata.Label ?? [])
+    .map((label) => label.tag)
+    .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0)
 }
 
 /**
@@ -97,20 +140,7 @@ export async function getCurrentLabels(
       return null
     }
 
-    if (!metadata.Label) {
-      log.debug(
-        {
-          metadataKeys: Object.keys(metadata),
-          hasLabel: !!metadata.Label,
-        },
-        `No Label field found in metadata for rating key ${ratingKey}`,
-      )
-      return []
-    }
-
-    const labels = metadata.Label.map((label) => label.tag).filter(
-      (tag): tag is string => typeof tag === 'string' && tag.length > 0,
-    )
+    const labels = metadataLabels(metadata)
     log.debug(
       {
         labels,
@@ -192,13 +222,12 @@ export async function updateLabels(
       url.searchParams.append('label.locked', '1')
     }
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchPlex(url, {
       method: 'PUT',
       headers: {
         'X-Plex-Token': token,
         'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
-      signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })
 
     if (!response.ok) {

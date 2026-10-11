@@ -63,4 +63,43 @@ describe('plex label tracking database methods', () => {
     })
     expect(userRows).toHaveLength(1)
   })
+
+  it('moves rows to the new rating key and merges into an existing counterpart', async () => {
+    await app.db.trackPlexLabels(
+      ['imdb:tt0111161'],
+      'movie',
+      SEED_USERS[0].id,
+      'old-key',
+      ['pulsarr:alice', 'pulsarr:4k'],
+    )
+    await app.db.trackPlexLabels(
+      ['imdb:tt0111161'],
+      'movie',
+      SEED_USERS[1].id,
+      'old-key',
+      ['pulsarr:bob'],
+    )
+    await app.db.trackPlexLabels(
+      ['imdb:tt0111161'],
+      'movie',
+      SEED_USERS[0].id,
+      'new-key',
+      ['Pulsarr:Alice', 'pulsarr:hdr'],
+    )
+
+    const moved = await app.db.updateTrackingRatingKey('old-key', 'new-key')
+
+    expect(moved).toBe(2)
+    const rows = await getTestDatabase()('plex_label_tracking').orderBy(
+      'user_id',
+    )
+    expect(rows.map((row) => row.plex_rating_key)).toEqual([
+      'new-key',
+      'new-key',
+    ])
+    expect(rows.map((row) => JSON.parse(row.labels_applied))).toEqual([
+      ['pulsarr:4k', 'pulsarr:alice', 'pulsarr:hdr'],
+      ['pulsarr:bob'],
+    ])
+  })
 })
