@@ -187,6 +187,104 @@ export const radarrQualityProfileHandler = http.get(
   },
 )
 
+interface StoredWebhook {
+  id: number
+  name: string
+  url: string
+}
+
+interface WebhookBody {
+  name: string
+  fields: Array<{ name: string; value?: string | number | boolean | object }>
+}
+
+interface ArrWebhookMock {
+  hooks: StoredWebhook[]
+  requests: Array<{ method: string; id?: number; name?: string }>
+  nextId: number
+}
+
+export const arrWebhookMocks: Record<'sonarr' | 'radarr', ArrWebhookMock> = {
+  sonarr: { hooks: [], requests: [], nextId: 173 },
+  radarr: { hooks: [], requests: [], nextId: 173 },
+}
+
+export function resetArrWebhookMock(
+  arr: keyof typeof arrWebhookMocks,
+  hooks: StoredWebhook[],
+): void {
+  Object.assign(arrWebhookMocks[arr], { hooks, requests: [], nextId: 173 })
+}
+
+const ARR_WEBHOOK_HOSTS = {
+  sonarr: 'http://test-sonarr:8989',
+  radarr: 'http://test-radarr:7878',
+} as const
+
+function webhookUrl(body: WebhookBody): string {
+  const value = body.fields.find((field) => field.name === 'url')?.value
+  return typeof value === 'string' ? value : ''
+}
+
+function rejectsCallback(url: string): boolean {
+  return URL.canParse(url) && new URL(url).hostname === 'unreachable.invalid'
+}
+
+const callbackFailure = () =>
+  HttpResponse.json(
+    [
+      {
+        propertyName: 'Url',
+        errorMessage:
+          'Unable to send test message: Name or service not known (unreachable.invalid:80)',
+      },
+    ],
+    { status: 400 },
+  )
+
+const arrWebhookHandlers = (['sonarr', 'radarr'] as const).flatMap((arr) => {
+  const mock = arrWebhookMocks[arr]
+  const base = `${ARR_WEBHOOK_HOSTS[arr]}/api/v3/notification`
+  return [
+    http.get(base, () =>
+      HttpResponse.json(
+        mock.hooks.map((hook) => ({
+          id: hook.id,
+          name: hook.name,
+          fields: [{ order: 0, name: 'url', value: hook.url }],
+        })),
+      ),
+    ),
+    http.post(base, async ({ request }) => {
+      const body = (await request.json()) as WebhookBody
+      mock.requests.push({ method: 'POST', name: body.name })
+      const url = webhookUrl(body)
+      if (rejectsCallback(url)) return callbackFailure()
+      const hook = { id: mock.nextId++, name: body.name, url }
+      mock.hooks.push(hook)
+      return HttpResponse.json(hook, { status: 201 })
+    }),
+    http.put(`${base}/:id`, async ({ request, params }) => {
+      const id = Number(params.id)
+      const body = (await request.json()) as WebhookBody
+      mock.requests.push({ method: 'PUT', id, name: body.name })
+      const url = webhookUrl(body)
+      if (rejectsCallback(url)) return callbackFailure()
+      const hook = mock.hooks.find((stored) => stored.id === id)
+      if (!hook) return new HttpResponse(null, { status: 404 })
+      hook.name = body.name
+      hook.url = url
+      return HttpResponse.json(id, { status: 202 })
+    }),
+    http.delete(`${base}/:id`, ({ params }) => {
+      const id = Number(params.id)
+      mock.requests.push({ method: 'DELETE', id })
+      mock.hooks = mock.hooks.filter((hook) => hook.id !== id)
+      return HttpResponse.json({})
+    }),
+  ]
+})
+
 export const plexApiHandlers = [
   plexResourcesHandler,
   plexUsersHandler,
@@ -200,4 +298,5 @@ export const plexApiHandlers = [
   radarrMovieHandler,
   sonarrQualityProfileHandler,
   radarrQualityProfileHandler,
+  ...arrWebhookHandlers,
 ]
