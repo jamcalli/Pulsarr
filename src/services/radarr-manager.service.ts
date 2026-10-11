@@ -1,9 +1,10 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
-import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
+import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
 import type {
   MinimumAvailability,
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   ConnectionTestResult,
   RadarrInstance,
@@ -686,62 +687,90 @@ export class RadarrManagerService {
     }
   }
 
-  async resyncWebhooks(): Promise<WebhookResyncInstanceResult[]> {
+  private async webhookResults(
+    successMessage: string,
+    run: (instance: RadarrInstance) => Promise<void>,
+  ): Promise<ArrWebhookResult[]> {
     const instances = await this.fastify.db.getAllRadarrInstances()
     const limit = pLimit(WEBHOOK_RESYNC_CONCURRENCY)
-
     return Promise.all(
       instances
         .filter((instance) => instance.apiKey !== ARR_API_KEY_PLACEHOLDER)
         .map((instance) =>
-          limit(async (): Promise<WebhookResyncInstanceResult> => {
-            const oldService = this.radarrServices.get(instance.id)
+          limit(async (): Promise<ArrWebhookResult> => {
             try {
-              const radarrService = new RadarrService(
-                this.baseLog,
-                this.appBaseUrl,
-                this.port,
-                this.fastify,
-              )
-              await radarrService.initialize(instance)
-              // The arr tests the callback before storing a hook, so the old one goes only after the new one is stored
-              if (
-                oldService &&
-                oldService.getWebhookName() !== radarrService.getWebhookName()
-              ) {
-                try {
-                  await oldService.removeWebhook()
-                } catch (error) {
-                  this.log.warn(
-                    { error, instanceId: instance.id },
-                    'Failed to remove stale webhook during resync',
-                  )
-                }
-              }
-              this.radarrServices.set(instance.id, radarrService)
+              await run(instance)
               return {
                 instanceId: instance.id,
                 name: instance.name,
                 success: true,
-                message: 'Webhook re-registered',
+                code: null,
+                message: successMessage,
               }
             } catch (error) {
               this.log.error(
                 { error, instanceId: instance.id },
-                'Failed to re-register webhook during resync',
+                'Webhook check failed for Radarr instance',
               )
               return {
                 instanceId: instance.id,
                 name: instance.name,
                 success: false,
+                code:
+                  error instanceof WebhookCallbackError
+                    ? 'callback_failed'
+                    : 'unreachable',
                 message:
                   error instanceof Error
                     ? error.message
-                    : 'Failed to re-register webhook',
+                    : 'Webhook check failed',
               }
             }
           }),
         ),
     )
+  }
+
+  /** Tests the callback at a candidate address against every real instance without storing anything. */
+  async testWebhookAddress(
+    baseUrl: string,
+    port: number,
+  ): Promise<ArrWebhookResult[]> {
+    return this.webhookResults('Webhook callback reachable', (instance) =>
+      new RadarrService(
+        this.baseLog,
+        baseUrl,
+        port,
+        this.fastify,
+      ).testWebhookCallback(instance),
+    )
+  }
+
+  async resyncWebhooks(): Promise<ArrWebhookResult[]> {
+    return this.webhookResults('Webhook re-registered', async (instance) => {
+      const oldService = this.radarrServices.get(instance.id)
+      const radarrService = new RadarrService(
+        this.baseLog,
+        this.appBaseUrl,
+        this.port,
+        this.fastify,
+      )
+      await radarrService.initialize(instance)
+      // The arr tests the callback before storing a hook, so the old one goes only after the new one is stored
+      if (
+        oldService &&
+        oldService.getWebhookName() !== radarrService.getWebhookName()
+      ) {
+        try {
+          await oldService.removeWebhook()
+        } catch (error) {
+          this.log.warn(
+            { error, instanceId: instance.id },
+            'Failed to remove stale webhook during resync',
+          )
+        }
+      }
+      this.radarrServices.set(instance.id, radarrService)
+    })
   }
 }

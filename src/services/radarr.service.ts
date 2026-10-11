@@ -3,6 +3,7 @@ import type {
   MinimumAvailability,
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   ConnectionTestResult,
   Item,
@@ -192,6 +193,112 @@ export class RadarrService {
     }
   }
 
+  private buildWebhookDefinition(name: string, url: string) {
+    return {
+      onGrab: false,
+      onDownload: true,
+      onUpgrade: false,
+      onRename: false,
+      onMovieAdded: false,
+      onMovieDelete: false,
+      onMovieFileDelete: false,
+      onMovieFileDeleteForUpgrade: false,
+      onHealthIssue: false,
+      includeHealthWarnings: false,
+      onHealthRestored: false,
+      onApplicationUpdate: false,
+      onManualInteractionRequired: false,
+      supportsOnGrab: true,
+      supportsOnDownload: true,
+      supportsOnUpgrade: true,
+      supportsOnRename: true,
+      supportsOnMovieAdded: true,
+      supportsOnMovieDelete: true,
+      supportsOnMovieFileDelete: true,
+      supportsOnMovieFileDeleteForUpgrade: true,
+      supportsOnHealthIssue: true,
+      supportsOnHealthRestored: true,
+      supportsOnApplicationUpdate: true,
+      supportsOnManualInteractionRequired: true,
+      name,
+      fields: [
+        {
+          order: 0,
+          name: 'url',
+          label: 'Webhook URL',
+          value: url,
+          type: 'url',
+          advanced: false,
+          privacy: 'normal',
+          isFloat: false,
+        },
+        {
+          order: 1,
+          name: 'method',
+          label: 'Method',
+          helpText: 'Which HTTP method to use submit to the Webservice',
+          value: 1,
+          type: 'select',
+          advanced: false,
+          selectOptions: [
+            {
+              value: 1,
+              name: 'POST',
+              order: 1,
+              dividerAfter: false,
+            },
+            {
+              value: 2,
+              name: 'PUT',
+              order: 2,
+              dividerAfter: false,
+            },
+          ],
+          privacy: 'normal',
+          isFloat: false,
+        },
+        {
+          order: 2,
+          name: 'username',
+          label: 'Username',
+          type: 'textbox',
+          advanced: false,
+          privacy: 'userName',
+          isFloat: false,
+        },
+        {
+          order: 3,
+          name: 'password',
+          label: 'Password',
+          type: 'password',
+          advanced: false,
+          privacy: 'password',
+          isFloat: false,
+        },
+        {
+          order: 4,
+          name: 'headers',
+          label: 'Headers',
+          value: [
+            {
+              key: 'X-Pulsarr-Secret',
+              value: this.fastify.config.webhookSecret,
+            },
+          ],
+          type: 'keyValueList',
+          advanced: true,
+          privacy: 'normal',
+          isFloat: false,
+        },
+      ],
+      implementationName: 'Webhook',
+      implementation: 'Webhook',
+      configContract: 'WebhookSettings',
+      infoLink: 'https://wiki.servarr.com/radarr/supported#webhook',
+      tags: [],
+    }
+  }
+
   private async setupWebhook(): Promise<void> {
     if (this.webhookInitialized) {
       return
@@ -212,109 +319,10 @@ export class RadarrService {
         expectedWebhookUrl,
       )
 
-      const webhookConfig = {
-        onGrab: false,
-        onDownload: true,
-        onUpgrade: false,
-        onRename: false,
-        onMovieAdded: false,
-        onMovieDelete: false,
-        onMovieFileDelete: false,
-        onMovieFileDeleteForUpgrade: false,
-        onHealthIssue: false,
-        includeHealthWarnings: false,
-        onHealthRestored: false,
-        onApplicationUpdate: false,
-        onManualInteractionRequired: false,
-        supportsOnGrab: true,
-        supportsOnDownload: true,
-        supportsOnUpgrade: true,
-        supportsOnRename: true,
-        supportsOnMovieAdded: true,
-        supportsOnMovieDelete: true,
-        supportsOnMovieFileDelete: true,
-        supportsOnMovieFileDeleteForUpgrade: true,
-        supportsOnHealthIssue: true,
-        supportsOnHealthRestored: true,
-        supportsOnApplicationUpdate: true,
-        supportsOnManualInteractionRequired: true,
-        name: webhookName,
-        fields: [
-          {
-            order: 0,
-            name: 'url',
-            label: 'Webhook URL',
-            value: expectedWebhookUrl,
-            type: 'url',
-            advanced: false,
-            privacy: 'normal',
-            isFloat: false,
-          },
-          {
-            order: 1,
-            name: 'method',
-            label: 'Method',
-            helpText: 'Which HTTP method to use submit to the Webservice',
-            value: 1,
-            type: 'select',
-            advanced: false,
-            selectOptions: [
-              {
-                value: 1,
-                name: 'POST',
-                order: 1,
-                dividerAfter: false,
-              },
-              {
-                value: 2,
-                name: 'PUT',
-                order: 2,
-                dividerAfter: false,
-              },
-            ],
-            privacy: 'normal',
-            isFloat: false,
-          },
-          {
-            order: 2,
-            name: 'username',
-            label: 'Username',
-            type: 'textbox',
-            advanced: false,
-            privacy: 'userName',
-            isFloat: false,
-          },
-          {
-            order: 3,
-            name: 'password',
-            label: 'Password',
-            type: 'password',
-            advanced: false,
-            privacy: 'password',
-            isFloat: false,
-          },
-          {
-            order: 4,
-            name: 'headers',
-            label: 'Headers',
-            value: [
-              {
-                key: 'X-Pulsarr-Secret',
-                value: this.fastify.config.webhookSecret,
-              },
-            ],
-            type: 'keyValueList',
-            advanced: true,
-            privacy: 'normal',
-            isFloat: false,
-          },
-        ],
-        implementationName: 'Webhook',
-        implementation: 'Webhook',
-        configContract: 'WebhookSettings',
-        infoLink: 'https://wiki.servarr.com/radarr/supported#webhook',
-        tags: [],
-      }
+      const webhookConfig = this.buildWebhookDefinition(
+        webhookName,
+        expectedWebhookUrl,
+      )
 
       try {
         const existing = current ?? legacy
@@ -345,6 +353,15 @@ export class RadarrService {
         }
       } catch (createError) {
         let errorMessage = 'Failed to create webhook'
+        if (
+          createError instanceof HttpError &&
+          (createError.status === 400 || createError.status === 500)
+        ) {
+          throw new WebhookCallbackError(
+            `Failed to create webhook: ${createError.message}`,
+            { cause: createError },
+          )
+        }
         if (createError instanceof HttpError) {
           errorMessage = `Failed to create webhook: ${createError.message}`
           throw new HttpError(errorMessage, createError.status)
@@ -358,7 +375,7 @@ export class RadarrService {
       this.webhookInitialized = true
     } catch (error) {
       // Preserve HttpError instances to maintain status - don't log, let caller handle
-      if (error instanceof HttpError) {
+      if (error instanceof HttpError || error instanceof WebhookCallbackError) {
         throw error
       }
 
@@ -428,6 +445,48 @@ export class RadarrService {
     }
   }
 
+  private configFromInstance(instance: RadarrInstance): RadarrConfiguration {
+    return {
+      radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
+      radarrApiKey: instance.apiKey,
+      radarrQualityProfileId: instance.qualityProfile || null,
+      radarrRootFolder: instance.rootFolder || null,
+      radarrTagIds: instance.tags,
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      minimumAvailability: instance.minimumAvailability || 'released',
+      monitor: instance.monitor || 'movieOnly',
+    }
+  }
+
+  /** Expects the service to be built with the candidate Pulsarr address and throws WebhookCallbackError when the arr cannot call it back. */
+  async testWebhookCallback(instance: RadarrInstance): Promise<void> {
+    this.config = this.configFromInstance(instance)
+    const webhookName = this.getWebhookName()
+    const expectedWebhookUrl = this.constructWebhookUrl()
+    const { current, legacy } = this.findPulsarrWebhooks(
+      await this.getFromRadarr<WebhookNotification[]>('notification'),
+      webhookName,
+      expectedWebhookUrl,
+    )
+    const existingId = (current ?? legacy)?.id
+    try {
+      // The arr's unique-name check skips only the posted id, so the stored hook's id must ride along
+      await this.postToRadarr('notification/test', {
+        ...this.buildWebhookDefinition(webhookName, expectedWebhookUrl),
+        ...(existingId === undefined ? {} : { id: existingId }),
+      })
+    } catch (error) {
+      if (
+        error instanceof HttpError &&
+        (error.status === 400 || error.status === 500)
+      ) {
+        throw new WebhookCallbackError(error.message, { cause: error })
+      }
+      throw error
+    }
+  }
+
   async initialize(instance: RadarrInstance): Promise<void> {
     if (!instance.baseUrl || !instance.apiKey) {
       throw new Error(
@@ -443,27 +502,11 @@ export class RadarrService {
       this.log.info(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
-      this.config = {
-        radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-        radarrApiKey: instance.apiKey,
-        radarrQualityProfileId: instance.qualityProfile || null,
-        radarrRootFolder: instance.rootFolder || null,
-        radarrTagIds: instance.tags,
-      }
+      this.config = this.configFromInstance(instance)
       return
     }
 
-    this.config = {
-      radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-      radarrApiKey: instance.apiKey,
-      radarrQualityProfileId: instance.qualityProfile || null,
-      radarrRootFolder: instance.rootFolder || null,
-      radarrTagIds: instance.tags,
-      searchOnAdd:
-        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
-      minimumAvailability: instance.minimumAvailability || 'released',
-      monitor: instance.monitor || 'movieOnly',
-    }
+    this.config = this.configFromInstance(instance)
 
     this.log.debug(
       `Successfully initialized base Radarr service for ${instance.name}`,

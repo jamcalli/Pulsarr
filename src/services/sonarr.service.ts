@@ -1,5 +1,6 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
@@ -191,6 +192,76 @@ export class SonarrService {
     }
   }
 
+  private buildWebhookDefinition(name: string, url: string) {
+    return {
+      onGrab: false,
+      onDownload: true,
+      onUpgrade: false,
+      // ImportComplete has no upgrade gate and repeats every per-file Download, so it stays off
+      onImportComplete: false,
+      onRename: false,
+      onSeriesAdd: false,
+      onSeriesDelete: false,
+      onEpisodeFileDelete: false,
+      onEpisodeFileDeleteForUpgrade: false,
+      onHealthIssue: false,
+      includeHealthWarnings: false,
+      onHealthRestored: false,
+      onApplicationUpdate: false,
+      onManualInteractionRequired: false,
+      supportsOnGrab: true,
+      supportsOnDownload: true,
+      supportsOnUpgrade: true,
+      supportsOnImportComplete: true,
+      supportsOnRename: true,
+      supportsOnSeriesAdd: true,
+      supportsOnSeriesDelete: true,
+      supportsOnEpisodeFileDelete: true,
+      supportsOnEpisodeFileDeleteForUpgrade: true,
+      supportsOnHealthIssue: true,
+      supportsOnHealthRestored: true,
+      supportsOnApplicationUpdate: true,
+      supportsOnManualInteractionRequired: true,
+      name,
+      fields: [
+        {
+          order: 0,
+          name: 'url',
+          label: 'Webhook URL',
+          value: url,
+          type: 'url',
+          advanced: false,
+        },
+        {
+          order: 1,
+          name: 'method',
+          label: 'Method',
+          value: 1,
+          type: 'select',
+          advanced: false,
+        },
+        {
+          order: 2,
+          name: 'headers',
+          label: 'Headers',
+          value: [
+            {
+              key: 'X-Pulsarr-Secret',
+              value: this.fastify.config.webhookSecret,
+            },
+          ],
+          type: 'keyValueList',
+          advanced: true,
+        },
+      ],
+      implementationName: 'Webhook',
+      implementation: 'Webhook',
+      configContract: 'WebhookSettings',
+      infoLink: 'https://wiki.servarr.com/sonarr/supported#webhook',
+      tags: [],
+    }
+  }
+
   private async setupWebhook(): Promise<void> {
     if (this.webhookInitialized) {
       return
@@ -211,73 +282,10 @@ export class SonarrService {
         expectedWebhookUrl,
       )
 
-      const webhookConfig = {
-        onGrab: false,
-        onDownload: true,
-        onUpgrade: false,
-        // ImportComplete has no upgrade gate and repeats every per-file Download, so it stays off
-        onImportComplete: false,
-        onRename: false,
-        onSeriesAdd: false,
-        onSeriesDelete: false,
-        onEpisodeFileDelete: false,
-        onEpisodeFileDeleteForUpgrade: false,
-        onHealthIssue: false,
-        includeHealthWarnings: false,
-        onHealthRestored: false,
-        onApplicationUpdate: false,
-        onManualInteractionRequired: false,
-        supportsOnGrab: true,
-        supportsOnDownload: true,
-        supportsOnUpgrade: true,
-        supportsOnImportComplete: true,
-        supportsOnRename: true,
-        supportsOnSeriesAdd: true,
-        supportsOnSeriesDelete: true,
-        supportsOnEpisodeFileDelete: true,
-        supportsOnEpisodeFileDeleteForUpgrade: true,
-        supportsOnHealthIssue: true,
-        supportsOnHealthRestored: true,
-        supportsOnApplicationUpdate: true,
-        supportsOnManualInteractionRequired: true,
-        name: webhookName,
-        fields: [
-          {
-            order: 0,
-            name: 'url',
-            label: 'Webhook URL',
-            value: expectedWebhookUrl,
-            type: 'url',
-            advanced: false,
-          },
-          {
-            order: 1,
-            name: 'method',
-            label: 'Method',
-            value: 1,
-            type: 'select',
-            advanced: false,
-          },
-          {
-            order: 2,
-            name: 'headers',
-            label: 'Headers',
-            value: [
-              {
-                key: 'X-Pulsarr-Secret',
-                value: this.fastify.config.webhookSecret,
-              },
-            ],
-            type: 'keyValueList',
-            advanced: true,
-          },
-        ],
-        implementationName: 'Webhook',
-        implementation: 'Webhook',
-        configContract: 'WebhookSettings',
-        infoLink: 'https://wiki.servarr.com/sonarr/supported#webhook',
-        tags: [],
-      }
+      const webhookConfig = this.buildWebhookDefinition(
+        webhookName,
+        expectedWebhookUrl,
+      )
 
       try {
         const existing = current ?? legacy
@@ -308,6 +316,15 @@ export class SonarrService {
         }
       } catch (createError) {
         let errorMessage = 'Failed to create webhook'
+        if (
+          createError instanceof HttpError &&
+          (createError.status === 400 || createError.status === 500)
+        ) {
+          throw new WebhookCallbackError(
+            `Failed to create webhook: ${createError.message}`,
+            { cause: createError },
+          )
+        }
         if (createError instanceof HttpError) {
           errorMessage = `Failed to create webhook: ${createError.message}`
           throw new HttpError(errorMessage, createError.status)
@@ -320,7 +337,7 @@ export class SonarrService {
       this.webhookInitialized = true
     } catch (error) {
       // Preserve HttpError instances to maintain status - don't log, let caller handle
-      if (error instanceof HttpError) {
+      if (error instanceof HttpError || error instanceof WebhookCallbackError) {
         throw error
       }
 
@@ -362,6 +379,51 @@ export class SonarrService {
     await this.sonarrDelete(`notification/${notificationId}`)
   }
 
+  private configFromInstance(instance: SonarrInstance): SonarrConfiguration {
+    return {
+      sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
+      sonarrApiKey: instance.apiKey,
+      sonarrQualityProfileId: instance.qualityProfile || null,
+      sonarrLanguageProfileId: 1,
+      sonarrRootFolder: instance.rootFolder || null,
+      sonarrTagIds: instance.tags,
+      sonarrSeasonMonitoring: instance.seasonMonitoring,
+      sonarrMonitorNewItems: instance.monitorNewItems || 'all',
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      sonarrSeriesType: instance.seriesType || 'standard',
+      createSeasonFolders: instance.createSeasonFolders,
+    }
+  }
+
+  /** Expects the service to be built with the candidate Pulsarr address and throws WebhookCallbackError when the arr cannot call it back. */
+  async testWebhookCallback(instance: SonarrInstance): Promise<void> {
+    this.config = this.configFromInstance(instance)
+    const webhookName = this.getWebhookName()
+    const expectedWebhookUrl = this.constructWebhookUrl()
+    const { current, legacy } = this.findPulsarrWebhooks(
+      await this.getFromSonarr<WebhookNotification[]>('notification'),
+      webhookName,
+      expectedWebhookUrl,
+    )
+    const existingId = (current ?? legacy)?.id
+    try {
+      // The arr's unique-name check skips only the posted id, so the stored hook's id must ride along
+      await this.postToSonarr('notification/test', {
+        ...this.buildWebhookDefinition(webhookName, expectedWebhookUrl),
+        ...(existingId === undefined ? {} : { id: existingId }),
+      })
+    } catch (error) {
+      if (
+        error instanceof HttpError &&
+        (error.status === 400 || error.status === 500)
+      ) {
+        throw new WebhookCallbackError(error.message, { cause: error })
+      }
+      throw error
+    }
+  }
+
   async initialize(instance: SonarrInstance): Promise<void> {
     if (!instance.baseUrl || !instance.apiKey) {
       throw new Error(
@@ -377,35 +439,11 @@ export class SonarrService {
       this.log.info(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
-      this.config = {
-        sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-        sonarrApiKey: instance.apiKey,
-        sonarrQualityProfileId: instance.qualityProfile || null,
-        sonarrLanguageProfileId: 1,
-        sonarrRootFolder: instance.rootFolder || null,
-        sonarrTagIds: instance.tags,
-        sonarrSeasonMonitoring: instance.seasonMonitoring,
-        sonarrMonitorNewItems: instance.monitorNewItems || 'all',
-        sonarrSeriesType: instance.seriesType || 'standard',
-        createSeasonFolders: instance.createSeasonFolders,
-      }
+      this.config = this.configFromInstance(instance)
       return
     }
 
-    this.config = {
-      sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-      sonarrApiKey: instance.apiKey,
-      sonarrQualityProfileId: instance.qualityProfile || null,
-      sonarrLanguageProfileId: 1,
-      sonarrRootFolder: instance.rootFolder || null,
-      sonarrTagIds: instance.tags,
-      sonarrSeasonMonitoring: instance.seasonMonitoring,
-      sonarrMonitorNewItems: instance.monitorNewItems || 'all',
-      searchOnAdd:
-        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
-      sonarrSeriesType: instance.seriesType || 'standard',
-      createSeasonFolders: instance.createSeasonFolders,
-    }
+    this.config = this.configFromInstance(instance)
 
     this.log.debug(
       `Successfully initialized base Sonarr service for ${instance.name}`,

@@ -194,6 +194,7 @@ interface StoredWebhook {
 }
 
 interface WebhookBody {
+  id?: number
   name: string
   fields: Array<{ name: string; value?: string | number | boolean | object }>
 }
@@ -263,6 +264,22 @@ const arrWebhookHandlers = (['sonarr', 'radarr'] as const).flatMap((arr) => {
       const hook = { id: mock.nextId++, name: body.name, url }
       mock.hooks.push(hook)
       return HttpResponse.json(hook, { status: 201 })
+    }),
+    http.post(`${base}/test`, async ({ request }) => {
+      const body = (await request.json()) as WebhookBody
+      mock.requests.push({ method: 'TEST', id: body.id, name: body.name })
+      if (rejectsCallback(webhookUrl(body))) return callbackFailure()
+      if (
+        mock.hooks.some(
+          (hook) => hook.name === body.name && hook.id !== body.id,
+        )
+      ) {
+        return HttpResponse.json(
+          [{ propertyName: 'Name', errorMessage: 'Name should be unique' }],
+          { status: 400 },
+        )
+      }
+      return HttpResponse.json({}, { status: 200 })
     }),
     http.put(`${base}/:id`, async ({ request, params }) => {
       const id = Number(params.id)
