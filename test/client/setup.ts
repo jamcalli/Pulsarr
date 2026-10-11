@@ -1,12 +1,14 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { setupServer } from 'msw/node'
 import { afterAll, afterEach } from 'vitest'
+import { createFetchMock } from '../setup/fetch-mock.js'
 
-export const server = setupServer()
+const mock = createFetchMock([], 'error')
 
-// openapi-fetch captures globalThis.fetch at import, so MSW has to patch it before any test file loads
-server.listen({ onUnhandledRequest: 'error' })
+export const server = mock.server
+
+// openapi-fetch captures globalThis.fetch at import, so the swap has to happen before any test file loads
+mock.enable()
 
 afterEach(() => {
   cleanup()
@@ -16,5 +18,5 @@ afterEach(() => {
 })
 
 afterAll(() => {
-  server.close()
+  mock.disable()
 })

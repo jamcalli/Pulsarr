@@ -1,7 +1,3 @@
-import type {
-  WebhookResyncInstanceResult,
-  WebhookResyncResponse,
-} from '@root/schemas/config/resync-arr-webhooks.schema'
 import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -31,7 +27,8 @@ import {
   SelectValue,
 } from '@/legacy/components/ui/select'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
-import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { apiErrorMessage } from '@/lib/tanstackApi'
+import type { components, paths } from '@/types/api.js'
 
 type DeploymentType =
   | 'native-same'
@@ -87,22 +84,22 @@ interface NetworkConfigCredenzaProps {
   errorMessage?: string
 }
 
-async function resyncArrWebhooks(): Promise<WebhookResyncResponse> {
-  const { data, error } = await apiFetch.POST('/v1/config/resync-arr-webhooks')
-  if (error) {
-    throw new Error('Failed to update webhooks in Radarr and Sonarr')
-  }
-  return data
+type WebhookFailure = components['schemas']['ArrWebhookResult'] & {
+  app: string
 }
 
-type ResyncFailure = WebhookResyncInstanceResult & { app: string }
+type ConfigConflict =
+  paths['/v1/config']['put']['responses'][409]['content']['application/json']
 
-/**
- * Responsive modal for configuring Pulsarr's network settings (baseUrl and port).
- * Opens automatically when Radarr/Sonarr webhook callbacks fail, or manually from
- * the instance pages. Saving re-registers the webhook in every configured instance
- * so the arrs pick up the new address.
- */
+function webhookFailures(
+  webhooks: components['schemas']['ArrWebhookResults'],
+): WebhookFailure[] {
+  return [
+    ...webhooks.radarr.map((result) => ({ ...result, app: 'Radarr' })),
+    ...webhooks.sonarr.map((result) => ({ ...result, app: 'Sonarr' })),
+  ].filter((result) => !result.success)
+}
+
 export function NetworkConfigCredenza({
   open,
   onOpenChange,
@@ -118,7 +115,10 @@ export function NetworkConfigCredenza({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success'>(
     'idle',
   )
-  const [resyncFailures, setResyncFailures] = useState<ResyncFailure[]>([])
+  const [webhookAlert, setWebhookAlert] = useState<{
+    rejected: boolean
+    failures: WebhookFailure[]
+  } | null>(null)
 
   // Sync local state when config changes or modal opens
   useEffect(() => {
@@ -144,23 +144,20 @@ export function NetworkConfigCredenza({
   const handleSave = async () => {
     if (!config) return
     setSaveStatus('loading')
-    setResyncFailures([])
+    setWebhookAlert(null)
     try {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      await Promise.all([updateConfig({ baseUrl, port }), minimumLoadingTime])
+      const [data] = await Promise.all([
+        updateConfig({ baseUrl, port }),
+        minimumLoadingTime,
+      ])
 
-      // re-register webhooks so the arrs point at the new address; registration fires a test callback
-      const resync = await resyncArrWebhooks()
-      const failures = [
-        ...resync.radarr.map((result) => ({ ...result, app: 'Radarr' })),
-        ...resync.sonarr.map((result) => ({ ...result, app: 'Sonarr' })),
-      ].filter((result) => !result.success)
-
+      const failures = data.webhooks ? webhookFailures(data.webhooks) : []
       if (failures.length > 0) {
-        setResyncFailures(failures)
+        setWebhookAlert({ rejected: false, failures })
         toast.error('Settings saved, but some webhooks could not be updated')
         setSaveStatus('idle')
         return
@@ -184,6 +181,17 @@ export function NetworkConfigCredenza({
         onOpenChange(false)
       }
     } catch (error) {
+      if (typeof error === 'object' && error !== null && 'webhooks' in error) {
+        const { webhooks } = error as ConfigConflict
+        if (webhooks) {
+          setWebhookAlert({
+            rejected: true,
+            failures: webhookFailures(webhooks),
+          })
+          setSaveStatus('idle')
+          return
+        }
+      }
       toast.error(apiErrorMessage(error) ?? 'Failed to save settings')
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setSaveStatus('idle')
@@ -195,9 +203,13 @@ export function NetworkConfigCredenza({
     onOpenChange(newOpen)
     if (!newOpen) {
       setSaveStatus('idle')
-      setResyncFailures([])
+      setWebhookAlert(null)
     }
   }
+
+  const webhookAlertTitle = webhookAlert?.rejected
+    ? 'Address rejected'
+    : 'Webhook Update Failed'
 
   return (
     <Credenza open={open} onOpenChange={handleOpenChange}>
@@ -209,7 +221,7 @@ export function NetworkConfigCredenza({
           <CredenzaDescription>
             {errorMessage || onRetry
               ? "Radarr/Sonarr couldn't reach Pulsarr's webhook endpoint. Configure the address below that Radarr/Sonarr should use to reach Pulsarr (must be resolvable from their perspective, not your browser)."
-              : 'Configure the address that Radarr/Sonarr should use to reach Pulsarr (must be resolvable from their perspective, not your browser). Saving re-registers the webhook in every configured instance.'}
+              : 'Configure the address that Radarr/Sonarr should use to reach Pulsarr (must be resolvable from their perspective, not your browser). Saving checks that every Radarr and Sonarr instance can reach this address before it is stored.'}
           </CredenzaDescription>
         </CredenzaHeader>
 
@@ -222,13 +234,19 @@ export function NetworkConfigCredenza({
             </Alert>
           )}
 
-          {resyncFailures.length > 0 && (
+          {webhookAlert && (
             <Alert variant="error">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Webhook Update Failed</AlertTitle>
+              <AlertTitle>{webhookAlertTitle}</AlertTitle>
               <AlertDescription>
+                {webhookAlert.rejected && (
+                  <p>
+                    Radarr/Sonarr could not reach Pulsarr at this address.
+                    Nothing was saved.
+                  </p>
+                )}
                 <ul className="list-disc pl-4">
-                  {resyncFailures.map((failure) => (
+                  {webhookAlert.failures.map((failure) => (
                     <li key={`${failure.app}-${failure.instanceId}`}>
                       {failure.app} - {failure.name}: {failure.message}
                     </li>

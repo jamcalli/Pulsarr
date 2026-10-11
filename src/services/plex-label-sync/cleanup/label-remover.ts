@@ -11,6 +11,7 @@ import {
 } from '@schemas/plex/label-sync-config.schema.js'
 import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { metadataLabels } from '@services/plex-server/labels/label-operations.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -21,6 +22,7 @@ import {
   isManagedLabel,
   isRemovedLabel,
 } from '../label-operations/index.js'
+import { resolveStaleRatingKey } from './stale-rating-key.js'
 
 /**
  * Dependencies required for label removal operations
@@ -90,13 +92,18 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
     }
 
     // Group by rating key to batch operations
-    const labelsByRatingKey = new Map<string, string[]>()
+    const labelsByRatingKey = new Map<
+      string,
+      { labels: string[]; guids: Set<string> }
+    >()
     for (const tracking of trackedLabels) {
-      const existingLabels =
-        labelsByRatingKey.get(tracking.plex_rating_key) || []
-      // Add all labels from this tracking record
-      existingLabels.push(...tracking.labels_applied)
-      labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
+      const group = labelsByRatingKey.get(tracking.plex_rating_key) ?? {
+        labels: [],
+        guids: new Set<string>(),
+      }
+      group.labels.push(...tracking.labels_applied)
+      for (const guid of tracking.content_guids) group.guids.add(guid)
+      labelsByRatingKey.set(tracking.plex_rating_key, group)
     }
 
     if (emitProgress) {
@@ -118,7 +125,7 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
     }> = []
 
     const labelRemovalResults = await Promise.allSettled(
-      ratingKeyEntries.map(([ratingKey, labels]) =>
+      ratingKeyEntries.map(([trackedKey, { labels, guids }]) =>
         limit(async () => {
           const itemResult = {
             processed: 0,
@@ -143,9 +150,24 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
               })
             }
 
-            // Get current labels and remove only Pulsarr-created labels
-            const metadata = await deps.plexServer.getMetadata(ratingKey)
-            if (!metadata) {
+            let ratingKey = trackedKey
+            let lookup = await deps.plexServer.lookupMetadata(ratingKey)
+            if (lookup.status === 'missing') {
+              const stale = await resolveStaleRatingKey(deps, ratingKey, [
+                ...guids,
+              ])
+              if (stale.outcome === 'deleted') {
+                itemResult.removed += labels.length
+                return itemResult
+              }
+              if (stale.outcome === 'unresolved') {
+                itemResult.failed += labels.length
+                return itemResult
+              }
+              ratingKey = stale.ratingKey
+              lookup = await deps.plexServer.lookupMetadata(ratingKey)
+            }
+            if (lookup.status !== 'found') {
               itemResult.failed += labels.length
               deps.logger.warn(
                 { ratingKey, labels },
@@ -153,8 +175,7 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
               )
               return itemResult
             }
-            const currentLabels =
-              metadata.Label?.map((label) => label.tag) || []
+            const currentLabels = metadataLabels(lookup.metadata)
 
             deps.logger.debug(
               {
@@ -270,9 +291,9 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
             deps.logger.error(
               {
                 error,
-                ratingKey,
+                ratingKey: trackedKey,
               },
-              `Failed to remove labels from Plex content ${ratingKey}`,
+              `Failed to remove labels from Plex content ${trackedKey}`,
             )
             itemResult.failed++
           }
@@ -589,6 +610,36 @@ export async function resetLabels(
           ),
       )
 
+    const isMissing = async (ratingKey: string) =>
+      (await deps.plexServer.lookupMetadata(ratingKey)).status === 'missing'
+    const settleOnLiveKey = async (
+      trackedKey: string,
+      guids: string[],
+      step: (
+        ratingKey: string,
+        remainingRows: PlexLabelTracking[],
+      ) => Promise<'done' | 'missing' | 'failed'>,
+    ): Promise<boolean> => {
+      const outcome = await step(trackedKey, remainingUserRows(trackedKey))
+      if (outcome !== 'missing') return outcome === 'done'
+
+      const stale = await resolveStaleRatingKey(deps, trackedKey, guids)
+      if (stale.outcome === 'deleted') return true
+      if (stale.outcome === 'unresolved') return false
+
+      const retried = await step(stale.ratingKey, [
+        ...remainingUserRows(trackedKey),
+        ...remainingUserRows(stale.ratingKey),
+      ])
+      if (retried === 'missing') {
+        deps.logger.warn(
+          { ratingKey: stale.ratingKey },
+          `Rating key ${stale.ratingKey} is also gone from Plex, keeping its tracking`,
+        )
+      }
+      return retried === 'done'
+    }
+
     if (deps.removedLabelMode === 'keep') {
       deps.logger.info(
         'Removal mode is "keep", preserving orphaned labels and tracking entries',
@@ -599,33 +650,43 @@ export async function resetLabels(
       // Remove labels from Plex and delete tracking entries
       for (const entry of orphanedEntries) {
         try {
-          const labelsToRemove = labelsNoOneElseHolds(
-            entry.labelsApplied,
-            remainingUserRows(entry.plexRatingKey),
-          )
-          if (
-            labelsToRemove.length > 0 &&
-            !(await deps.plexServer.removeSpecificLabels(
-              entry.plexRatingKey,
-              labelsToRemove,
-            ))
-          ) {
-            deps.logger.warn(
-              { ratingKey: entry.plexRatingKey, labelsToRemove },
-              `Failed to remove orphaned labels from rating key ${entry.plexRatingKey}, keeping its tracking`,
-            )
-            failedCount++
-            continue
-          }
-
-          // Delete tracking entry
-          await deps.db.cleanupUserContentTracking(
+          const settled = await settleOnLiveKey(
+            entry.plexRatingKey,
             entry.guids,
-            entry.contentType,
-            entry.user_id,
+            async (ratingKey, remainingRows) => {
+              const labelsToRemove = labelsNoOneElseHolds(
+                entry.labelsApplied,
+                remainingRows,
+              )
+              if (
+                labelsToRemove.length > 0 &&
+                !(await deps.plexServer.removeSpecificLabels(
+                  ratingKey,
+                  labelsToRemove,
+                ))
+              ) {
+                if (await isMissing(ratingKey)) return 'missing'
+                deps.logger.warn(
+                  { ratingKey, labelsToRemove },
+                  `Failed to remove orphaned labels from rating key ${ratingKey}, keeping its tracking`,
+                )
+                return 'failed'
+              }
+
+              await deps.db.cleanupUserContentTracking(
+                entry.guids,
+                entry.contentType,
+                entry.user_id,
+              )
+              return 'done'
+            },
           )
 
-          processedCount++
+          if (settled) {
+            processedCount++
+          } else {
+            failedCount++
+          }
         } catch (error) {
           deps.logger.error(
             {
@@ -647,64 +708,69 @@ export async function resetLabels(
           continue
         }
         try {
-          const currentLabels = await deps.plexServer.getCurrentLabels(
+          const settled = await settleOnLiveKey(
             entry.plexRatingKey,
-          )
-          if (currentLabels === null) {
-            deps.logger.warn(
-              { ratingKey: entry.plexRatingKey },
-              `Could not read labels on rating key ${entry.plexRatingKey}, keeping its tracking`,
-            )
-            failedCount++
-            continue
-          }
+            entry.guids,
+            async (ratingKey, remainingRows) => {
+              const lookup = await deps.plexServer.lookupMetadata(ratingKey)
+              if (lookup.status === 'missing') return 'missing'
+              if (lookup.status === 'error') {
+                deps.logger.warn(
+                  { ratingKey },
+                  `Could not read labels on rating key ${ratingKey}, keeping its tracking`,
+                )
+                return 'failed'
+              }
 
-          const remainingRows = remainingUserRows(entry.plexRatingKey)
-          const ownLabels = labelsNoOneElseHolds(
-            entry.labelsApplied,
-            remainingRows,
-          )
-          const keptLabels = currentLabels.filter(
-            (label) => !includesLabelIgnoreCase(ownLabels, label),
-          )
-          const applyMarker = remainingRows.length === 0
-          const finalLabels = applyMarker
-            ? [...new Set([...keptLabels, removedLabel])]
-            : keptLabels.filter(
-                (label) => !isRemovedLabel(label, deps.removedLabelPrefix),
+              const ownLabels = labelsNoOneElseHolds(
+                entry.labelsApplied,
+                remainingRows,
+              )
+              const keptLabels = metadataLabels(lookup.metadata).filter(
+                (label) => !includesLabelIgnoreCase(ownLabels, label),
+              )
+              const applyMarker = remainingRows.length === 0
+              const finalLabels = applyMarker
+                ? [...new Set([...keptLabels, removedLabel])]
+                : keptLabels.filter(
+                    (label) => !isRemovedLabel(label, deps.removedLabelPrefix),
+                  )
+
+              if (
+                !(await deps.plexServer.updateLabels(ratingKey, finalLabels))
+              ) {
+                if (await isMissing(ratingKey)) return 'missing'
+                deps.logger.warn(
+                  { ratingKey },
+                  `Failed to update labels on rating key ${ratingKey}, keeping its tracking`,
+                )
+                return 'failed'
+              }
+
+              await deps.db.cleanupUserContentTracking(
+                entry.guids,
+                entry.contentType,
+                entry.user_id,
               )
 
-          if (
-            !(await deps.plexServer.updateLabels(
-              entry.plexRatingKey,
-              finalLabels,
-            ))
-          ) {
-            deps.logger.warn(
-              { ratingKey: entry.plexRatingKey },
-              `Failed to update labels on rating key ${entry.plexRatingKey}, keeping its tracking`,
-            )
-            failedCount++
-            continue
-          }
-
-          await deps.db.cleanupUserContentTracking(
-            entry.guids,
-            entry.contentType,
-            entry.user_id,
+              if (applyMarker) {
+                await deps.db.trackPlexLabels(
+                  entry.guids,
+                  entry.contentType,
+                  null,
+                  ratingKey,
+                  [removedLabel],
+                )
+              }
+              return 'done'
+            },
           )
 
-          if (applyMarker) {
-            await deps.db.trackPlexLabels(
-              entry.guids,
-              entry.contentType,
-              null,
-              entry.plexRatingKey,
-              [removedLabel],
-            )
+          if (settled) {
+            processedCount++
+          } else {
+            failedCount++
           }
-
-          processedCount++
         } catch (error) {
           deps.logger.error(
             {

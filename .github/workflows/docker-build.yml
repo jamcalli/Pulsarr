@@ -115,7 +115,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: digests-bun-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -132,7 +132,7 @@ jobs:
       digest: ${{ steps.digest.outputs.digest }}
     steps:
       - name: Download digests
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: digests-bun-*
           merge-multiple: true
@@ -235,7 +235,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: digests-node-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -252,7 +252,7 @@ jobs:
       digest: ${{ steps.digest.outputs.digest }}
     steps:
       - name: Download digests
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: digests-node-*
           merge-multiple: true
@@ -388,7 +388,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           sarif_file: trivy-release-${{ matrix.variant }}.sarif
           category: trivy-release-${{ matrix.variant }}
@@ -425,7 +425,7 @@ jobs:
           TMDBAPIKEY: ${{ secrets.TMDBAPIKEY }}
 
       - name: Create Draft Release
-        uses: release-drafter/release-drafter@34d80673e067bdc0c24568d3af899c216adcfaa9 # v7
+        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7
         with:
           config-name: release-drafter.yml
           tag: ${{ github.ref_name }}

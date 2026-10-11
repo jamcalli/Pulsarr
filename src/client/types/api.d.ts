@@ -264,26 +264,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/config/resync-arr-webhooks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Resync arr webhooks
-         * @description Re-register Pulsarr webhooks in all configured Radarr and Sonarr instances using the current network settings
-         */
-        post: operations["resyncArrWebhooks"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/content-router/plugins": {
         parameters: {
             query?: never;
@@ -3316,6 +3296,19 @@ export interface components {
          * @enum {string}
          */
         ApprovalTrigger: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+        /** @description Outcome of testing or registering the Pulsarr webhook in one arr instance */
+        ArrWebhookResult: {
+            instanceId: number;
+            name: string;
+            success: boolean;
+            code: ("callback_failed" | "unreachable") | null;
+            message: string;
+        };
+        /** @description Per-instance webhook outcomes for every Radarr and Sonarr */
+        ArrWebhookResults: {
+            radarr: components["schemas"]["ArrWebhookResult"][];
+            sonarr: components["schemas"]["ArrWebhookResult"][];
+        };
         /** @description Days from watchlisted to available for a content type */
         AvailabilityTime: {
             content_type: string;
@@ -3492,11 +3485,22 @@ export interface components {
             /** @description Auto-start the watchlist workflow on next boot; surfaced as the Auto-Start toggle */
             _isReady: boolean;
         };
+        /** @description Conflict response, with per-instance webhook outcomes when an arr rejected the new address */
+        ConfigConflict: {
+            /** @description HTTP status code */
+            statusCode: number;
+            /** @description HTTP status text */
+            error: string;
+            /** @description Error detail, replaced with a generic string for 5xx */
+            message: string;
+            webhooks?: components["schemas"]["ArrWebhookResults"];
+        };
         /** @description Configuration response envelope */
         ConfigResponse: {
             /** @constant */
             success: true;
             config: components["schemas"]["Config"];
+            webhooks?: components["schemas"]["ArrWebhookResults"];
         };
         /** @description Writable configuration fields; server-internal settings are rejected */
         ConfigUpdatePayload: {
@@ -5770,59 +5774,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    resyncArrWebhooks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        radarr: {
-                            instanceId: number;
-                            name: string;
-                            success: boolean;
-                            message: string;
-                        }[];
-                        sonarr: {
-                            instanceId: number;
-                            name: string;
-                            success: boolean;
-                            message: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["ConfigConflict"];
                 };
             };
             /** @description Rate limit exceeded */

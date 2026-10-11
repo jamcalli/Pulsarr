@@ -1,3 +1,4 @@
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type { RadarrInstance, RadarrPost } from '@root/types/radarr.types.js'
 import { RadarrService } from '@services/radarr.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -334,7 +335,97 @@ describe('RadarrService webhook setup', () => {
       400,
     )
 
-    await expect(initialize()).rejects.toThrow('Unable to send test message')
+    const result = initialize()
+    await expect(result).rejects.toBeInstanceOf(WebhookCallbackError)
+    await expect(result).rejects.toThrow('Unable to send test message')
     expect(requests).toEqual([{ method: 'PUT', id: 172 }])
+  })
+
+  describe('testWebhookCallback', () => {
+    function serveCallbackTest(status: number) {
+      server.use(
+        http.post(`${NOTIFICATION_URL}/test`, async ({ request }) => {
+          const body = (await request.json()) as { id?: number }
+          requests.push(
+            'id' in body ? { method: 'TEST', id: body.id } : { method: 'TEST' },
+          )
+          if (status === 200) return HttpResponse.json({})
+          return status === 400
+            ? HttpResponse.json(
+                [
+                  {
+                    propertyName: 'Url',
+                    errorMessage: 'Unable to send test message',
+                  },
+                ],
+                { status },
+              )
+            : HttpResponse.json(
+                { message: 'Unable to send test message: Connection refused' },
+                { status },
+              )
+        }),
+      )
+    }
+
+    const testCallback = () =>
+      service.testWebhookCallback({ ...INSTANCE, apiKey: 'real-key' })
+
+    it('posts the test with the current hook id', async () => {
+      serveHooks([
+        { id: 172, name: service.getWebhookName(), url: 'http://stale' },
+        { id: 50, name: 'Pulsarr', url: expectedUrl },
+      ])
+      serveCallbackTest(200)
+
+      await testCallback()
+
+      expect(requests).toStrictEqual([{ method: 'TEST', id: 172 }])
+    })
+
+    it('posts the test with the legacy hook id when only legacy exists', async () => {
+      serveHooks([{ id: 50, name: 'Pulsarr', url: expectedUrl }])
+      serveCallbackTest(200)
+
+      await testCallback()
+
+      expect(requests).toStrictEqual([{ method: 'TEST', id: 50 }])
+    })
+
+    it('posts the test without an id when no Pulsarr hook exists', async () => {
+      serveHooks([{ id: 50, name: 'Pulsarr', url: 'http://other-pulsarr' }])
+      serveCallbackTest(200)
+
+      await testCallback()
+
+      expect(requests).toStrictEqual([{ method: 'TEST' }])
+    })
+
+    it.each([400, 500])(
+      'throws WebhookCallbackError on a %i',
+      async (status) => {
+        serveHooks([
+          { id: 172, name: service.getWebhookName(), url: 'http://stale' },
+        ])
+        serveCallbackTest(status)
+
+        const result = testCallback()
+        await expect(result).rejects.toBeInstanceOf(WebhookCallbackError)
+        await expect(result).rejects.toThrow('Unable to send test message')
+        expect(requests).toStrictEqual([{ method: 'TEST', id: 172 }])
+      },
+    )
+
+    it('rethrows a network error unchanged', async () => {
+      serveHooks([])
+      server.use(
+        http.post(`${NOTIFICATION_URL}/test`, () => HttpResponse.error()),
+      )
+
+      const result = testCallback()
+      await expect(result).rejects.toBeInstanceOf(Error)
+      await expect(result).rejects.not.toBeInstanceOf(WebhookCallbackError)
+      expect(requests).toEqual([])
+    })
   })
 })

@@ -131,6 +131,13 @@ declare module '@services/database.service.js' {
       plexRatingKey: string,
     ): Promise<number>
 
+    /** Moves every row from oldKey to newKey, folding labels into a row newKey already holds for the same content and user, and returns the rows moved. */
+    updateTrackingRatingKey(
+      this: DatabaseService,
+      oldKey: string,
+      newKey: string,
+    ): Promise<number>
+
     /**
      * Checks if a specific label is already tracked for a user/content/rating key combination
      * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])

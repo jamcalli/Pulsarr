@@ -832,6 +832,69 @@
         ],
         "description": "What caused a request to need approval"
       },
+      "ArrWebhookResult": {
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "callback_failed",
+                  "unreachable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instanceId",
+          "name",
+          "success",
+          "code",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Outcome of testing or registering the Pulsarr webhook in one arr instance"
+      },
+      "ArrWebhookResults": {
+        "type": "object",
+        "properties": {
+          "radarr": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArrWebhookResult"
+            }
+          },
+          "sonarr": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArrWebhookResult"
+            }
+          }
+        },
+        "required": [
+          "radarr",
+          "sonarr"
+        ],
+        "additionalProperties": false,
+        "description": "Per-instance webhook outcomes for every Radarr and Sonarr"
+      },
       "AvailabilityTime": {
         "type": "object",
         "properties": {
@@ -1550,6 +1613,34 @@
         "additionalProperties": false,
         "description": "Complete application configuration; server-internal secrets are never included"
       },
+      "ConfigConflict": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "description": "HTTP status code"
+          },
+          "error": {
+            "type": "string",
+            "description": "HTTP status text"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Error detail, replaced with a generic string for 5xx"
+          },
+          "webhooks": {
+            "$ref": "#/components/schemas/ArrWebhookResults"
+          }
+        },
+        "required": [
+          "statusCode",
+          "error",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Conflict response, with per-instance webhook outcomes when an arr rejected the new address"
+      },
       "ConfigResponse": {
         "type": "object",
         "properties": {
@@ -1559,6 +1650,9 @@
           },
           "config": {
             "$ref": "#/components/schemas/Config"
+          },
+          "webhooks": {
+            "$ref": "#/components/schemas/ArrWebhookResults"
           }
         },
         "required": [
@@ -8020,114 +8114,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/config/resync-arr-webhooks": {
-      "post": {
-        "operationId": "resyncArrWebhooks",
-        "summary": "Resync arr webhooks",
-        "tags": [
-          "Config"
-        ],
-        "description": "Re-register Pulsarr webhooks in all configured Radarr and Sonarr instances using the current network settings",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "radarr": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "instanceId": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "success": {
-                            "type": "boolean"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "instanceId",
-                          "name",
-                          "success",
-                          "message"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "sonarr": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "instanceId": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "success": {
-                            "type": "boolean"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "instanceId",
-                          "name",
-                          "success",
-                          "message"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "radarr",
-                    "sonarr"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ConfigConflict"
                 }
               }
             }
