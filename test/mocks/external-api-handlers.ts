@@ -1,19 +1,6 @@
 import { HttpResponse, http } from 'msw'
 
-/**
- * Shared MSW handlers for external API endpoints (TMDB, Radarr Ratings)
- *
- * These handlers provide default responses for common external API calls
- * to prevent MSW warnings about unhandled requests during integration tests.
- *
- * Tests can override these handlers using server.use() for specific scenarios.
- */
-
-/**
- * TMDB API Handlers
- */
-
-export const tmdbMovieDetailsHandler = http.get(
+const tmdbMovieDetailsHandler = http.get(
   'https://api.themoviedb.org/3/movie/:id',
   ({ params }) => {
     const { id } = params
@@ -28,7 +15,7 @@ export const tmdbMovieDetailsHandler = http.get(
   },
 )
 
-export const tmdbTvDetailsHandler = http.get(
+const tmdbTvDetailsHandler = http.get(
   'https://api.themoviedb.org/3/tv/:id',
   ({ params }) => {
     const { id } = params
@@ -43,7 +30,7 @@ export const tmdbTvDetailsHandler = http.get(
   },
 )
 
-export const tmdbMovieWatchProvidersHandler = http.get(
+const tmdbMovieWatchProvidersHandler = http.get(
   'https://api.themoviedb.org/3/movie/:id/watch/providers',
   ({ params }) => {
     const { id } = params
@@ -54,7 +41,7 @@ export const tmdbMovieWatchProvidersHandler = http.get(
   },
 )
 
-export const tmdbTvWatchProvidersHandler = http.get(
+const tmdbTvWatchProvidersHandler = http.get(
   'https://api.themoviedb.org/3/tv/:id/watch/providers',
   ({ params }) => {
     const { id } = params
@@ -65,7 +52,7 @@ export const tmdbTvWatchProvidersHandler = http.get(
   },
 )
 
-export const tmdbRegionsHandler = http.get(
+const tmdbRegionsHandler = http.get(
   'https://api.themoviedb.org/3/watch/providers/regions',
   () => {
     return HttpResponse.json({
@@ -77,7 +64,7 @@ export const tmdbRegionsHandler = http.get(
   },
 )
 
-export const tmdbFindHandler = http.get(
+const tmdbFindHandler = http.get(
   'https://api.themoviedb.org/3/find/:id',
   () => {
     return HttpResponse.json({
@@ -87,11 +74,7 @@ export const tmdbFindHandler = http.get(
   },
 )
 
-/**
- * Radarr Ratings API Handlers
- */
-
-export const radarrRatingsHandler = http.get(
+const radarrRatingsHandler = http.get(
   'https://api.radarr.video/v1/movie/:id',
   ({ params }) => {
     const { id } = params
@@ -104,12 +87,7 @@ export const radarrRatingsHandler = http.get(
   },
 )
 
-/**
- * Radarr Lookup API Handlers (for test Radarr instances)
- * Matches both test-radarr:7878 and localhost:7878
- */
-
-export const radarrLookupHandler = http.get(
+const radarrLookupHandler = http.get(
   'http://:host/api/v3/movie/lookup/tmdb',
   ({ request }) => {
     const url = new URL(request.url)
@@ -127,14 +105,8 @@ export const radarrLookupHandler = http.get(
   },
 )
 
-/**
- * GitHub API Handlers (update-check service, fires on app boot)
- *
- * tag_name stays below any real version so updateAvailable is false (no
- * notification dispatch); empty body skips the markdown render call.
- */
-
-export const githubReleaseHandler = http.get(
+// tag_name stays below any real version so no update notification fires, and the empty body skips the markdown render
+const githubReleaseHandler = http.get(
   'https://api.github.com/repos/:owner/:repo/releases/latest',
   () =>
     HttpResponse.json({
@@ -148,16 +120,10 @@ export const githubReleaseHandler = http.get(
     }),
 )
 
-export const githubMarkdownHandler = http.post(
-  'https://api.github.com/markdown',
-  () => HttpResponse.text(''),
+const githubMarkdownHandler = http.post('https://api.github.com/markdown', () =>
+  HttpResponse.text(''),
 )
 
-/**
- * Export external API handlers for global MSW setup
- * These are registered globally in msw-setup.ts to prevent unhandled request warnings.
- * Individual tests can override these defaults using server.use().
- */
 export const externalApiHandlers = [
   tmdbMovieDetailsHandler,
   tmdbTvDetailsHandler,

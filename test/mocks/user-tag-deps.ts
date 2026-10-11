@@ -70,7 +70,7 @@ export function createFakeAdapter(
   }
 }
 
-/** Requires the calling test file to `vi.mock('@services/user-tags/arr-adapter.js')`; undefined entries stand for instances without a live service. */
+/** Requires the calling test file to `vi.mock('@services/user-tags/arr-adapter.js')`, and an undefined entry stands for an instance without a live service. */
 export function useAdapters(
   adapters: Partial<Record<ArrType, Array<ArrAdapter | undefined>>>,
 ): void {

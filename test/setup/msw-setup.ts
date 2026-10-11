@@ -1,5 +1,5 @@
 import { getResponse, isPassthroughResponse, type RequestHandler } from 'msw'
-import { afterAll, afterEach, beforeAll, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll } from 'vitest'
 import { externalApiHandlers } from '../mocks/external-api-handlers.js'
 import { plexApiHandlers } from '../mocks/plex-api-handlers.js'
 
@@ -49,43 +49,17 @@ export const server = {
   use(...added: RequestHandler[]): void {
     handlers = [...added, ...handlers]
   },
-  resetHandlers(...next: RequestHandler[]): void {
-    handlers = next.length > 0 ? [...next] : [...defaultHandlers]
+  resetHandlers(): void {
+    handlers = [...defaultHandlers]
   },
 }
-
-// Suppress migration console.log noise in tests
-const originalLog = console.log
-vi.spyOn(console, 'log').mockImplementation((...args) => {
-  const msg = String(args[0] ?? '')
-  // Filter out migration and setup noise in tests
-  if (
-    msg.includes('Migration') ||
-    msg.includes('migration') ||
-    msg.includes('Seeded') ||
-    msg.includes('PostgreSQL') ||
-    msg.includes('admin users') ||
-    msg.includes('router rules') ||
-    msg.includes('user_id column') ||
-    msg.includes('primary user') ||
-    msg.includes('Skipping') ||
-    msg.includes('Setting up logger')
-  ) {
-    return
-  }
-  originalLog(...args)
-})
 
 beforeAll(() => {
   globalThis.fetch = mockedFetch as typeof fetch
 })
 
-/**
- * Reset handlers after each test to ensure test isolation
- * Restore default handlers so they're available for the next test
- */
 afterEach(() => {
-  server.resetHandlers(...plexApiHandlers, ...externalApiHandlers)
+  server.resetHandlers()
 })
 
 afterAll(() => {
