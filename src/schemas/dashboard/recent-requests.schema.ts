@@ -1,43 +1,58 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
+import { WatchlistStatusSchema } from '@root/schemas/common/watchlist-status.schema.js'
 import { z } from 'zod'
 
-// Status enum for recent requests (includes pending_approval from approvals table)
-export const RecentRequestStatusSchema = z.enum([
-  'pending_approval',
-  'pending',
-  'requested',
-  'available',
-])
+export const RecentRequestStatusSchema = z
+  .enum(['pending_approval', 'pending', 'requested', 'available'])
+  .meta({
+    id: 'RecentRequestStatus',
+    description:
+      'Collapsed request status, where pending_approval comes from the approval queue',
+  })
 
-// Status enum for instances (subset - instances can't have pending_approval)
-export const InstanceStatusSchema = z.enum([
-  'pending',
-  'requested',
-  'available',
-])
+export const InstanceStatusSchema = z
+  .enum(['pending', 'requested', 'available'])
+  .meta({
+    id: 'RecentRequestInstanceStatus',
+    description:
+      'Collapsed per-instance status, never pending_approval since approvals are not routed yet',
+  })
 
-// Instance info schema
-export const InstanceInfoSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  instanceType: z.enum(['radarr', 'sonarr']),
-  status: InstanceStatusSchema,
-})
+export const InstanceInfoSchema = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    instanceType: InstanceTypeSchema,
+    status: InstanceStatusSchema,
+    junctionStatus: WatchlistStatusSchema,
+  })
+  .meta({
+    id: 'RecentRequestInstance',
+    description:
+      'One arr instance a recent request was routed to, with its collapsed and raw status',
+  })
 
-// Individual recent request item
-export const RecentRequestItemSchema = z.object({
-  id: z.number(),
-  source: z.enum(['approval', 'watchlist']),
-  title: z.string(),
-  contentType: z.enum(['movie', 'show']),
-  guids: z.array(z.string()),
-  thumb: z.string().nullable(),
-  status: RecentRequestStatusSchema,
-  userId: z.number(),
-  userName: z.string(),
-  createdAt: z.string(),
-  primaryInstance: InstanceInfoSchema.nullable(),
-  allInstances: z.array(InstanceInfoSchema),
-})
+export const RecentRequestItemSchema = z
+  .object({
+    id: z.number(),
+    source: z.enum(['approval', 'watchlist']),
+    title: z.string(),
+    contentType: ContentTypeSchema,
+    guids: z.array(z.string()),
+    thumb: z.string().nullable(),
+    status: RecentRequestStatusSchema,
+    userId: z.number(),
+    userName: z.string(),
+    createdAt: z.string(),
+    primaryInstance: InstanceInfoSchema.nullable(),
+    allInstances: z.array(InstanceInfoSchema),
+  })
+  .meta({
+    id: 'RecentRequestItem',
+    description:
+      'A pending approval or routed watchlist item shown in recent requests',
+  })
 
 // Query parameters
 export const RecentRequestsQuerySchema = z.object({
@@ -45,11 +60,15 @@ export const RecentRequestsQuerySchema = z.object({
   status: RecentRequestStatusSchema.optional(),
 })
 
-// Response schema
-export const RecentRequestsResponseSchema = z.object({
-  success: z.boolean(),
-  items: z.array(RecentRequestItemSchema),
-})
+export const RecentRequestsResponseSchema = z
+  .object({
+    success: z.boolean(),
+    items: z.array(RecentRequestItemSchema),
+  })
+  .meta({
+    id: 'RecentRequestsResponse',
+    description: 'Recent requests for the dashboard, newest first',
+  })
 
 // Type exports
 export type RecentRequestStatus = z.infer<typeof RecentRequestStatusSchema>

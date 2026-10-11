@@ -33,14 +33,18 @@ import {
 import {
   getCurrentLabels,
   getMetadata,
+  lookupMetadata,
+  type MetadataLookup,
   removeSpecificLabels,
   updateLabels,
-} from './plex-server/labels/index.js'
+} from './plex-server/labels/label-operations.js'
 import {
+  type GuidLookup,
   getMetadataChildren,
   getShowMetadata,
+  lookupByGuid,
   searchByGuid,
-} from './plex-server/metadata/index.js'
+} from './plex-server/metadata/metadata-operations.js'
 import {
   createUserPlaylist,
   findUserPlaylistByTitle,
@@ -1385,6 +1389,12 @@ export class PlexServerService {
     return searchByGuid(guid, serverUrl, token, this.log)
   }
 
+  async lookupByGuid(guid: string): Promise<GuidLookup> {
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return lookupByGuid(guid, serverUrl, token, this.log)
+  }
+
   async getMetadataChildren(
     ratingKey: string,
   ): Promise<PlexChildrenResponse | null> {
@@ -1670,7 +1680,13 @@ export class PlexServerService {
     return getMetadata(ratingKey, serverUrl, token, this.log)
   }
 
-  async getCurrentLabels(ratingKey: string): Promise<string[]> {
+  async lookupMetadata(ratingKey: string): Promise<MetadataLookup> {
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return lookupMetadata(ratingKey, serverUrl, token, this.log)
+  }
+
+  async getCurrentLabels(ratingKey: string): Promise<string[] | null> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return getCurrentLabels(ratingKey, serverUrl, token, this.log)

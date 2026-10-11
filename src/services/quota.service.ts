@@ -7,6 +7,7 @@ import type {
 } from '@root/types/approval.types.js'
 import { isUniqueViolation } from '@utils/db-errors.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class QuotaService {
@@ -158,8 +159,6 @@ export class QuotaService {
       }
     }
 
-    // Reset day validation removed - quotas now reset based on maintenance schedule
-
     return {
       valid: errors.length === 0,
       errors,
@@ -173,7 +172,11 @@ export class QuotaService {
     userId: number,
     contentType: 'movie' | 'show',
   ): Promise<QuotaStatus | null> {
-    return this.fastify.db.getQuotaStatus(userId, contentType)
+    return this.fastify.db.getQuotaStatus(
+      userId,
+      contentType,
+      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
+    )
   }
 
   /**
@@ -183,7 +186,11 @@ export class QuotaService {
     userId: number,
     contentType: 'movie' | 'show',
   ): Promise<boolean> {
-    const status = await this.fastify.db.getQuotaStatus(userId, contentType)
+    const status = await this.fastify.db.getQuotaStatus(
+      userId,
+      contentType,
+      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
+    )
     if (!status) {
       return false // No quota configured
     }
@@ -206,7 +213,11 @@ export class QuotaService {
       return Number.POSITIVE_INFINITY // No content type specified
     }
 
-    const status = await this.fastify.db.getQuotaStatus(userId, contentType)
+    const status = await this.fastify.db.getQuotaStatus(
+      userId,
+      contentType,
+      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
+    )
     if (!status) {
       return Number.POSITIVE_INFINITY // No quota configured
     }
@@ -237,7 +248,11 @@ export class QuotaService {
       }
     }
 
-    const status = await this.fastify.db.getQuotaStatus(userId, contentType)
+    const status = await this.fastify.db.getQuotaStatus(
+      userId,
+      contentType,
+      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
+    )
 
     if (!status) {
       return {
@@ -518,7 +533,10 @@ export class QuotaService {
 
     if (usersWithQuotas.length > 0) {
       const userIds = usersWithQuotas.map((quota) => quota.userId)
-      const quotaStatuses = await this.fastify.db.getBulkQuotaStatus(userIds)
+      const quotaStatuses = await this.fastify.db.getBulkQuotaStatus(
+        userIds,
+        resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
+      )
 
       for (const { userId, quotaStatus } of quotaStatuses) {
         if (quotaStatus) {
@@ -638,6 +656,7 @@ export class QuotaService {
         contentType,
         userQuota.quotaType,
         userQuota.quotaLimit,
+        resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
       )
 
       if (!result.consumed) {

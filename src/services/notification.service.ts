@@ -1,3 +1,8 @@
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import {
   buildRoutingPayload,
   type WebhookPayloadMap,
@@ -7,6 +12,7 @@ import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { Friend, Item as WatchlistItem } from '@root/types/plex.types.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'
+import type { RoutingDetails } from '@root/types/router.types.js'
 import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
 import type {
   WebhookDispatchResult,
@@ -194,20 +200,7 @@ export class NotificationService {
   async sendWatchlistAdded(
     user: Friend & { userId: number },
     item: WatchlistItemInfo,
-    routingDetails?: Array<{
-      instanceId: number
-      instanceType: 'radarr' | 'sonarr'
-      qualityProfile?: number | string | null
-      rootFolder?: string | null
-      tags?: string[]
-      searchOnAdd?: boolean | null
-      minimumAvailability?: string | null
-      seasonMonitoring?: string | null
-      seriesType?: string | null
-      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
-      ruleId?: number
-      ruleName?: string
-    }>,
+    routingDetails?: RoutingDetails[],
   ): Promise<boolean> {
     return sendWatchlistAdded(
       {
@@ -384,10 +377,10 @@ export class NotificationService {
       rootFolder: string | null
       tags: string[]
       searchOnAdd?: boolean | null
-      minimumAvailability?: string | null
+      minimumAvailability?: MinimumAvailability | null
       seasonMonitoring?: string | null
-      seriesType?: 'standard' | 'anime' | 'daily' | null
-      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+      seriesType?: SonarrSeriesType | null
+      monitor?: RadarrMonitorType | null
       syncedInstances?: number[]
     },
     reason: string,

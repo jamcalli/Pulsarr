@@ -39,7 +39,7 @@ Manage user content requests with configurable quotas and administrative approva
 | Type | Description |
 |------|-------------|
 | **Daily** | Reset at midnight in your timezone |
-| **Weekly Rolling** | 7-day rolling window that shifts each day |
+| **Weekly Rolling** | Rolling window of the last 7 days (configurable) that shifts each day |
 | **Monthly** | Calendar month-based with configurable reset day |
 
 ## Watchlist Caps
@@ -202,7 +202,7 @@ Manage approvals directly from Discord:
 
 | Problem | Solution |
 |---------|----------|
-| **Quotas not resetting** | Check timezone configuration and cleanup settings |
+| **Quotas not resetting** | Check the server timezone and the weekly and monthly reset settings |
 | **Approvals not routing** | Verify target instances are still available |
 | **Missing notifications** | Confirm Discord/Apprise configuration |
 

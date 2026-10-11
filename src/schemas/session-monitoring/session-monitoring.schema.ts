@@ -1,13 +1,6 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { SonarrRollingMonitoringSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { z } from 'zod'
-
-// Reusable monitoring type enum
-const MonitoringTypeEnum = z
-  .enum(['pilotRolling', 'firstSeasonRolling', 'allSeasonPilotRolling'])
-  .meta({
-    id: 'MonitoringType',
-    description: 'Rolling monitoring strategy for a show',
-  })
 
 // Base rolling monitored show schema
 const RollingMonitoredShowSchema = z
@@ -17,7 +10,7 @@ const RollingMonitoredShowSchema = z
     tvdb_id: z.string().nullish(),
     imdb_id: z.string().nullish(),
     show_title: z.string(),
-    monitoring_type: MonitoringTypeEnum,
+    monitoring_type: SonarrRollingMonitoringSchema,
     current_monitored_season: z.number(),
     last_watched_season: z.number(),
     last_watched_episode: z.number(),
@@ -44,7 +37,7 @@ const SonarrShowWithEnrollmentSchema = z
     title: z.string(),
     guids: z.array(z.string()),
     rollingShowId: z.number().nullable(),
-    monitoringType: MonitoringTypeEnum.nullable(),
+    monitoringType: SonarrRollingMonitoringSchema.nullable(),
   })
   .meta({
     id: 'SonarrShowWithEnrollment',
@@ -222,7 +215,7 @@ export const bulkManageRollingMonitoredSchema = {
           rollingShowId: z.number().nullable(),
         }),
       ),
-      monitoringType: MonitoringTypeEnum,
+      monitoringType: SonarrRollingMonitoringSchema,
       resetMonitoring: z.boolean().optional(),
     })
     .meta({

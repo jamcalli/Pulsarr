@@ -12,13 +12,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { MultiInput } from '@/components/ui/multi-input'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
+import { MultiInput } from '@/features/notifications/components/multi-input'
 import {
   type WebhookFormSchema,
   webhookFormSchema,

@@ -15,7 +15,13 @@ import {
   parseGenres,
 } from '@utils/guid-handler.js'
 import { isString, isStringArray } from '@utils/type-guards.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { FastifyInstance } from 'fastify'
+import type { ContentRouterDeps } from './types.js'
+
+type EnrichmentDeps = Pick<
+  ContentRouterDeps,
+  'logger' | 'config' | 'db' | 'fastify' | 'radarrManager' | 'sonarrManager'
+>
 
 const LIST_CACHE_TTL_MS = 10_000
 
@@ -142,25 +148,14 @@ export function determineEnrichmentNeeds(
   }
 }
 
-/**
- * Enriches a content item with additional metadata by making API calls to Radarr/Sonarr.
- * This is used to provide evaluators with more information for making routing decisions.
- * The enrichment happens once per routing operation to avoid duplicate API calls.
- *
- * @param fastify - Fastify instance for accessing services
- * @param log - Logger instance
- * @param allRules - All router rules (should be cached by caller)
- * @param item - The content item to enrich
- * @param context - Routing context with content type and other info
- * @returns Promise with the enriched content item
- */
+/** Never throws, and returns the item unchanged when a lookup fails. */
 export async function enrichItemMetadata(
-  fastify: FastifyInstance,
-  log: FastifyBaseLogger,
   allRules: Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>,
   item: ContentItem,
   context: RoutingContext,
+  deps: EnrichmentDeps,
 ): Promise<ContentItem> {
+  const log = deps.logger
   const isMovie = context.contentType === 'movie'
 
   // Determine which enrichment types are actually needed
@@ -192,8 +187,7 @@ export async function enrichItemMetadata(
   ) {
     try {
       listMemberships = await enrichListMemberships(
-        fastify,
-        log,
+        deps,
         context.userId,
         context.itemKey,
         enrichmentNeeds.listNames,
@@ -236,11 +230,11 @@ export async function enrichItemMetadata(
       // 1. Fetch Radarr metadata if needed (for certification, language, year rules)
       if (canFetchMetadata) {
         try {
-          const defaultInstance = await fastify.db.getDefaultRadarrInstance()
+          const defaultInstance = await deps.db.getDefaultRadarrInstance()
           if (!defaultInstance) {
             log.warn('No default Radarr instance available for metadata lookup')
           } else {
-            const lookupService = fastify.radarrManager.getRadarrService(
+            const lookupService = deps.radarrManager.getRadarrService(
               defaultInstance.id,
             )
 
@@ -273,11 +267,11 @@ export async function enrichItemMetadata(
       }
 
       // 2. Fetch TMDB watch providers if needed (for streaming rules)
-      if (enrichmentNeeds.needsProviders && fastify.tmdb) {
+      if (enrichmentNeeds.needsProviders && deps.fastify.tmdb) {
         try {
           const tmdbId = extractTmdbId(item.guids)
           if (tmdbId) {
-            const providers = await fastify.tmdb.getWatchProviders(
+            const providers = await deps.fastify.tmdb.getWatchProviders(
               tmdbId,
               'movie',
             )
@@ -295,7 +289,7 @@ export async function enrichItemMetadata(
       }
 
       // 4. Check anime status if needed (for conditional genre checks)
-      if (enrichmentNeeds.needsAnimeCheck && fastify.anime) {
+      if (enrichmentNeeds.needsAnimeCheck && deps.fastify.anime) {
         try {
           const tvdbIdNum = extractTvdbId(item.guids)
           const tmdbIdNum = extractTmdbId(item.guids)
@@ -307,7 +301,7 @@ export async function enrichItemMetadata(
           const imdbId = extractImdbId(item.guids)
 
           if (tvdbId || tmdbId || imdbId) {
-            const isAnimeContent = await fastify.anime.isAnime(
+            const isAnimeContent = await deps.fastify.anime.isAnime(
               'movie',
               tvdbId,
               tmdbId,
@@ -348,11 +342,11 @@ export async function enrichItemMetadata(
       // 1. Fetch Sonarr metadata if needed (for certification, language, season, year rules)
       if (canFetchMetadata) {
         try {
-          const defaultInstance = await fastify.db.getDefaultSonarrInstance()
+          const defaultInstance = await deps.db.getDefaultSonarrInstance()
           if (!defaultInstance) {
             log.warn('No default Sonarr instance available for metadata lookup')
           } else {
-            const lookupService = fastify.sonarrManager.getSonarrService(
+            const lookupService = deps.sonarrManager.getSonarrService(
               defaultInstance.id,
             )
 
@@ -385,11 +379,14 @@ export async function enrichItemMetadata(
       }
 
       // 2. Fetch TMDB watch providers if needed (for streaming rules)
-      if (enrichmentNeeds.needsProviders && fastify.tmdb) {
+      if (enrichmentNeeds.needsProviders && deps.fastify.tmdb) {
         try {
           const tmdbId = extractTmdbId(item.guids)
           if (tmdbId) {
-            const providers = await fastify.tmdb.getWatchProviders(tmdbId, 'tv')
+            const providers = await deps.fastify.tmdb.getWatchProviders(
+              tmdbId,
+              'tv',
+            )
             if (providers) {
               watchProviders = providers
               log.debug(
@@ -406,7 +403,7 @@ export async function enrichItemMetadata(
       }
 
       // 4. Check anime status if needed (for conditional genre checks)
-      if (enrichmentNeeds.needsAnimeCheck && fastify.anime) {
+      if (enrichmentNeeds.needsAnimeCheck && deps.fastify.anime) {
         try {
           const tvdbIdNum = extractTvdbId(item.guids)
           const tmdbIdNum = extractTmdbId(item.guids)
@@ -418,7 +415,7 @@ export async function enrichItemMetadata(
           const imdbId = extractImdbId(item.guids)
 
           if (tvdbId || tmdbId || imdbId) {
-            const isAnimeContent = await fastify.anime.isAnime(
+            const isAnimeContent = await deps.fastify.anime.isAnime(
               'show',
               tvdbId,
               tmdbId,
@@ -461,13 +458,13 @@ export async function enrichItemMetadata(
 }
 
 async function enrichListMemberships(
-  fastify: FastifyInstance,
-  log: FastifyBaseLogger,
+  deps: EnrichmentDeps,
   userId: number,
   itemKey: string,
   ruleListNames: Set<string>,
 ): Promise<Set<string> | undefined> {
-  const adminToken = fastify.config.plexTokens?.[0]
+  const log = deps.logger
+  const adminToken = deps.config.plexTokens?.[0]
   if (!adminToken) return undefined
 
   const now = Date.now()
@@ -488,7 +485,7 @@ async function enrichListMemberships(
   let inflight = userListInflight.get(inflightKey)
   if (!inflight) {
     inflight = (async () => {
-      const user = await fastify.db.getUser(userId)
+      const user = await deps.db.getUser(userId)
       if (!user?.plex_uuid) return null
 
       const listMeta = await fetchUserListMetadata(

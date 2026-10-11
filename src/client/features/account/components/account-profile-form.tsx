@@ -1,4 +1,6 @@
 import { Loader2, Save, X } from 'lucide-react'
+import { InlineEdit, InlineEditButton } from '@/components/inline-edit'
+import { LoginErrorMessage } from '@/components/login-error'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -8,11 +10,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { InlineEdit, InlineEditButton } from '@/components/ui/inline-edit'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateProfileForm } from '@/features/account/hooks/useUpdateProfileForm'
-import { LoginErrorMessage } from '@/features/auth/components/login-error'
 
 interface AccountProfileFormProps {
   currentEmail: string

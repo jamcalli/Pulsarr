@@ -728,7 +728,7 @@ describe('label-reconciler', () => {
       expect(result.error).toBe('Failed to update labels in Plex')
     })
 
-    it('should handle null metadata gracefully', async () => {
+    it('should fail without writing when metadata cannot be read', async () => {
       const content: ContentWithUsers = {
         primaryGuid: 'imdb:tt0111161',
         allGuids: ['imdb:tt0111161'],
@@ -750,11 +750,8 @@ describe('label-reconciler', () => {
         baseDeps,
       )
 
-      expect(result.success).toBe(true)
-      // Should treat as empty current labels
-      expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('123', [
-        'pulsarr:alice',
-      ])
+      expect(result.success).toBe(false)
+      expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
     })
   })
 

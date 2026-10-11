@@ -1,9 +1,16 @@
 import {
+  ConfigConflictSchema,
   ConfigErrorSchema,
   type ConfigFullSchema,
   ConfigResponseSchema,
   ConfigUpdateSchema,
 } from '@root/schemas/config/config.schema.js'
+import {
+  hasCallbackFailure,
+  registerArrWebhooks,
+  testArrWebhookAddress,
+} from '@services/arr-webhook-address.service.js'
+import { TagNamingBlockedError } from '@services/user-tags/types.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
@@ -70,6 +77,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           200: ConfigResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
+          409: ConfigConflictSchema,
           500: ConfigErrorSchema,
         },
         tags: ['Config'],
@@ -93,6 +101,37 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const currentConfig = await fastify.db.getConfig()
 
         try {
+          await fastify.userTags.assertPrefixChangeAllowed(safeConfigUpdate)
+        } catch (error) {
+          if (error instanceof TagNamingBlockedError) {
+            return reply.conflict(error.message)
+          }
+          throw error
+        }
+
+        // The stored baseUrl can be unset while the env default is live, so compare against the runtime config
+        const candidate = {
+          baseUrl: safeConfigUpdate.baseUrl ?? fastify.config.baseUrl,
+          port: safeConfigUpdate.port ?? fastify.config.port,
+        }
+        const addressChanged =
+          candidate.baseUrl !== fastify.config.baseUrl ||
+          candidate.port !== fastify.config.port
+        if (addressChanged) {
+          const webhooks = await testArrWebhookAddress(fastify, candidate)
+          // Only a rejected callback blocks the save because a down arr keeps its hook and re-registers at startup
+          if (hasCallbackFailure(webhooks)) {
+            return reply.code(409).send({
+              statusCode: 409,
+              error: 'Conflict',
+              message:
+                'Radarr or Sonarr could not reach Pulsarr at the new address',
+              webhooks,
+            })
+          }
+        }
+
+        try {
           await fastify.updateConfigAndPersist(safeConfigUpdate)
         } catch (configUpdateError) {
           logRouteError(fastify.log, request, configUpdateError, {
@@ -107,6 +146,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             'Configuration unexpectedly missing after update',
           )
         }
+
+        const webhooks = addressChanged
+          ? await registerArrWebhooks(fastify)
+          : undefined
 
         // Apply runtime log level now that DB is authoritative
         if (
@@ -241,6 +284,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config: mergedConfig,
+          webhooks,
         }
 
         reply.status(200)

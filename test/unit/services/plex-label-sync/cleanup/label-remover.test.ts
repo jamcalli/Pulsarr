@@ -5,6 +5,8 @@
  * with proper handling of tracking cleanup and progress events.
  */
 
+import type { TokenWatchlistItem } from '@root/types/plex.types.js'
+import type { PlexMetadata } from '@root/types/plex-server.types.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -18,6 +20,32 @@ import type { FastifyInstance } from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
+const found = (metadata: PlexMetadata) => ({
+  status: 'found' as const,
+  metadata,
+})
+
+const labelled = (ratingKey: string, labels: string[]) =>
+  found({
+    ratingKey,
+    key: `/library/metadata/${ratingKey}`,
+    guid: 'plex://movie/1',
+    type: 'movie',
+    title: 'Movie',
+    Label: labels.map((tag) => ({ tag })),
+  })
+
+const plexWatchlistItem = (key: string): TokenWatchlistItem => ({
+  id: '1',
+  title: 'Movie',
+  key,
+  type: 'movie',
+  user_id: 1,
+  status: 'pending',
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
+})
+
 describe('label-remover', () => {
   let mockLogger: ReturnType<typeof createMockLogger>
   let mockPlexServer: PlexServerService
@@ -28,7 +56,8 @@ describe('label-remover', () => {
   beforeEach(() => {
     mockLogger = createMockLogger()
     mockPlexServer = {
-      getMetadata: vi.fn(),
+      lookupMetadata: vi.fn().mockResolvedValue({ status: 'error' }),
+      lookupByGuid: vi.fn().mockResolvedValue({ status: 'none' }),
       updateLabels: vi.fn(),
       removeSpecificLabels: vi.fn(),
     } as unknown as PlexServerService
@@ -41,6 +70,9 @@ describe('label-remover', () => {
       getAllShowWatchlistItems: vi.fn(),
       cleanupUserContentTracking: vi.fn(),
       trackPlexLabels: vi.fn(),
+      getWatchlistItemsByGuid: vi.fn().mockResolvedValue([]),
+      updateTrackingRatingKey: vi.fn().mockResolvedValue(1),
+      cleanupRatingKeyTracking: vi.fn().mockResolvedValue(1),
     } as unknown as DatabaseService
 
     const mockProgress = {
@@ -117,23 +149,27 @@ describe('label-remover', () => {
 
       vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(mockTracking)
 
-      vi.mocked(mockPlexServer.getMetadata)
-        .mockResolvedValueOnce({
-          ratingKey: '12345',
-          key: '/library/metadata/12345',
-          guid: 'plex://movie/1',
-          type: 'movie',
-          title: 'Movie 1',
-          Label: [{ tag: 'pulsarr:alice' }],
-        })
-        .mockResolvedValueOnce({
-          ratingKey: '67890',
-          key: '/library/metadata/67890',
-          guid: 'plex://movie/2',
-          type: 'movie',
-          title: 'Movie 2',
-          Label: [{ tag: 'pulsarr:alice' }],
-        })
+      vi.mocked(mockPlexServer.lookupMetadata)
+        .mockResolvedValueOnce(
+          found({
+            ratingKey: '12345',
+            key: '/library/metadata/12345',
+            guid: 'plex://movie/1',
+            type: 'movie',
+            title: 'Movie 1',
+            Label: [{ tag: 'pulsarr:alice' }],
+          }),
+        )
+        .mockResolvedValueOnce(
+          found({
+            ratingKey: '67890',
+            key: '/library/metadata/67890',
+            guid: 'plex://movie/2',
+            type: 'movie',
+            title: 'Movie 2',
+            Label: [{ tag: 'pulsarr:alice' }],
+          }),
+        )
 
       vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
       vi.mocked(mockDb.removeTrackedLabels).mockResolvedValue({
@@ -172,14 +208,16 @@ describe('label-remover', () => {
 
       vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(mockTracking)
 
-      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
-        ratingKey: '12345',
-        key: '/library/metadata/12345',
-        guid: 'plex://movie/1',
-        type: 'movie',
-        title: 'Movie 1',
-        Label: [], // No labels
-      })
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue(
+        found({
+          ratingKey: '12345',
+          key: '/library/metadata/12345',
+          guid: 'plex://movie/1',
+          type: 'movie',
+          title: 'Movie 1',
+          Label: [], // No labels
+        }),
+      )
 
       vi.mocked(mockPlexServer.removeSpecificLabels).mockResolvedValue(true)
       vi.mocked(mockDb.removeTrackedLabels).mockResolvedValue({
@@ -217,18 +255,20 @@ describe('label-remover', () => {
 
       vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(mockTracking)
 
-      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
-        ratingKey: '12345',
-        key: '/library/metadata/12345',
-        guid: 'plex://movie/1',
-        type: 'movie',
-        title: 'Movie 1',
-        Label: [
-          { tag: 'pulsarr:alice' },
-          { tag: 'external-label' },
-          { tag: 'another-external' },
-        ],
-      })
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue(
+        found({
+          ratingKey: '12345',
+          key: '/library/metadata/12345',
+          guid: 'plex://movie/1',
+          type: 'movie',
+          title: 'Movie 1',
+          Label: [
+            { tag: 'pulsarr:alice' },
+            { tag: 'external-label' },
+            { tag: 'another-external' },
+          ],
+        }),
+      )
 
       vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
       vi.mocked(mockDb.removeTrackedLabels).mockResolvedValue({
@@ -266,14 +306,16 @@ describe('label-remover', () => {
 
       vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(mockTracking)
 
-      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
-        ratingKey: '12345',
-        key: '/library/metadata/12345',
-        guid: 'plex://movie/1',
-        type: 'movie',
-        title: 'Movie 1',
-        Label: [{ tag: 'pulsarr:alice' }],
-      })
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue(
+        found({
+          ratingKey: '12345',
+          key: '/library/metadata/12345',
+          guid: 'plex://movie/1',
+          type: 'movie',
+          title: 'Movie 1',
+          Label: [{ tag: 'pulsarr:alice' }],
+        }),
+      )
 
       vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(false)
       vi.mocked(mockDb.clearAllLabelTracking).mockResolvedValue(0)
@@ -284,8 +326,7 @@ describe('label-remover', () => {
       expect(result.removed).toBe(0)
       expect(result.failed).toBe(1)
 
-      // Should still clear tracking even on failure
-      expect(mockDb.clearAllLabelTracking).toHaveBeenCalled()
+      expect(mockDb.clearAllLabelTracking).not.toHaveBeenCalled()
     })
 
     it('should handle errors gracefully', async () => {
@@ -321,14 +362,16 @@ describe('label-remover', () => {
 
       vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(mockTracking)
 
-      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
-        ratingKey: '12345',
-        key: '/library/metadata/12345',
-        guid: 'plex://movie/1',
-        type: 'movie',
-        title: 'Movie 1',
-        Label: [{ tag: 'pulsarr:alice' }],
-      })
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue(
+        found({
+          ratingKey: '12345',
+          key: '/library/metadata/12345',
+          guid: 'plex://movie/1',
+          type: 'movie',
+          title: 'Movie 1',
+          Label: [{ tag: 'pulsarr:alice' }],
+        }),
+      )
 
       vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
       vi.mocked(mockDb.removeTrackedLabels).mockResolvedValue({
@@ -380,14 +423,16 @@ describe('label-remover', () => {
 
       vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(mockTracking)
 
-      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
-        ratingKey: '12345',
-        key: '/library/metadata/12345',
-        guid: 'plex://movie/1',
-        type: 'movie',
-        title: 'Movie 1',
-        Label: [{ tag: 'pulsarr:alice' }, { tag: 'pulsarr:bob' }],
-      })
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue(
+        found({
+          ratingKey: '12345',
+          key: '/library/metadata/12345',
+          guid: 'plex://movie/1',
+          type: 'movie',
+          title: 'Movie 1',
+          Label: [{ tag: 'pulsarr:alice' }, { tag: 'pulsarr:bob' }],
+        }),
+      )
 
       vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
       vi.mocked(mockDb.removeTrackedLabels).mockResolvedValue({
@@ -407,9 +452,130 @@ describe('label-remover', () => {
       expect(mockPlexServer.updateLabels).toHaveBeenCalledTimes(1)
       expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('12345', [])
     })
+    describe('when Plex no longer has the tracked rating key', () => {
+      const staleTracking: PlexLabelTracking[] = [
+        {
+          id: 1,
+          content_guids: ['tmdb:278'],
+          content_type: 'movie',
+          user_id: 1,
+          plex_rating_key: '12345',
+          labels_applied: ['pulsarr:alice'],
+          synced_at: new Date().toISOString(),
+        },
+      ]
+
+      beforeEach(() => {
+        vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(staleTracking)
+        vi.mocked(mockDb.removeTrackedLabels).mockResolvedValue({
+          processedCount: 1,
+          failedIds: [],
+          totalUpdatedCount: 1,
+        })
+        vi.mocked(mockDb.clearAllLabelTracking).mockResolvedValue(0)
+      })
+
+      it('relocates tracking and removes labels from the new rating key', async () => {
+        vi.mocked(mockPlexServer.lookupMetadata)
+          .mockResolvedValueOnce({ status: 'missing' })
+          .mockResolvedValueOnce(
+            labelled('99999', ['pulsarr:alice', 'Favorite']),
+          )
+        vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
+          plexWatchlistItem('abc'),
+        ])
+        vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+          status: 'found',
+          items: [labelled('99999', []).metadata],
+        })
+        vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
+
+        const result = await removeAllLabels(baseDeps)
+
+        expect(result).toEqual({ processed: 1, removed: 1, failed: 0 })
+        expect(mockDb.updateTrackingRatingKey).toHaveBeenCalledWith(
+          '12345',
+          '99999',
+        )
+        expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('99999', [
+          'Favorite',
+        ])
+        expect(mockDb.removeTrackedLabels).toHaveBeenCalledWith([
+          { plexRatingKey: '99999', labelsToRemove: ['pulsarr:alice'] },
+        ])
+      })
+
+      it('drops tracking when the content cannot be found under any key', async () => {
+        vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue({
+          status: 'missing',
+        })
+
+        const result = await removeAllLabels(baseDeps)
+
+        expect(result).toEqual({ processed: 1, removed: 1, failed: 0 })
+        expect(mockDb.cleanupRatingKeyTracking).toHaveBeenCalledWith('12345')
+        expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
+      })
+
+      it('keeps tracking when the Plex search for the content fails', async () => {
+        vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue({
+          status: 'missing',
+        })
+        vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
+          plexWatchlistItem('abc'),
+        ])
+        vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+          status: 'error',
+        })
+
+        const result = await removeAllLabels(baseDeps)
+
+        expect(result).toEqual({ processed: 1, removed: 0, failed: 1 })
+        expect(mockDb.cleanupRatingKeyTracking).not.toHaveBeenCalled()
+        expect(mockDb.updateTrackingRatingKey).not.toHaveBeenCalled()
+        expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
+      })
+
+      it('keeps tracking when the read fails rather than reporting missing', async () => {
+        vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue({
+          status: 'error',
+        })
+
+        const result = await removeAllLabels(baseDeps)
+
+        expect(result).toEqual({ processed: 1, removed: 0, failed: 1 })
+        expect(mockDb.cleanupRatingKeyTracking).not.toHaveBeenCalled()
+        expect(mockDb.updateTrackingRatingKey).not.toHaveBeenCalled()
+        expect(mockDb.clearAllLabelTracking).not.toHaveBeenCalled()
+      })
+    })
   })
 
   describe('resetLabels', () => {
+    const trackingRow = (
+      id: number,
+      userId: number | null,
+      guid: string,
+      labels: string[],
+    ): PlexLabelTracking => ({
+      id,
+      content_guids: [guid],
+      content_type: 'movie',
+      user_id: userId,
+      plex_rating_key: guid === 'imdb:tt9999999' ? '67890' : '12345',
+      labels_applied: labels,
+      synced_at: new Date().toISOString(),
+    })
+
+    const watchlistItem = (id: number, userId: number, guid: string) => ({
+      id,
+      user_id: userId,
+      guids: [guid],
+      title: 'Movie',
+      type: 'movie',
+      key: `key-${id}`,
+    })
+
     it('should skip when config disabled', async () => {
       const disabledDeps = {
         ...baseDeps,
@@ -547,69 +713,44 @@ describe('label-remover', () => {
       expect(mockDb.cleanupUserContentTracking).not.toHaveBeenCalled()
     })
 
-    it('should apply removed label in special-label mode', async () => {
+    it('should swap only the orphaned user labels for the marker in special-label mode', async () => {
       const depsSpecial = {
         ...baseDeps,
         removedLabelMode: 'special-label' as const,
       }
 
-      const watchlistItems = [
-        {
-          id: 1,
-          user_id: 1,
-          guids: ['imdb:tt0111161'],
-          title: 'Current Movie',
-          type: 'movie',
-          key: 'key-1',
-        },
-      ]
-
-      const allTracking: PlexLabelTracking[] = [
-        {
-          id: 1,
-          content_guids: ['imdb:tt0111161'],
-          content_type: 'movie',
-          user_id: 1,
-          plex_rating_key: '12345',
-          labels_applied: ['pulsarr:alice'],
-          synced_at: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          content_guids: ['imdb:tt9999999'], // Orphaned
-          content_type: 'movie',
-          user_id: 1,
-          plex_rating_key: '67890',
-          labels_applied: ['pulsarr:alice'],
-          synced_at: new Date().toISOString(),
-        },
-      ]
-
-      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue(allTracking)
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, 1, 'imdb:tt0111161', ['pulsarr:alice']),
+        trackingRow(2, 1, 'imdb:tt9999999', ['pulsarr:alice', 'pulsarr:4k']),
+      ])
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue(
+        labelled('67890', [
+          'Favorite',
+          'pulsarr:alice',
+          'pulsarr:bob',
+          'pulsarr:4k',
+        ]),
+      )
       vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
       vi.mocked(mockDb.cleanupUserContentTracking).mockResolvedValue(1)
       vi.mocked(mockDb.trackPlexLabels).mockResolvedValue(1)
 
-      const result = await resetLabels(watchlistItems, depsSpecial)
+      const result = await resetLabels(
+        [watchlistItem(1, 1, 'imdb:tt0111161')],
+        depsSpecial,
+      )
 
-      // Should find and process orphaned entry
-      expect(result.processed).toBe(1)
-      expect(result.updated).toBe(1)
-      expect(result.failed).toBe(0)
-
-      // Should apply removed label
+      expect(result).toEqual({ processed: 1, updated: 1, failed: 0 })
       expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('67890', [
+        'Favorite',
+        'pulsarr:bob',
         'pulsarr:removed',
       ])
-
-      // Should cleanup old tracking
       expect(mockDb.cleanupUserContentTracking).toHaveBeenCalledWith(
         ['imdb:tt9999999'],
         'movie',
         1,
       )
-
-      // Should create new system tracking
       expect(mockDb.trackPlexLabels).toHaveBeenCalledWith(
         ['imdb:tt9999999'],
         'movie',
@@ -617,6 +758,174 @@ describe('label-remover', () => {
         '67890',
         ['pulsarr:removed'],
       )
+    })
+
+    it('should keep other users labels and skip the marker when another user still holds the item in special-label mode', async () => {
+      const depsSpecial = {
+        ...baseDeps,
+        removedLabelMode: 'special-label' as const,
+      }
+
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, 1, 'imdb:tt9999999', ['pulsarr:alice', 'pulsarr:4k']),
+        trackingRow(2, 2, 'imdb:tt9999999', ['pulsarr:bob', 'pulsarr:4k']),
+      ])
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue(
+        labelled('67890', [
+          'Favorite',
+          'pulsarr:alice',
+          'pulsarr:bob',
+          'pulsarr:4k',
+        ]),
+      )
+      vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
+      vi.mocked(mockDb.cleanupUserContentTracking).mockResolvedValue(1)
+
+      const result = await resetLabels(
+        [watchlistItem(2, 2, 'imdb:tt9999999')],
+        depsSpecial,
+      )
+
+      expect(result).toEqual({ processed: 1, updated: 1, failed: 0 })
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('67890', [
+        'Favorite',
+        'pulsarr:bob',
+        'pulsarr:4k',
+      ])
+      expect(mockDb.trackPlexLabels).not.toHaveBeenCalled()
+    })
+
+    it('should keep tracking when current labels cannot be read in special-label mode', async () => {
+      const depsSpecial = {
+        ...baseDeps,
+        removedLabelMode: 'special-label' as const,
+      }
+
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, 1, 'imdb:tt9999999', ['pulsarr:alice']),
+      ])
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue({
+        status: 'error',
+      })
+
+      const result = await resetLabels(
+        [watchlistItem(1, 1, 'imdb:tt0111161')],
+        depsSpecial,
+      )
+
+      expect(result).toEqual({ processed: 1, updated: 0, failed: 1 })
+      expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
+      expect(mockDb.cleanupUserContentTracking).not.toHaveBeenCalled()
+    })
+
+    it('should leave an already marked item alone in special-label mode', async () => {
+      const depsSpecial = {
+        ...baseDeps,
+        removedLabelMode: 'special-label' as const,
+      }
+
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, null, 'imdb:tt9999999', ['pulsarr:removed']),
+      ])
+
+      const result = await resetLabels(
+        [watchlistItem(1, 1, 'imdb:tt0111161')],
+        depsSpecial,
+      )
+
+      expect(result).toEqual({ processed: 1, updated: 1, failed: 0 })
+      expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
+      expect(mockDb.cleanupUserContentTracking).not.toHaveBeenCalled()
+    })
+
+    it('should match a NULL system row against any user watchlist item', async () => {
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, null, 'imdb:tt0111161', ['pulsarr:removed']),
+      ])
+
+      const result = await resetLabels(
+        [watchlistItem(1, 2, 'imdb:tt0111161')],
+        baseDeps,
+      )
+
+      expect(result).toEqual({ processed: 1, updated: 0, failed: 0 })
+      expect(mockPlexServer.removeSpecificLabels).not.toHaveBeenCalled()
+      expect(mockDb.cleanupUserContentTracking).not.toHaveBeenCalled()
+    })
+
+    it('should keep tag labels another user still holds in remove mode', async () => {
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, 1, 'imdb:tt9999999', ['pulsarr:alice', 'pulsarr:4k']),
+        trackingRow(2, 2, 'imdb:tt9999999', ['pulsarr:bob', 'pulsarr:4k']),
+      ])
+      vi.mocked(mockPlexServer.removeSpecificLabels).mockResolvedValue(true)
+      vi.mocked(mockDb.cleanupUserContentTracking).mockResolvedValue(1)
+
+      const result = await resetLabels(
+        [watchlistItem(2, 2, 'imdb:tt9999999')],
+        baseDeps,
+      )
+
+      expect(result).toEqual({ processed: 1, updated: 1, failed: 0 })
+      expect(mockPlexServer.removeSpecificLabels).toHaveBeenCalledWith(
+        '67890',
+        ['pulsarr:alice'],
+      )
+    })
+
+    it('should retry on the relocated rating key when the tracked one is gone in remove mode', async () => {
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, 1, 'imdb:tt9999999', ['pulsarr:alice']),
+      ])
+      vi.mocked(mockPlexServer.removeSpecificLabels)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true)
+      vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue({
+        status: 'missing',
+      })
+      vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
+        plexWatchlistItem('abc'),
+      ])
+      vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+        status: 'found',
+        items: [labelled('99999', []).metadata],
+      })
+      vi.mocked(mockDb.cleanupUserContentTracking).mockResolvedValue(1)
+
+      const result = await resetLabels(
+        [watchlistItem(1, 1, 'imdb:tt0111161')],
+        baseDeps,
+      )
+
+      expect(result).toEqual({ processed: 1, updated: 1, failed: 0 })
+      expect(mockDb.updateTrackingRatingKey).toHaveBeenCalledWith(
+        '67890',
+        '99999',
+      )
+      expect(mockPlexServer.removeSpecificLabels).toHaveBeenLastCalledWith(
+        '99999',
+        ['pulsarr:alice'],
+      )
+      expect(mockDb.cleanupUserContentTracking).toHaveBeenCalledWith(
+        ['imdb:tt9999999'],
+        'movie',
+        1,
+      )
+    })
+
+    it('should keep tracking when the Plex removal fails in remove mode', async () => {
+      vi.mocked(mockDb.getAllTrackedLabels).mockResolvedValue([
+        trackingRow(1, 1, 'imdb:tt9999999', ['pulsarr:alice']),
+      ])
+      vi.mocked(mockPlexServer.removeSpecificLabels).mockResolvedValue(false)
+
+      const result = await resetLabels(
+        [watchlistItem(1, 1, 'imdb:tt0111161')],
+        baseDeps,
+      )
+
+      expect(result).toEqual({ processed: 1, updated: 0, failed: 1 })
+      expect(mockDb.cleanupUserContentTracking).not.toHaveBeenCalled()
     })
 
     it.skip('should handle GUID matching with weighted scores', async () => {

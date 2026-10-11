@@ -1,18 +1,24 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   ConnectionTestResult,
   Item,
-  MinimumAvailability,
   PagedResult,
   QualityProfile,
   RadarrAddOptions,
   RadarrConfiguration,
   RadarrInstance,
-  RadarrMonitorType,
   RadarrMovie,
   RadarrPost,
+  RadarrTagDetail,
   RootFolder,
   WebhookNotification,
 } from '@root/types/radarr.types.js'
+import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
   HealthCheckResult,
@@ -118,7 +124,7 @@ export class RadarrService {
    * Format: "Pulsarr (hostname:port)" for HTTP, "Pulsarr (hostname)" for HTTPS
    * This allows multiple Pulsarr instances to create webhooks on the same Radarr.
    */
-  private getWebhookName(): string {
+  getWebhookName(): string {
     try {
       const url = new URL(this.appBaseUrl)
       const isHttps = url.protocol === 'https:'
@@ -171,6 +177,128 @@ export class RadarrService {
     return url.toString()
   }
 
+  // Legacy hooks also match on URL so another Pulsarr instance's "Pulsarr" hook is never touched
+  private findPulsarrWebhooks(
+    hooks: WebhookNotification[],
+    webhookName: string,
+    expectedUrl: string,
+  ): { current?: WebhookNotification; legacy?: WebhookNotification } {
+    return {
+      current: hooks.find((hook) => hook.name === webhookName),
+      legacy: hooks.find(
+        (hook) =>
+          hook.name === 'Pulsarr' &&
+          hook.fields?.some((f) => f.name === 'url' && f.value === expectedUrl),
+      ),
+    }
+  }
+
+  private buildWebhookDefinition(name: string, url: string) {
+    return {
+      onGrab: false,
+      onDownload: true,
+      onUpgrade: false,
+      onRename: false,
+      onMovieAdded: false,
+      onMovieDelete: false,
+      onMovieFileDelete: false,
+      onMovieFileDeleteForUpgrade: false,
+      onHealthIssue: false,
+      includeHealthWarnings: false,
+      onHealthRestored: false,
+      onApplicationUpdate: false,
+      onManualInteractionRequired: false,
+      supportsOnGrab: true,
+      supportsOnDownload: true,
+      supportsOnUpgrade: true,
+      supportsOnRename: true,
+      supportsOnMovieAdded: true,
+      supportsOnMovieDelete: true,
+      supportsOnMovieFileDelete: true,
+      supportsOnMovieFileDeleteForUpgrade: true,
+      supportsOnHealthIssue: true,
+      supportsOnHealthRestored: true,
+      supportsOnApplicationUpdate: true,
+      supportsOnManualInteractionRequired: true,
+      name,
+      fields: [
+        {
+          order: 0,
+          name: 'url',
+          label: 'Webhook URL',
+          value: url,
+          type: 'url',
+          advanced: false,
+          privacy: 'normal',
+          isFloat: false,
+        },
+        {
+          order: 1,
+          name: 'method',
+          label: 'Method',
+          helpText: 'Which HTTP method to use submit to the Webservice',
+          value: 1,
+          type: 'select',
+          advanced: false,
+          selectOptions: [
+            {
+              value: 1,
+              name: 'POST',
+              order: 1,
+              dividerAfter: false,
+            },
+            {
+              value: 2,
+              name: 'PUT',
+              order: 2,
+              dividerAfter: false,
+            },
+          ],
+          privacy: 'normal',
+          isFloat: false,
+        },
+        {
+          order: 2,
+          name: 'username',
+          label: 'Username',
+          type: 'textbox',
+          advanced: false,
+          privacy: 'userName',
+          isFloat: false,
+        },
+        {
+          order: 3,
+          name: 'password',
+          label: 'Password',
+          type: 'password',
+          advanced: false,
+          privacy: 'password',
+          isFloat: false,
+        },
+        {
+          order: 4,
+          name: 'headers',
+          label: 'Headers',
+          value: [
+            {
+              key: 'X-Pulsarr-Secret',
+              value: this.fastify.config.webhookSecret,
+            },
+          ],
+          type: 'keyValueList',
+          advanced: true,
+          privacy: 'normal',
+          isFloat: false,
+        },
+      ],
+      implementationName: 'Webhook',
+      implementation: 'Webhook',
+      configContract: 'WebhookSettings',
+      infoLink: 'https://wiki.servarr.com/radarr/supported#webhook',
+      tags: [],
+    }
+  }
+
   private async setupWebhook(): Promise<void> {
     if (this.webhookInitialized) {
       return
@@ -185,174 +313,55 @@ export class RadarrService {
         `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Radarr: ${expectedWebhookUrl}`,
       )
 
-      const existingWebhooks =
-        await this.getFromRadarr<WebhookNotification[]>('notification')
-
-      // Find webhook with NEW format name (already migrated or fresh install)
-      const newFormatWebhook = existingWebhooks.find(
-        (hook) => hook.name === webhookName,
+      const { current, legacy } = this.findPulsarrWebhooks(
+        await this.getFromRadarr<WebhookNotification[]>('notification'),
+        webhookName,
+        expectedWebhookUrl,
       )
 
-      // Find LEGACY "Pulsarr" webhook with matching URL (needs migration)
-      const legacyWebhook = existingWebhooks.find(
-        (hook) =>
-          hook.name === 'Pulsarr' &&
-          hook.fields?.some(
-            (f) => f.name === 'url' && f.value === expectedWebhookUrl,
-          ),
+      const webhookConfig = this.buildWebhookDefinition(
+        webhookName,
+        expectedWebhookUrl,
       )
-
-      const webhookConfig = {
-        onGrab: false,
-        onDownload: true,
-        onUpgrade: false,
-        onRename: false,
-        onMovieAdded: false,
-        onMovieDelete: false,
-        onMovieFileDelete: false,
-        onMovieFileDeleteForUpgrade: false,
-        onHealthIssue: false,
-        includeHealthWarnings: false,
-        onHealthRestored: false,
-        onApplicationUpdate: false,
-        onManualInteractionRequired: false,
-        supportsOnGrab: true,
-        supportsOnDownload: true,
-        supportsOnUpgrade: true,
-        supportsOnRename: true,
-        supportsOnMovieAdded: true,
-        supportsOnMovieDelete: true,
-        supportsOnMovieFileDelete: true,
-        supportsOnMovieFileDeleteForUpgrade: true,
-        supportsOnHealthIssue: true,
-        supportsOnHealthRestored: true,
-        supportsOnApplicationUpdate: true,
-        supportsOnManualInteractionRequired: true,
-        name: webhookName,
-        fields: [
-          {
-            order: 0,
-            name: 'url',
-            label: 'Webhook URL',
-            value: expectedWebhookUrl,
-            type: 'url',
-            advanced: false,
-            privacy: 'normal',
-            isFloat: false,
-          },
-          {
-            order: 1,
-            name: 'method',
-            label: 'Method',
-            helpText: 'Which HTTP method to use submit to the Webservice',
-            value: 1,
-            type: 'select',
-            advanced: false,
-            selectOptions: [
-              {
-                value: 1,
-                name: 'POST',
-                order: 1,
-                dividerAfter: false,
-              },
-              {
-                value: 2,
-                name: 'PUT',
-                order: 2,
-                dividerAfter: false,
-              },
-            ],
-            privacy: 'normal',
-            isFloat: false,
-          },
-          {
-            order: 2,
-            name: 'username',
-            label: 'Username',
-            type: 'textbox',
-            advanced: false,
-            privacy: 'userName',
-            isFloat: false,
-          },
-          {
-            order: 3,
-            name: 'password',
-            label: 'Password',
-            type: 'password',
-            advanced: false,
-            privacy: 'password',
-            isFloat: false,
-          },
-          {
-            order: 4,
-            name: 'headers',
-            label: 'Headers',
-            value: [
-              {
-                key: 'X-Pulsarr-Secret',
-                value: this.fastify.config.webhookSecret,
-              },
-            ],
-            type: 'keyValueList',
-            advanced: true,
-            privacy: 'normal',
-            isFloat: false,
-          },
-        ],
-        implementationName: 'Webhook',
-        implementation: 'Webhook',
-        configContract: 'WebhookSettings',
-        infoLink: 'https://wiki.servarr.com/radarr/supported#webhook',
-        tags: [],
-      }
 
       try {
-        if (newFormatWebhook) {
-          // Already using new format - delete and recreate to ensure config is current
-          this.log.debug(
-            { webhookId: newFormatWebhook.id },
-            'Recreating existing Pulsarr webhook to ensure config is current',
-          )
-          await this.deleteNotification(newFormatWebhook.id)
-          // Clean up any orphaned legacy webhook with matching URL
-          if (legacyWebhook) {
-            this.log.debug(
-              { webhookId: legacyWebhook.id },
-              'Cleaning up orphaned legacy Pulsarr webhook',
-            )
-            await this.deleteNotification(legacyWebhook.id)
+        const existing = current ?? legacy
+        if (existing) {
+          await this.putToRadarr(`notification/${existing.id}`, {
+            ...webhookConfig,
+            id: existing.id,
+          })
+          if (current && legacy) {
+            try {
+              await this.deleteNotification(legacy.id)
+            } catch (error) {
+              this.log.warn(
+                { error, webhookId: legacy.id },
+                'Failed to remove the legacy Pulsarr webhook',
+              )
+            }
           }
-          await this.postToRadarr('notification', webhookConfig)
           this.log.info(
-            `Successfully updated Pulsarr webhook "${webhookName}" for Radarr`,
-          )
-        } else if (legacyWebhook) {
-          // Migrate from legacy "Pulsarr" to new format with unique name
-          this.log.info(
-            { webhookId: legacyWebhook.id },
-            'Migrating legacy "Pulsarr" webhook to new naming format',
-          )
-          await this.deleteNotification(legacyWebhook.id)
-          await this.postToRadarr('notification', webhookConfig)
-          this.log.info(
-            `Successfully migrated Pulsarr webhook to "${webhookName}" for Radarr`,
+            { webhookId: existing.id },
+            `Updated Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
           )
         } else {
-          // Fresh install - create new webhook
-          const response = await this.postToRadarr(
-            'notification',
-            webhookConfig,
-          )
+          await this.postToRadarr('notification', webhookConfig)
           this.log.info(
-            `Successfully created Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
-          )
-          this.log.debug(
-            { response: response },
-            'Webhook creation response for Radarr:',
+            `Created Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
           )
         }
       } catch (createError) {
         let errorMessage = 'Failed to create webhook'
+        if (
+          createError instanceof HttpError &&
+          (createError.status === 400 || createError.status === 500)
+        ) {
+          throw new WebhookCallbackError(
+            `Failed to create webhook: ${createError.message}`,
+            { cause: createError },
+          )
+        }
         if (createError instanceof HttpError) {
           errorMessage = `Failed to create webhook: ${createError.message}`
           throw new HttpError(errorMessage, createError.status)
@@ -366,7 +375,7 @@ export class RadarrService {
       this.webhookInitialized = true
     } catch (error) {
       // Preserve HttpError instances to maintain status - don't log, let caller handle
-      if (error instanceof HttpError) {
+      if (error instanceof HttpError || error instanceof WebhookCallbackError) {
         throw error
       }
 
@@ -383,20 +392,15 @@ export class RadarrService {
     try {
       const webhookName = this.getWebhookName()
       const expectedWebhookUrl = this.constructWebhookUrl()
-      const existingWebhooks =
-        await this.getFromRadarr<WebhookNotification[]>('notification')
-
-      // Find webhook with new format name OR legacy "Pulsarr" name with matching URL
-      // URL matching for legacy webhooks prevents deleting other instances' webhooks
-      const pulsarrWebhooks = existingWebhooks.filter(
-        (hook) =>
-          hook.name === webhookName ||
-          (hook.name === 'Pulsarr' &&
-            hook.fields?.some(
-              (f) => f.name === 'url' && f.value === expectedWebhookUrl,
-            )),
+      const { current, legacy } = this.findPulsarrWebhooks(
+        await this.getFromRadarr<WebhookNotification[]>('notification'),
+        webhookName,
+        expectedWebhookUrl,
       )
 
+      const pulsarrWebhooks = [current, legacy].filter(
+        (hook) => hook !== undefined,
+      )
       for (const webhook of pulsarrWebhooks) {
         await this.deleteNotification(webhook.id)
         this.log.info(
@@ -441,6 +445,48 @@ export class RadarrService {
     }
   }
 
+  private configFromInstance(instance: RadarrInstance): RadarrConfiguration {
+    return {
+      radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
+      radarrApiKey: instance.apiKey,
+      radarrQualityProfileId: instance.qualityProfile || null,
+      radarrRootFolder: instance.rootFolder || null,
+      radarrTagIds: instance.tags,
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      minimumAvailability: instance.minimumAvailability || 'released',
+      monitor: instance.monitor || 'movieOnly',
+    }
+  }
+
+  /** Expects the service to be built with the candidate Pulsarr address and throws WebhookCallbackError when the arr cannot call it back. */
+  async testWebhookCallback(instance: RadarrInstance): Promise<void> {
+    this.config = this.configFromInstance(instance)
+    const webhookName = this.getWebhookName()
+    const expectedWebhookUrl = this.constructWebhookUrl()
+    const { current, legacy } = this.findPulsarrWebhooks(
+      await this.getFromRadarr<WebhookNotification[]>('notification'),
+      webhookName,
+      expectedWebhookUrl,
+    )
+    const existingId = (current ?? legacy)?.id
+    try {
+      // The arr's unique-name check skips only the posted id, so the stored hook's id must ride along
+      await this.postToRadarr('notification/test', {
+        ...this.buildWebhookDefinition(webhookName, expectedWebhookUrl),
+        ...(existingId === undefined ? {} : { id: existingId }),
+      })
+    } catch (error) {
+      if (
+        error instanceof HttpError &&
+        (error.status === 400 || error.status === 500)
+      ) {
+        throw new WebhookCallbackError(error.message, { cause: error })
+      }
+      throw error
+    }
+  }
+
   async initialize(instance: RadarrInstance): Promise<void> {
     if (!instance.baseUrl || !instance.apiKey) {
       throw new Error(
@@ -452,31 +498,15 @@ export class RadarrService {
     this.instanceId = instance.id
 
     // Skip webhook setup for placeholder credentials
-    if (instance.apiKey === 'placeholder') {
+    if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
       this.log.info(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
-      this.config = {
-        radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-        radarrApiKey: instance.apiKey,
-        radarrQualityProfileId: instance.qualityProfile || null,
-        radarrRootFolder: instance.rootFolder || null,
-        radarrTagIds: instance.tags,
-      }
+      this.config = this.configFromInstance(instance)
       return
     }
 
-    this.config = {
-      radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-      radarrApiKey: instance.apiKey,
-      radarrQualityProfileId: instance.qualityProfile || null,
-      radarrRootFolder: instance.rootFolder || null,
-      radarrTagIds: instance.tags,
-      searchOnAdd:
-        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
-      minimumAvailability: instance.minimumAvailability || 'released',
-      monitor: instance.monitor || 'movieOnly',
-    }
+    this.config = this.configFromInstance(instance)
 
     this.log.debug(
       `Successfully initialized base Radarr service for ${instance.name}`,
@@ -791,7 +821,7 @@ export class RadarrService {
     overrideSearchOnAdd?: boolean | null,
     overrideMinimumAvailability?: MinimumAvailability,
     overrideMonitor?: RadarrMonitorType | null,
-  ): Promise<void> {
+  ): Promise<ArrAddedSettings> {
     const config = this.radarrConfig
     try {
       const addOptions: RadarrAddOptions = {
@@ -818,11 +848,12 @@ export class RadarrService {
 
       // Collection for valid tag IDs (using Set to avoid duplicates)
       const tagIdsSet = new Set<string>()
+      let existingTags: Array<{ id: number; label: string }> = []
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
         // Get all existing tags from Radarr
-        const existingTags = await this.getTags()
+        existingTags = await this.getTags()
 
         // Process each tag from the override
         for (const tagInput of overrideTags) {
@@ -864,7 +895,7 @@ export class RadarrService {
           Array.isArray(config.radarrTagIds) &&
           config.radarrTagIds.length > 0
         ) {
-          const existingTags = await this.getTags()
+          existingTags = await this.getTags()
 
           for (const tagId of config.radarrTagIds) {
             const stringTagId = tagId.toString()
@@ -903,7 +934,10 @@ export class RadarrService {
         monitored: shouldMonitor,
       }
 
-      await this.postToRadarr<void>('movie', movie)
+      const created = await this.postToRadarr<RadarrMovie | undefined>(
+        'movie',
+        movie,
+      )
       this.log.info(
         {
           title: item.title,
@@ -917,6 +951,14 @@ export class RadarrService {
         },
         `Sent ${item.title} to Radarr`,
       )
+      const labelById = new Map(existingTags.map((t) => [t.id, t.label]))
+      return {
+        rootFolder: created?.rootFolderPath ?? rootFolderPath,
+        qualityProfileId: created?.qualityProfileId ?? qualityProfileId,
+        tags: (created?.tags ?? tags.map(Number)).map(
+          (id) => labelById.get(id) ?? String(id),
+        ),
+      }
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },
@@ -1445,6 +1487,10 @@ export class RadarrService {
     }
 
     return this.refreshTagsCache(this.instanceId)
+  }
+
+  async getTagDetails(): Promise<RadarrTagDetail[]> {
+    return await this.getFromRadarr<RadarrTagDetail[]>('tag/detail')
   }
 
   /**

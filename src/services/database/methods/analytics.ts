@@ -11,9 +11,17 @@ import type { DatabaseService } from '@services/database.service.js'
 export async function getTopGenres(
   this: DatabaseService,
   limit = 10,
+  days = 0,
 ): Promise<{ genre: string; count: number }[]> {
   try {
     this.log.debug('Processing genres with streaming approach')
+
+    let cutoff: string | null = null
+    if (days > 0) {
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - days)
+      cutoff = cutoffDate.toISOString()
+    }
 
     // Use streaming to process genres in batches to reduce memory usage
     const genreCounts: Record<string, number> = {}
@@ -24,13 +32,19 @@ export async function getTopGenres(
 
     // Process in batches using cursor-based pagination
     while (true) {
-      const batch = await this.knex('watchlist_items')
+      let batchQuery = this.knex('watchlist_items')
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
         .andWhere('id', '>', lastId)
         .select('id', 'genres')
         .orderBy('id')
         .limit(batchSize)
+
+      if (cutoff) {
+        batchQuery = batchQuery.where('added', '>=', cutoff)
+      }
+
+      const batch = await batchQuery
 
       if (batch.length === 0) break
 
@@ -124,7 +138,7 @@ export async function getMostWatchlistedShows(
   if (!isAllTime) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
-    query = query.where('added', '>=', cutoffDate)
+    query = query.where('added', '>=', cutoffDate.toISOString())
   }
 
   // Use JSON aggregation to collect unique user names as a proper array
@@ -191,7 +205,7 @@ export async function getMostWatchlistedMovies(
   if (!isAllTime) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
-    query = query.where('added', '>=', cutoffDate)
+    query = query.where('added', '>=', cutoffDate.toISOString())
   }
 
   // Use JSON aggregation to collect unique user names as a proper array
@@ -236,19 +250,59 @@ export async function getMostWatchlistedMovies(
  */
 export async function getUsersWithMostWatchlistItems(
   this: DatabaseService,
-  limit = 10,
-): Promise<{ name: string; count: number }[]> {
-  const results = await this.knex('watchlist_items')
+  options: { limit?: number; days?: number } = {},
+): Promise<{ name: string; count: number; movies: number; shows: number }[]> {
+  const { limit = 10, days = 0 } = options
+  let cutoff: string | null = null
+  if (days > 0) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    cutoff = cutoffDate.toISOString()
+  }
+
+  let query = this.knex('watchlist_items')
     .join('users', 'watchlist_items.user_id', '=', 'users.id')
-    .select('users.name')
+    .select('users.id', 'users.name')
     .count('watchlist_items.id as count')
     .groupBy('users.id', 'users.name')
     .orderBy('count', 'desc')
     .limit(limit)
 
+  if (cutoff) {
+    query = query.where('watchlist_items.added', '>=', cutoff)
+  }
+
+  const results = await query
+  if (results.length === 0) {
+    return []
+  }
+
+  let typeQuery = this.knex('watchlist_items')
+    .whereIn(
+      'watchlist_items.user_id',
+      results.map((row) => Number(row.id)),
+    )
+    .select('watchlist_items.user_id', 'watchlist_items.type')
+    .count('watchlist_items.id as count')
+    .groupBy('watchlist_items.user_id', 'watchlist_items.type')
+
+  if (cutoff) {
+    typeQuery = typeQuery.where('watchlist_items.added', '>=', cutoff)
+  }
+
+  const typeCounts = new Map<number, { movies: number; shows: number }>()
+  for (const row of await typeQuery) {
+    const userId = Number(row.user_id)
+    const split = typeCounts.get(userId) ?? { movies: 0, shows: 0 }
+    if (row.type === 'movie') split.movies += Number(row.count)
+    if (row.type === 'show') split.shows += Number(row.count)
+    typeCounts.set(userId, split)
+  }
+
   return results.map((row) => ({
     name: String(row.name),
     count: Number(row.count),
+    ...(typeCounts.get(Number(row.id)) ?? { movies: 0, shows: 0 }),
   }))
 }
 
@@ -376,8 +430,12 @@ export async function getRecentActivityStats(
   if (!isAllTime) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
-    newItemsQuery = newItemsQuery.where('added', '>=', cutoffDate)
-    statusChangesQuery = statusChangesQuery.where('timestamp', '>=', cutoffDate)
+    newItemsQuery = newItemsQuery.where('added', '>=', cutoffDate.toISOString())
+    statusChangesQuery = statusChangesQuery.where(
+      'timestamp',
+      '>=',
+      cutoffDate.toISOString(),
+    )
     notificationsQuery = notificationsQuery.where(
       'created_at',
       '>=',
@@ -508,7 +566,7 @@ export async function getAverageTimeFromGrabbedToNotified(
       .min('timestamp as first_notified')
       .where('status', 'notified')
     if (!isAllTime && cutoffDate) {
-      notifiedSubquery.where('timestamp', '>=', cutoffDate)
+      notifiedSubquery.where('timestamp', '>=', cutoffDate.toISOString())
     }
 
     // Include both grabbed->notified AND requested->notified transitions
@@ -544,7 +602,7 @@ export async function getAverageTimeFromGrabbedToNotified(
       .min('timestamp as first_notified')
       .where('status', 'notified')
     if (!isAllTime && cutoffDate) {
-      notifiedSubquery2.where('timestamp', '>=', cutoffDate)
+      notifiedSubquery2.where('timestamp', '>=', cutoffDate.toISOString())
     }
 
     // Also get requested->notified transitions where no grabbed status exists
@@ -707,7 +765,7 @@ export async function getDetailedStatusTransitionMetrics(
       transitionsQuery = transitionsQuery.where(
         'h2.timestamp',
         '>=',
-        cutoffDate,
+        cutoffDate.toISOString(),
       )
     }
     transitionsQuery = transitionsQuery

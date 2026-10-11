@@ -11,7 +11,11 @@ import {
 import pLimit from 'p-limit'
 import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import { evaluateWatchlistCaps } from '../quota/watchlist-cap-gate.js'
-import { routeMovie, routeShow } from '../routing/content-router.js'
+import {
+  indexApprovedRecords,
+  routeMovie,
+  routeShow,
+} from '../routing/content-router.js'
 import type { WorkflowDeps } from '../types.js'
 
 export interface SyncResult {
@@ -152,10 +156,22 @@ export async function syncWatchlistItems(
     }
 
     // Each instance's bypassIgnored setting decides whether exclusions come back in these fetches
-    const [existingSeries, existingMovies] = await Promise.all([
+    const [
+      existingSeries,
+      existingMovies,
+      approvedRequests,
+      sonarrInstances,
+      radarrInstances,
+    ] = await Promise.all([
       deps.sonarrManager.fetchAllSeries(),
       deps.radarrManager.fetchAllMovies(),
+      deps.db.getAllApprovedApprovalRequests(),
+      deps.sonarrManager.getAllInstances(),
+      deps.radarrManager.getAllInstances(),
     ])
+    const approvedRecords = indexApprovedRecords(approvedRequests)
+    const sonarrInstanceIds = new Set(sonarrInstances.map((i) => i.id))
+    const radarrInstanceIds = new Set(radarrInstances.map((i) => i.id))
 
     let showsAdded = 0
     let moviesAdded = 0
@@ -277,6 +293,7 @@ export async function syncWatchlistItems(
               const sonarrItem: SonarrItem = {
                 title: tempItem.title,
                 guids: parsedGuids,
+                thumb: tempItem.thumb,
                 type: 'show',
                 ended: false,
                 genres: parsedGenres,
@@ -295,6 +312,8 @@ export async function syncWatchlistItems(
                   userName: user?.name,
                   sonarrItem,
                   existingSeries,
+                  approvedRecords,
+                  arrInstanceIds: sonarrInstanceIds,
                   primaryUser,
                 },
                 deps,
@@ -322,6 +341,7 @@ export async function syncWatchlistItems(
               const radarrItem: RadarrItem = {
                 title: tempItem.title,
                 guids: parsedGuids,
+                thumb: tempItem.thumb,
                 type: 'movie',
                 genres: parsedGenres,
                 imdb: item.ratings?.imdb,
@@ -337,6 +357,8 @@ export async function syncWatchlistItems(
                   userName: user?.name,
                   radarrItem,
                   existingMovies,
+                  approvedRecords,
+                  arrInstanceIds: radarrInstanceIds,
                   primaryUser,
                 },
                 deps,

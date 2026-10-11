@@ -7,6 +7,10 @@ import {
 } from '@root/schemas/shared/prefix-validation.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
+import {
+  longestQuotaWindowDays,
+  resolveQuotaWindowSettings,
+} from '@root/utils/quota-window.js'
 import { z } from 'zod'
 
 // Max constants for validation
@@ -490,6 +494,19 @@ export const ConfigUpdateSchema = z
           })
           .optional(),
       })
+      .superRefine((value, ctx) => {
+        if (value.cleanup?.enabled === false) return
+        const minimumDays = longestQuotaWindowDays(
+          resolveQuotaWindowSettings(value),
+        )
+        if ((value.cleanup?.retentionDays ?? 90) < minimumDays) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `Usage history must be kept for at least ${minimumDays} days so cleanup never removes requests that still count toward a quota.`,
+            path: ['cleanup', 'retentionDays'],
+          })
+        }
+      })
       .optional(),
     // Approval System Configuration
     approvalExpiration: z
@@ -534,21 +551,62 @@ export const ConfigUpdateSchema = z
       'Writable configuration fields; server-internal settings are rejected',
   })
 
+export const ARR_WEBHOOK_FAILURE_CODES = [
+  'callback_failed',
+  'unreachable',
+] as const
+
+export const ArrWebhookResultSchema = z
+  .object({
+    instanceId: z.number(),
+    name: z.string(),
+    success: z.boolean(),
+    code: z.enum(ARR_WEBHOOK_FAILURE_CODES).nullable(),
+    message: z.string(),
+  })
+  .meta({
+    id: 'ArrWebhookResult',
+    description:
+      'Outcome of testing or registering the Pulsarr webhook in one arr instance',
+  })
+
+export const ArrWebhookResultsSchema = z
+  .object({
+    radarr: z.array(ArrWebhookResultSchema),
+    sonarr: z.array(ArrWebhookResultSchema),
+  })
+  .meta({
+    id: 'ArrWebhookResults',
+    description: 'Per-instance webhook outcomes for every Radarr and Sonarr',
+  })
+
 // Success is always true for 200 responses (errors use ConfigErrorSchema)
 export const ConfigResponseSchema = z
   .object({
     success: z.literal(true),
     config: ConfigFullSchema,
+    webhooks: ArrWebhookResultsSchema.optional(),
   })
   .meta({
     id: 'ConfigResponse',
     description: 'Configuration response envelope',
   })
 
+export const ConfigConflictSchema = ErrorSchema.extend({
+  webhooks: ArrWebhookResultsSchema.optional(),
+}).meta({
+  id: 'ConfigConflict',
+  description:
+    'Conflict response, with per-instance webhook outcomes when an arr rejected the new address',
+})
+
 // Type exports
+export type ArrWebhookResult = z.infer<typeof ArrWebhookResultSchema>
+export type ArrWebhookResults = z.infer<typeof ArrWebhookResultsSchema>
 export type ConfigFull = z.infer<typeof ConfigFullSchema>
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
 export type ConfigResponse = z.infer<typeof ConfigResponseSchema>
+export type ConfigConflict = z.infer<typeof ConfigConflictSchema>
 
 // Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ConfigErrorSchema }

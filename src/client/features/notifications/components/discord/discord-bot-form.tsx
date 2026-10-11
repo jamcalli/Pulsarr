@@ -5,8 +5,8 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { DiscordStatusBadge } from '@/components/status/discord-bot-status-badge'
 import { Button } from '@/components/ui/button'
-import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
 import {
   Form,
   FormControl,

@@ -1,3 +1,7 @@
+import {
+  type MinimumAvailability,
+  RADARR_MINIMUM_AVAILABILITY_OPTIONS,
+} from '@root/schemas/radarr/add-options.schema.js'
 /**
  * Database Service
  *
@@ -486,10 +490,8 @@ export class DatabaseService {
    */
   public normaliseMinimumAvailability(
     value?: string | null,
-  ): 'announced' | 'inCinemas' | 'released' {
-    const allowed = ['announced', 'inCinemas', 'released'] as const
-    type MinimumAvailability = (typeof allowed)[number]
-    const defaultValue = 'released' as MinimumAvailability
+  ): MinimumAvailability {
+    const defaultValue: MinimumAvailability = 'released'
 
     // Return default for null/undefined
     if (value === undefined || value === null) {
@@ -501,7 +503,7 @@ export class DatabaseService {
     const canonical = v.toLowerCase()
 
     // Find the matching allowed value (case-insensitive)
-    const match = allowed.find(
+    const match = RADARR_MINIMUM_AVAILABILITY_OPTIONS.find(
       (allowedValue) => allowedValue.toLowerCase() === canonical,
     )
 
@@ -511,7 +513,7 @@ export class DatabaseService {
     }
 
     // Return the properly cased value from the allowed list
-    return match as MinimumAvailability
+    return match
   }
 
   /**

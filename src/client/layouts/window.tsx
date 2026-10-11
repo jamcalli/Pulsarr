@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react'
-import { AppSidebar } from '@/components/AppSidebar'
 import { useSettings } from '@/components/settings-provider'
+import { AppSidebar } from '@/components/sidebar/app-sidebar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { VersionDisplay } from '@/components/ui/version-display'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { VersionDisplay } from '@/components/version-display'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 
 interface WindowedLayoutProps {
   children: ReactNode

@@ -49,7 +49,7 @@ export interface PendingLabelSyncWithPlexKeys {
 /**
  * Creates or upserts a pending label sync record for a specified watchlist item, setting its content title, webhook tags, and expiration.
  *
- * If a record for the given watchlist item already exists, it is updated with the new details and expiration, resetting retry metadata. This is used to track items that cannot be labeled immediately, such as when Plex indexing is delayed.
+ * If a record for the given watchlist item already exists, it is updated with the new details and expiration, keeping its retry count and created_at. This is used to track items that cannot be labeled immediately, such as when Plex indexing is delayed.
  *
  * @param watchlistItemId - The ID of the watchlist item to synchronize
  * @param contentTitle - The title of the content associated with the watchlist item
@@ -82,10 +82,7 @@ export async function createPendingLabelSync(
     .merge({
       content_title: contentTitle,
       webhook_tags: JSON.stringify(webhookTags),
-      retry_count: 0,
-      last_retry_at: null,
       expires_at: expiresAt,
-      // Preserve original created_at on upsert
     })
     .returning('id')
 

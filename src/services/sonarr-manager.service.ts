@@ -1,17 +1,31 @@
-import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
+import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
+import type {
+  AppliedSonarrRouting,
+  SonarrRouteSettings,
+} from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type {
   ConnectionTestResult,
   SonarrInstance,
   SonarrItem,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
+import {
+  PlaceholderResetError,
+  placeholderSonarrInstance,
+} from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
+import {
+  InvalidSeasonMonitoringError,
+  rejectedSeasonMonitoring,
+} from '@utils/season-monitoring.js'
 import {
   delayWithBackoffAndJitter,
   isSameServerEndpoint,
@@ -226,13 +240,16 @@ export class SonarrManagerService {
     userId: number,
     instanceId?: number,
     syncing = false,
-    rootFolder?: string,
-    qualityProfile?: number | string | null,
-    tags?: string[],
-    searchOnAdd?: boolean | null,
-    seasonMonitoring?: string | null,
-    seriesType?: 'standard' | 'anime' | 'daily' | null,
-  ): Promise<void> {
+    settings: SonarrRouteSettings = {},
+  ): Promise<AppliedSonarrRouting> {
+    const {
+      rootFolder,
+      qualityProfile,
+      tags,
+      searchOnAdd,
+      seasonMonitoring,
+      seriesType,
+    } = settings
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
     if (targetInstanceId === undefined) {
@@ -256,6 +273,9 @@ export class SonarrManagerService {
       const instance = await this.fastify.db.getSonarrInstance(targetInstanceId)
       if (!instance) {
         throw new Error(`Sonarr instance ${targetInstanceId} not found`)
+      }
+      if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
+        throw new Error(`Sonarr instance "${instance.name}" is not set up`)
       }
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
@@ -295,8 +315,7 @@ export class SonarrManagerService {
         }
       }
 
-      // Add to Sonarr and get the series ID directly
-      const sonarrSeriesId = await sonarrService.addToSonarr(
+      const added = await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
         targetQualityProfileId,
@@ -305,6 +324,7 @@ export class SonarrManagerService {
         sonarrMonitoringOption,
         targetSeriesType,
       )
+      const sonarrSeriesId = added.seriesId
 
       // If rolling monitoring was used, create tracking entry
       if (isRollingMonitoring) {
@@ -323,10 +343,7 @@ export class SonarrManagerService {
               targetInstanceId,
               tvdbId || '',
               sonarrItem.title,
-              targetSeasonMonitoring as
-                | 'pilotRolling'
-                | 'firstSeasonRolling'
-                | 'allSeasonPilotRolling',
+              targetSeasonMonitoring,
             )
 
             // For allSeasonPilotRolling, seed E01 of every season after add
@@ -374,6 +391,17 @@ export class SonarrManagerService {
         },
         'Successfully routed item to Sonarr',
       )
+
+      return {
+        instanceId: targetInstanceId,
+        instanceType: 'sonarr',
+        qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        rootFolder: added.rootFolder,
+        tags: added.tags,
+        searchOnAdd: targetSearchOnAdd,
+        seasonMonitoring: targetSeasonMonitoring,
+        seriesType: targetSeriesType,
+      }
     } catch (error) {
       this.log.error(
         {
@@ -511,6 +539,8 @@ export class SonarrManagerService {
   }
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
+    const rejected = rejectedSeasonMonitoring(instance.seasonMonitoring, [])
+    if (rejected !== undefined) throw new InvalidSeasonMonitoringError(rejected)
     const id = await this.fastify.db.createSonarrInstance(instance)
     let sonarrService: SonarrService | undefined
     try {
@@ -570,6 +600,49 @@ export class SonarrManagerService {
       this.log.warn(`No Sonarr service found for instance ${id}`)
       await this.fastify.db.deleteSonarrInstance(id)
     }
+    this.fastify.contentRouter.clearRouterRulesCache()
+  }
+
+  private async resetToPlaceholder(current: SonarrInstance): Promise<void> {
+    const instances = await this.fastify.db.getAllSonarrInstances()
+    if (
+      instances.some(
+        (instance) =>
+          instance.id !== current.id &&
+          instance.apiKey !== ARR_API_KEY_PLACEHOLDER,
+      )
+    ) {
+      throw new PlaceholderResetError('Sonarr')
+    }
+
+    const oldService = this.sonarrServices.get(current.id)
+    if (oldService) {
+      try {
+        await oldService.removeWebhook()
+      } catch (error) {
+        this.log.error(
+          { error },
+          `Failed to remove webhook for instance ${current.id}`,
+        )
+      }
+    }
+
+    const placeholder = placeholderSonarrInstance()
+    const newId = await this.fastify.db.replaceSonarrInstance(
+      current.id,
+      placeholder,
+    )
+    this.sonarrServices.delete(current.id)
+    this.fastify.contentRouter.clearRouterRulesCache()
+
+    const placeholderService = new SonarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    await placeholderService.initialize({ ...placeholder, id: newId })
+    this.sonarrServices.set(newId, placeholderService)
   }
 
   async updateInstance(
@@ -578,7 +651,19 @@ export class SonarrManagerService {
   ): Promise<void> {
     const current = await this.fastify.db.getSonarrInstance(id)
     if (current) {
+      const rejected = rejectedSeasonMonitoring(updates.seasonMonitoring, [
+        current.seasonMonitoring,
+      ])
+      if (rejected !== undefined)
+        throw new InvalidSeasonMonitoringError(rejected)
       const candidate = { ...current, ...updates }
+      if (
+        current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey === ARR_API_KEY_PLACEHOLDER
+      ) {
+        await this.resetToPlaceholder(current)
+        return
+      }
       const oldService = this.sonarrServices.get(id)
 
       // Only treat changes to the target server endpoint as a "server change"
@@ -595,7 +680,8 @@ export class SonarrManagerService {
 
       // API key transitions
       const isPlaceholderToReal =
-        current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
+        current.apiKey === ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey !== ARR_API_KEY_PLACEHOLDER
       const apiKeyChanged = current.apiKey !== candidate.apiKey
       const needsNewService =
         baseUrlChanged || isPlaceholderToReal || apiKeyChanged
@@ -610,8 +696,16 @@ export class SonarrManagerService {
         )
         await sonarrService.initialize(candidate)
         // Only persist after successful init; cleanup on persist failure
+        let persistedId = id
         try {
-          await this.fastify.db.updateSonarrInstance(id, updates)
+          if (isPlaceholderToReal) {
+            persistedId = await this.fastify.db.replaceSonarrInstance(
+              id,
+              candidate,
+            )
+          } else {
+            await this.fastify.db.updateSonarrInstance(id, updates)
+          }
         } catch (dbErr) {
           this.log.error(
             { error: dbErr, instanceId: id },
@@ -629,10 +723,11 @@ export class SonarrManagerService {
 
         // Clean up old webhook from previous server (but not for placeholder transitions)
         // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
-        const toPlaceholder =
-          current.apiKey !== 'placeholder' && candidate.apiKey === 'placeholder'
-
-        if (oldService && serverChanged && current.apiKey !== 'placeholder') {
+        if (
+          oldService &&
+          serverChanged &&
+          current.apiKey !== ARR_API_KEY_PLACEHOLDER
+        ) {
           try {
             await oldService.removeWebhook()
           } catch (cleanupErr) {
@@ -641,18 +736,13 @@ export class SonarrManagerService {
               `Failed to cleanup old webhook for previous server of instance ${id}`,
             )
           }
-        } else if (oldService && toPlaceholder) {
-          // Remove webhook when transitioning to placeholder credentials
-          try {
-            await oldService.removeWebhook()
-          } catch (cleanupErr) {
-            this.log.warn(
-              { error: cleanupErr },
-              `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
-            )
-          }
         }
-        this.sonarrServices.set(id, sonarrService)
+        if (persistedId !== id) {
+          this.sonarrServices.delete(id)
+          sonarrService.updateConfiguration({ ...candidate, id: persistedId })
+          this.fastify.contentRouter.clearRouterRulesCache()
+        }
+        this.sonarrServices.set(persistedId, sonarrService)
       } else {
         // Server unchanged - just update configuration, no webhook changes needed
         await this.fastify.db.updateSonarrInstance(id, updates)
@@ -680,60 +770,90 @@ export class SonarrManagerService {
     return this.sonarrServices.get(id)
   }
 
-  async resyncWebhooks(): Promise<WebhookResyncInstanceResult[]> {
+  private async webhookResults(
+    successMessage: string,
+    run: (instance: SonarrInstance) => Promise<void>,
+  ): Promise<ArrWebhookResult[]> {
     const instances = await this.fastify.db.getAllSonarrInstances()
     const limit = pLimit(WEBHOOK_RESYNC_CONCURRENCY)
-
     return Promise.all(
       instances
-        .filter((instance) => instance.apiKey !== 'placeholder')
+        .filter((instance) => instance.apiKey !== ARR_API_KEY_PLACEHOLDER)
         .map((instance) =>
-          limit(async (): Promise<WebhookResyncInstanceResult> => {
-            // old service still holds the prior baseUrl/port, so this deletes the stale webhook name
-            const oldService = this.sonarrServices.get(instance.id)
-            if (oldService) {
-              try {
-                await oldService.removeWebhook()
-              } catch (error) {
-                this.log.warn(
-                  { error, instanceId: instance.id },
-                  'Failed to remove stale webhook during resync',
-                )
-              }
-            }
-
+          limit(async (): Promise<ArrWebhookResult> => {
             try {
-              const sonarrService = new SonarrService(
-                this.baseLog,
-                this.appBaseUrl,
-                this.port,
-                this.fastify,
-              )
-              await sonarrService.initialize(instance)
-              this.sonarrServices.set(instance.id, sonarrService)
+              await run(instance)
               return {
                 instanceId: instance.id,
                 name: instance.name,
                 success: true,
-                message: 'Webhook re-registered',
+                code: null,
+                message: successMessage,
               }
             } catch (error) {
               this.log.error(
                 { error, instanceId: instance.id },
-                'Failed to re-register webhook during resync',
+                'Webhook check failed for Sonarr instance',
               )
               return {
                 instanceId: instance.id,
                 name: instance.name,
                 success: false,
+                code:
+                  error instanceof WebhookCallbackError
+                    ? 'callback_failed'
+                    : 'unreachable',
                 message:
                   error instanceof Error
                     ? error.message
-                    : 'Failed to re-register webhook',
+                    : 'Webhook check failed',
               }
             }
           }),
         ),
     )
+  }
+
+  /** Tests the callback at a candidate address against every real instance without storing anything. */
+  async testWebhookAddress(
+    baseUrl: string,
+    port: number,
+  ): Promise<ArrWebhookResult[]> {
+    return this.webhookResults('Webhook callback reachable', (instance) =>
+      new SonarrService(
+        this.baseLog,
+        baseUrl,
+        port,
+        this.fastify,
+      ).testWebhookCallback(instance),
+    )
+  }
+
+  async resyncWebhooks(): Promise<ArrWebhookResult[]> {
+    return this.webhookResults('Webhook re-registered', async (instance) => {
+      const oldService = this.sonarrServices.get(instance.id)
+      const sonarrService = new SonarrService(
+        this.baseLog,
+        this.appBaseUrl,
+        this.port,
+        this.fastify,
+      )
+      await sonarrService.initialize(instance)
+      // The arr tests the callback before storing a hook, so the old one goes only after the new one is stored
+      if (
+        oldService &&
+        oldService.getWebhookName() !== sonarrService.getWebhookName()
+      ) {
+        try {
+          await oldService.removeWebhook()
+        } catch (error) {
+          this.log.warn(
+            { error, instanceId: instance.id },
+            'Failed to remove stale webhook during resync',
+          )
+        }
+      }
+      this.sonarrServices.set(instance.id, sonarrService)
+    })
   }
 }

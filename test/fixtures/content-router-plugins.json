@@ -1,0 +1,745 @@
+{
+  "plugins": {
+    "success": true,
+    "plugins": [
+      {
+        "name": "Conditional Router",
+        "description": "Routes content based on complex conditional rules",
+        "priority": 100
+      },
+      {
+        "name": "Streaming Availability Router",
+        "description": "Routes content based on streaming service availability to prevent redundant downloads",
+        "priority": 85
+      },
+      {
+        "name": "Ratings Router",
+        "description": "Routes content based on ratings (IMDB, Rotten Tomatoes, TMDB)",
+        "priority": 80
+      },
+      {
+        "name": "Genre Router",
+        "description": "Routes content based on genre matching rules",
+        "priority": 80
+      },
+      {
+        "name": "User Router",
+        "description": "Routes content based on requesting users",
+        "priority": 75
+      },
+      {
+        "name": "Year Router",
+        "description": "Routes content based on release year",
+        "priority": 70
+      },
+      {
+        "name": "Season Router",
+        "description": "Routes TV shows based on season numbers",
+        "priority": 68
+      },
+      {
+        "name": "Language Router",
+        "description": "Routes content based on original language",
+        "priority": 65
+      },
+      {
+        "name": "Certification Router",
+        "description": "Routes content based on certification/rating",
+        "priority": 60
+      },
+      {
+        "name": "Series Status Router",
+        "description": "Routes TV shows based on series status from Sonarr",
+        "priority": 55
+      },
+      {
+        "name": "Movie Status Router",
+        "description": "Routes movies based on movie status from Radarr",
+        "priority": 55
+      },
+      {
+        "name": "Plex List Router",
+        "description": "Routes content based on Plex custom list membership",
+        "priority": 50
+      }
+    ]
+  },
+  "metadata": {
+    "success": true,
+    "evaluators": [
+      {
+        "name": "Conditional Router",
+        "description": "Routes content based on complex conditional rules",
+        "priority": 100,
+        "supportedFields": [
+          {
+            "name": "condition",
+            "description": "Complex condition structure for advanced routing",
+            "valueTypes": ["object"]
+          }
+        ],
+        "supportedOperators": {
+          "condition": [
+            {
+              "name": "equals",
+              "description": "Condition structure matches exactly",
+              "valueTypes": ["object"]
+            },
+            {
+              "name": "contains",
+              "description": "Condition structure contains the specified rules",
+              "valueTypes": ["object"]
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "Streaming Availability Router",
+        "description": "Routes content based on streaming service availability to prevent redundant downloads",
+        "priority": 85,
+        "supportedFields": [
+          {
+            "name": "streamingServices",
+            "description": "TMDB provider IDs for streaming services (e.g., [8, 337] for Netflix, Disney+)",
+            "valueTypes": ["number[]", "number"]
+          }
+        ],
+        "supportedOperators": {
+          "streamingServices": [
+            {
+              "name": "in",
+              "description": "Content is available on at least one of these streaming services",
+              "valueTypes": ["number[]", "number"],
+              "valueFormat": "Single provider ID or array of TMDB provider IDs, e.g., 8 or [8, 337] for Netflix, Disney+"
+            },
+            {
+              "name": "notIn",
+              "description": "Content is not available on any of these streaming services",
+              "valueTypes": ["number[]", "number"],
+              "valueFormat": "Single provider ID or array of TMDB provider IDs, e.g., 8 or [8, 15, 384] for Netflix, Hulu, HBO Max"
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "Ratings Router",
+        "description": "Routes content based on ratings (IMDB, Rotten Tomatoes, TMDB)",
+        "priority": 80,
+        "supportedFields": [
+          {
+            "name": "imdbRating",
+            "description": "IMDB rating (0-10 scale, with optional vote count filter)",
+            "valueTypes": ["number", "number[]", "object"]
+          },
+          {
+            "name": "rtCriticRating",
+            "description": "Rotten Tomatoes critic score (0-100%)",
+            "valueTypes": ["number", "number[]", "object"]
+          },
+          {
+            "name": "rtAudienceRating",
+            "description": "Rotten Tomatoes audience score (0-100%)",
+            "valueTypes": ["number", "number[]", "object"]
+          },
+          {
+            "name": "tmdbRating",
+            "description": "TMDB rating (0-10 scale)",
+            "valueTypes": ["number", "number[]", "object"]
+          }
+        ],
+        "supportedOperators": {
+          "imdbRating": [
+            {
+              "name": "equals",
+              "description": "Rating matches exactly",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Rating does not match",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "greaterThan",
+              "description": "Rating is greater than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "lessThan",
+              "description": "Rating is less than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "in",
+              "description": "Rating is one of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "notIn",
+              "description": "Rating is not any of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "between",
+              "description": "Rating is within a range (inclusive)",
+              "valueTypes": ["object"],
+              "valueFormat": "Object with min and/or max properties, e.g. { min: 7.0, max: 9.0 }"
+            }
+          ],
+          "rtCriticRating": [
+            {
+              "name": "equals",
+              "description": "Rating matches exactly",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Rating does not match",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "greaterThan",
+              "description": "Rating is greater than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "lessThan",
+              "description": "Rating is less than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "in",
+              "description": "Rating is one of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "notIn",
+              "description": "Rating is not any of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "between",
+              "description": "Rating is within a range (inclusive)",
+              "valueTypes": ["object"],
+              "valueFormat": "Object with min and/or max properties, e.g. { min: 7.0, max: 9.0 }"
+            }
+          ],
+          "rtAudienceRating": [
+            {
+              "name": "equals",
+              "description": "Rating matches exactly",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Rating does not match",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "greaterThan",
+              "description": "Rating is greater than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "lessThan",
+              "description": "Rating is less than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "in",
+              "description": "Rating is one of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "notIn",
+              "description": "Rating is not any of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "between",
+              "description": "Rating is within a range (inclusive)",
+              "valueTypes": ["object"],
+              "valueFormat": "Object with min and/or max properties, e.g. { min: 7.0, max: 9.0 }"
+            }
+          ],
+          "tmdbRating": [
+            {
+              "name": "equals",
+              "description": "Rating matches exactly",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Rating does not match",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "greaterThan",
+              "description": "Rating is greater than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "lessThan",
+              "description": "Rating is less than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "in",
+              "description": "Rating is one of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "notIn",
+              "description": "Rating is not any of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of ratings, e.g. [8.0, 8.5, 9.0]"
+            },
+            {
+              "name": "between",
+              "description": "Rating is within a range (inclusive)",
+              "valueTypes": ["object"],
+              "valueFormat": "Object with min and/or max properties, e.g. { min: 7.0, max: 9.0 }"
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "Genre Router",
+        "description": "Routes content based on genre matching rules",
+        "priority": 80,
+        "supportedFields": [
+          {
+            "name": "genres",
+            "description": "Genre categories of the content",
+            "valueTypes": ["string", "string[]"]
+          }
+        ],
+        "supportedOperators": {
+          "genres": [
+            {
+              "name": "contains",
+              "description": "Content genre list contains this genre",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "in",
+              "description": "Content has at least one of these genres",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of genre names, e.g. [\"Action\", \"Thriller\"]"
+            },
+            {
+              "name": "notContains",
+              "description": "Content genre list doesn't contain this genre",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notIn",
+              "description": "Content doesn't have any of these genres",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of genre names, e.g. [\"Horror\", \"Comedy\"]"
+            },
+            {
+              "name": "equals",
+              "description": "Content genres exactly match the provided genres",
+              "valueTypes": ["string", "string[]"],
+              "valueFormat": "Single genre or array of all expected genres"
+            },
+            {
+              "name": "regex",
+              "description": "At least one genre matches the regular expression",
+              "valueTypes": ["string"]
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "User Router",
+        "description": "Routes content based on requesting users",
+        "priority": 75,
+        "supportedFields": [
+          {
+            "name": "user",
+            "description": "The user requesting the content (by ID or username)",
+            "valueTypes": ["string", "number", "string[]", "number[]"]
+          }
+        ],
+        "supportedOperators": {
+          "user": [
+            {
+              "name": "equals",
+              "description": "User matches exactly (by ID or username)",
+              "valueTypes": ["string", "number"]
+            },
+            {
+              "name": "notEquals",
+              "description": "User does not match (by ID or username)",
+              "valueTypes": ["string", "number"]
+            },
+            {
+              "name": "in",
+              "description": "User is one of the provided values",
+              "valueTypes": ["string[]", "number[]"],
+              "valueFormat": "Array of user IDs or usernames, e.g. [\"admin\", \"john\", 42]"
+            },
+            {
+              "name": "notIn",
+              "description": "User is not one of the provided values",
+              "valueTypes": ["string[]", "number[]"],
+              "valueFormat": "Array of user IDs or usernames to exclude, e.g. [\"guest\", 100]"
+            },
+            {
+              "name": "regex",
+              "description": "Username matches the regular expression",
+              "valueTypes": ["string"]
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "Year Router",
+        "description": "Routes content based on release year",
+        "priority": 70,
+        "supportedFields": [
+          {
+            "name": "year",
+            "description": "Release year of the content",
+            "valueTypes": ["number", "number[]", "object"]
+          }
+        ],
+        "supportedOperators": {
+          "year": [
+            {
+              "name": "equals",
+              "description": "Year matches exactly",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Year does not match",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "greaterThan",
+              "description": "Year is greater than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "lessThan",
+              "description": "Year is less than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "in",
+              "description": "Year is one of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of years, e.g. [1980, 1981, 1982]"
+            },
+            {
+              "name": "notIn",
+              "description": "Year is not any of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of years, e.g. [1980, 1981, 1982]"
+            },
+            {
+              "name": "between",
+              "description": "Year is within a range (inclusive)",
+              "valueTypes": ["object"],
+              "valueFormat": "Object with min and/or max properties, e.g. { min: 1980, max: 1989 }"
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "Season Router",
+        "description": "Routes TV shows based on season numbers",
+        "priority": 68,
+        "supportedFields": [
+          {
+            "name": "season",
+            "description": "Season number(s) of TV show",
+            "valueTypes": ["number", "number[]", "object"]
+          }
+        ],
+        "supportedOperators": {
+          "season": [
+            {
+              "name": "equals",
+              "description": "Season number matches exactly",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Season number does not match",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "greaterThan",
+              "description": "Season number is greater than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "lessThan",
+              "description": "Season number is less than value",
+              "valueTypes": ["number"]
+            },
+            {
+              "name": "in",
+              "description": "Season is one of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of season numbers, e.g. [1, 2, 3]"
+            },
+            {
+              "name": "notIn",
+              "description": "Season is not any of the provided values",
+              "valueTypes": ["number[]"],
+              "valueFormat": "Array of season numbers, e.g. [1, 2, 3]"
+            },
+            {
+              "name": "between",
+              "description": "Season is within a range (inclusive)",
+              "valueTypes": ["object"],
+              "valueFormat": "Object with min and/or max properties, e.g. { min: 1, max: 5 }"
+            }
+          ]
+        },
+        "contentType": "sonarr"
+      },
+      {
+        "name": "Language Router",
+        "description": "Routes content based on original language",
+        "priority": 65,
+        "supportedFields": [
+          {
+            "name": "language",
+            "description": "Original language of the content",
+            "valueTypes": ["string", "string[]"]
+          }
+        ],
+        "supportedOperators": {
+          "language": [
+            {
+              "name": "equals",
+              "description": "Language matches exactly",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Language does not match",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "contains",
+              "description": "Language name contains this string",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notContains",
+              "description": "Language name does not contain this string",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "in",
+              "description": "Language is one of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of language names, e.g. [\"English\", \"French\", \"Japanese\"]"
+            },
+            {
+              "name": "notIn",
+              "description": "Language is not any of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of language names to exclude, e.g. [\"English\", \"French\"]"
+            },
+            {
+              "name": "regex",
+              "description": "Language matches the regular expression",
+              "valueTypes": ["string"]
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "Certification Router",
+        "description": "Routes content based on certification/rating",
+        "priority": 60,
+        "supportedFields": [
+          {
+            "name": "certification",
+            "description": "Content rating/certification (PG-13, R, TV-MA, etc.)",
+            "valueTypes": ["string", "string[]"]
+          }
+        ],
+        "supportedOperators": {
+          "certification": [
+            {
+              "name": "equals",
+              "description": "Certification matches exactly",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Certification does not match",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "contains",
+              "description": "Certification contains this string",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notContains",
+              "description": "Certification does not contain this string",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "in",
+              "description": "Certification is one of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of certifications, e.g. [\"PG-13\", \"PG\", \"G\"]"
+            },
+            {
+              "name": "notIn",
+              "description": "Certification is not one of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of certifications, e.g. [\"R\", \"NC-17\"]"
+            },
+            {
+              "name": "regex",
+              "description": "Certification matches the regular expression",
+              "valueTypes": ["string"]
+            }
+          ]
+        },
+        "contentType": "both"
+      },
+      {
+        "name": "Series Status Router",
+        "description": "Routes TV shows based on series status from Sonarr",
+        "priority": 55,
+        "supportedFields": [
+          {
+            "name": "seriesStatus",
+            "description": "Series status from Sonarr (continuing, ended, upcoming, deleted)",
+            "valueTypes": ["string", "string[]"]
+          }
+        ],
+        "supportedOperators": {
+          "seriesStatus": [
+            {
+              "name": "equals",
+              "description": "Series status matches exactly",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Series status does not match",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "in",
+              "description": "Series status is one of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of statuses, e.g. [\"continuing\", \"ended\"]"
+            },
+            {
+              "name": "notIn",
+              "description": "Series status is not one of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of statuses, e.g. [\"continuing\", \"ended\"]"
+            }
+          ]
+        },
+        "contentType": "sonarr"
+      },
+      {
+        "name": "Movie Status Router",
+        "description": "Routes movies based on movie status from Radarr",
+        "priority": 55,
+        "supportedFields": [
+          {
+            "name": "movieStatus",
+            "description": "Movie status from Radarr (tba, announced, inCinemas, released, deleted)",
+            "valueTypes": ["string", "string[]"]
+          }
+        ],
+        "supportedOperators": {
+          "movieStatus": [
+            {
+              "name": "equals",
+              "description": "Movie status matches exactly",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Movie status does not match",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "in",
+              "description": "Movie status is one of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of statuses, e.g. [\"released\", \"inCinemas\"]"
+            },
+            {
+              "name": "notIn",
+              "description": "Movie status is not one of the provided values",
+              "valueTypes": ["string[]"],
+              "valueFormat": "Array of statuses, e.g. [\"released\", \"inCinemas\"]"
+            }
+          ]
+        },
+        "contentType": "radarr"
+      },
+      {
+        "name": "Plex List Router",
+        "description": "Routes content based on Plex custom list membership",
+        "priority": 50,
+        "supportedFields": [
+          {
+            "name": "plexList",
+            "description": "Plex custom list name owned by the requesting user",
+            "valueTypes": ["string"]
+          }
+        ],
+        "supportedOperators": {
+          "plexList": [
+            {
+              "name": "equals",
+              "description": "Item is on a list with this exact name",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notEquals",
+              "description": "Item is not on a list with this exact name",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "contains",
+              "description": "Item is on a list whose name contains this string",
+              "valueTypes": ["string"]
+            },
+            {
+              "name": "notContains",
+              "description": "Item is not on any list whose name contains this string",
+              "valueTypes": ["string"]
+            }
+          ]
+        },
+        "contentType": "both"
+      }
+    ]
+  }
+}

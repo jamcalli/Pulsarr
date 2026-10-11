@@ -1,3 +1,4 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import {
   BulkQuotaOperationResponseSchema,
   BulkQuotaOperationSchema,
@@ -19,6 +20,7 @@ import {
   UserQuotaGetResponseSchema,
   UserQuotaUpdateResponseSchema,
 } from '@schemas/quota/quota.schema.js'
+import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
@@ -449,7 +451,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Get current quota status for a user',
         params: QuotaUserIdParamsSchema,
         querystring: z.object({
-          contentType: z.enum(['movie', 'show']).optional(),
+          contentType: ContentTypeSchema.optional(),
         }),
         response: {
           200: QuotaStatusGetResponseSchema,
@@ -464,7 +466,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { contentType } = request.query
 
         const quotaStatus = contentType
-          ? await fastify.db.getQuotaStatus(userId, contentType)
+          ? await fastify.db.getQuotaStatus(
+              userId,
+              contentType,
+              resolveQuotaWindowSettings(fastify.config.quotaSettings),
+            )
           : null
 
         return {
@@ -493,7 +499,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Get current quota status for multiple users in a single request',
         body: z.object({
           userIds: z.array(z.number()),
-          contentType: z.enum(['movie', 'show']).optional(),
+          contentType: ContentTypeSchema.optional(),
         }),
         response: {
           200: BulkQuotaStatusResponseSchema,
@@ -513,6 +519,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const quotaStatuses = await fastify.db.getBulkQuotaStatus(
           userIds,
+          resolveQuotaWindowSettings(fastify.config.quotaSettings),
           contentType,
         )
 
@@ -541,7 +548,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Record quota usage for a user',
         params: QuotaUserIdParamsSchema,
         body: z.object({
-          contentType: z.enum(['movie', 'show']),
+          contentType: ContentTypeSchema,
           requestDate: z.iso.datetime().optional(),
         }),
         response: {

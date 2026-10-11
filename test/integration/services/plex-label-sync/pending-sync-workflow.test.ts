@@ -425,6 +425,97 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(pendingSyncs).toHaveLength(0)
     })
 
+    it('should finish deleting rows for missing users before returning', async () => {
+      const knex = getTestDatabase()
+
+      const [watchlistItem] = await knex('watchlist_items')
+        .insert({
+          user_id: SEED_USERS[0].id,
+          guids: JSON.stringify(['imdb:tt0111161']),
+          type: 'movie',
+          title: 'Test Movie',
+          key: 'test-key-awaited-delete',
+          status: 'grabbed',
+        })
+        .returning('*')
+
+      await knex('pending_label_syncs').insert({
+        watchlist_item_id: watchlistItem.id,
+        content_title: watchlistItem.title,
+        retry_count: 0,
+        webhook_tags: JSON.stringify([]),
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      })
+
+      const deletedIds: number[] = []
+      const getAllUsersSpy = vi
+        .spyOn(app.db, 'getAllUsers')
+        .mockResolvedValue([])
+      const deleteSpy = vi
+        .spyOn(app.db, 'deletePendingLabelSync')
+        .mockImplementation(async (id: number) => {
+          await new Promise((resolve) => setTimeout(resolve, 20))
+          deletedIds.push(id)
+          return true
+        })
+
+      try {
+        await processPendingLabelSyncs({
+          plexServer: app.plexServerService,
+          db: app.db,
+          logger: app.log,
+          config: {
+            ...app.config.plexLabelSync,
+            enabled: true,
+          } as PlexLabelSyncConfig,
+          removedLabelMode: 'remove',
+          removedLabelPrefix: 'pulsarr:removed',
+          tagPrefix: 'pulsarr:user',
+          removedTagPrefix: 'pulsarr:removed',
+        })
+
+        expect(deletedIds).toHaveLength(1)
+      } finally {
+        getAllUsersSpy.mockRestore()
+        deleteSpy.mockRestore()
+      }
+    })
+
+    it('should keep the retry count when an item is queued again', async () => {
+      const knex = getTestDatabase()
+
+      const [watchlistItem] = await knex('watchlist_items')
+        .insert({
+          user_id: SEED_USERS[0].id,
+          guids: JSON.stringify(['imdb:tt0111161']),
+          type: 'movie',
+          title: 'Test Movie',
+          key: 'test-key-requeue',
+          status: 'grabbed',
+        })
+        .returning('*')
+
+      const id = await app.db.createPendingLabelSync(
+        watchlistItem.id,
+        watchlistItem.title,
+      )
+      await app.db.updatePendingLabelSyncRetry(id)
+      await app.db.updatePendingLabelSyncRetry(id)
+      await app.db.createPendingLabelSync(
+        watchlistItem.id,
+        watchlistItem.title,
+        10,
+        ['action'],
+      )
+
+      const rows = await knex('pending_label_syncs').where({
+        watchlist_item_id: watchlistItem.id,
+      })
+      expect(rows).toHaveLength(1)
+      expect(rows[0].retry_count).toBe(2)
+      expect(JSON.parse(rows[0].webhook_tags)).toEqual(['action'])
+    })
+
     it('should clean up expired pending syncs', async () => {
       const knex = getTestDatabase()
 

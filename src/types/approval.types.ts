@@ -1,3 +1,8 @@
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 /**
  * Approval System Types
  *
@@ -27,6 +32,7 @@ export interface ApprovalRequestRow {
   content_type: 'movie' | 'show'
   content_title: string
   content_key: string
+  thumb: string | null
   content_guids: string // JSON array string in DB
   router_decision: string // JSON object string in DB
   router_rule_id?: number | null
@@ -76,10 +82,11 @@ export interface RouterDecision {
     priority: number
     searchOnAdd?: boolean | null
     seasonMonitoring?: string | null
-    seriesType?: 'standard' | 'anime' | 'daily' | null
-    minimumAvailability?: 'announced' | 'inCinemas' | 'released'
-    monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null // For Radarr: monitor type
+    seriesType?: SonarrSeriesType | null
+    minimumAvailability?: MinimumAvailability
+    monitor?: RadarrMonitorType | null
     syncedInstances?: number[]
+    ruleId?: number
   }
 
   // Approval-specific fields (when action === 'require_approval')
@@ -89,6 +96,8 @@ export interface RouterDecision {
     data: ApprovalData
     // What routing WOULD have been applied
     proposedRouting?: RouterDecision['routing']
+    /** Independently matched rule targets beyond the primary, each routed with its own settings. */
+    additionalRouting?: NonNullable<RouterDecision['routing']>[]
   }
 }
 
@@ -130,6 +139,7 @@ export interface ApprovalRequest {
   contentTitle: string
   contentKey: string
   contentGuids: string[]
+  thumb: string | null
 
   // What the router would have decided
   proposedRouterDecision: RouterDecision
@@ -179,6 +189,7 @@ export interface CreateApprovalRequestData {
   contentType: 'movie' | 'show'
   contentTitle: string
   contentKey: string
+  thumb?: string
   contentGuids?: string[]
   routerDecision: RouterDecision
   routerRuleId?: number

@@ -1,10 +1,12 @@
 language: "en-US"
 early_access: false
+tone_instructions: "Be direct, cite file and line, skip praise. CI already runs Biome, typecheck and tests."
 reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
   poem: false
+  in_progress_fortune: false
   review_status: true
   collapse_walkthrough: false
   auto_review:
@@ -12,6 +14,7 @@ reviews:
     drafts: false
     base_branches:
       - "develop"
+      - "feat/ui-rewrite"
       - "main"
       - "master"
   path_filters:
@@ -26,5 +29,37 @@ reviews:
     - "!**/package-lock.json"
     - "!**/yarn.lock"
     - "!**/pnpm-lock.yaml"
+    - "!bun.lock"
+    - "!src/client/types/api.d.ts"
+  path_instructions:
+    - path: "migrations/migrations/**"
+      instructions: |
+        - Never edit an existing migration; add a new one.
+        - dropColumn on users, watchlist_items, sonarr_instances or radarr_instances needs `config = { transaction: false }`.
+        - No imports from src/.
+    - path: "src/schemas/**"
+      instructions: |
+        - Schema changes ship with regenerated openapi.json and api.d.ts.
+        - Use `.meta({ id })`, never `.describe()`.
+    - path: "src/client/**/*.{ts,tsx}"
+      instructions: |
+        - No z.infer API types from @root/schemas; use api.d.ts.
+        - No hardcoded colors or arbitrary Tailwind values outside legacy/.
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+  tools:
+    biome:
+      enabled: false
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
 chat:
   auto_reply: true
+  art: false

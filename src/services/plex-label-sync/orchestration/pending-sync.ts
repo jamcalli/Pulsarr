@@ -163,18 +163,18 @@ export async function processPendingLabelSyncs(
             }
 
             // Validate all users in the group still exist
-            const validRows = group.rows.filter((row) => {
-              const user = userMap.get(row.user_id)
-              if (!user) {
-                void deps.db.deletePendingLabelSync(row.id)
-                deps.logger.debug(
-                  { userId: row.user_id, title: row.content_title },
-                  'User not found for pending sync, removing from queue',
-                )
-                return false
+            const validRows: PendingLabelSyncWithPlexKeys[] = []
+            for (const row of group.rows) {
+              if (userMap.has(row.user_id)) {
+                validRows.push(row)
+                continue
               }
-              return true
-            })
+              await deps.db.deletePendingLabelSync(row.id)
+              deps.logger.debug(
+                { userId: row.user_id, title: row.content_title },
+                'User not found for pending sync, removing from queue',
+              )
+            }
 
             if (validRows.length === 0) {
               return syncResult

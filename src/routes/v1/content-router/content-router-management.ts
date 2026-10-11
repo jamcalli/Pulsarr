@@ -1,3 +1,4 @@
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import type { RouterRule } from '@root/types/router.types.js'
 import type { ContentRouterRuleUpdate } from '@schemas/content-router/content-router.schema.js'
 import {
@@ -11,6 +12,11 @@ import {
 } from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
+import {
+  invalidSeasonMonitoringMessage,
+  rejectedSeasonMonitoring,
+} from '@utils/season-monitoring.js'
+import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
@@ -37,7 +43,7 @@ function normalizeRulePayload(
     target_type: ruleData.target_type,
     // Exclude rules never route, so instance-scoped fields are cleared
     target_instance_id: excludeFromRouting ? null : ruleData.target_instance_id,
-    root_folder: excludeFromRouting ? null : ruleData.root_folder || null,
+    root_folder: excludeFromRouting ? null : (ruleData.root_folder ?? null),
     quality_profile: excludeFromRouting
       ? null
       : (ruleData.quality_profile ?? null),
@@ -53,6 +59,19 @@ function normalizeRulePayload(
     approval_reason: ruleData.approval_reason ?? null,
     exclude_from_routing: excludeFromRouting,
   }
+}
+
+async function targetInstanceExists(
+  db: FastifyInstance['db'],
+  ruleData: ContentRouterRuleUpdate,
+): Promise<boolean> {
+  const id = ruleData.target_instance_id
+  if (id == null) return true
+  const instance =
+    ruleData.target_type === 'radarr'
+      ? await db.getRadarrInstance(id)
+      : await db.getSonarrInstance(id)
+  return instance !== null
 }
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -76,9 +95,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const rules = await fastify.db.getAllRouterRules()
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -127,9 +144,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByType(type, enabledOnly)
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -156,7 +171,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Retrieve content router rules for a specific target instance',
         querystring: z.object({
-          targetType: z.enum(['sonarr', 'radarr']),
+          targetType: InstanceTypeSchema,
           instanceId: z.coerce.number(),
         }),
         response: {
@@ -175,9 +190,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           instanceId,
         )
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -224,7 +237,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
-        const formattedRule = formatRule(rule, fastify.log)
+        const formattedRule = formatRule(rule)
 
         return {
           success: true,
@@ -251,7 +264,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Retrieve content router rules filtered by target application type',
         params: z.object({
-          targetType: z.enum(['sonarr', 'radarr']),
+          targetType: InstanceTypeSchema,
         }),
         response: {
           200: ContentRouterRuleListResponseSchema,
@@ -267,9 +280,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByTargetType(targetType)
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -305,7 +316,18 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
+      const rejected = rejectedSeasonMonitoring(
+        request.body.season_monitoring,
+        [],
+      )
+      if (rejected !== undefined) {
+        return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+      }
       try {
+        if (!(await targetInstanceExists(fastify.db, request.body))) {
+          return reply.badRequest('Target instance does not exist')
+        }
+
         const createdRule = await fastify.db.createRouterRule({
           ...normalizeRulePayload(request.body),
           metadata: null,
@@ -313,7 +335,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         fastify.contentRouter.clearRouterRulesCache()
 
-        const formattedRule = formatRule(createdRule, fastify.log)
+        const formattedRule = formatRule(createdRule)
 
         reply.status(201)
         return {
@@ -362,6 +384,18 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
+        const rejected = rejectedSeasonMonitoring(
+          request.body.season_monitoring,
+          [existingRule.season_monitoring],
+        )
+        if (rejected !== undefined) {
+          return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+        }
+
+        if (!(await targetInstanceExists(fastify.db, request.body))) {
+          return reply.badRequest('Target instance does not exist')
+        }
+
         const updated = await fastify.db.updateRouterRule(
           id,
           normalizeRulePayload(request.body),
@@ -383,7 +417,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         fastify.contentRouter.clearRouterRulesCache()
 
-        const formattedRule = formatRule(updatedRule, fastify.log)
+        const formattedRule = formatRule(updatedRule)
 
         return {
           success: true,

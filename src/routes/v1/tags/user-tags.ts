@@ -6,11 +6,41 @@ import {
   RemoveTagsRequestSchema,
   RemoveTagsResponseSchema,
   SyncTaggingResponseSchema,
+  TagStatusResponseSchema,
 } from '@schemas/tags/user-tags.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  // Get user tag status
+  fastify.get(
+    '/status',
+    {
+      schema: {
+        summary: 'Get user tag status',
+        operationId: 'getUserTagStatus',
+        description:
+          'Report whether user tags exist and how many items carry them per instance',
+        response: {
+          200: TagStatusResponseSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Tags'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const status = await fastify.userTags.getTagStatus()
+        return { success: true, ...status }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to get user tag status',
+        })
+        return reply.internalServerError('Unable to get user tag status')
+      }
+    },
+  )
+
   // Create user tags
   fastify.post(
     '/create',
@@ -353,33 +383,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const config = fastify.config
-
-        if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
-          return {
-            success: false,
-            message:
-              'Tag removal skipped: user tagging is disabled in configuration',
-            mode: 'remove' as const,
-            sonarr: {
-              itemsProcessed: 0,
-              itemsUpdated: 0,
-              tagsRemoved: 0,
-              tagsDeleted: 0,
-              failed: 0,
-              instances: 0,
-            },
-            radarr: {
-              itemsProcessed: 0,
-              itemsUpdated: 0,
-              tagsRemoved: 0,
-              tagsDeleted: 0,
-              failed: 0,
-              instances: 0,
-            },
-          }
-        }
-
         const { deleteTagDefinitions = false } = request.body
         const results =
           await fastify.userTags.removeAllUserTags(deleteTagDefinitions)

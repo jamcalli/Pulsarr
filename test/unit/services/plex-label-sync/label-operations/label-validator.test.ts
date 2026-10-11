@@ -235,6 +235,11 @@ describe('label-validator', () => {
       expect(isUserTaggingSystemTag('pulsarr-removed-user')).toBe(true)
     })
 
+    it('should exclude the bare user tag prefix', () => {
+      expect(isUserTaggingSystemTag('pulsarr-user')).toBe(true)
+      expect(isUserTaggingSystemTag('Pulsarr-User')).toBe(true)
+    })
+
     it('should return false for non-user-tagging tag', () => {
       expect(isUserTaggingSystemTag('action')).toBe(false)
       expect(isUserTaggingSystemTag('other-user-john')).toBe(false)
@@ -346,6 +351,16 @@ describe('label-validator', () => {
         'pulsarr',
       )
       expect(result).toEqual(['pulsarr:genre', 'pulsarr:quality'])
+    })
+
+    it('should never turn a bare or named user tag into a label', () => {
+      const result = filterAndFormatTagsAsLabels(
+        ['pulsarr-user', 'pulsarr-user-jamie', 'profilarr-monitored'],
+        'pulsarr-user',
+        'pulsarr-removed',
+        'pulsarr',
+      )
+      expect(result).toEqual(['pulsarr:profilarr-monitored'])
     })
 
     it('should handle empty array', () => {

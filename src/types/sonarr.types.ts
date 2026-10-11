@@ -1,21 +1,4 @@
-/**
- * Sonarr monitoring options enum
- * Includes standard Sonarr options plus custom rolling options
- */
-export enum SonarrMonitoringOption {
-  ALL = 'all',
-  FUTURE = 'future',
-  MISSING = 'missing',
-  EXISTING = 'existing',
-  FIRST_SEASON = 'firstSeason',
-  LATEST_SEASON = 'latestSeason',
-  PILOT = 'pilot',
-  // Custom rolling options for progressive monitoring
-  PILOT_ROLLING = 'pilotRolling', // Monitor pilot only, expand as watched
-  FIRST_SEASON_ROLLING = 'firstSeasonRolling', // Monitor S1 only, expand as watched
-  ALL_SEASON_PILOT_ROLLING = 'allSeasonPilotRolling', // Monitor E01 of every season, expand each on watch
-}
-
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 export interface SonarrAddOptions {
   monitor: string | null
   searchForCutoffUnmetEpisodes: boolean | null
@@ -80,7 +63,7 @@ export interface SonarrPost {
   monitored: boolean
   monitorNewItems: 'all' | 'none'
   tags: string[]
-  seriesType?: 'standard' | 'anime' | 'daily'
+  seriesType?: SonarrSeriesType
   seasonFolder?: boolean
 }
 
@@ -98,6 +81,12 @@ export interface SonarrEpisode {
   monitored: boolean
   unverifiedSceneNumbering: boolean
   grabbed: boolean
+}
+
+export interface SonarrTagDetail {
+  id: number
+  label: string
+  seriesIds: number[]
 }
 
 export interface SonarrSeries {
@@ -148,7 +137,7 @@ export interface SonarrSeries {
   tmdbId?: number
   firstAired?: string
   lastAired?: string
-  seriesType?: 'standard' | 'anime' | 'daily'
+  seriesType?: SonarrSeriesType
   cleanTitle?: string
   imdbId?: string
   titleSlug?: string
@@ -272,7 +261,7 @@ export interface SonarrConfiguration {
   sonarrSeasonMonitoring: string
   sonarrMonitorNewItems?: 'all' | 'none'
   searchOnAdd?: boolean
-  sonarrSeriesType?: 'standard' | 'anime' | 'daily'
+  sonarrSeriesType?: SonarrSeriesType
   createSeasonFolders?: boolean
 }
 
@@ -290,7 +279,7 @@ export interface SonarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   searchOnAdd?: boolean
-  seriesType?: 'standard' | 'anime' | 'daily'
+  seriesType?: SonarrSeriesType
   createSeasonFolders?: boolean
   skipDefaultRoutingWhenNoMatch?: boolean
   data?: {

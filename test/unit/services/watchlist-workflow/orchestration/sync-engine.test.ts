@@ -1,7 +1,8 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
-import type { RadarrItem } from '@root/types/radarr.types.js'
-import type { SonarrItem } from '@root/types/sonarr.types.js'
+import type { RadarrInstance, RadarrItem } from '@root/types/radarr.types.js'
+import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { SyncResult } from '@services/watchlist-workflow/orchestration/sync-engine.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
@@ -10,6 +11,7 @@ import { createMockUser } from '../../../../mocks/user.js'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/watchlist-workflow/routing/content-router.js', () => ({
+  indexApprovedRecords: vi.fn(() => new Map()),
   routeMovie: vi.fn(async () => ({ routed: true })),
   routeShow: vi.fn(async () => ({ routed: true })),
 }))
@@ -33,6 +35,7 @@ import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/
 import { syncWatchlistItems } from '@services/watchlist-workflow/orchestration/sync-engine.js'
 import { evaluateWatchlistCaps } from '@services/watchlist-workflow/quota/watchlist-cap-gate.js'
 import {
+  indexApprovedRecords,
   routeMovie,
   routeShow,
 } from '@services/watchlist-workflow/routing/content-router.js'
@@ -89,6 +92,23 @@ function zeroResult(): SyncResult {
   }
 }
 
+const radarrInstance: RadarrInstance = {
+  id: 1,
+  name: 'Radarr',
+  baseUrl: 'http://radarr.test',
+  apiKey: 'key',
+  bypassIgnored: false,
+  tags: [],
+  isDefault: true,
+}
+
+const sonarrInstance: SonarrInstance = {
+  ...radarrInstance,
+  name: 'Sonarr',
+  seasonMonitoring: 'all',
+  monitorNewItems: 'all',
+}
+
 function createDeps() {
   const parts = {
     db: {
@@ -103,6 +123,9 @@ function createDeps() {
         async (): Promise<TokenWatchlistItem[]> => [],
       ),
       getExclusionMap: vi.fn(async () => new Map<string, Set<number>>()),
+      getAllApprovedApprovalRequests: vi.fn(
+        async (): Promise<ApprovalRequest[]> => [],
+      ),
     },
     sonarrManager: {
       checkInstancesHealth: vi.fn(async () => ({
@@ -110,6 +133,7 @@ function createDeps() {
         unavailable: [] as number[],
       })),
       fetchAllSeries: vi.fn(async (): Promise<SonarrItem[]> => []),
+      getAllInstances: vi.fn(async () => [sonarrInstance]),
     },
     radarrManager: {
       checkInstancesHealth: vi.fn(async () => ({
@@ -117,6 +141,7 @@ function createDeps() {
         unavailable: [] as number[],
       })),
       fetchAllMovies: vi.fn(async (): Promise<RadarrItem[]> => []),
+      getAllInstances: vi.fn(async () => [radarrInstance]),
     },
     plexServerService: {
       clearPlexResourcesCache: vi.fn(),
@@ -231,18 +256,25 @@ describe('syncWatchlistItems', () => {
     parts.radarrManager.fetchAllMovies.mockResolvedValue(existingMovies)
 
     const result = await syncWatchlistItems(deps)
+    const approvedRecords =
+      vi.mocked(indexApprovedRecords).mock.results[0].value
 
     expect(result.added).toEqual({ shows: 1, movies: 1 })
+    expect(parts.db.getAllApprovedApprovalRequests).toHaveBeenCalledTimes(1)
     expect(vi.mocked(routeShow).mock.calls[0][0]).toMatchObject({
       userId: PRIMARY_USER.id,
       userName: PRIMARY_USER.name,
       existingSeries,
+      approvedRecords,
+      arrInstanceIds: new Set([1]),
       primaryUser: PRIMARY_USER,
     })
     expect(vi.mocked(routeMovie).mock.calls[0][0]).toMatchObject({
       userId: PRIMARY_USER.id,
       userName: PRIMARY_USER.name,
       existingMovies,
+      approvedRecords,
+      arrInstanceIds: new Set([1]),
       primaryUser: PRIMARY_USER,
     })
     expect(updateAutoApprovalUserAttribution).toHaveBeenCalledWith(deps, {

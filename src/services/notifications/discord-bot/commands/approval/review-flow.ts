@@ -6,6 +6,7 @@
  */
 
 import type { ApprovalRequest } from '@root/types/approval.types.js'
+import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js'
@@ -264,9 +265,12 @@ export async function handleApprovalAction(
       return
     }
 
-    const isReversalAllowed =
-      approval.status === 'rejected' && action === 'approve'
-    if (approval.status !== 'pending' && !isReversalAllowed) {
+    if (
+      !canTransitionApproval(
+        approval.status,
+        action === 'approve' ? 'approved' : 'rejected',
+      )
+    ) {
       const message =
         approval.status === 'auto_approved'
           ? '❌ This approval request was auto-approved and cannot be modified'

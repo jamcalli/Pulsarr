@@ -35,7 +35,7 @@ export default function DocFeature({
     >
       {() => {
         const { ScrollArea: _ } = require('@/client/components/ui/scroll-area')
-        const { useMediaQuery } = require('@/client/hooks/use-media-query')
+        const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
 
         const ClientDocFeature = () => {
           const _isMobile = useMediaQuery('(max-width: 640px)')

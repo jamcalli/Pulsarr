@@ -1,4 +1,8 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import {
+  RadarrMinimumAvailabilitySchema,
+  RadarrMonitorSchema,
+} from '@root/schemas/radarr/add-options.schema.js'
 import { z } from 'zod'
 
 // Base Radarr instance schema for creation (with defaults)
@@ -10,14 +14,9 @@ export const RadarrInstanceSchema = z.object({
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),
   searchOnAdd: z.boolean().optional().default(true),
-  minimumAvailability: z
-    .enum(['announced', 'inCinemas', 'released'])
-    .optional()
-    .default('released'),
-  monitor: z
-    .enum(['movieOnly', 'movieAndCollection', 'none'])
-    .optional()
-    .default('movieOnly'),
+  minimumAvailability:
+    RadarrMinimumAvailabilitySchema.optional().default('released'),
+  monitor: RadarrMonitorSchema.optional().default('movieOnly'),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
@@ -33,10 +32,8 @@ export const RadarrInstanceUpdateSchema = z.object({
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional(),
   searchOnAdd: z.boolean().optional(),
-  minimumAvailability: z
-    .enum(['announced', 'inCinemas', 'released'])
-    .optional(),
-  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
+  minimumAvailability: RadarrMinimumAvailabilitySchema.optional(),
+  monitor: RadarrMonitorSchema.optional(),
   tags: z.array(z.string()).optional(),
   isDefault: z.boolean().optional(),
   syncedInstances: z.array(z.number()).optional(),

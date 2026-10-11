@@ -1,10 +1,17 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type {
+  ContentItem,
   RoutingContext,
   RoutingDetails,
 } from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import {
+  approvedDestinations,
+  routeUsingApprovedDecision,
+} from '@services/content-router/approved-routing.js'
+import type { RoutingOutcome } from '@services/content-router/types.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -25,12 +32,16 @@ export interface RouteContentResult {
     | 'no-valid-id'
 }
 
+export type ApprovedRecords = ReadonlyMap<string, ApprovalRequest>
+
 export interface RouteShowParams {
   tempItem: TemptRssWatchlistItem
   userId: number
   userName: string | undefined
   sonarrItem: SonarrItem
   existingSeries?: SonarrItem[]
+  approvedRecords?: ApprovedRecords
+  arrInstanceIds?: ReadonlySet<number>
   primaryUser: { id: number } | null
 }
 
@@ -40,52 +51,155 @@ export interface RouteMovieParams {
   userName: string | undefined
   radarrItem: RadarrItem
   existingMovies?: RadarrItem[]
+  approvedRecords?: ApprovedRecords
+  arrInstanceIds?: ReadonlySet<number>
   primaryUser: { id: number } | null
 }
 
-function checkShowExistsInBulkData(
-  tempItem: TemptRssWatchlistItem,
-  existingSeries: SonarrItem[],
-  targetInstanceIds: number[],
-): boolean {
-  const tempGuids = parseGuids(tempItem.guids)
-  const targetInstanceSeries = existingSeries.filter(
-    (series) =>
-      series.sonarr_instance_id !== undefined &&
-      targetInstanceIds.includes(series.sonarr_instance_id),
-  )
+interface Destinations {
+  record: ApprovalRequest | null
+  destinationIds: number[]
+  checkIds: number[]
+}
 
-  return targetInstanceSeries.some((series) =>
-    hasMatchingParsedGuids(parseGuids(series.guids), tempGuids),
+function approvedRecordKey(userId: number, contentKey: string): string {
+  return `${userId}:${contentKey}`
+}
+
+/** Indexes approved and auto-approved records so one sync run reads them once. */
+export function indexApprovedRecords(
+  records: ApprovalRequest[],
+): ApprovedRecords {
+  return new Map(
+    records.map((record) => [
+      approvedRecordKey(record.userId, record.contentKey),
+      record,
+    ]),
   )
 }
 
-function checkMovieExistsInBulkData(
+async function findApprovedRecord(
+  context: RoutingContext,
+  approvedRecords: ApprovedRecords | undefined,
+  deps: ContentRoutingDeps,
+): Promise<ApprovalRequest | null> {
+  if (approvedRecords) {
+    return (
+      approvedRecords.get(approvedRecordKey(context.userId, context.itemKey)) ??
+      null
+    )
+  }
+  const request = await deps.db.getApprovalRequestByContent(
+    context.userId,
+    context.itemKey,
+  )
+  return request?.status === 'approved' || request?.status === 'auto_approved'
+    ? request
+    : null
+}
+
+async function listArrInstanceIds(
+  contentType: RoutingContext['contentType'],
+  deps: ContentRoutingDeps,
+): Promise<ReadonlySet<number>> {
+  const instances =
+    contentType === 'movie'
+      ? await deps.radarrManager.getAllInstances()
+      : await deps.sonarrManager.getAllInstances()
+  return new Set(instances.map((instance) => instance.id))
+}
+
+/** A record's destinations on instances that still exist replace the current targets, and presence is checked over both sets. */
+async function resolveDestinations(
+  targetInstanceIds: number[],
+  context: RoutingContext,
+  known: Pick<RouteMovieParams, 'approvedRecords' | 'arrInstanceIds'>,
+  deps: ContentRoutingDeps,
+): Promise<Destinations> {
+  const record = await findApprovedRecord(context, known.approvedRecords, deps)
+  if (!record) {
+    return {
+      record,
+      destinationIds: targetInstanceIds,
+      checkIds: targetInstanceIds,
+    }
+  }
+  const instanceIds =
+    known.arrInstanceIds ??
+    (await listArrInstanceIds(context.contentType, deps))
+  const recorded = approvedDestinations(record)
+  const deleted = recorded.filter((id) => !instanceIds.has(id))
+  if (deleted.length > 0) {
+    deps.logger.debug(
+      { itemKey: context.itemKey, instanceIds: deleted },
+      'Dropping approval record destinations whose instance no longer exists',
+    )
+  }
+  const destinationIds = recorded.filter((id) => instanceIds.has(id))
+  const checkIds = [...new Set([...targetInstanceIds, ...destinationIds])]
+  return { record, destinationIds, checkIds }
+}
+
+interface Presence {
+  presentInstanceIds: number[]
+  excluded: boolean
+}
+
+interface ApiPresence extends Presence {
+  allChecked: boolean
+}
+
+function findShowInBulkData(
+  tempItem: TemptRssWatchlistItem,
+  existingSeries: SonarrItem[],
+  instanceIds: number[],
+): Presence {
+  const tempGuids = parseGuids(tempItem.guids)
+  const matches = existingSeries.filter(
+    (series) =>
+      instanceIds.some(
+        (instanceId) => instanceId === series.sonarr_instance_id,
+      ) && hasMatchingParsedGuids(parseGuids(series.guids), tempGuids),
+  )
+  return {
+    presentInstanceIds: instanceIds.filter((instanceId) =>
+      matches.some((series) => series.sonarr_instance_id === instanceId),
+    ),
+    excluded: matches.some((series) => series.isExclusion === true),
+  }
+}
+
+function findMovieInBulkData(
   tempItem: TemptRssWatchlistItem,
   existingMovies: RadarrItem[],
-  targetInstanceIds: number[],
-): boolean {
+  instanceIds: number[],
+): Presence {
   const tempGuids = parseGuids(tempItem.guids)
-  const targetInstanceMovies = existingMovies.filter(
+  const matches = existingMovies.filter(
     (movie) =>
-      movie.radarr_instance_id !== undefined &&
-      targetInstanceIds.includes(movie.radarr_instance_id),
+      instanceIds.some(
+        (instanceId) => instanceId === movie.radarr_instance_id,
+      ) && hasMatchingParsedGuids(parseGuids(movie.guids), tempGuids),
   )
-
-  return targetInstanceMovies.some((movie) =>
-    hasMatchingParsedGuids(parseGuids(movie.guids), tempGuids),
-  )
+  return {
+    presentInstanceIds: instanceIds.filter((instanceId) =>
+      matches.some((movie) => movie.radarr_instance_id === instanceId),
+    ),
+    excluded: matches.some((movie) => movie.isExclusion === true),
+  }
 }
 
 // Caller must validate the TVDB ID before calling this
-async function checkShowExistsViaApi(
+async function findShowViaApi(
   tempItem: TemptRssWatchlistItem,
-  targetInstanceIds: number[],
+  instanceIds: number[],
   deps: ContentRoutingDeps,
-): Promise<{ exists: boolean; excluded: boolean; allChecked: boolean }> {
+): Promise<ApiPresence> {
   const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
+  const presentInstanceIds: number[] = []
+  let excluded = false
 
-  for (const instanceId of targetInstanceIds) {
+  for (const instanceId of instanceIds) {
     const result = await deps.sonarrManager.seriesExistsByTvdbId(
       instanceId,
       tvdbId,
@@ -95,28 +209,27 @@ async function checkShowExistsViaApi(
         { error: result.error, instanceId },
         `Sonarr instance ${instanceId} could not be checked for ${tempItem.title}`,
       )
-      return { exists: false, excluded: false, allChecked: false }
+      return { presentInstanceIds: [], excluded: false, allChecked: false }
     }
     if (result.found) {
-      return {
-        exists: true,
-        excluded: result.excluded === true,
-        allChecked: true,
-      }
+      presentInstanceIds.push(instanceId)
+      excluded ||= result.excluded === true
     }
   }
-  return { exists: false, excluded: false, allChecked: true }
+  return { presentInstanceIds, excluded, allChecked: true }
 }
 
 // Caller must validate the TMDB ID before calling this
-async function checkMovieExistsViaApi(
+async function findMovieViaApi(
   tempItem: TemptRssWatchlistItem,
-  targetInstanceIds: number[],
+  instanceIds: number[],
   deps: ContentRoutingDeps,
-): Promise<{ exists: boolean; excluded: boolean; allChecked: boolean }> {
+): Promise<ApiPresence> {
   const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
+  const presentInstanceIds: number[] = []
+  let excluded = false
 
-  for (const instanceId of targetInstanceIds) {
+  for (const instanceId of instanceIds) {
     const result = await deps.radarrManager.movieExistsByTmdbId(
       instanceId,
       tmdbId,
@@ -126,17 +239,39 @@ async function checkMovieExistsViaApi(
         { error: result.error, instanceId },
         `Radarr instance ${instanceId} could not be checked for ${tempItem.title}`,
       )
-      return { exists: false, excluded: false, allChecked: false }
+      return { presentInstanceIds: [], excluded: false, allChecked: false }
     }
     if (result.found) {
-      return {
-        exists: true,
-        excluded: result.excluded === true,
-        allChecked: true,
-      }
+      presentInstanceIds.push(instanceId)
+      excluded ||= result.excluded === true
     }
   }
-  return { exists: false, excluded: false, allChecked: true }
+  return { presentInstanceIds, excluded, allChecked: true }
+}
+
+async function completeFromApproval(
+  item: ContentItem,
+  context: RoutingContext,
+  { record, destinationIds }: Destinations,
+  presentInstanceIds: number[],
+  deps: ContentRoutingDeps,
+): Promise<RoutingOutcome | null> {
+  if (!record) {
+    return null
+  }
+  const missingInstanceIds = destinationIds.filter(
+    (instanceId) => !presentInstanceIds.includes(instanceId),
+  )
+  if (missingInstanceIds.length === 0) {
+    return null
+  }
+  return await routeUsingApprovedDecision(
+    record,
+    item,
+    context,
+    deps,
+    missingInstanceIds,
+  )
 }
 
 async function sendRoutingNotification(
@@ -172,6 +307,27 @@ async function sendRoutingNotification(
       `Skipping notification for "${tempItem.title}" - already sent previously to user ${userName}`,
     )
   }
+}
+
+async function reportRouted(
+  tempItem: TemptRssWatchlistItem,
+  userId: number,
+  userName: string | undefined,
+  contentType: 'show' | 'movie',
+  { routedInstances, routingDetails }: RoutingOutcome,
+  deps: ContentRoutingDeps,
+): Promise<RouteContentResult> {
+  if (routedInstances.length > 0 && userName) {
+    await sendRoutingNotification(
+      tempItem,
+      userId,
+      userName,
+      contentType,
+      routingDetails,
+      deps,
+    )
+  }
+  return { routed: routedInstances.length > 0 }
 }
 
 export async function routeShow(
@@ -220,41 +376,68 @@ export async function routeShow(
     return { routed: false, skippedReason: 'no-target' }
   }
 
+  const destinations = await resolveDestinations(
+    targetInstanceIds,
+    context,
+    params,
+    deps,
+  )
+
+  let presence: Presence
   if (existingSeries) {
-    const existsInTargetInstance = checkShowExistsInBulkData(
+    presence = findShowInBulkData(
       tempItem,
       existingSeries,
-      targetInstanceIds,
+      destinations.checkIds,
     )
-    if (existsInTargetInstance) {
-      deps.logger.debug(
-        `Show ${tempItem.title} already exists in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-      )
-      return { routed: false, skippedReason: 'exists-in-target' }
-    }
   } else {
-    const { exists, excluded, allChecked } = await checkShowExistsViaApi(
+    const apiPresence = await findShowViaApi(
       tempItem,
-      targetInstanceIds,
+      destinations.checkIds,
       deps,
     )
 
-    if (!allChecked) {
+    if (!apiPresence.allChecked) {
       deps.logger.warn(
-        { title: tempItem.title, targetInstanceIds },
-        'Not every target Sonarr instance could be checked, skipping item',
+        { title: tempItem.title, instanceIds: destinations.checkIds },
+        'Not every Sonarr instance could be checked, skipping item',
       )
       return { routed: false, skippedReason: 'no-instances-available' }
     }
 
-    if (exists) {
-      deps.logger.info(
-        excluded
-          ? `Show ${tempItem.title} is an import list exclusion in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`
-          : `Show ${tempItem.title} already exists in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    presence = apiPresence
+  }
+
+  if (presence.excluded) {
+    deps.logger.info(
+      `Show ${tempItem.title} is an import list exclusion in Sonarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
+    )
+    return { routed: false, skippedReason: 'exists-in-target' }
+  }
+  const { presentInstanceIds } = presence
+
+  if (presentInstanceIds.length > 0) {
+    const completion = await completeFromApproval(
+      sonarrItem,
+      context,
+      destinations,
+      presentInstanceIds,
+      deps,
+    )
+    if (!completion) {
+      deps.logger.debug(
+        `Show ${tempItem.title} already exists in Sonarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
       )
       return { routed: false, skippedReason: 'exists-in-target' }
     }
+    return await reportRouted(
+      tempItem,
+      userId,
+      userName,
+      'show',
+      completion,
+      deps,
+    )
   }
 
   if (deps.config.skipIfExistsOnPlex) {
@@ -275,25 +458,17 @@ export async function routeShow(
     }
   }
 
-  const { routedInstances, routingDetails } =
-    await deps.contentRouter.routeContent(sonarrItem, tempItem.key, {
+  const outcome = await deps.contentRouter.routeContent(
+    sonarrItem,
+    tempItem.key,
+    {
       userId,
       userName,
       syncing: false,
-    })
+    },
+  )
 
-  if (routedInstances.length > 0 && userName) {
-    await sendRoutingNotification(
-      tempItem,
-      userId,
-      userName,
-      'show',
-      routingDetails,
-      deps,
-    )
-  }
-
-  return { routed: routedInstances.length > 0 }
+  return await reportRouted(tempItem, userId, userName, 'show', outcome, deps)
 }
 
 export async function routeMovie(
@@ -342,41 +517,68 @@ export async function routeMovie(
     return { routed: false, skippedReason: 'no-target' }
   }
 
+  const destinations = await resolveDestinations(
+    targetInstanceIds,
+    context,
+    params,
+    deps,
+  )
+
+  let presence: Presence
   if (existingMovies) {
-    const existsInTargetInstance = checkMovieExistsInBulkData(
+    presence = findMovieInBulkData(
       tempItem,
       existingMovies,
-      targetInstanceIds,
+      destinations.checkIds,
     )
-    if (existsInTargetInstance) {
-      deps.logger.debug(
-        `Movie ${tempItem.title} already exists in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-      )
-      return { routed: false, skippedReason: 'exists-in-target' }
-    }
   } else {
-    const { exists, excluded, allChecked } = await checkMovieExistsViaApi(
+    const apiPresence = await findMovieViaApi(
       tempItem,
-      targetInstanceIds,
+      destinations.checkIds,
       deps,
     )
 
-    if (!allChecked) {
+    if (!apiPresence.allChecked) {
       deps.logger.warn(
-        { title: tempItem.title, targetInstanceIds },
-        'Not every target Radarr instance could be checked, skipping item',
+        { title: tempItem.title, instanceIds: destinations.checkIds },
+        'Not every Radarr instance could be checked, skipping item',
       )
       return { routed: false, skippedReason: 'no-instances-available' }
     }
 
-    if (exists) {
-      deps.logger.info(
-        excluded
-          ? `Movie ${tempItem.title} is an import list exclusion in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`
-          : `Movie ${tempItem.title} already exists in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    presence = apiPresence
+  }
+
+  if (presence.excluded) {
+    deps.logger.info(
+      `Movie ${tempItem.title} is an import list exclusion in Radarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
+    )
+    return { routed: false, skippedReason: 'exists-in-target' }
+  }
+  const { presentInstanceIds } = presence
+
+  if (presentInstanceIds.length > 0) {
+    const completion = await completeFromApproval(
+      radarrItem,
+      context,
+      destinations,
+      presentInstanceIds,
+      deps,
+    )
+    if (!completion) {
+      deps.logger.debug(
+        `Movie ${tempItem.title} already exists in Radarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
       )
       return { routed: false, skippedReason: 'exists-in-target' }
     }
+    return await reportRouted(
+      tempItem,
+      userId,
+      userName,
+      'movie',
+      completion,
+      deps,
+    )
   }
 
   if (deps.config.skipIfExistsOnPlex) {
@@ -397,23 +599,15 @@ export async function routeMovie(
     }
   }
 
-  const { routedInstances, routingDetails } =
-    await deps.contentRouter.routeContent(radarrItem, tempItem.key, {
+  const outcome = await deps.contentRouter.routeContent(
+    radarrItem,
+    tempItem.key,
+    {
       userId,
       userName,
       syncing: false,
-    })
+    },
+  )
 
-  if (routedInstances.length > 0 && userName) {
-    await sendRoutingNotification(
-      tempItem,
-      userId,
-      userName,
-      'movie',
-      routingDetails,
-      deps,
-    )
-  }
-
-  return { routed: routedInstances.length > 0 }
+  return await reportRouted(tempItem, userId, userName, 'movie', outcome, deps)
 }

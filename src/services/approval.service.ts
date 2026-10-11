@@ -8,12 +8,23 @@ import type {
 } from '@root/types/approval.types.js'
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
-import type { ContentItem } from '@root/types/router.types.js'
+import type { ContentItem, RouteSettings } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
+import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
+import { settingsFromRouting } from '@services/content-router/approved-routing.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+function routingFor(decision: RouterDecision): RouterDecision['routing'] {
+  if (decision.action === 'route') return decision.routing
+  if (decision.action === 'require_approval') {
+    return decision.approval?.proposedRouting
+  }
+  return undefined
+}
 
 export class ApprovalService {
   private notificationQueue: Set<number> = new Set()
@@ -212,6 +223,7 @@ export class ApprovalService {
     reason?: string,
     expiresAt?: Date,
     plexKey?: string,
+    routerRuleId?: number,
   ): Promise<ApprovalRequest> {
     this.log.debug(
       `ApprovalService.createApprovalRequest called with content.title="${content.title}", content.guids=${JSON.stringify(content.guids)}, plexKey="${plexKey}"`,
@@ -229,8 +241,10 @@ export class ApprovalService {
       contentType: content.type,
       contentTitle: content.title,
       contentKey: contentKey,
+      thumb: content.thumb,
       contentGuids: content.guids,
       routerDecision,
+      routerRuleId,
       triggeredBy: trigger,
       approvalReason: reason,
       expiresAt: calculatedExpiresAt?.toISOString() || null,
@@ -328,6 +342,17 @@ export class ApprovalService {
     }
   }
 
+  private async describeInstance(
+    instanceType: 'radarr' | 'sonarr',
+    instanceId: number,
+  ): Promise<string> {
+    const instance =
+      instanceType === 'radarr'
+        ? await this.fastify.db.getRadarrInstance(instanceId)
+        : await this.fastify.db.getSonarrInstance(instanceId)
+    return instance ? `${instance.name} (id ${instanceId})` : `id ${instanceId}`
+  }
+
   /**
    * Processes an approved request by executing the stored router decision.
    * This is an internal method - external callers should use approveAndRoute().
@@ -341,25 +366,39 @@ export class ApprovalService {
 
     try {
       const routerDecision = request.proposedRouterDecision
-
-      // Handle both action types: 'route' and 'require_approval'
-      let proposedRouting = null
-
-      if (routerDecision.action === 'route' && routerDecision.routing) {
-        proposedRouting = routerDecision.routing
-      } else if (
-        routerDecision.action === 'require_approval' &&
-        routerDecision.approval?.proposedRouting
-      ) {
-        proposedRouting = routerDecision.approval.proposedRouting
-      }
+      const proposedRouting = routingFor(routerDecision)
 
       if (proposedRouting) {
-        // Route the content using the stored decision
-        // Execute routing to both primary and synced instances
-
         const { instanceType, instanceId, syncedInstances } = proposedRouting
-        const allInstanceIds = [instanceId, ...(syncedInstances || [])]
+        if (instanceType !== 'radarr' && instanceType !== 'sonarr') {
+          return { success: false, error: 'Unknown instance type' }
+        }
+
+        const targets: Array<{
+          instanceId: number
+          settings: RouteSettings
+          syncing: boolean
+        }> = [
+          {
+            instanceId,
+            settings: settingsFromRouting(proposedRouting),
+            syncing: false,
+          },
+          ...(syncedInstances ?? []).map((syncedId) => ({
+            instanceId: syncedId,
+            settings: {},
+            syncing: true,
+          })),
+          ...(routerDecision.approval?.additionalRouting ?? []).map(
+            (routing) => ({
+              instanceId: routing.instanceId,
+              settings: settingsFromRouting(routing),
+              syncing: false,
+            }),
+          ),
+        ]
+        const allInstanceIds = targets.map((target) => target.instanceId)
+        const label = instanceType === 'radarr' ? 'Radarr' : 'Sonarr'
 
         this.log.info(
           `Processing approval routing to ${allInstanceIds.length} instances: ${allInstanceIds.join(', ')} (primary: ${instanceId}, synced: ${syncedInstances?.join(', ') || 'none'})`,
@@ -370,13 +409,9 @@ export class ApprovalService {
           failed: Array<{ instanceId: number; error: unknown }>
         } = { succeeded: [], failed: [] }
 
-        if (instanceType === 'radarr') {
-          // Route to all Radarr instances (primary + synced)
-          for (const targetInstanceId of allInstanceIds) {
-            const isPrimary = targetInstanceId === instanceId
-
-            try {
-              // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
+        for (const target of targets) {
+          try {
+            if (instanceType === 'radarr') {
               await this.fastify.radarrManager.routeItemToRadarr(
                 {
                   title: request.contentTitle,
@@ -385,46 +420,11 @@ export class ApprovalService {
                 } as RadarrItem,
                 request.contentKey,
                 request.userId,
-                targetInstanceId,
-                !isPrimary, // Mark as sync operation if not primary
-                isPrimary ? proposedRouting.rootFolder || undefined : undefined,
-                isPrimary ? proposedRouting.qualityProfile : undefined,
-                isPrimary ? proposedRouting.tags || [] : undefined,
-                isPrimary ? proposedRouting.searchOnAdd : undefined,
-                isPrimary ? proposedRouting.minimumAvailability : undefined,
-                isPrimary ? proposedRouting.monitor : undefined,
+                target.instanceId,
+                target.syncing,
+                target.settings,
               )
-              routingResults.succeeded.push(targetInstanceId)
-            } catch (error) {
-              if (isArrAlreadyAddedError(error)) {
-                this.log.info(
-                  { instanceId: targetInstanceId, title: request.contentTitle },
-                  'Movie already exists in Radarr instance, treating as successful routing',
-                )
-                routingResults.succeeded.push(targetInstanceId)
-                continue
-              }
-              this.log.error(
-                { error, instanceId: targetInstanceId },
-                'Failed to route to Radarr instance',
-              )
-              routingResults.failed.push({
-                instanceId: targetInstanceId,
-                error,
-              })
-              if (isPrimary) {
-                // Primary instance failure should fail the entire operation
-                throw error
-              }
-            }
-          }
-        } else if (instanceType === 'sonarr') {
-          // Route to all Sonarr instances (primary + synced)
-          for (const targetInstanceId of allInstanceIds) {
-            const isPrimary = targetInstanceId === instanceId
-
-            try {
-              // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
+            } else {
               await this.fastify.sonarrManager.routeItemToSonarr(
                 {
                   title: request.contentTitle,
@@ -433,46 +433,44 @@ export class ApprovalService {
                 } as SonarrItem,
                 request.contentKey,
                 request.userId,
-                targetInstanceId,
-                !isPrimary, // Mark as sync operation if not primary
-                isPrimary ? proposedRouting.rootFolder || undefined : undefined,
-                isPrimary ? proposedRouting.qualityProfile : undefined,
-                isPrimary ? proposedRouting.tags || [] : undefined,
-                isPrimary ? proposedRouting.searchOnAdd : undefined,
-                isPrimary ? proposedRouting.seasonMonitoring : undefined,
-                isPrimary ? proposedRouting.seriesType : undefined,
+                target.instanceId,
+                target.syncing,
+                target.settings,
               )
-              routingResults.succeeded.push(targetInstanceId)
-            } catch (error) {
-              if (isArrAlreadyAddedError(error)) {
-                this.log.info(
-                  { instanceId: targetInstanceId, title: request.contentTitle },
-                  'Series already exists in Sonarr instance, treating as successful routing',
-                )
-                routingResults.succeeded.push(targetInstanceId)
-                continue
-              }
-              this.log.error(
-                { error, instanceId: targetInstanceId },
-                'Failed to route to Sonarr instance',
-              )
-              routingResults.failed.push({
-                instanceId: targetInstanceId,
-                error,
-              })
-              if (isPrimary) {
-                // Primary instance failure should fail the entire operation
-                throw error
-              }
             }
+            routingResults.succeeded.push(target.instanceId)
+          } catch (error) {
+            if (isArrAlreadyAddedError(error)) {
+              this.log.info(
+                { instanceId: target.instanceId, title: request.contentTitle },
+                `Content already exists in ${label} instance, treating as successful routing`,
+              )
+              routingResults.succeeded.push(target.instanceId)
+              continue
+            }
+            this.log.error(
+              { error, instanceId: target.instanceId },
+              `Failed to route to ${label} instance`,
+            )
+            routingResults.failed.push({
+              instanceId: target.instanceId,
+              error,
+            })
           }
-        } else {
-          return { success: false, error: 'Unknown instance type' }
         }
 
         if (routingResults.failed.length > 0) {
           this.log.warn(
-            `Partial routing failure: ${routingResults.failed.length} of ${allInstanceIds.length} instances failed`,
+            { failed: routingResults.failed },
+            `Routing failed for ${routingResults.failed.length} of ${allInstanceIds.length} instances`,
+          )
+          const failedNames = await Promise.all(
+            routingResults.failed.map(({ instanceId }) =>
+              this.describeInstance(instanceType, instanceId),
+            ),
+          )
+          throw new Error(
+            `Failed to route to ${label} instance ${failedNames.join(', ')}`,
           )
         }
 
@@ -671,6 +669,7 @@ export class ApprovalService {
           const quotaStatus = await this.fastify.db.getQuotaStatus(
             request.userId,
             request.contentType as 'movie' | 'show',
+            resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
           )
 
           // Edge case: If quota was removed entirely, auto-approve (no quota = no restriction)
@@ -775,6 +774,7 @@ export class ApprovalService {
     const quotaStatus = await this.fastify.db.getQuotaStatus(
       user.id,
       content.type,
+      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
     )
 
     return {
@@ -807,7 +807,7 @@ export class ApprovalService {
    * 1. Updates the request status to "approved" in the database
    * 2. Attempts to route the content to Radarr/Sonarr
    * 3. On success: emits SSE events and sends notifications
-   * 4. On failure: rolls back status to "pending" and clears approval metadata
+   * 4. On failure: restores the previous status, approver and notes
    *
    * @param requestId - The approval request ID
    * @param approvedBy - User ID of the approver (null for system/auto-approval)
@@ -820,6 +820,20 @@ export class ApprovalService {
     notes?: string,
   ): Promise<ApproveAndRouteResult> {
     try {
+      const current = await this.fastify.db.getApprovalRequest(requestId)
+      if (!current) {
+        return { success: false, error: `Request ${requestId} not found` }
+      }
+      if (!canTransitionApproval(current.status, 'approved')) {
+        return {
+          success: false,
+          error: `Cannot approve request that is already ${current.status}`,
+        }
+      }
+      if (!routingFor(current.proposedRouterDecision)) {
+        return { success: false, error: 'Set routing before approving.' }
+      }
+
       // Step 1: Update DB to "approved" WITHOUT emitting events yet
       const approvedRequest = await this.fastify.db.approveRequest(
         requestId,
@@ -838,12 +852,12 @@ export class ApprovalService {
       const routingResult = await this.processApprovedRequest(approvedRequest)
 
       if (!routingResult.success) {
-        // Step 3a: ROLLBACK - Revert status to pending and clear approval metadata
+        // Step 3a: ROLLBACK - Restore the pre-approval status, approver and notes
         try {
           await this.fastify.db.updateApprovalRequest(requestId, {
-            status: 'pending',
-            approvedBy: null,
-            approvalNotes: null,
+            status: current.status,
+            approvedBy: current.approvedBy ?? null,
+            approvalNotes: current.approvalNotes ?? null,
           })
         } catch (rollbackError) {
           this.log.error(
@@ -991,6 +1005,19 @@ export class ApprovalService {
 
     for (const id of requestIds) {
       try {
+        const current = await this.fastify.db.getApprovalRequest(id)
+        if (!current) {
+          results.failed.push(id)
+          results.errors.push(`Request ${id} not found`)
+          continue
+        }
+        if (!canTransitionApproval(current.status, 'rejected')) {
+          results.failed.push(id)
+          results.errors.push(
+            `Request ${id}: Cannot reject request that is already ${current.status}`,
+          )
+          continue
+        }
         const result = await this.fastify.db.rejectRequest(
           id,
           rejectedBy,

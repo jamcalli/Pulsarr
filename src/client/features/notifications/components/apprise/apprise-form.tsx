@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { AppriseStatusBadge } from '@/components/ui/apprise-status-badge'
+import { AppriseStatusBadge } from '@/components/status/apprise-status-badge'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -16,13 +16,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { MultiInput } from '@/components/ui/multi-input'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
+import { MultiInput } from '@/features/notifications/components/multi-input'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
 
 interface AppriseFormProps {

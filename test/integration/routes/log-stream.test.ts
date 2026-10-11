@@ -86,15 +86,9 @@ describe('log stream', { timeout: 30_000 }, () => {
     if (!reader) throw new Error('Expected a readable stream body')
 
     const emitter = app.logStreaming.getEventEmitter()
-    // alternate ticks: same-tick pairs would land the second entry in the
-    // lossy once() window before the listener re-arms
-    let tick = 0
     const feed = setInterval(() => {
-      emitter.emit(
-        'log',
-        logEntry(tick % 2 === 0 ? 'filtered out' : 'wanted entry'),
-      )
-      tick++
+      emitter.emit('log', logEntry('filtered out'))
+      emitter.emit('log', logEntry('wanted entry'))
     }, 50)
 
     let buffer: string
@@ -108,6 +102,41 @@ describe('log stream', { timeout: 30_000 }, () => {
 
     expect(buffer).toContain('wanted entry')
     expect(buffer).not.toContain('filtered out')
+  })
+
+  it('delivers every entry of a burst emitted in one tick', async () => {
+    const controller = new AbortController()
+    const response = await fetch(
+      `${baseUrl}/v1/logs/stream?tail=0&follow=true`,
+      { signal: controller.signal, headers: { accept: 'text/event-stream' } },
+    )
+    expect(response.status).toBe(200)
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('Expected a readable stream body')
+
+    const emitter = app.logStreaming.getEventEmitter()
+    const marker = `burst-${randomUUID()}`
+    const count = 25
+    const feed = setInterval(() => {
+      for (let i = 0; i < count; i++) {
+        emitter.emit('log', logEntry(`${marker} ${i}`))
+      }
+    }, 50)
+
+    let buffer: string
+    try {
+      buffer = await readUntil(reader, (b) =>
+        b.includes(`${marker} ${count - 1}`),
+      )
+    } finally {
+      clearInterval(feed)
+      controller.abort()
+      await reader.cancel().catch(() => {})
+    }
+
+    for (let i = 0; i < count; i++) {
+      expect(buffer).toContain(`${marker} ${i}`)
+    }
   })
 
   it('ends the stream after replay when follow is false', async () => {

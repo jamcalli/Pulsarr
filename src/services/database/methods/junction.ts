@@ -791,6 +791,7 @@ export async function bulkRemoveWatchlistFromSonarrInstances(
  */
 export async function getInstanceContentBreakdown(
   this: DatabaseService,
+  options: { days?: number } = {},
 ): Promise<{
   success: boolean
   instances: Array<{
@@ -803,6 +804,19 @@ export async function getInstanceContentBreakdown(
     primary_items: number
   }>
 }> {
+  const { days = 0 } = options
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - days)
+  // SQLite stores ISO text and knex binds a Date as epoch ms, which never compares against text
+  const cutoffISO = cutoffDate.toISOString()
+  const routedInRange =
+    (table: 'watchlist_radarr_instances' | 'watchlist_sonarr_instances') =>
+    (query: Knex.QueryBuilder) => {
+      if (days > 0) {
+        query.where(`${table}.created_at`, '>=', cutoffISO)
+      }
+    }
+
   try {
     // Get all Radarr instances
     const radarrInstances = await this.knex('radarr_instances')
@@ -820,12 +834,14 @@ export async function getInstanceContentBreakdown(
     for (const instance of radarrInstances) {
       // Get total count
       const totalCount = await this.knex('watchlist_radarr_instances')
+        .where(routedInRange('watchlist_radarr_instances'))
         .where('radarr_instance_id', instance.id)
         .count('* as count')
         .first()
 
       // Get count of primary items
       const primaryCount = await this.knex('watchlist_radarr_instances')
+        .where(routedInRange('watchlist_radarr_instances'))
         .where({
           radarr_instance_id: instance.id,
           is_primary: true,
@@ -835,6 +851,7 @@ export async function getInstanceContentBreakdown(
 
       // Get breakdown by status
       const statusBreakdown = await this.knex('watchlist_radarr_instances')
+        .where(routedInRange('watchlist_radarr_instances'))
         .select('status')
         .count('* as count')
         .where('radarr_instance_id', instance.id)
@@ -842,6 +859,7 @@ export async function getInstanceContentBreakdown(
 
       // Get breakdown by content type (join with watchlist_items)
       const contentTypeBreakdown = await this.knex('watchlist_radarr_instances')
+        .where(routedInRange('watchlist_radarr_instances'))
         .join(
           'watchlist_items',
           'watchlist_items.id',
@@ -873,12 +891,14 @@ export async function getInstanceContentBreakdown(
     for (const instance of sonarrInstances) {
       // Get total count
       const totalCount = await this.knex('watchlist_sonarr_instances')
+        .where(routedInRange('watchlist_sonarr_instances'))
         .where('sonarr_instance_id', instance.id)
         .count('* as count')
         .first()
 
       // Get count of primary items
       const primaryCount = await this.knex('watchlist_sonarr_instances')
+        .where(routedInRange('watchlist_sonarr_instances'))
         .where({
           sonarr_instance_id: instance.id,
           is_primary: true,
@@ -888,6 +908,7 @@ export async function getInstanceContentBreakdown(
 
       // Get breakdown by status
       const statusBreakdown = await this.knex('watchlist_sonarr_instances')
+        .where(routedInRange('watchlist_sonarr_instances'))
         .select('status')
         .count('* as count')
         .where('sonarr_instance_id', instance.id)
@@ -895,6 +916,7 @@ export async function getInstanceContentBreakdown(
 
       // Get breakdown by content type (join with watchlist_items)
       const contentTypeBreakdown = await this.knex('watchlist_sonarr_instances')
+        .where(routedInRange('watchlist_sonarr_instances'))
         .join(
           'watchlist_items',
           'watchlist_items.id',

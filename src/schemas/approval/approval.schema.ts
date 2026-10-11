@@ -1,67 +1,110 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
+import {
+  RoutingMonitorSchema,
+  RoutingQualityProfileSchema,
+  RoutingRootFolderSchema,
+  RoutingSearchOnAddSchema,
+  RoutingSeasonMonitoringSchema,
+  RoutingSeriesTypeSchema,
+  RoutingTagsSchema,
+} from '@root/schemas/common/routing-target.schema.js'
+import { RadarrMinimumAvailabilitySchema } from '@root/schemas/radarr/add-options.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
-// Base enums matching approval types
-export const ApprovalStatusSchema = z.enum([
-  'pending',
-  'approved',
-  'rejected',
-  'expired',
-  'auto_approved',
-])
-export const ApprovalTriggerSchema = z.enum([
-  'quota_exceeded',
-  'router_rule',
-  'manual_flag',
-  'content_criteria',
-])
+export const ApprovalStatusSchema = z
+  .enum(['pending', 'approved', 'rejected', 'expired', 'auto_approved'])
+  .meta({
+    id: 'ApprovalStatus',
+    description: 'Lifecycle state of an approval request',
+  })
 
-// Shared routing configuration schema
-const RoutingConfigSchema = z.object({
-  instanceId: z.number(),
-  instanceType: z.enum(['radarr', 'sonarr']),
-  qualityProfile: z.union([z.number(), z.string(), z.null()]).optional(),
-  rootFolder: z.string().nullable().optional(),
-  tags: z.array(z.string()).optional(),
-  priority: z.number(),
-  searchOnAdd: z.boolean().nullable().optional(),
-  seasonMonitoring: z.string().nullable().optional(),
-  seriesType: z.enum(['standard', 'anime', 'daily']).nullable().optional(),
-  minimumAvailability: z
-    .enum(['announced', 'inCinemas', 'released'])
-    .optional(),
-  monitor: z
-    .enum(['movieOnly', 'movieAndCollection', 'none'])
-    .nullable()
-    .optional(),
-  syncedInstances: z.array(z.number()).optional(),
-})
+export const APPROVAL_TRANSITIONS: Record<
+  ApprovalStatus,
+  readonly Extract<ApprovalStatus, 'approved' | 'rejected'>[]
+> = {
+  pending: ['approved', 'rejected'],
+  rejected: ['approved'],
+  approved: [],
+  expired: [],
+  auto_approved: [],
+}
 
-// Approval data schema matching ApprovalData interface
-const ApprovalDataSchema = z.object({
-  quotaType: QuotaTypeSchema.optional(),
-  quotaUsage: z.number().optional(),
-  quotaLimit: z.number().optional(),
-  criteriaType: z.string().optional(),
-  criteriaValue: z.string().optional(), // Changed from unknown to string for strict typing
-  ruleId: z.number().optional(),
-  autoApprove: z.boolean().optional(),
-})
+export function canTransitionApproval(
+  from: ApprovalStatus,
+  to: ApprovalStatus,
+): boolean {
+  return APPROVAL_TRANSITIONS[from].some((status) => status === to)
+}
 
-// Router decision schema
-export const RouterDecisionSchema = z.object({
-  action: z.enum(['route', 'require_approval', 'reject', 'continue']),
-  routing: RoutingConfigSchema.optional(),
-  approval: z
-    .object({
-      reason: z.string(),
-      triggeredBy: ApprovalTriggerSchema,
-      data: ApprovalDataSchema,
-      proposedRouting: RoutingConfigSchema.optional(),
-    })
-    .optional(),
-})
+export function isApprovalEditable(status: ApprovalStatus): boolean {
+  return APPROVAL_TRANSITIONS[status].length > 0
+}
+
+export const ApprovalTriggerSchema = z
+  .enum(['quota_exceeded', 'router_rule', 'manual_flag', 'content_criteria'])
+  .meta({
+    id: 'ApprovalTrigger',
+    description: 'What caused a request to need approval',
+  })
+
+export const ApprovalRoutingSchema = z
+  .object({
+    instanceId: z.number(),
+    instanceType: InstanceTypeSchema,
+    qualityProfile: RoutingQualityProfileSchema.optional(),
+    rootFolder: RoutingRootFolderSchema.optional(),
+    tags: RoutingTagsSchema.optional(),
+    priority: z.number(),
+    searchOnAdd: RoutingSearchOnAddSchema.optional(),
+    seasonMonitoring: RoutingSeasonMonitoringSchema.optional(),
+    seriesType: RoutingSeriesTypeSchema.optional(),
+    minimumAvailability: RadarrMinimumAvailabilitySchema.optional(),
+    monitor: RoutingMonitorSchema.optional(),
+    syncedInstances: z.array(z.number()).optional(),
+    ruleId: z.number().optional(),
+  })
+  .meta({
+    id: 'ApprovalRouting',
+    description: 'Target instance and arr settings used to add the content',
+  })
+
+export const ApprovalQuotaDataSchema = z
+  .object({
+    quotaType: QuotaTypeSchema.optional(),
+    quotaUsage: z.number().optional(),
+    quotaLimit: z.number().optional(),
+    criteriaType: z.string().optional(),
+    criteriaValue: z.string().optional(),
+    ruleId: z.number().optional(),
+    autoApprove: z.boolean().optional(),
+  })
+  .meta({
+    id: 'ApprovalQuotaData',
+    description: 'Trigger details captured when the request needed approval',
+  })
+
+export const RouterDecisionSchema = z
+  .object({
+    action: z.enum(['route', 'require_approval', 'reject', 'continue']),
+    routing: ApprovalRoutingSchema.optional(),
+    approval: z
+      .object({
+        reason: z.string(),
+        triggeredBy: ApprovalTriggerSchema,
+        data: ApprovalQuotaDataSchema,
+        proposedRouting: ApprovalRoutingSchema.optional(),
+        additionalRouting: z.array(ApprovalRoutingSchema).optional(),
+      })
+      .optional(),
+  })
+  .meta({
+    id: 'RouterDecision',
+    description:
+      'Router outcome for a request, holding the routing used on approval',
+  })
 
 // Approval request schemas
 export const ApprovalIdParamsSchema = z.object({
@@ -70,7 +113,7 @@ export const ApprovalIdParamsSchema = z.object({
 
 export const CreateApprovalRequestSchema = z.object({
   userId: z.number(),
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
   contentTitle: z.string().min(1).max(255),
   contentKey: z.string().min(1).max(255),
   contentGuids: z.array(z.string()).optional(),
@@ -87,30 +130,36 @@ export const UpdateApprovalRequestSchema = z.object({
   proposedRouterDecision: RouterDecisionSchema.optional(),
 })
 
-export const ApprovalRequestResponseSchema = z.object({
-  id: z.number(),
-  userId: z.number(),
-  userName: z.string(),
-  contentType: z.enum(['movie', 'show']),
-  contentTitle: z.string(),
-  contentKey: z.string(),
-  contentGuids: z.array(z.string()),
-  proposedRouterDecision: RouterDecisionSchema,
-  routerRuleId: z.number().nullable(),
-  triggeredBy: ApprovalTriggerSchema,
-  approvalReason: z.string().nullable(),
-  status: ApprovalStatusSchema,
-  approvedBy: z.number().nullable(),
-  approvalNotes: z.string().nullable(),
-  expiresAt: z.string().nullable(),
-  // Dynamic expiration fields based on current config
-  isExpired: z.boolean().optional(),
-  expirationStatus: z.enum(['active', 'expiring_soon', 'expired']).optional(),
-  expirationDisplayText: z.string().optional(),
-  timeUntilExpiration: z.number().nullable().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-})
+export const ApprovalRequestResponseSchema = z
+  .object({
+    id: z.number(),
+    userId: z.number(),
+    userName: z.string(),
+    contentType: ContentTypeSchema,
+    contentTitle: z.string(),
+    contentKey: z.string(),
+    contentGuids: z.array(z.string()),
+    thumb: z.string().nullable(),
+    proposedRouterDecision: RouterDecisionSchema,
+    routerRuleId: z.number().nullable(),
+    triggeredBy: ApprovalTriggerSchema,
+    approvalReason: z.string().nullable(),
+    status: ApprovalStatusSchema,
+    approvedBy: z.number().nullable(),
+    approvalNotes: z.string().nullable(),
+    expiresAt: z.string().nullable(),
+    // Dynamic expiration fields based on current config
+    isExpired: z.boolean().optional(),
+    expirationStatus: z.enum(['active', 'expiring_soon', 'expired']).optional(),
+    expirationDisplayText: z.string().optional(),
+    timeUntilExpiration: z.number().nullable().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })
+  .meta({
+    id: 'ApprovalRequest',
+    description: 'An approval request with its proposed routing and expiry',
+  })
 
 export const GetApprovalRequestsQuerySchema = z.object({
   // Status filter - accepts single value or comma-separated list for multi-select
@@ -147,11 +196,7 @@ export const GetApprovalRequestsQuerySchema = z.object({
       const types = val.split(',').filter(Boolean)
       return types.length === 1 ? types[0] : types
     })
-    .pipe(
-      z
-        .union([z.enum(['movie', 'show']), z.array(z.enum(['movie', 'show']))])
-        .optional(),
-    ),
+    .pipe(z.union([ContentTypeSchema, z.array(ContentTypeSchema)]).optional()),
   triggeredBy: z
     .string()
     .optional()
@@ -261,6 +306,7 @@ export const BulkOperationResponseSchema = z.object({
 })
 
 // Type exports
+export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>
 export type RouterDecision = z.infer<typeof RouterDecisionSchema>
 export type ProposedRouting = NonNullable<
   NonNullable<RouterDecision['approval']>['proposedRouting']

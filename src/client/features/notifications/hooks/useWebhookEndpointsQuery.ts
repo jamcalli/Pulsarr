@@ -1,6 +1,6 @@
 import type { WebhookEndpoint } from '@root/schemas/webhooks/webhook-endpoints.schema'
+import { useMinLoading } from '@/hooks/useMinLoading'
 import { $api } from '@/lib/tanstackApi'
-import { useMinLoading } from '@/lib/useMinLoading'
 
 export const webhookEndpointKeys = {
   all: $api.queryOptions('get', '/v1/webhooks/endpoints').queryKey,

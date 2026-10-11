@@ -7,17 +7,12 @@ import type {
   RoutingDecision,
 } from '@root/types/router.types.js'
 import type { FastifyBaseLogger } from 'fastify'
+import { evaluateCondition } from './conditions.js'
 
 export interface RuleEvaluationResult {
   decisions: RoutingDecision[]
   skipReason?: 'excluded'
 }
-
-type ConditionMatcher = (
-  condition: Condition | ConditionGroup,
-  item: ContentItem,
-  context: RoutingContext,
-) => boolean
 
 function isCondition(value: unknown): value is Condition {
   return (
@@ -58,7 +53,6 @@ export function evaluateRules(
   rules: RouterRule[],
   item: ContentItem,
   context: RoutingContext,
-  matchCondition: ConditionMatcher,
 ): RuleEvaluationResult {
   const targetType = context.contentType === 'movie' ? 'radarr' : 'sonarr'
 
@@ -76,7 +70,7 @@ export function evaluateRules(
       return false
     }
     try {
-      return matchCondition(condition, item, context)
+      return evaluateCondition(condition, item, context, log)
     } catch (error) {
       log.error(
         { error, ruleId: rule.id, ruleName: rule.name },
@@ -121,8 +115,14 @@ export function evaluateRules(
       monitor: rule.monitor,
       ruleId: rule.id,
       ruleName: rule.name,
+      alwaysRequireApproval: rule.always_require_approval,
+      bypassUserQuotas: rule.bypass_user_quotas,
+      approvalReason: rule.approval_reason,
     })
   }
+
+  // highest priority first, the order both the gate and execution use
+  decisions.sort((a, b) => b.priority - a.priority)
 
   return { decisions }
 }

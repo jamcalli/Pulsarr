@@ -1,177 +1,140 @@
+import { EventEmitter } from 'node:events'
 import { sseStream } from '@utils/sse-stream.js'
 import { describe, expect, it } from 'vitest'
 
-interface Deferred<T> {
-  promise: Promise<T>
-  resolve: (value: T) => void
-  reject: (error: unknown) => void
-}
-
-function deferred<T>(): Deferred<T> {
-  let resolve!: (value: T) => void
-  let reject!: (error: unknown) => void
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res
-    reject = rej
-  })
-  return { promise, resolve, reject }
-}
-
-// Controllable event source: push() feeds values to whatever next() is pending
-function makeSource<T>() {
-  const waiting: Deferred<T | undefined>[] = []
-  const queued: Array<{ value: T | undefined }> = []
-  let nextCalls = 0
-
-  return {
-    next: (): Promise<T | undefined> => {
-      nextCalls++
-      const entry = queued.shift()
-      if (entry) {
-        return Promise.resolve(entry.value)
-      }
-      const d = deferred<T | undefined>()
-      waiting.push(d)
-      return d.promise
-    },
-    push: (value: T | undefined) => {
-      const d = waiting.shift()
-      if (d) {
-        d.resolve(value)
-      } else {
-        queued.push({ value })
-      }
-    },
-    fail: (error: unknown) => {
-      const d = waiting.shift()
-      if (d) {
-        d.reject(error)
-      }
-    },
-    get nextCalls() {
-      return nextCalls
-    },
-  }
-}
-
 const serialize = (value: string) => ({ data: value })
+
+function makeStream(options: {
+  emitter?: EventEmitter
+  signal?: AbortSignal
+  replay?: () => string[] | Promise<string[]>
+  filter?: (item: string) => boolean
+  maxBuffered?: number
+  keepAliveMs?: number
+}) {
+  const emitter = options.emitter ?? new EventEmitter()
+  const stream = sseStream<string>({
+    signal: options.signal ?? new AbortController().signal,
+    replay: options.replay,
+    live: {
+      emitter,
+      event: 'item',
+      filter: options.filter,
+      maxBuffered: options.maxBuffered,
+    },
+    serialize,
+    keepAliveMs: options.keepAliveMs,
+  })
+  return { emitter, stream }
+}
 
 describe('sseStream', () => {
   it('replays initial items before live events', async () => {
-    const source = makeSource<string>()
-    const stream = sseStream<string>({
-      signal: new AbortController().signal,
-      replay: () => ['a', 'b'],
-      next: source.next,
-      serialize,
-    })
+    const { emitter, stream } = makeStream({ replay: () => ['a', 'b'] })
 
     expect((await stream.next()).value).toEqual({ data: 'a' })
     expect((await stream.next()).value).toEqual({ data: 'b' })
 
-    source.push('c')
+    emitter.emit('item', 'c')
     expect((await stream.next()).value).toEqual({ data: 'c' })
 
     await stream.return(undefined)
   })
 
-  it('awaits a promise-returning replay and keeps live events queued behind it', async () => {
-    const source = makeSource<string>()
-    const replayGate = deferred<string[]>()
-    const stream = sseStream<string>({
-      signal: new AbortController().signal,
-      replay: () => replayGate.promise,
-      next: source.next,
-      serialize,
+  it('keeps live events emitted during a pending replay', async () => {
+    let releaseReplay!: (items: string[]) => void
+    const { emitter, stream } = makeStream({
+      replay: () =>
+        new Promise<string[]>((resolve) => {
+          releaseReplay = resolve
+        }),
     })
 
-    // live event arriving while replay is still pending must not be lost
-    source.push('c')
-    replayGate.resolve(['a', 'b'])
+    const first = stream.next()
+    emitter.emit('item', 'c')
+    releaseReplay(['a', 'b'])
 
-    expect((await stream.next()).value).toEqual({ data: 'a' })
+    expect((await first).value).toEqual({ data: 'a' })
     expect((await stream.next()).value).toEqual({ data: 'b' })
     expect((await stream.next()).value).toEqual({ data: 'c' })
 
     await stream.return(undefined)
   })
 
-  it('emits keep-alive comments while idle without re-invoking next()', async () => {
-    const source = makeSource<string>()
-    const stream = sseStream<string>({
-      signal: new AbortController().signal,
-      next: source.next,
-      serialize,
-      keepAliveMs: 20,
+  it('delivers every item of a synchronous burst in order', async () => {
+    const { emitter, stream } = makeStream({})
+    const first = stream.next()
+    for (let i = 0; i < 25; i++) {
+      emitter.emit('item', `b${i}`)
+    }
+
+    expect((await first).value).toEqual({ data: 'b0' })
+    for (let i = 1; i < 25; i++) {
+      expect((await stream.next()).value).toEqual({ data: `b${i}` })
+    }
+
+    await stream.return(undefined)
+  })
+
+  it('applies the filter and drops the oldest past the buffer cap', async () => {
+    const { emitter, stream } = makeStream({
+      filter: (item) => item.startsWith('keep'),
+      maxBuffered: 2,
     })
 
-    expect((await stream.next()).value).toEqual({ comment: 'keep-alive' })
-    expect((await stream.next()).value).toEqual({ comment: 'keep-alive' })
-    expect(source.nextCalls).toBe(1)
+    emitter.emit('item', 'skip-1')
+    emitter.emit('item', 'keep-1')
+    emitter.emit('item', 'keep-2')
+    emitter.emit('item', 'keep-3')
 
-    // the original pending next() must still deliver
-    source.push('late')
+    expect((await stream.next()).value).toEqual({ data: 'keep-2' })
+    expect((await stream.next()).value).toEqual({ data: 'keep-3' })
+
+    await stream.return(undefined)
+  })
+
+  it('emits keep-alive comments while idle and still delivers a late item', async () => {
+    const { emitter, stream } = makeStream({ keepAliveMs: 20 })
+
+    expect((await stream.next()).value).toEqual({ comment: 'keep-alive' })
+    expect((await stream.next()).value).toEqual({ comment: 'keep-alive' })
+
+    emitter.emit('item', 'late')
     expect((await stream.next()).value).toEqual({ data: 'late' })
 
     await stream.return(undefined)
   })
 
-  it('ends when next() resolves undefined', async () => {
-    const source = makeSource<string>()
+  it('ends after replay when there is no live source', async () => {
     const stream = sseStream<string>({
       signal: new AbortController().signal,
-      next: source.next,
+      replay: () => ['only'],
       serialize,
     })
 
-    source.push(undefined)
+    expect((await stream.next()).value).toEqual({ data: 'only' })
     expect((await stream.next()).done).toBe(true)
   })
 
-  it('ends cleanly when next() rejects with an AbortError', async () => {
-    const source = makeSource<string>()
-    const stream = sseStream<string>({
-      signal: new AbortController().signal,
-      next: source.next,
-      serialize,
-    })
-
-    const consume = stream.next()
-    const abortError = new Error('aborted')
-    abortError.name = 'AbortError'
-    source.fail(abortError)
-
-    expect((await consume).done).toBe(true)
-  })
-
-  it('rethrows non-abort errors', async () => {
-    const source = makeSource<string>()
-    const stream = sseStream<string>({
-      signal: new AbortController().signal,
-      next: source.next,
-      serialize,
-    })
-
-    const consume = stream.next()
-    source.fail(new Error('boom'))
-
-    await expect(consume).rejects.toThrow('boom')
-  })
-
-  it('stops looping once the signal is aborted', async () => {
+  it('stops and unsubscribes once the signal is aborted', async () => {
     const controller = new AbortController()
-    const source = makeSource<string>()
-    const stream = sseStream<string>({
-      signal: controller.signal,
-      next: source.next,
-      serialize,
-    })
+    const { emitter, stream } = makeStream({ signal: controller.signal })
 
-    source.push('first')
+    emitter.emit('item', 'first')
     expect((await stream.next()).value).toEqual({ data: 'first' })
 
+    const idle = stream.next()
     controller.abort()
-    source.push('after-abort')
-    expect((await stream.next()).done).toBe(true)
+    expect((await idle).done).toBe(true)
+    expect(emitter.listenerCount('item')).toBe(0)
+  })
+
+  it('unsubscribes when the consumer returns early', async () => {
+    const { emitter, stream } = makeStream({})
+    emitter.emit('item', 'first')
+    expect((await stream.next()).value).toEqual({ data: 'first' })
+
+    await stream.return(undefined)
+    expect(emitter.listenerCount('item')).toBe(0)
   })
 })

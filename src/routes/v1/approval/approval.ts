@@ -11,10 +11,16 @@ import {
   BulkOperationResponseSchema,
   BulkRejectRequestSchema,
   CreateApprovalRequestSchema,
+  canTransitionApproval,
   GetApprovalRequestsQuerySchema,
+  isApprovalEditable,
   UpdateApprovalRequestSchema,
 } from '@schemas/approval/approval.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import {
+  invalidSeasonMonitoringMessage,
+  rejectedDecisionSeasonMonitoring,
+} from '@utils/season-monitoring.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
@@ -102,6 +108,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
+      const rejected = rejectedDecisionSeasonMonitoring(
+        request.body.routerDecision,
+      )
+      if (rejected !== undefined) {
+        return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+      }
       try {
         const existingRequest = await fastify.db.getApprovalRequestByContent(
           request.body.userId,
@@ -326,54 +338,41 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('Approval request not found')
         }
 
-        // Validate state transitions only if status is being changed
+        const rejected = rejectedDecisionSeasonMonitoring(
+          request.body.proposedRouterDecision,
+          existingRequest.proposedRouterDecision,
+        )
+        if (rejected !== undefined) {
+          return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+        }
+
         const targetStatus = request.body.status
         const currentStatus = existingRequest.status
 
-        if (targetStatus) {
-          if (
-            currentStatus === 'approved' ||
-            currentStatus === 'expired' ||
-            currentStatus === 'auto_approved'
-          ) {
-            return reply.conflict(
-              `Cannot update ${currentStatus} approval requests`,
-            )
-          }
+        if (!isApprovalEditable(currentStatus)) {
+          return reply.conflict(
+            targetStatus
+              ? `Cannot update ${currentStatus} approval requests`
+              : `Cannot modify routing for ${currentStatus} approval requests`,
+          )
+        }
 
-          // Allow pending → approved/rejected and rejected → approved
-          const validTransitions: Record<string, string[]> = {
-            pending: ['approved', 'rejected'],
-            rejected: ['approved'],
-          }
+        if (
+          targetStatus &&
+          !canTransitionApproval(currentStatus, targetStatus)
+        ) {
+          return reply.conflict(
+            `Invalid state transition from ${currentStatus} to ${targetStatus}`,
+          )
+        }
 
-          if (!validTransitions[currentStatus]?.includes(targetStatus)) {
-            return reply.conflict(
-              `Invalid state transition from ${currentStatus} to ${targetStatus}`,
-            )
-          }
-
-          if (targetStatus === 'approved') {
-            const healthCheck =
-              await fastify.approvalService.checkInstanceHealth(
-                existingRequest.contentType,
-              )
-            if (!healthCheck.available) {
-              return reply.serviceUnavailable(
-                `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
-              )
-            }
-          }
-        } else {
-          // If no status provided, we're just updating other fields (like routing)
-          // Still prevent updates to finalized requests
-          if (
-            currentStatus === 'approved' ||
-            currentStatus === 'expired' ||
-            currentStatus === 'auto_approved'
-          ) {
-            return reply.conflict(
-              `Cannot modify routing for ${currentStatus} approval requests`,
+        if (targetStatus === 'approved') {
+          const healthCheck = await fastify.approvalService.checkInstanceHealth(
+            existingRequest.contentType,
+          )
+          if (!healthCheck.available) {
+            return reply.serviceUnavailable(
+              `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
             )
           }
         }
@@ -539,7 +538,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('Approval request not found')
         }
 
-        if (existingRequest.status !== 'pending') {
+        if (!canTransitionApproval(existingRequest.status, 'rejected')) {
           return reply.conflict(
             `Cannot reject request that is already ${existingRequest.status}`,
           )
@@ -642,11 +641,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('Approval request not found')
         }
 
-        if (
-          existingRequest.status === 'approved' ||
-          existingRequest.status === 'expired' ||
-          existingRequest.status === 'auto_approved'
-        ) {
+        if (!canTransitionApproval(existingRequest.status, 'approved')) {
           return reply.conflict(
             `Cannot approve request that is already ${existingRequest.status}`,
           )

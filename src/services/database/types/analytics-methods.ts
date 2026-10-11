@@ -4,9 +4,13 @@ declare module '@services/database.service.js' {
     /**
      * Analyzes watchlist items to find the most popular genres
      * @param limit - Maximum number of genres to return (default: 10)
+     * @param days - Only count items added within this many days (default: 0, all time)
      * @returns Promise resolving to array of genres with their occurrence counts
      */
-    getTopGenres(limit?: number): Promise<{ genre: string; count: number }[]>
+    getTopGenres(
+      limit?: number,
+      days?: number,
+    ): Promise<{ genre: string; count: number }[]>
 
     /**
      * Gets the most watchlisted TV shows
@@ -53,9 +57,12 @@ declare module '@services/database.service.js' {
      * @param limit - Maximum number of users to return (default: 10)
      * @returns Promise resolving to array of users with name and item count
      */
-    getUsersWithMostWatchlistItems(
-      limit?: number,
-    ): Promise<{ name: string; count: number }[]>
+    getUsersWithMostWatchlistItems(options?: {
+      limit?: number
+      days?: number
+    }): Promise<
+      { name: string; count: number; movies: number; shows: number }[]
+    >
 
     /**
      * Gets the distribution of watchlist item statuses

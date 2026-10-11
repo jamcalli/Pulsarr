@@ -5,54 +5,50 @@ import RootLayout from '@/layouts/root'
 import { BASE_PATH } from '@/lib/basePath.js'
 
 const LoginPage = lazy(() => import('@/features/auth'))
-const CreateUserPage = lazy(() => import('@/features/create-user'))
+const CreateUserPage = lazy(() => import('@/features/setup'))
 const PlexConfigurationPage = lazy(
-  () => import('@/features/plex/pages/configuration'),
+  () => import('@/features/system/pages/plex-connection'),
 )
-const PlexUsersPage = lazy(() => import('@/features/plex/pages/users'))
-const ApprovalsPage = lazy(() => import('@/features/approvals'))
+const PlexUsersPage = lazy(() => import('@/features/users/pages/plex-users'))
+const ApprovalsPage = lazy(() => import('@/features/requests'))
 const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
-const DashboardPage = lazy(() => import('@/features/dashboard'))
+const DashboardPage = lazy(() => import('@/features/home'))
 const DeleteSyncPage = lazy(
-  () => import('@/features/utilities/pages/delete-sync'),
+  () => import('@/features/library/pages/delete-sync'),
 )
 const PlexNotificationsPage = lazy(
-  () => import('@/features/utilities/pages/plex-notifications'),
+  () => import('@/features/system/pages/plex-notifications'),
 )
 const NewUserDefaultsPage = lazy(
-  () => import('@/features/utilities/pages/new-user-defaults'),
+  () => import('@/features/users/pages/new-user-defaults'),
 )
 const PlexSessionMonitoringPage = lazy(
-  () => import('@/features/utilities/pages/plex-session-monitoring'),
+  () => import('@/features/library/pages/plex-session-monitoring'),
 )
-const UserTagsPage = lazy(() => import('@/features/utilities/pages/user-tags'))
-const PlexLabelsPage = lazy(
-  () => import('@/features/utilities/pages/plex-labels'),
-)
-const ApiKeysPage = lazy(() => import('@/features/utilities/pages/api-keys'))
+const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
+const PlexLabelsPage = lazy(() => import('@/features/users/pages/plex-labels'))
+const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
 const WatchlistExclusionsPage = lazy(
-  () => import('@/features/utilities/pages/watchlist-exclusions'),
+  () => import('@/features/users/pages/watchlist-exclusions'),
 )
-const LogViewerPage = lazy(
-  () => import('@/features/utilities/pages/log-viewer'),
-)
+const LogViewerPage = lazy(() => import('@/features/system/pages/log-viewer'))
 const ApprovalSettingsPage = lazy(
-  () => import('@/features/approvals/pages/approval-settings'),
+  () => import('@/features/requests/pages/approval-settings'),
 )
 const QuotaSettingsPage = lazy(
-  () => import('@/features/approvals/pages/quota-settings'),
+  () => import('@/features/requests/pages/quota-settings'),
 )
 const SonarrInstancesPage = lazy(
-  () => import('@/features/sonarr/pages/sonarr-instances'),
+  () => import('@/features/library/pages/sonarr-instances'),
 )
 const SonarrContentRouterPage = lazy(
-  () => import('@/features/sonarr/pages/sonarr-content-router'),
+  () => import('@/features/library/pages/sonarr-content-router'),
 )
 const RadarrInstancesPage = lazy(
-  () => import('@/features/radarr/pages/radarr-instances'),
+  () => import('@/features/library/pages/radarr-instances'),
 )
 const RadarrContentRouterPage = lazy(
-  () => import('@/features/radarr/pages/radarr-content-router'),
+  () => import('@/features/library/pages/radarr-content-router'),
 )
 const NotFoundPage = lazy(() => import('@/features/not-found'))
 const AccountSettingsPage = lazy(() => import('@/features/account'))

@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import { z } from 'zod'
 
 export const SyncInstanceResultSchema = z.object({
@@ -29,7 +30,7 @@ export const InstanceIdParamsSchema = z.object({
 })
 
 export const InstanceTypeQuerySchema = z.object({
-  type: z.enum(['radarr', 'sonarr']),
+  type: InstanceTypeSchema,
 })
 
 export type SyncError = z.infer<typeof ErrorSchema>

@@ -4,9 +4,9 @@ import type {
   UpdateWebhookEndpoint,
 } from '@root/schemas/webhooks/webhook-endpoints.schema'
 import { useMutation } from '@tanstack/react-query'
+import { useMinLoadingMutation } from '@/hooks/useMinLoading'
 import { queryClient } from '@/lib/queryClient'
 import { apiFetch } from '@/lib/tanstackApi'
-import { useMinLoadingMutation } from '@/lib/useMinLoading'
 import { webhookEndpointKeys } from './useWebhookEndpointsQuery'
 
 function invalidateWebhookEndpointCaches() {

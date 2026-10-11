@@ -1,3 +1,23 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
+import {
+  RoutingMinimumAvailabilitySchema,
+  RoutingMonitorSchema,
+  RoutingQualityProfileSchema,
+  RoutingRootFolderSchema,
+  RoutingSearchOnAddSchema,
+  RoutingSeasonMonitoringSchema,
+  RoutingSeriesTypeSchema,
+  RoutingTagsSchema,
+} from '@root/schemas/common/routing-target.schema.js'
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import {
+  SONARR_SERIES_TYPES,
+  type SonarrSeriesType,
+} from '@root/schemas/sonarr/series-type.schema.js'
 /**
  * Webhook Payload Schemas
  *
@@ -25,7 +45,7 @@ const UserInfoSchema = z.object({
 /** Basic content information */
 const ContentInfoSchema = z.object({
   title: z.string(),
-  type: z.enum(['movie', 'show']),
+  type: ContentTypeSchema,
   key: z.string(),
   guids: z.array(z.string()),
 })
@@ -45,25 +65,25 @@ const ApprovalTriggerSchema = z.enum([
 /** Base routing fields shared by both Radarr and Sonarr */
 const BaseRoutingFieldsSchema = z.object({
   instanceId: z.number(),
-  qualityProfile: z.union([z.number(), z.string()]).nullable(),
-  rootFolder: z.string().nullable(),
-  tags: z.array(z.string()),
-  searchOnAdd: z.boolean().nullable(),
+  qualityProfile: RoutingQualityProfileSchema,
+  rootFolder: RoutingRootFolderSchema,
+  tags: RoutingTagsSchema,
+  searchOnAdd: RoutingSearchOnAddSchema,
   syncedInstances: z.array(z.number()).optional(),
 })
 
 /** Radarr-specific routing - includes minimumAvailability and monitor, excludes Sonarr fields */
 export const RadarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('radarr'),
-  minimumAvailability: z.string().nullable(),
-  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).nullable(),
+  minimumAvailability: RoutingMinimumAvailabilitySchema,
+  monitor: RoutingMonitorSchema,
 })
 
 /** Sonarr-specific routing - includes seasonMonitoring/seriesType, excludes Radarr fields */
 export const SonarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('sonarr'),
-  seasonMonitoring: z.string().nullable(),
-  seriesType: z.enum(['standard', 'anime', 'daily']).nullable(),
+  seasonMonitoring: RoutingSeasonMonitoringSchema,
+  seriesType: RoutingSeriesTypeSchema,
 })
 
 /** Discriminated union for routing - picks schema based on instanceType */
@@ -80,10 +100,10 @@ interface RoutingInput {
   rootFolder?: string | null
   tags?: string[]
   searchOnAdd?: boolean | null
-  minimumAvailability?: string | null
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+  minimumAvailability?: MinimumAvailability | null
+  monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
-  seriesType?: 'standard' | 'anime' | 'daily' | null
+  seriesType?: SonarrSeriesType | null
   syncedInstances?: number[]
 }
 
@@ -124,28 +144,28 @@ export function buildRoutingPayload(
 export const RadarrRoutedToItemSchema = z.object({
   instanceId: z.number(),
   instanceType: z.literal('radarr'),
-  qualityProfile: z.union([z.number(), z.string()]).optional(),
-  rootFolder: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  searchOnAdd: z.boolean().optional(),
+  qualityProfile: RoutingQualityProfileSchema.unwrap().optional(),
+  rootFolder: RoutingRootFolderSchema.unwrap().optional(),
+  tags: RoutingTagsSchema.optional(),
+  searchOnAdd: RoutingSearchOnAddSchema.unwrap().optional(),
   ruleId: z.number().optional(),
   ruleName: z.string().optional(),
-  minimumAvailability: z.string().optional(),
-  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
+  minimumAvailability: RoutingMinimumAvailabilitySchema.unwrap().optional(),
+  monitor: RoutingMonitorSchema.unwrap().optional(),
 })
 
 /** Sonarr routing for routedTo arrays (with optional rule info) */
 export const SonarrRoutedToItemSchema = z.object({
   instanceId: z.number(),
   instanceType: z.literal('sonarr'),
-  qualityProfile: z.union([z.number(), z.string()]).optional(),
-  rootFolder: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  searchOnAdd: z.boolean().optional(),
+  qualityProfile: RoutingQualityProfileSchema.unwrap().optional(),
+  rootFolder: RoutingRootFolderSchema.unwrap().optional(),
+  tags: RoutingTagsSchema.optional(),
+  searchOnAdd: RoutingSearchOnAddSchema.unwrap().optional(),
   ruleId: z.number().optional(),
   ruleName: z.string().optional(),
-  seasonMonitoring: z.string().optional(),
-  seriesType: z.enum(['standard', 'anime', 'daily']).optional(),
+  seasonMonitoring: RoutingSeasonMonitoringSchema.unwrap().optional(),
+  seriesType: RoutingSeriesTypeSchema.unwrap().optional(),
 })
 
 /** Discriminated union for routedTo items */
@@ -164,30 +184,10 @@ interface RoutedToInput {
   searchOnAdd?: boolean | null
   ruleId?: number
   ruleName?: string
-  minimumAvailability?: string | null
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+  minimumAvailability?: MinimumAvailability | null
+  monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
   seriesType?: string | null
-}
-
-/** Valid series type values */
-type SeriesType = 'standard' | 'anime' | 'daily'
-
-/**
- * Type guard for valid series type values.
- */
-function isValidSeriesType(value: string): value is SeriesType {
-  return value === 'standard' || value === 'anime' || value === 'daily'
-}
-
-/**
- * Normalizes seriesType to valid enum value or undefined.
- */
-function normalizeSeriesType(
-  value: string | null | undefined,
-): SeriesType | undefined {
-  if (value === null || value === undefined) return undefined
-  return isValidSeriesType(value) ? value : undefined
 }
 
 /**
@@ -223,7 +223,7 @@ export function buildRoutedToItem(
     ruleId: detail.ruleId,
     ruleName: detail.ruleName,
     seasonMonitoring: detail.seasonMonitoring ?? undefined,
-    seriesType: normalizeSeriesType(detail.seriesType),
+    seriesType: SONARR_SERIES_TYPES.find((type) => type === detail.seriesType),
   }
 }
 
@@ -233,7 +233,7 @@ export function buildRoutedToItem(
 
 /** media.available - Fired when content becomes available to watch */
 export const MediaAvailablePayloadSchema = z.object({
-  mediaType: z.enum(['movie', 'show']),
+  mediaType: ContentTypeSchema,
   title: z.string(),
   guids: z.array(z.string()),
   posterUrl: z.string().optional(),
@@ -247,7 +247,7 @@ export const MediaAvailablePayloadSchema = z.object({
     })
     .optional(),
   isBulkRelease: z.boolean(),
-  instanceType: z.enum(['radarr', 'sonarr']).optional(),
+  instanceType: InstanceTypeSchema.optional(),
   instanceId: z.number().optional(),
   watchlistedBy: z.array(
     z.object({
@@ -263,7 +263,7 @@ export const WatchlistAddedPayloadSchema = z.object({
   addedBy: UserInfoSchema,
   content: z.object({
     title: z.string(),
-    type: z.enum(['movie', 'show']),
+    type: ContentTypeSchema,
     thumb: z.string().optional(),
     key: z.string(),
     guids: z.array(z.string()),
@@ -276,7 +276,7 @@ export const WatchlistRemovedPayloadSchema = z.object({
   watchlistItemId: z.number(),
   content: z.object({
     title: z.string(),
-    type: z.enum(['movie', 'show']),
+    type: ContentTypeSchema,
     key: z.string(),
     guids: z.array(z.string()),
   }),
@@ -291,7 +291,7 @@ export const ApprovalCreatedPayloadSchema = z.object({
   approvalId: z.number(),
   content: z.object({
     title: z.string(),
-    type: z.enum(['movie', 'show']),
+    type: ContentTypeSchema,
     key: z.string(),
     posterUrl: z.string().optional(),
   }),
@@ -373,7 +373,7 @@ export const QuotaCapReachedPayloadSchema = z.object({
     userId: z.number(),
     username: z.string().nullable(),
   }),
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
   currentCount: z.number(),
   cap: z.number(),
 })

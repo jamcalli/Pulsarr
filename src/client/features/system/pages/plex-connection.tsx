@@ -1,0 +1,719 @@
+import {
+  Check,
+  HelpCircle,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Search,
+  ServerIcon,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { PageError } from '@/components/page-error'
+import { PlexSSEStatusBadge } from '@/components/status/plex-sse-status-badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Credenza,
+  CredenzaBody,
+  CredenzaClose,
+  CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
+  CredenzaHeader,
+  CredenzaTitle,
+} from '@/components/ui/credenza'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { UtilitySectionHeader } from '@/components/utility-section-header'
+import PlexConnectionSkeleton from '@/features/system/components/plex-connection/connection-section-skeleton'
+import { PlexPinAuth } from '@/features/system/components/plex-connection/plex-pin-auth'
+import { RemoveTokenConfirmationModal } from '@/features/system/components/plex-connection/remove-token-confirmation-modal'
+import SetupModal from '@/features/system/components/plex-connection/setup-modal'
+import { usePlexConnection } from '@/features/system/hooks/plex-connection/usePlexConnection'
+import { usePlexExistenceCheck } from '@/features/system/hooks/plex-connection/usePlexExistenceCheck'
+import { usePlexRssFeeds } from '@/features/system/hooks/plex-connection/usePlexRssFeeds'
+import { usePlexServerDiscovery } from '@/features/system/hooks/plex-connection/usePlexServerDiscovery'
+import { usePlexSetup } from '@/features/system/hooks/plex-connection/usePlexSetup'
+import { usePlexWatchlist } from '@/features/system/hooks/plex-connection/usePlexWatchlist'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { useShowLoading } from '@/hooks/useMinLoading'
+import { useUserList } from '@/hooks/usePlexUsers'
+import { useWatchlistProgress } from '@/hooks/useProgress'
+
+/**
+ * Displays the Plex Configuration page, allowing users to manage Plex integration settings.
+ *
+ * Provides an interface for configuring Plex tokens, generating RSS feeds, refreshing watchlist data, and viewing watchlist statistics for the current user and others. Includes responsive layout, loading skeletons, and visual feedback for asynchronous actions.
+ */
+export default function PlexConfigurationPage() {
+  const { config, initialize, isInitialized, error: configError } = useConfig()
+  const isInitializing = useShowLoading(!isInitialized)
+  const { showSetupModal, setShowSetupModal } = usePlexSetup()
+  const [showReauthDialog, setShowReauthDialog] = useState(false)
+  const [showRemoveTokenModal, setShowRemoveTokenModal] = useState(false)
+  const [isRemovingToken, setIsRemovingToken] = useState(false)
+  const [reauthKey, setReauthKey] = useState(0)
+
+  // Check if Plex token is missing and show setup modal
+  useEffect(() => {
+    if (config && (!config.plexTokens || config.plexTokens.length === 0)) {
+      setShowSetupModal(true)
+    }
+  }, [config, setShowSetupModal])
+
+  // Connection state
+  const { form, status, handleUpdateToken, handleRemoveToken } =
+    usePlexConnection()
+
+  // Server discovery state
+  const { isDiscovering, servers, discoverServers } = usePlexServerDiscovery()
+  const [showServerCards, setShowServerCards] = useState(false)
+
+  // Show server cards when servers are discovered
+  useEffect(() => {
+    if (servers.length > 0) {
+      setShowServerCards(true)
+    }
+  }, [servers])
+
+  // Existence check state
+  const {
+    form: existenceCheckForm,
+    isSaving: isExistenceCheckSaving,
+    onSubmit: onExistenceCheckSubmit,
+    handleCancel: handleExistenceCheckCancel,
+  } = usePlexExistenceCheck()
+
+  // Media query for mobile/desktop
+  const isMobile = useMediaQuery('(max-width: 768px)')
+
+  const isLoading = isInitializing
+
+  // RSS feed state
+  const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
+
+  // Get user data to compute watchlist counts
+  const users = useUserList()
+  const selfWatchlist = users?.find((user) => user.is_primary_token)
+  const otherUsers = users?.filter((user) => !user.is_primary_token) || []
+  const othersTotal = otherUsers.reduce(
+    (acc, user) => acc + (user.watchlist_count || 0),
+    0,
+  )
+
+  // Watchlist refresh
+  const { selfWatchlistStatus, othersWatchlistStatus, refreshWatchlists } =
+    usePlexWatchlist()
+
+  // Progress hooks for live updates
+  const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
+  const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
+
+  // Handle token received from re-auth PIN flow
+  const handleReauthSuccess = async (token: string) => {
+    try {
+      await updateConfig({ plexTokens: [token] })
+      form.setValue('plexToken', token)
+      // Brief delay to show "Authorized!" state before closing
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setShowReauthDialog(false)
+      toast.success('Plex token updated successfully')
+    } catch (error) {
+      console.error('Failed to update token:', error)
+      toast.error('Failed to update Plex token')
+    }
+  }
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
+  if (!isInitialized && !isInitializing) {
+    return null
+  }
+
+  return (
+    <div>
+      <UtilitySectionHeader
+        title="Plex Integration"
+        showStatus={false}
+        className="mb-0"
+      >
+        <PlexSSEStatusBadge />
+      </UtilitySectionHeader>
+
+      {isLoading ? (
+        <PlexConnectionSkeleton />
+      ) : (
+        <>
+          <SetupModal open={showSetupModal} onOpenChange={setShowSetupModal} />
+
+          {/* Re-authentication Credenza */}
+          <Credenza
+            open={showReauthDialog}
+            onOpenChange={(open) => {
+              if (open) setReauthKey((prev) => prev + 1)
+              setShowReauthDialog(open)
+            }}
+          >
+            <CredenzaContent>
+              <CredenzaHeader>
+                <CredenzaTitle className="text-foreground">
+                  Re-authenticate with Plex
+                </CredenzaTitle>
+                <CredenzaDescription>
+                  This will replace your current Plex token with a new one.
+                </CredenzaDescription>
+              </CredenzaHeader>
+              <CredenzaBody>
+                <PlexPinAuth key={reauthKey} onSuccess={handleReauthSuccess} />
+              </CredenzaBody>
+              <CredenzaFooter>
+                <CredenzaClose asChild>
+                  <Button variant="neutral">Cancel</Button>
+                </CredenzaClose>
+              </CredenzaFooter>
+            </CredenzaContent>
+          </Credenza>
+
+          {/* Remove Token Confirmation Modal */}
+          <RemoveTokenConfirmationModal
+            open={showRemoveTokenModal}
+            onOpenChange={setShowRemoveTokenModal}
+            onConfirm={async () => {
+              setIsRemovingToken(true)
+              try {
+                await handleRemoveToken()
+              } finally {
+                setIsRemovingToken(false)
+              }
+            }}
+            isSubmitting={isRemovingToken}
+          />
+
+          <div className="grid gap-4">
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(handleUpdateToken)}
+                className="space-y-8"
+              >
+                <div
+                  className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-end space-x-2">
+                      <FormField
+                        control={form.control}
+                        name="plexToken"
+                        render={({ field }) => (
+                          <FormItem className="grow">
+                            <FormLabel className="text-foreground">
+                              Primary Plex Token
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Enter Plex Token"
+                                type="text"
+                                disabled={status === 'loading'}
+                                className="w-full"
+                                onClick={() => {
+                                  if (!field.value) {
+                                    setShowSetupModal(true)
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-xs mt-1" />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex space-x-2 shrink-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="neutralnoShadow"
+                              onClick={() => setShowReauthDialog(true)}
+                              disabled={status === 'loading'}
+                              aria-label="Re-authenticate with Plex"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Re-authenticate with Plex
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="error"
+                              onClick={() => setShowRemoveTokenModal(true)}
+                              disabled={
+                                status === 'loading' ||
+                                !form.getValues('plexToken')
+                              }
+                              aria-label="Remove Plex token"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Remove Plex token</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-end gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      variant="noShadow"
+                      onClick={generateRssFeeds}
+                      disabled={rssStatus === 'loading'}
+                      className="shrink-0 flex items-center gap-2"
+                    >
+                      {rssStatus === 'loading' ? (
+                        <Loader2 className="animate-spin" />
+                      ) : rssStatus === 'success' ? (
+                        <Check className="text-black" />
+                      ) : (
+                        <RefreshCw />
+                      )}
+                      Generate RSS
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="noShadow"
+                      onClick={refreshWatchlists}
+                      disabled={
+                        selfWatchlistStatus === 'loading' ||
+                        othersWatchlistStatus === 'loading'
+                      }
+                      className="shrink-0 flex items-center gap-2"
+                    >
+                      {selfWatchlistStatus === 'loading' ||
+                      othersWatchlistStatus === 'loading' ? (
+                        <Loader2 className="animate-spin" />
+                      ) : selfWatchlistStatus === 'success' &&
+                        othersWatchlistStatus === 'success' ? (
+                        <Check className="text-black" />
+                      ) : (
+                        <RefreshCw />
+                      )}
+                      Manual refresh
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Watchlist stats section */}
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <FormItem className="grow">
+                      <FormLabel className="text-foreground">
+                        Self Watchlist
+                      </FormLabel>
+                      {selfWatchlistStatus === 'loading' ? (
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-foreground">
+                              {selfWatchlistProgress.message || 'Processing...'}
+                            </span>
+                            <span className="text-sm text-foreground">
+                              {selfWatchlistProgress.progress}%
+                            </span>
+                          </div>
+                          <Progress value={selfWatchlistProgress.progress} />
+                        </div>
+                      ) : (
+                        <FormControl>
+                          <Input
+                            value={
+                              selfWatchlist?.watchlist_count !== undefined
+                                ? `You have ${selfWatchlist.watchlist_count.toLocaleString()} items in your watchlist!`
+                                : ''
+                            }
+                            placeholder="No watchlist data available"
+                            type="text"
+                            readOnly
+                            className="w-full"
+                          />
+                        </FormControl>
+                      )}
+                    </FormItem>
+                  </div>
+
+                  <div className="flex-1">
+                    <FormItem className="grow">
+                      <FormLabel className="text-foreground">
+                        Others Watchlist
+                      </FormLabel>
+                      {othersWatchlistStatus === 'loading' ? (
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-foreground">
+                              {othersWatchlistProgress.message ||
+                                'Processing...'}
+                            </span>
+                            <span className="text-sm text-foreground">
+                              {othersWatchlistProgress.progress}%
+                            </span>
+                          </div>
+                          <Progress value={othersWatchlistProgress.progress} />
+                        </div>
+                      ) : (
+                        <FormControl>
+                          <Input
+                            value={
+                              otherUsers.length > 0
+                                ? `${otherUsers.length.toLocaleString()} users with ${othersTotal.toLocaleString()} items total`
+                                : ''
+                            }
+                            placeholder="No other watchlists available"
+                            type="text"
+                            readOnly
+                            className="w-full"
+                          />
+                        </FormControl>
+                      )}
+                    </FormItem>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div
+                    className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}
+                  >
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-foreground text-sm">
+                        Self Feed
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          value={
+                            config?.selfRss
+                              ? config.selfRss
+                              : 'RSS feeds are unavailable. This feature requires Plex Pass.'
+                          }
+                          placeholder="Generate RSS feeds to view URL"
+                          type="text"
+                          readOnly
+                          disabled={!config?.selfRss}
+                          className={`w-full ${!config?.selfRss ? 'cursor-not-allowed' : ''}`}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-foreground text-sm">
+                        Friends Feed
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          value={
+                            config?.friendsRss
+                              ? config.friendsRss
+                              : 'RSS feeds are unavailable. This feature requires Plex Pass.'
+                          }
+                          placeholder="Generate RSS feeds to view URL"
+                          type="text"
+                          readOnly
+                          disabled={!config?.friendsRss}
+                          className={`w-full ${!config?.friendsRss ? 'cursor-not-allowed' : ''}`}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  </div>
+                </div>
+              </form>
+            </Form>
+
+            {/* Plex Existence Check Configuration */}
+            <Separator className="my-6" />
+            <Form {...existenceCheckForm}>
+              <form
+                onSubmit={existenceCheckForm.handleSubmit(
+                  onExistenceCheckSubmit,
+                )}
+                className="space-y-4"
+              >
+                <div
+                  className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}
+                >
+                  {/* Toggle */}
+                  <FormField
+                    control={existenceCheckForm.control}
+                    name="skipIfExistsOnPlex"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground m-0">
+                            Skip downloading if content exists on Plex
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  When enabled, Pulsarr will check Plex servers
+                                  before downloading content, skipping items
+                                  that already exist even if they're not tracked
+                                  in Sonarr/Radarr.
+                                </p>
+                                <p>
+                                  <strong>Primary Token User:</strong> Checks
+                                  ALL accessible servers including your owned
+                                  server and any shared servers you have access
+                                  to.
+                                </p>
+                                <p>
+                                  <strong>Friend/Other Users:</strong> Only
+                                  checks your owned server (no access tokens
+                                  available for shared servers).
+                                </p>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Your owned server uses
+                                  the configured Server Connection below; shared
+                                  servers use auto-discovery.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Server Connection */}
+                  <FormField
+                    control={existenceCheckForm.control}
+                    name="plexServerUrl"
+                    render={({ field }) => {
+                      const defaultUrl = 'http://localhost:32400'
+                      // Display empty input when value is the default URL or empty string
+                      // Backend treats both identically as "use auto-discovery"
+                      const displayValue =
+                        field.value === defaultUrl ? '' : field.value || ''
+
+                      return (
+                        <FormItem>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground m-0">
+                              Server Connection (Optional)
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Specify which connection method to use for
+                                    ALL Plex server communication including
+                                    session monitoring, label sync, playlist
+                                    protection, and content existence checks.
+                                  </p>
+                                  <p>
+                                    <strong>Manual Entry:</strong> Enter a URL
+                                    like{' '}
+                                    <code className="text-xs">
+                                      https://192.168.1.100:32400
+                                    </code>
+                                  </p>
+                                  <p>
+                                    <strong>Auto-Discovery:</strong> Use "Find
+                                    Server" to discover available connections,
+                                    or leave empty for automatic negotiation.
+                                  </p>
+                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                    <strong>Tip:</strong> Use HTTPS if your Plex
+                                    server requires secure connections. Test the
+                                    URL by opening it in your browser with{' '}
+                                    <code>/web</code> appended - you should see
+                                    the Plex interface load.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="flex space-x-2 mt-2">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                value={displayValue}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                placeholder="Leave empty to auto-negotiate"
+                                className="flex-1"
+                                disabled={isExistenceCheckSaving}
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="noShadow"
+                              onClick={() => {
+                                const token = config?.plexTokens?.[0]
+                                if (token) {
+                                  discoverServers(token)
+                                }
+                              }}
+                              disabled={
+                                isDiscovering || !config?.plexTokens?.[0]
+                              }
+                            >
+                              {isDiscovering ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Search className="h-4 w-4 mr-2" />
+                              )}
+                              Find Server
+                            </Button>
+                          </div>
+                          <FormMessage className="text-xs mt-1" />
+                        </FormItem>
+                      )
+                    }}
+                  />
+                </div>
+
+                {/* Server Selection Cards */}
+                {showServerCards && servers.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {servers.map((server) => (
+                      <Card
+                        key={`${server.host}-${server.port}`}
+                        className="cursor-pointer hover:border-primary transition-colors flex flex-col"
+                      >
+                        <CardHeader className="py-3 px-4 pb-2">
+                          <CardTitle className="text-base flex items-center">
+                            <ServerIcon className="h-4 w-4 mr-2 text-primary" />
+                            {server.name}
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            {server.local
+                              ? 'Local Connection'
+                              : 'Remote Connection'}
+                            {server.useSsl && ' • Secure'}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="py-2 px-4 text-xs">
+                          <div className="flex items-center space-x-1">
+                            <span className="font-medium">Host:</span>
+                            <span>{server.host}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <span className="font-medium">Port:</span>
+                            <span>{server.port}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <span className="font-medium">SSL:</span>
+                            <span>{server.useSsl ? 'Yes' : 'No'}</span>
+                          </div>
+                        </CardContent>
+                        <div className="mt-auto px-4 pb-3">
+                          <Button
+                            type="button"
+                            variant="bluenoShadow"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              const url = `${server.useSsl ? 'https' : 'http'}://${server.host}:${server.port}`
+                              existenceCheckForm.setValue(
+                                'plexServerUrl',
+                                url,
+                                {
+                                  shouldDirty: true,
+                                },
+                              )
+                              setShowServerCards(false)
+                            }}
+                          >
+                            Select
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {/* Save/Cancel buttons */}
+                <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                  {existenceCheckForm.formState.isDirty &&
+                    !isExistenceCheckSaving && (
+                      <Button
+                        type="button"
+                        variant="cancel"
+                        onClick={handleExistenceCheckCancel}
+                        disabled={isExistenceCheckSaving}
+                        className="flex items-center gap-1"
+                      >
+                        <X className="h-4 w-4" />
+                        <span>Cancel</span>
+                      </Button>
+                    )}
+
+                  <Button
+                    type="submit"
+                    disabled={
+                      isExistenceCheckSaving ||
+                      !existenceCheckForm.formState.isDirty
+                    }
+                    className="flex items-center gap-2"
+                    variant="bluenoShadow"
+                  >
+                    {isExistenceCheckSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    <span>
+                      {isExistenceCheckSaving ? 'Saving...' : 'Save Changes'}
+                    </span>
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

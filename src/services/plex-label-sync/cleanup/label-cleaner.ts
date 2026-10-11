@@ -32,11 +32,17 @@ import { cleanupTrackingForItems } from '../tracking/content-tracker.js'
 /**
  * Helper function to check if two arrays contain the same elements (order-independent)
  */
-function arraysHaveSameElements(arr1: string[], arr2: string[]): boolean {
-  if (arr1.length !== arr2.length) return false
-  const sorted1 = [...arr1].sort()
-  const sorted2 = [...arr2].sort()
-  return sorted1.every((val, idx) => val === sorted2[idx])
+function itemsWithoutFailedKeys<T extends { id: number }>(
+  items: T[],
+  ratingKeysByItemId: Map<number, string[]>,
+  failedKeys: Set<string>,
+): T[] {
+  return items.filter(
+    (item) =>
+      !(ratingKeysByItemId.get(item.id) ?? []).some((key) =>
+        failedKeys.has(key),
+      ),
+  )
 }
 
 /**
@@ -148,8 +154,8 @@ export async function cleanupLabelsForWatchlistItems(
       { guids: string[]; contentType: 'movie' | 'show' }
     >() // Map item.id -> parsed data for cleanup
 
-    // Store ALL tracking records by content to check for other users
-    const allTrackingByContent = new Map<string, PlexLabelTracking[]>()
+    const allTracking: PlexLabelTracking[] = []
+    const ratingKeysByItemId = new Map<number, string[]>()
 
     // Get all tracked labels for these watchlist items
     const trackedLabels = []
@@ -196,8 +202,7 @@ export async function cleanupLabelsForWatchlistItems(
         item.contentType,
       )
 
-      // Store ALL tracking records for this content (we need to check if other users have it)
-      allTrackingByContent.set(contentKey, labels)
+      allTracking.push(...labels)
 
       deps.logger.debug(
         {
@@ -229,6 +234,10 @@ export async function cleanupLabelsForWatchlistItems(
         `Found ${userLabels.length} user-specific tracking records for content key: ${contentKey}, user_id: ${item.user_id}`,
       )
       trackedLabels.push(...userLabels)
+      ratingKeysByItemId.set(
+        item.id,
+        userLabels.map((label) => label.plex_rating_key),
+      )
     }
 
     deps.logger.debug(
@@ -250,6 +259,16 @@ export async function cleanupLabelsForWatchlistItems(
       )
       await cleanupTrackingForItems(watchlistItems, itemDataMap, deps.db)
       return
+    }
+
+    const removingUsersByRatingKey = new Map<string, Set<number>>()
+    for (const tracking of trackedLabels) {
+      if (tracking.user_id === null) continue
+      const users =
+        removingUsersByRatingKey.get(tracking.plex_rating_key) ??
+        new Set<number>()
+      users.add(tracking.user_id)
+      removingUsersByRatingKey.set(tracking.plex_rating_key, users)
     }
 
     // Group labels by rating key and determine which labels to remove
@@ -290,12 +309,12 @@ export async function cleanupLabelsForWatchlistItems(
         tracking.content_guids,
       )
 
-      // Get all tracking records for this content
-      const allTrackingForContent = allTrackingByContent.get(contentKey) || []
-
-      // Find other users who still have this content
-      const otherUsersWithContent = allTrackingForContent.filter(
-        (t) => t.user_id !== null && t.user_id !== userId,
+      const removingUsers = removingUsersByRatingKey.get(ratingKey)
+      const otherUsersWithContent = allTracking.filter(
+        (t) =>
+          t.plex_rating_key === ratingKey &&
+          t.user_id !== null &&
+          !removingUsers?.has(t.user_id),
       )
 
       // Determine which labels to remove
@@ -356,7 +375,8 @@ export async function cleanupLabelsForWatchlistItems(
     const limit = pLimit(concurrencyLimit)
     let removedCount = 0
 
-    const labelRemovalResults = await Promise.allSettled(
+    const failedKeys = new Set<string>()
+    await Promise.all(
       Array.from(labelsToRemoveByRatingKey.entries()).map(
         ([ratingKey, labels]) =>
           limit(async () => {
@@ -373,7 +393,8 @@ export async function cleanupLabelsForWatchlistItems(
                   },
                   `Removed ${labels.length} labels from Plex content`,
                 )
-                return labels.length
+                removedCount += labels.length
+                return
               }
               deps.logger.warn(
                 {
@@ -382,7 +403,6 @@ export async function cleanupLabelsForWatchlistItems(
                 },
                 `Failed to remove labels from Plex content ${ratingKey}`,
               )
-              return 0
             } catch (error) {
               deps.logger.warn(
                 {
@@ -391,27 +411,21 @@ export async function cleanupLabelsForWatchlistItems(
                 },
                 `Failed to remove labels from Plex content ${ratingKey}`,
               )
-              return 0
             }
+            failedKeys.add(ratingKey)
           }),
       ),
     )
 
-    // Aggregate successful removals
-    let successfulRatingKeys = 0
-    let failedRatingKeys = 0
-    for (const result of labelRemovalResults) {
-      if (result.status === 'fulfilled' && result.value > 0) {
-        removedCount += result.value
-        successfulRatingKeys++
-      } else if (result.status === 'fulfilled') {
-        failedRatingKeys++
-      } else {
-        failedRatingKeys++
-      }
-    }
+    const failedRatingKeys = failedKeys.size
+    const successfulRatingKeys =
+      labelsToRemoveByRatingKey.size - failedRatingKeys
 
-    await cleanupTrackingForItems(watchlistItems, itemDataMap, deps.db)
+    await cleanupTrackingForItems(
+      itemsWithoutFailedKeys(watchlistItems, ratingKeysByItemId, failedKeys),
+      itemDataMap,
+      deps.db,
+    )
 
     const cleanupDuration = Date.now() - cleanupStartTime
 
@@ -475,6 +489,8 @@ async function handleSpecialLabelModeForDeletedItems(
   try {
     // Get all tracked labels for these watchlist items
     const trackedLabels: PlexLabelTracking[] = []
+    const usersByRatingKey = new Map<string, Set<number>>()
+    const ratingKeysByItemId = new Map<number, string[]>()
 
     for (const item of watchlistItems) {
       // Get the full watchlist item to access the guids
@@ -514,6 +530,16 @@ async function handleSpecialLabelModeForDeletedItems(
       )
       // Get all labels for this content (needed to check if other users still have it)
       trackedLabels.push(...labels)
+      ratingKeysByItemId.set(
+        item.id,
+        labels.map((label) => label.plex_rating_key),
+      )
+      for (const tracking of labels) {
+        const users =
+          usersByRatingKey.get(tracking.plex_rating_key) ?? new Set<number>()
+        users.add(item.user_id)
+        usersByRatingKey.set(tracking.plex_rating_key, users)
+      }
     }
 
     if (trackedLabels.length === 0) {
@@ -530,33 +556,10 @@ async function handleSpecialLabelModeForDeletedItems(
       labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
     }
 
-    // Build map of rating key -> users removing that specific content
-    // This prevents users removing one piece of content from affecting other content in the batch
-    const usersByRatingKey = new Map<string, Set<number>>()
-
-    for (const item of watchlistItems) {
-      const itemData = itemDataMap.get(item.id)
-      if (!itemData) continue
-
-      // Find all rating keys for this item's content by matching GUIDs and content type
-      for (const tracking of trackedLabels) {
-        // Check if this tracking entry matches this item's content
-        if (
-          tracking.content_type === itemData.contentType &&
-          arraysHaveSameElements(tracking.content_guids, itemData.guids)
-        ) {
-          // This rating key belongs to this item's content
-          const usersForRatingKey =
-            usersByRatingKey.get(tracking.plex_rating_key) || new Set<number>()
-          usersForRatingKey.add(item.user_id)
-          usersByRatingKey.set(tracking.plex_rating_key, usersForRatingKey)
-        }
-      }
-    }
-
     const concurrencyLimit = deps.config.concurrencyLimit || 5
     const limit = pLimit(concurrencyLimit)
     let processedCount = 0
+    const failedKeys = new Set<string>()
 
     // For each rating key, replace user labels with special removed label
     const specialLabelResults = await Promise.allSettled(
@@ -566,6 +569,10 @@ async function handleSpecialLabelModeForDeletedItems(
             // Get current labels on the content
             const currentLabels =
               await deps.plexServer.getCurrentLabels(ratingKey)
+            if (currentLabels === null) {
+              failedKeys.add(ratingKey)
+              return 0
+            }
 
             // Get all users who currently have labels for this content
             const allUsersWithLabels = new Set<number>()
@@ -697,6 +704,7 @@ async function handleSpecialLabelModeForDeletedItems(
                   }
                   return 1
                 }
+                failedKeys.add(ratingKey)
               } else {
                 // Other users still have this content, just remove specific user labels
                 const remainingLabels = currentLabels.filter((label) => {
@@ -737,6 +745,7 @@ async function handleSpecialLabelModeForDeletedItems(
                   )
                   return 1
                 }
+                failedKeys.add(ratingKey)
               }
             }
             return 0
@@ -748,6 +757,7 @@ async function handleSpecialLabelModeForDeletedItems(
               },
               `Failed to apply special removed label to content ${ratingKey}`,
             )
+            failedKeys.add(ratingKey)
             return 0
           }
         }),
@@ -761,7 +771,11 @@ async function handleSpecialLabelModeForDeletedItems(
       }
     }
 
-    await cleanupTrackingForItems(watchlistItems, itemDataMap, deps.db)
+    await cleanupTrackingForItems(
+      itemsWithoutFailedKeys(watchlistItems, ratingKeysByItemId, failedKeys),
+      itemDataMap,
+      deps.db,
+    )
 
     const specialLabelDuration = Date.now() - specialLabelStartTime
 
@@ -867,7 +881,9 @@ export async function cleanupOrphanedPlexLabels(
     )
 
     // Step 2: Build set of valid labels that should exist
-    const validLabels = new Set<string>()
+    const validLabels = new Set<string>([
+      getRemovedLabel(deps.removedLabelPrefix).toLowerCase(),
+    ])
 
     // Add user labels for sync-enabled users
     for (const user of syncEnabledUsers) {
@@ -1029,8 +1045,11 @@ export async function cleanupOrphanedPlexLabels(
           try {
             // Get current labels from Plex
             const metadata = await deps.plexServer.getMetadata(plex_rating_key)
+            if (!metadata) {
+              return { removed: 0, failed: orphaned_labels.length }
+            }
             const currentLabels =
-              metadata?.Label?.map((label) => label.tag) || []
+              metadata.Label?.map((label) => label.tag) || []
 
             if (currentLabels.length === 0) {
               // No labels exist, collect tracking cleanup operation
@@ -1065,7 +1084,7 @@ export async function cleanupOrphanedPlexLabels(
                 deps.logger.debug(
                   {
                     ratingKey: plex_rating_key,
-                    title: metadata?.title || 'Unknown',
+                    title: metadata.title || 'Unknown',
                     removedLabels: orphaned_labels,
                     remainingLabels: filteredLabels,
                     removedCount,

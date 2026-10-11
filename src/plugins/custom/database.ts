@@ -1,4 +1,8 @@
 import { DatabaseService } from '@services/database.service.js'
+import {
+  defaultRadarrInstance,
+  defaultSonarrInstance,
+} from '@utils/arr-default-instance.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import type { Knex } from 'knex'
@@ -95,19 +99,9 @@ export default fp(
             mergedConfig.sonarrBaseUrl
           ) {
             fastify.log.info('Creating default Sonarr instance from .env')
-            await dbService.createSonarrInstance({
-              name: 'Default Sonarr Instance',
-              baseUrl: mergedConfig.sonarrBaseUrl,
-              apiKey: mergedConfig.sonarrApiKey,
-              qualityProfile: mergedConfig.sonarrQualityProfile,
-              rootFolder: mergedConfig.sonarrRootFolder,
-              bypassIgnored: mergedConfig.sonarrBypassIgnored,
-              seasonMonitoring: mergedConfig.sonarrSeasonMonitoring,
-              monitorNewItems: mergedConfig.sonarrMonitorNewItems || 'all',
-              tags: mergedConfig.sonarrTags || [],
-              createSeasonFolders: mergedConfig.sonarrCreateSeasonFolders,
-              isDefault: true,
-            })
+            await dbService.createSonarrInstance(
+              defaultSonarrInstance(mergedConfig),
+            )
           }
 
           if (
@@ -115,16 +109,9 @@ export default fp(
             mergedConfig.radarrBaseUrl
           ) {
             fastify.log.info('Creating default Radarr instance from .env')
-            await dbService.createRadarrInstance({
-              name: 'Default Radarr Instance',
-              baseUrl: mergedConfig.radarrBaseUrl,
-              apiKey: mergedConfig.radarrApiKey,
-              qualityProfile: mergedConfig.radarrQualityProfile,
-              rootFolder: mergedConfig.radarrRootFolder,
-              bypassIgnored: mergedConfig.radarrBypassIgnored,
-              tags: mergedConfig.radarrTags || [],
-              isDefault: true,
-            })
+            await dbService.createRadarrInstance(
+              defaultRadarrInstance(mergedConfig),
+            )
           }
         } else {
           fastify.log.info('No existing config found, creating initial config')
@@ -138,33 +125,16 @@ export default fp(
 
           if (initialConfig.sonarrBaseUrl) {
             fastify.log.info('Creating default Sonarr instance from .env')
-            await dbService.createSonarrInstance({
-              name: 'Default Sonarr Instance',
-              baseUrl: initialConfig.sonarrBaseUrl,
-              apiKey: initialConfig.sonarrApiKey,
-              qualityProfile: initialConfig.sonarrQualityProfile,
-              rootFolder: initialConfig.sonarrRootFolder,
-              bypassIgnored: initialConfig.sonarrBypassIgnored,
-              seasonMonitoring: initialConfig.sonarrSeasonMonitoring,
-              monitorNewItems: initialConfig.sonarrMonitorNewItems || 'all',
-              tags: initialConfig.sonarrTags || [],
-              createSeasonFolders: initialConfig.sonarrCreateSeasonFolders,
-              isDefault: true,
-            })
+            await dbService.createSonarrInstance(
+              defaultSonarrInstance(initialConfig),
+            )
           }
 
           if (initialConfig.radarrBaseUrl) {
             fastify.log.info('Creating default Radarr instance from .env')
-            await dbService.createRadarrInstance({
-              name: 'Default Radarr Instance',
-              baseUrl: initialConfig.radarrBaseUrl,
-              apiKey: initialConfig.radarrApiKey,
-              qualityProfile: initialConfig.radarrQualityProfile,
-              rootFolder: initialConfig.radarrRootFolder,
-              bypassIgnored: initialConfig.radarrBypassIgnored,
-              tags: initialConfig.radarrTags || [],
-              isDefault: true,
-            })
+            await dbService.createRadarrInstance(
+              defaultRadarrInstance(initialConfig),
+            )
           }
         }
       } catch (error) {

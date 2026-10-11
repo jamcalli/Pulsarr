@@ -1,7 +1,3 @@
-/**
- * Global test setup and teardown
- */
-
 export async function setup(): Promise<void> {
   process.env.NODE_ENV = 'test'
   process.env.logLevel = 'silent'
@@ -16,6 +12,5 @@ export async function teardown(): Promise<void> {
     await cleanupTestDatabase()
   } catch (error) {
     console.error('Failed to cleanup test database:', error)
-    // Don't throw - allow tests to complete even if cleanup fails
   }
 }

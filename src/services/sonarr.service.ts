@@ -1,3 +1,7 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
+import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
   HealthCheckResult,
@@ -14,6 +18,7 @@ import type {
   SonarrInstance,
   SonarrPost,
   SonarrSeries,
+  SonarrTagDetail,
   WebhookNotification,
 } from '@root/types/sonarr.types.js'
 import {
@@ -118,7 +123,7 @@ export class SonarrService {
    * Format: "Pulsarr (hostname:port)" for HTTP, "Pulsarr (hostname)" for HTTPS
    * This allows multiple Pulsarr instances to create webhooks on the same Sonarr.
    */
-  private getWebhookName(): string {
+  getWebhookName(): string {
     try {
       const url = new URL(this.appBaseUrl)
       const isHttps = url.protocol === 'https:'
@@ -171,6 +176,92 @@ export class SonarrService {
     return url.toString()
   }
 
+  // Legacy hooks also match on URL so another Pulsarr instance's "Pulsarr" hook is never touched
+  private findPulsarrWebhooks(
+    hooks: WebhookNotification[],
+    webhookName: string,
+    expectedUrl: string,
+  ): { current?: WebhookNotification; legacy?: WebhookNotification } {
+    return {
+      current: hooks.find((hook) => hook.name === webhookName),
+      legacy: hooks.find(
+        (hook) =>
+          hook.name === 'Pulsarr' &&
+          hook.fields?.some((f) => f.name === 'url' && f.value === expectedUrl),
+      ),
+    }
+  }
+
+  private buildWebhookDefinition(name: string, url: string) {
+    return {
+      onGrab: false,
+      onDownload: true,
+      onUpgrade: false,
+      // ImportComplete has no upgrade gate and repeats every per-file Download, so it stays off
+      onImportComplete: false,
+      onRename: false,
+      onSeriesAdd: false,
+      onSeriesDelete: false,
+      onEpisodeFileDelete: false,
+      onEpisodeFileDeleteForUpgrade: false,
+      onHealthIssue: false,
+      includeHealthWarnings: false,
+      onHealthRestored: false,
+      onApplicationUpdate: false,
+      onManualInteractionRequired: false,
+      supportsOnGrab: true,
+      supportsOnDownload: true,
+      supportsOnUpgrade: true,
+      supportsOnImportComplete: true,
+      supportsOnRename: true,
+      supportsOnSeriesAdd: true,
+      supportsOnSeriesDelete: true,
+      supportsOnEpisodeFileDelete: true,
+      supportsOnEpisodeFileDeleteForUpgrade: true,
+      supportsOnHealthIssue: true,
+      supportsOnHealthRestored: true,
+      supportsOnApplicationUpdate: true,
+      supportsOnManualInteractionRequired: true,
+      name,
+      fields: [
+        {
+          order: 0,
+          name: 'url',
+          label: 'Webhook URL',
+          value: url,
+          type: 'url',
+          advanced: false,
+        },
+        {
+          order: 1,
+          name: 'method',
+          label: 'Method',
+          value: 1,
+          type: 'select',
+          advanced: false,
+        },
+        {
+          order: 2,
+          name: 'headers',
+          label: 'Headers',
+          value: [
+            {
+              key: 'X-Pulsarr-Secret',
+              value: this.fastify.config.webhookSecret,
+            },
+          ],
+          type: 'keyValueList',
+          advanced: true,
+        },
+      ],
+      implementationName: 'Webhook',
+      implementation: 'Webhook',
+      configContract: 'WebhookSettings',
+      infoLink: 'https://wiki.servarr.com/sonarr/supported#webhook',
+      tags: [],
+    }
+  }
+
   private async setupWebhook(): Promise<void> {
     if (this.webhookInitialized) {
       return
@@ -185,134 +276,55 @@ export class SonarrService {
         `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Sonarr: ${expectedWebhookUrl}`,
       )
 
-      const existingWebhooks =
-        await this.getFromSonarr<WebhookNotification[]>('notification')
-
-      // Find webhook with NEW format name (already migrated or fresh install)
-      const newFormatWebhook = existingWebhooks.find(
-        (hook) => hook.name === webhookName,
+      const { current, legacy } = this.findPulsarrWebhooks(
+        await this.getFromSonarr<WebhookNotification[]>('notification'),
+        webhookName,
+        expectedWebhookUrl,
       )
 
-      // Find LEGACY "Pulsarr" webhook with matching URL (needs migration)
-      const legacyWebhook = existingWebhooks.find(
-        (hook) =>
-          hook.name === 'Pulsarr' &&
-          hook.fields?.some(
-            (f) => f.name === 'url' && f.value === expectedWebhookUrl,
-          ),
+      const webhookConfig = this.buildWebhookDefinition(
+        webhookName,
+        expectedWebhookUrl,
       )
-
-      const webhookConfig = {
-        onGrab: false,
-        onDownload: true,
-        onUpgrade: false,
-        onImportComplete: true,
-        onRename: false,
-        onSeriesAdd: false,
-        onSeriesDelete: false,
-        onEpisodeFileDelete: false,
-        onEpisodeFileDeleteForUpgrade: false,
-        onHealthIssue: false,
-        includeHealthWarnings: false,
-        onHealthRestored: false,
-        onApplicationUpdate: false,
-        onManualInteractionRequired: false,
-        supportsOnGrab: true,
-        supportsOnDownload: true,
-        supportsOnUpgrade: true,
-        supportsOnImportComplete: true,
-        supportsOnRename: true,
-        supportsOnSeriesAdd: true,
-        supportsOnSeriesDelete: true,
-        supportsOnEpisodeFileDelete: true,
-        supportsOnEpisodeFileDeleteForUpgrade: true,
-        supportsOnHealthIssue: true,
-        supportsOnHealthRestored: true,
-        supportsOnApplicationUpdate: true,
-        supportsOnManualInteractionRequired: true,
-        name: webhookName,
-        fields: [
-          {
-            order: 0,
-            name: 'url',
-            label: 'Webhook URL',
-            value: expectedWebhookUrl,
-            type: 'url',
-            advanced: false,
-          },
-          {
-            order: 1,
-            name: 'method',
-            label: 'Method',
-            value: 1,
-            type: 'select',
-            advanced: false,
-          },
-          {
-            order: 2,
-            name: 'headers',
-            label: 'Headers',
-            value: [
-              {
-                key: 'X-Pulsarr-Secret',
-                value: this.fastify.config.webhookSecret,
-              },
-            ],
-            type: 'keyValueList',
-            advanced: true,
-          },
-        ],
-        implementationName: 'Webhook',
-        implementation: 'Webhook',
-        configContract: 'WebhookSettings',
-        infoLink: 'https://wiki.servarr.com/sonarr/supported#webhook',
-        tags: [],
-      }
 
       try {
-        if (newFormatWebhook) {
-          // Already using new format - delete and recreate to ensure config is current
-          this.log.debug(
-            { webhookId: newFormatWebhook.id },
-            'Recreating existing Pulsarr webhook to ensure config is current',
-          )
-          await this.deleteNotification(newFormatWebhook.id)
-          // Clean up any orphaned legacy webhook with matching URL
-          if (legacyWebhook) {
-            this.log.debug(
-              { webhookId: legacyWebhook.id },
-              'Cleaning up orphaned legacy Pulsarr webhook',
-            )
-            await this.deleteNotification(legacyWebhook.id)
+        const existing = current ?? legacy
+        if (existing) {
+          await this.putToSonarr(`notification/${existing.id}`, {
+            ...webhookConfig,
+            id: existing.id,
+          })
+          if (current && legacy) {
+            try {
+              await this.deleteNotification(legacy.id)
+            } catch (error) {
+              this.log.warn(
+                { error, webhookId: legacy.id },
+                'Failed to remove the legacy Pulsarr webhook',
+              )
+            }
           }
-          await this.postToSonarr('notification', webhookConfig)
           this.log.info(
-            `Successfully updated Pulsarr webhook "${webhookName}" for Sonarr`,
-          )
-        } else if (legacyWebhook) {
-          // Migrate from legacy "Pulsarr" to new format with unique name
-          this.log.info(
-            { webhookId: legacyWebhook.id },
-            'Migrating legacy "Pulsarr" webhook to new naming format',
-          )
-          await this.deleteNotification(legacyWebhook.id)
-          await this.postToSonarr('notification', webhookConfig)
-          this.log.info(
-            `Successfully migrated Pulsarr webhook to "${webhookName}" for Sonarr`,
+            { webhookId: existing.id },
+            `Updated Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
           )
         } else {
-          // Fresh install - create new webhook
-          const response = await this.postToSonarr(
-            'notification',
-            webhookConfig,
-          )
+          await this.postToSonarr('notification', webhookConfig)
           this.log.info(
-            `Successfully created Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
+            `Created Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
           )
-          this.log.debug({ response }, 'Webhook creation response')
         }
       } catch (createError) {
         let errorMessage = 'Failed to create webhook'
+        if (
+          createError instanceof HttpError &&
+          (createError.status === 400 || createError.status === 500)
+        ) {
+          throw new WebhookCallbackError(
+            `Failed to create webhook: ${createError.message}`,
+            { cause: createError },
+          )
+        }
         if (createError instanceof HttpError) {
           errorMessage = `Failed to create webhook: ${createError.message}`
           throw new HttpError(errorMessage, createError.status)
@@ -325,7 +337,7 @@ export class SonarrService {
       this.webhookInitialized = true
     } catch (error) {
       // Preserve HttpError instances to maintain status - don't log, let caller handle
-      if (error instanceof HttpError) {
+      if (error instanceof HttpError || error instanceof WebhookCallbackError) {
         throw error
       }
 
@@ -342,20 +354,15 @@ export class SonarrService {
     try {
       const webhookName = this.getWebhookName()
       const expectedWebhookUrl = this.constructWebhookUrl()
-      const existingWebhooks =
-        await this.getFromSonarr<WebhookNotification[]>('notification')
-
-      // Find webhook with new format name OR legacy "Pulsarr" name with matching URL
-      // URL matching for legacy webhooks prevents deleting other instances' webhooks
-      const pulsarrWebhooks = existingWebhooks.filter(
-        (hook) =>
-          hook.name === webhookName ||
-          (hook.name === 'Pulsarr' &&
-            hook.fields?.some(
-              (f) => f.name === 'url' && f.value === expectedWebhookUrl,
-            )),
+      const { current, legacy } = this.findPulsarrWebhooks(
+        await this.getFromSonarr<WebhookNotification[]>('notification'),
+        webhookName,
+        expectedWebhookUrl,
       )
 
+      const pulsarrWebhooks = [current, legacy].filter(
+        (hook) => hook !== undefined,
+      )
       for (const webhook of pulsarrWebhooks) {
         await this.deleteNotification(webhook.id)
         this.log.info(
@@ -372,37 +379,8 @@ export class SonarrService {
     await this.sonarrDelete(`notification/${notificationId}`)
   }
 
-  async initialize(instance: SonarrInstance): Promise<void> {
-    if (!instance.baseUrl || !instance.apiKey) {
-      throw new Error(
-        'Invalid Sonarr configuration: baseUrl and apiKey are required',
-      )
-    }
-
-    // Store the instance ID for caching purposes
-    this.instanceId = instance.id
-
-    // Skip webhook setup for placeholder credentials
-    if (instance.apiKey === 'placeholder') {
-      this.log.info(
-        `Basic initialization only for ${instance.name} (placeholder credentials)`,
-      )
-      this.config = {
-        sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-        sonarrApiKey: instance.apiKey,
-        sonarrQualityProfileId: instance.qualityProfile || null,
-        sonarrLanguageProfileId: 1,
-        sonarrRootFolder: instance.rootFolder || null,
-        sonarrTagIds: instance.tags,
-        sonarrSeasonMonitoring: instance.seasonMonitoring,
-        sonarrMonitorNewItems: instance.monitorNewItems || 'all',
-        sonarrSeriesType: instance.seriesType || 'standard',
-        createSeasonFolders: instance.createSeasonFolders,
-      }
-      return
-    }
-
-    this.config = {
+  private configFromInstance(instance: SonarrInstance): SonarrConfiguration {
+    return {
       sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
       sonarrApiKey: instance.apiKey,
       sonarrQualityProfileId: instance.qualityProfile || null,
@@ -416,6 +394,56 @@ export class SonarrService {
       sonarrSeriesType: instance.seriesType || 'standard',
       createSeasonFolders: instance.createSeasonFolders,
     }
+  }
+
+  /** Expects the service to be built with the candidate Pulsarr address and throws WebhookCallbackError when the arr cannot call it back. */
+  async testWebhookCallback(instance: SonarrInstance): Promise<void> {
+    this.config = this.configFromInstance(instance)
+    const webhookName = this.getWebhookName()
+    const expectedWebhookUrl = this.constructWebhookUrl()
+    const { current, legacy } = this.findPulsarrWebhooks(
+      await this.getFromSonarr<WebhookNotification[]>('notification'),
+      webhookName,
+      expectedWebhookUrl,
+    )
+    const existingId = (current ?? legacy)?.id
+    try {
+      // The arr's unique-name check skips only the posted id, so the stored hook's id must ride along
+      await this.postToSonarr('notification/test', {
+        ...this.buildWebhookDefinition(webhookName, expectedWebhookUrl),
+        ...(existingId === undefined ? {} : { id: existingId }),
+      })
+    } catch (error) {
+      if (
+        error instanceof HttpError &&
+        (error.status === 400 || error.status === 500)
+      ) {
+        throw new WebhookCallbackError(error.message, { cause: error })
+      }
+      throw error
+    }
+  }
+
+  async initialize(instance: SonarrInstance): Promise<void> {
+    if (!instance.baseUrl || !instance.apiKey) {
+      throw new Error(
+        'Invalid Sonarr configuration: baseUrl and apiKey are required',
+      )
+    }
+
+    // Store the instance ID for caching purposes
+    this.instanceId = instance.id
+
+    // Skip webhook setup for placeholder credentials
+    if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
+      this.log.info(
+        `Basic initialization only for ${instance.name} (placeholder credentials)`,
+      )
+      this.config = this.configFromInstance(instance)
+      return
+    }
+
+    this.config = this.configFromInstance(instance)
 
     this.log.debug(
       `Successfully initialized base Sonarr service for ${instance.name}`,
@@ -948,9 +976,9 @@ export class SonarrService {
     overrideTags?: string[],
     overrideSearchOnAdd?: boolean | null,
     overrideSeasonMonitoring?: string | null,
-    overrideSeriesType?: 'standard' | 'anime' | 'daily' | null,
+    overrideSeriesType?: SonarrSeriesType | null,
     overrideCreateSeasonFolders?: boolean | null,
-  ): Promise<number> {
+  ): Promise<ArrAddedSettings & { seriesId: number }> {
     const config = this.sonarrConfig
     try {
       // Check if searchOnAdd parameter or property exists and use it, otherwise default to true
@@ -987,11 +1015,12 @@ export class SonarrService {
 
       // Collection for valid tag IDs (using Set to avoid duplicates)
       const tagIdsSet = new Set<string>()
+      let existingTags: Array<{ id: number; label: string }> = []
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
         // Get all existing tags from Sonarr
-        const existingTags = await this.getTags()
+        existingTags = await this.getTags()
 
         // Process each tag from the override
         for (const tagInput of overrideTags) {
@@ -1033,7 +1062,7 @@ export class SonarrService {
           Array.isArray(config.sonarrTagIds) &&
           config.sonarrTagIds.length > 0
         ) {
-          const existingTags = await this.getTags()
+          existingTags = await this.getTags()
 
           for (const tagId of config.sonarrTagIds) {
             const stringTagId = tagId.toString()
@@ -1100,7 +1129,15 @@ export class SonarrService {
         },
         `Sent ${item.title} to Sonarr`,
       )
-      return createdSeries.id
+      const labelById = new Map(existingTags.map((t) => [t.id, t.label]))
+      return {
+        seriesId: createdSeries.id,
+        rootFolder: createdSeries.rootFolderPath ?? rootFolderPath,
+        qualityProfileId: createdSeries.qualityProfileId ?? qualityProfileId,
+        tags: (createdSeries.tags ?? tags.map(Number)).map(
+          (id) => labelById.get(id) ?? String(id),
+        ),
+      }
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },
@@ -1383,6 +1420,10 @@ export class SonarrService {
     }
 
     return this.refreshTagsCache(this.instanceId)
+  }
+
+  async getTagDetails(): Promise<SonarrTagDetail[]> {
+    return await this.getFromSonarr<SonarrTagDetail[]>('tag/detail')
   }
 
   /**

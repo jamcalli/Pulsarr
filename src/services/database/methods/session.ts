@@ -1,3 +1,4 @@
+import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -21,10 +22,7 @@ export async function createRollingMonitoredShow(
     tvdb_id?: string
     imdb_id?: string
     show_title: string
-    monitoring_type:
-      | 'pilotRolling'
-      | 'firstSeasonRolling'
-      | 'allSeasonPilotRolling'
+    monitoring_type: SonarrRollingMonitorOption
     current_monitored_season: number
     plex_user_id?: string
     plex_username?: string
@@ -617,10 +615,7 @@ export async function getInactiveRollingMonitoredShows(
 export async function updateRollingShowMonitoringType(
   this: DatabaseService,
   id: number,
-  monitoringType:
-    | 'pilotRolling'
-    | 'firstSeasonRolling'
-    | 'allSeasonPilotRolling',
+  monitoringType: SonarrRollingMonitorOption,
   currentMonitoredSeason: number,
 ): Promise<boolean> {
   try {

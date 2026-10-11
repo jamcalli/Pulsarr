@@ -1,6 +1,6 @@
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { UtilitySectionHeader } from '@/components/utility-section-header'
 
 export function AccountSettingsPageSkeleton() {
   return (

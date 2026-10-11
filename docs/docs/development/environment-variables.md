@@ -200,10 +200,10 @@ quotaSettings='{"cleanup":{"enabled":true,"retentionDays":90},"weeklyRolling":{"
 | Field | Description | Default |
 |-------|-------------|---------|
 | `cleanup.enabled` | Enable old record cleanup | `true` |
-| `cleanup.retentionDays` | Days to keep history (1-3650) | `90` |
-| `weeklyRolling.resetDays` | Days between resets (1-365) | `7` |
+| `cleanup.retentionDays` | Days to keep history (1-365), at least as long as the longest quota window while cleanup is enabled | `90` |
+| `weeklyRolling.resetDays` | Length of the rolling window in days (1-365) | `7` |
 | `monthly.resetDay` | Day of month for reset (1-31) | `1` |
-| `monthly.handleMonthEnd` | `last-day`, `skip-month`, `next-month` | `last-day` |
+| `monthly.handleMonthEnd` | For months without the reset day, `last-day` resets on the month's last day, `skip-month` skips that month and `next-month` resets on the 1st of the following month | `last-day` |
 
 ### Approval Expiration
 

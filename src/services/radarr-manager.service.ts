@@ -1,16 +1,28 @@
-import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   ConnectionTestResult,
-  MinimumAvailability,
   RadarrInstance,
   Item as RadarrItem,
-  RadarrMonitorType,
 } from '@root/types/radarr.types.js'
+import type {
+  AppliedRadarrRouting,
+  RadarrRouteSettings,
+} from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
+import {
+  PlaceholderResetError,
+  placeholderRadarrInstance,
+} from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -202,13 +214,16 @@ export class RadarrManagerService {
     userId: number,
     instanceId?: number,
     syncing = false,
-    rootFolder?: string,
-    qualityProfile?: number | string | null,
-    tags?: string[],
-    searchOnAdd?: boolean | null,
-    minimumAvailability?: MinimumAvailability,
-    monitor?: RadarrMonitorType | null,
-  ): Promise<void> {
+    settings: RadarrRouteSettings = {},
+  ): Promise<AppliedRadarrRouting> {
+    const {
+      rootFolder,
+      qualityProfile,
+      tags,
+      searchOnAdd,
+      minimumAvailability,
+      monitor,
+    } = settings
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
     if (targetInstanceId === undefined) {
@@ -233,6 +248,9 @@ export class RadarrManagerService {
       if (!instance) {
         throw new Error(`Radarr instance ${targetInstanceId} not found`)
       }
+      if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
+        throw new Error(`Radarr instance "${instance.name}" is not set up`)
+      }
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
@@ -256,7 +274,7 @@ export class RadarrManagerService {
       const targetMonitor =
         monitor ?? instance.monitor ?? ('movieOnly' as RadarrMonitorType)
 
-      await radarrService.addToRadarr(
+      const added = await radarrService.addToRadarr(
         radarrItem,
         targetRootFolder,
         targetQualityProfileId,
@@ -286,6 +304,17 @@ export class RadarrManagerService {
         },
         'Successfully routed item to Radarr',
       )
+
+      return {
+        instanceId: targetInstanceId,
+        instanceType: 'radarr',
+        qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        rootFolder: added.rootFolder,
+        tags: added.tags,
+        searchOnAdd: targetSearchOnAdd,
+        minimumAvailability: targetMinimumAvailability,
+        monitor: targetMonitor,
+      }
     } catch (error) {
       this.log.error(
         {
@@ -461,6 +490,49 @@ export class RadarrManagerService {
       this.log.warn(`No Radarr service found for instance ${id}`)
       await this.fastify.db.deleteRadarrInstance(id)
     }
+    this.fastify.contentRouter.clearRouterRulesCache()
+  }
+
+  private async resetToPlaceholder(current: RadarrInstance): Promise<void> {
+    const instances = await this.fastify.db.getAllRadarrInstances()
+    if (
+      instances.some(
+        (instance) =>
+          instance.id !== current.id &&
+          instance.apiKey !== ARR_API_KEY_PLACEHOLDER,
+      )
+    ) {
+      throw new PlaceholderResetError('Radarr')
+    }
+
+    const oldService = this.radarrServices.get(current.id)
+    if (oldService) {
+      try {
+        await oldService.removeWebhook()
+      } catch (error) {
+        this.log.error(
+          { error },
+          `Failed to remove webhook for instance ${current.id}`,
+        )
+      }
+    }
+
+    const placeholder = placeholderRadarrInstance()
+    const newId = await this.fastify.db.replaceRadarrInstance(
+      current.id,
+      placeholder,
+    )
+    this.radarrServices.delete(current.id)
+    this.fastify.contentRouter.clearRouterRulesCache()
+
+    const placeholderService = new RadarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    await placeholderService.initialize({ ...placeholder, id: newId })
+    this.radarrServices.set(newId, placeholderService)
   }
 
   async updateInstance(
@@ -470,6 +542,13 @@ export class RadarrManagerService {
     const current = await this.fastify.db.getRadarrInstance(id)
     if (current) {
       const candidate = { ...current, ...updates }
+      if (
+        current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey === ARR_API_KEY_PLACEHOLDER
+      ) {
+        await this.resetToPlaceholder(current)
+        return
+      }
       const oldService = this.radarrServices.get(id)
 
       // Only treat changes to the target server endpoint as a "server change"
@@ -486,7 +565,8 @@ export class RadarrManagerService {
 
       // API key transitions
       const isPlaceholderToReal =
-        current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
+        current.apiKey === ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey !== ARR_API_KEY_PLACEHOLDER
       const apiKeyChanged = current.apiKey !== candidate.apiKey
       const needsNewService =
         baseUrlChanged || isPlaceholderToReal || apiKeyChanged
@@ -501,8 +581,16 @@ export class RadarrManagerService {
         )
         await radarrService.initialize(candidate)
         // Only persist after successful init; cleanup on persist failure
+        let persistedId = id
         try {
-          await this.fastify.db.updateRadarrInstance(id, updates)
+          if (isPlaceholderToReal) {
+            persistedId = await this.fastify.db.replaceRadarrInstance(
+              id,
+              candidate,
+            )
+          } else {
+            await this.fastify.db.updateRadarrInstance(id, updates)
+          }
         } catch (dbErr) {
           this.log.error(
             { error: dbErr, instanceId: id },
@@ -520,10 +608,11 @@ export class RadarrManagerService {
 
         // Clean up old webhook only when server actually changed
         // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
-        const toPlaceholder =
-          current.apiKey !== 'placeholder' && candidate.apiKey === 'placeholder'
-
-        if (serverChanged && oldService && current.apiKey !== 'placeholder') {
+        if (
+          serverChanged &&
+          oldService &&
+          current.apiKey !== ARR_API_KEY_PLACEHOLDER
+        ) {
           try {
             await oldService.removeWebhook()
           } catch (cleanupErr) {
@@ -532,18 +621,13 @@ export class RadarrManagerService {
               `Failed to cleanup old webhook for previous server of instance ${id}`,
             )
           }
-        } else if (oldService && toPlaceholder) {
-          // Remove webhook when transitioning to placeholder credentials
-          try {
-            await oldService.removeWebhook()
-          } catch (cleanupErr) {
-            this.log.warn(
-              { error: cleanupErr },
-              `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
-            )
-          }
         }
-        this.radarrServices.set(id, radarrService)
+        if (persistedId !== id) {
+          this.radarrServices.delete(id)
+          radarrService.updateConfiguration({ ...candidate, id: persistedId })
+          this.fastify.contentRouter.clearRouterRulesCache()
+        }
+        this.radarrServices.set(persistedId, radarrService)
       } else {
         // Server unchanged - just update configuration, no webhook changes needed
         try {
@@ -603,60 +687,90 @@ export class RadarrManagerService {
     }
   }
 
-  async resyncWebhooks(): Promise<WebhookResyncInstanceResult[]> {
+  private async webhookResults(
+    successMessage: string,
+    run: (instance: RadarrInstance) => Promise<void>,
+  ): Promise<ArrWebhookResult[]> {
     const instances = await this.fastify.db.getAllRadarrInstances()
     const limit = pLimit(WEBHOOK_RESYNC_CONCURRENCY)
-
     return Promise.all(
       instances
-        .filter((instance) => instance.apiKey !== 'placeholder')
+        .filter((instance) => instance.apiKey !== ARR_API_KEY_PLACEHOLDER)
         .map((instance) =>
-          limit(async (): Promise<WebhookResyncInstanceResult> => {
-            // old service still holds the prior baseUrl/port, so this deletes the stale webhook name
-            const oldService = this.radarrServices.get(instance.id)
-            if (oldService) {
-              try {
-                await oldService.removeWebhook()
-              } catch (error) {
-                this.log.warn(
-                  { error, instanceId: instance.id },
-                  'Failed to remove stale webhook during resync',
-                )
-              }
-            }
-
+          limit(async (): Promise<ArrWebhookResult> => {
             try {
-              const radarrService = new RadarrService(
-                this.baseLog,
-                this.appBaseUrl,
-                this.port,
-                this.fastify,
-              )
-              await radarrService.initialize(instance)
-              this.radarrServices.set(instance.id, radarrService)
+              await run(instance)
               return {
                 instanceId: instance.id,
                 name: instance.name,
                 success: true,
-                message: 'Webhook re-registered',
+                code: null,
+                message: successMessage,
               }
             } catch (error) {
               this.log.error(
                 { error, instanceId: instance.id },
-                'Failed to re-register webhook during resync',
+                'Webhook check failed for Radarr instance',
               )
               return {
                 instanceId: instance.id,
                 name: instance.name,
                 success: false,
+                code:
+                  error instanceof WebhookCallbackError
+                    ? 'callback_failed'
+                    : 'unreachable',
                 message:
                   error instanceof Error
                     ? error.message
-                    : 'Failed to re-register webhook',
+                    : 'Webhook check failed',
               }
             }
           }),
         ),
     )
+  }
+
+  /** Tests the callback at a candidate address against every real instance without storing anything. */
+  async testWebhookAddress(
+    baseUrl: string,
+    port: number,
+  ): Promise<ArrWebhookResult[]> {
+    return this.webhookResults('Webhook callback reachable', (instance) =>
+      new RadarrService(
+        this.baseLog,
+        baseUrl,
+        port,
+        this.fastify,
+      ).testWebhookCallback(instance),
+    )
+  }
+
+  async resyncWebhooks(): Promise<ArrWebhookResult[]> {
+    return this.webhookResults('Webhook re-registered', async (instance) => {
+      const oldService = this.radarrServices.get(instance.id)
+      const radarrService = new RadarrService(
+        this.baseLog,
+        this.appBaseUrl,
+        this.port,
+        this.fastify,
+      )
+      await radarrService.initialize(instance)
+      // The arr tests the callback before storing a hook, so the old one goes only after the new one is stored
+      if (
+        oldService &&
+        oldService.getWebhookName() !== radarrService.getWebhookName()
+      ) {
+        try {
+          await oldService.removeWebhook()
+        } catch (error) {
+          this.log.warn(
+            { error, instanceId: instance.id },
+            'Failed to remove stale webhook during resync',
+          )
+        }
+      }
+      this.radarrServices.set(instance.id, radarrService)
+    })
   }
 }

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { on } from 'node:events'
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import { ProgressStreamResponseSchema } from '@schemas/progress/progress.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -47,22 +46,15 @@ const progressRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
       })
 
-      // subscribe before snapshotting so nothing emitted in between is lost
-      const live = on(progressService.getEventEmitter(), 'progress', {
-        signal: abortController.signal,
-      })[Symbol.asyncIterator]()
-
       return reply.sse(
         (async function* source() {
           try {
             yield* sseStream<ProgressEvent>({
               signal: abortController.signal,
               replay: () => progressService.getSnapshots(),
-              next: async () => {
-                const result = await live.next()
-                return result.done
-                  ? undefined
-                  : (result.value[0] as ProgressEvent)
+              live: {
+                emitter: progressService.getEventEmitter(),
+                event: 'progress',
               },
               serialize: (event) => ({
                 id: event.operationId,
