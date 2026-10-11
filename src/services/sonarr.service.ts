@@ -286,7 +286,14 @@ export class SonarrService {
             id: existing.id,
           })
           if (current && legacy) {
-            await this.deleteNotification(legacy.id)
+            try {
+              await this.deleteNotification(legacy.id)
+            } catch (error) {
+              this.log.warn(
+                { error, webhookId: legacy.id },
+                'Failed to remove the legacy Pulsarr webhook',
+              )
+            }
           }
           this.log.info(
             { webhookId: existing.id },

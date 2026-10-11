@@ -211,6 +211,7 @@ describe('SonarrService webhook setup', () => {
   function serveHooks(
     hooks: Array<{ id: number; name: string; url: string }>,
     putStatus = 202,
+    deleteStatus = 200,
   ) {
     server.use(
       http.get(NOTIFICATION_URL, () =>
@@ -244,7 +245,7 @@ describe('SonarrService webhook setup', () => {
       }),
       http.delete(`${NOTIFICATION_URL}/:id`, ({ params }) => {
         requests.push({ method: 'DELETE', id: Number(params.id) })
-        return HttpResponse.json({})
+        return HttpResponse.json({}, { status: deleteStatus })
       }),
     )
   }
@@ -306,6 +307,24 @@ describe('SonarrService webhook setup', () => {
     await initialize()
 
     expect(requests).toEqual([{ method: 'POST' }])
+  })
+
+  it('keeps the updated hook when the legacy cleanup fails', async () => {
+    serveHooks(
+      [
+        { id: 172, name: service.getWebhookName(), url: 'http://stale' },
+        { id: 50, name: 'Pulsarr', url: expectedUrl },
+      ],
+      202,
+      500,
+    )
+
+    await initialize()
+
+    expect(requests).toEqual([
+      { method: 'PUT', id: 172 },
+      { method: 'DELETE', id: 50 },
+    ])
   })
 
   it('never deletes a hook when the update is rejected', async () => {
