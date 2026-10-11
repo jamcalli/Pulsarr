@@ -207,6 +207,7 @@ describe('SonarrService webhook setup', () => {
   const NOTIFICATION_URL = 'http://sonarr.test/api/v3/notification'
   let service: SonarrService
   let requests: Array<{ method: string; id?: number }>
+  let lastDefinition: Record<string, unknown> | null
 
   function serveHooks(
     hooks: Array<{ id: number; name: string; url: string }>,
@@ -225,6 +226,7 @@ describe('SonarrService webhook setup', () => {
       ),
       http.put(`${NOTIFICATION_URL}/:id`, async ({ request, params }) => {
         const body = (await request.json()) as { id: number }
+        lastDefinition = body
         requests.push({ method: 'PUT', id: Number(params.id) })
         expect(body.id).toBe(Number(params.id))
         return putStatus === 202
@@ -264,6 +266,7 @@ describe('SonarrService webhook setup', () => {
 
   beforeEach(() => {
     requests = []
+    lastDefinition = null
     const fastify = {
       server: { listening: true },
       config: { basePath: '/', webhookSecret: 'secret' },
@@ -278,6 +281,20 @@ describe('SonarrService webhook setup', () => {
 
   const expectedUrl =
     'http://localhost:3003/v1/notifications/webhook?instanceId=sonarrtest'
+
+  it('subscribes to per-file downloads only, never upgrades or import complete', async () => {
+    serveHooks([
+      { id: 172, name: service.getWebhookName(), url: 'http://stale' },
+    ])
+
+    await initialize()
+
+    expect(lastDefinition).toMatchObject({
+      onDownload: true,
+      onUpgrade: false,
+      onImportComplete: false,
+    })
+  })
 
   it('updates the current hook by id', async () => {
     serveHooks([

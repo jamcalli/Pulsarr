@@ -215,7 +215,8 @@ export class SonarrService {
         onGrab: false,
         onDownload: true,
         onUpgrade: false,
-        onImportComplete: true,
+        // ImportComplete has no upgrade gate and repeats every per-file Download, so it stays off
+        onImportComplete: false,
         onRename: false,
         onSeriesAdd: false,
         onSeriesDelete: false,
