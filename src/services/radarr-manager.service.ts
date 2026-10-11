@@ -695,19 +695,7 @@ export class RadarrManagerService {
         .filter((instance) => instance.apiKey !== ARR_API_KEY_PLACEHOLDER)
         .map((instance) =>
           limit(async (): Promise<WebhookResyncInstanceResult> => {
-            // old service still holds the prior baseUrl/port, so this deletes the stale webhook name
             const oldService = this.radarrServices.get(instance.id)
-            if (oldService) {
-              try {
-                await oldService.removeWebhook()
-              } catch (error) {
-                this.log.warn(
-                  { error, instanceId: instance.id },
-                  'Failed to remove stale webhook during resync',
-                )
-              }
-            }
-
             try {
               const radarrService = new RadarrService(
                 this.baseLog,
@@ -716,6 +704,20 @@ export class RadarrManagerService {
                 this.fastify,
               )
               await radarrService.initialize(instance)
+              // The arr tests the callback before storing a hook, so the old one goes only after the new one is stored
+              if (
+                oldService &&
+                oldService.getWebhookName() !== radarrService.getWebhookName()
+              ) {
+                try {
+                  await oldService.removeWebhook()
+                } catch (error) {
+                  this.log.warn(
+                    { error, instanceId: instance.id },
+                    'Failed to remove stale webhook during resync',
+                  )
+                }
+              }
               this.radarrServices.set(instance.id, radarrService)
               return {
                 instanceId: instance.id,
