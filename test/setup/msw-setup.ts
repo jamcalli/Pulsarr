@@ -1,4 +1,4 @@
-import { getResponse, type RequestHandler } from 'msw'
+import { getResponse, isPassthroughResponse, type RequestHandler } from 'msw'
 import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 import { externalApiHandlers } from '../mocks/external-api-handlers.js'
 import { plexApiHandlers } from '../mocks/plex-api-handlers.js'
@@ -24,18 +24,25 @@ async function mockedFetch(
   const request = new Request(input, init)
   const signal = init?.signal ?? request.signal
   if (signal.aborted) throw abortError(signal)
+  const listener = new AbortController()
   const aborted = new Promise<never>((_, reject) => {
     signal.addEventListener('abort', () => reject(abortError(signal)), {
-      once: true,
+      signal: listener.signal,
     })
   })
-  const response = await Promise.race([
-    getResponse(handlers, request.clone()),
-    aborted,
-  ])
-  if (response === undefined) return realFetch(request)
-  if (response.type === 'error') throw new TypeError('Failed to fetch')
-  return response
+  try {
+    const response = await Promise.race([
+      getResponse(handlers, request.clone()),
+      aborted,
+    ])
+    if (response === undefined || isPassthroughResponse(response)) {
+      return realFetch(request)
+    }
+    if (response.type === 'error') throw new TypeError('Failed to fetch')
+    return response
+  } finally {
+    listener.abort()
+  }
 }
 
 export const server = {
