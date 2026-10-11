@@ -986,6 +986,64 @@ export async function cleanupRatingKeyTracking(
   return deleted
 }
 
+/** Moves every row from oldKey to newKey, folding labels into a row newKey already holds for the same content and user, and returns the rows moved. */
+export async function updateTrackingRatingKey(
+  this: DatabaseService,
+  oldKey: string,
+  newKey: string,
+): Promise<number> {
+  if (oldKey === newKey) return 0
+
+  return this.knex.transaction(async (trx) => {
+    const rows = (await trx('plex_label_tracking')
+      .whereIn('plex_rating_key', [oldKey, newKey])
+      .select('*')) as PlexLabelTrackingRow[]
+
+    // Mirrors the unique index, which treats a NULL user_id as -1 on Postgres
+    const identity = (row: PlexLabelTrackingRow) =>
+      `${row.content_guids}|${row.user_id ?? -1}|${row.content_type}`
+    const parseLabels = (row: PlexLabelTrackingRow) =>
+      this.safeJsonParse<string[]>(
+        row.labels_applied,
+        [],
+        'plex_label_tracking.labels_applied',
+      )
+    const counterparts = new Map(
+      rows
+        .filter((row) => row.plex_rating_key === newKey)
+        .map((row) => [identity(row), row]),
+    )
+
+    let moved = 0
+    for (const row of rows) {
+      if (row.plex_rating_key !== oldKey) continue
+
+      const counterpart = counterparts.get(identity(row))
+      if (counterpart) {
+        const labels = new Set(
+          [...parseLabels(counterpart), ...parseLabels(row)].map((label) =>
+            label.toLowerCase(),
+          ),
+        )
+        await trx('plex_label_tracking')
+          .where('id', counterpart.id)
+          .update({
+            labels_applied: JSON.stringify([...labels].sort()),
+            synced_at: this.timestamp,
+          })
+        await trx('plex_label_tracking').where('id', row.id).delete()
+      } else {
+        await trx('plex_label_tracking')
+          .where('id', row.id)
+          .update({ plex_rating_key: newKey, synced_at: this.timestamp })
+      }
+      moved++
+    }
+
+    return moved
+  })
+}
+
 /**
  * Determine whether a specific label is currently tracked for the given user, content GUIDs, content type, and Plex rating key.
  *
