@@ -57,7 +57,7 @@ describe('label-remover', () => {
     mockLogger = createMockLogger()
     mockPlexServer = {
       lookupMetadata: vi.fn().mockResolvedValue({ status: 'error' }),
-      searchByGuid: vi.fn().mockResolvedValue([]),
+      lookupByGuid: vi.fn().mockResolvedValue({ status: 'none' }),
       updateLabels: vi.fn(),
       removeSpecificLabels: vi.fn(),
     } as unknown as PlexServerService
@@ -484,9 +484,10 @@ describe('label-remover', () => {
         vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
           plexWatchlistItem('abc'),
         ])
-        vi.mocked(mockPlexServer.searchByGuid).mockResolvedValue([
-          labelled('99999', []).metadata,
-        ])
+        vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+          status: 'found',
+          items: [labelled('99999', []).metadata],
+        })
         vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
 
         const result = await removeAllLabels(baseDeps)
@@ -513,6 +514,25 @@ describe('label-remover', () => {
 
         expect(result).toEqual({ processed: 1, removed: 1, failed: 0 })
         expect(mockDb.cleanupRatingKeyTracking).toHaveBeenCalledWith('12345')
+        expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
+      })
+
+      it('keeps tracking when the Plex search for the content fails', async () => {
+        vi.mocked(mockPlexServer.lookupMetadata).mockResolvedValue({
+          status: 'missing',
+        })
+        vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
+          plexWatchlistItem('abc'),
+        ])
+        vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+          status: 'error',
+        })
+
+        const result = await removeAllLabels(baseDeps)
+
+        expect(result).toEqual({ processed: 1, removed: 0, failed: 1 })
+        expect(mockDb.cleanupRatingKeyTracking).not.toHaveBeenCalled()
+        expect(mockDb.updateTrackingRatingKey).not.toHaveBeenCalled()
         expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
       })
 
@@ -866,9 +886,10 @@ describe('label-remover', () => {
       vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
         plexWatchlistItem('abc'),
       ])
-      vi.mocked(mockPlexServer.searchByGuid).mockResolvedValue([
-        labelled('99999', []).metadata,
-      ])
+      vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+        status: 'found',
+        items: [labelled('99999', []).metadata],
+      })
       vi.mocked(mockDb.cleanupUserContentTracking).mockResolvedValue(1)
 
       const result = await resetLabels(

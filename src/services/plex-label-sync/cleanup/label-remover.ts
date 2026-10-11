@@ -158,6 +158,10 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
                 itemResult.removed += labels.length
                 return itemResult
               }
+              if (stale.outcome === 'unresolved') {
+                itemResult.failed += labels.length
+                return itemResult
+              }
               ratingKey = stale.ratingKey
               lookup = await deps.plexServer.lookupMetadata(ratingKey)
             }
@@ -619,6 +623,7 @@ export async function resetLabels(
 
       const stale = await resolveStaleRatingKey(deps, trackedKey, guids)
       if (stale.outcome === 'deleted') return true
+      if (stale.outcome === 'unresolved') return false
 
       const retried = await step(stale.ratingKey, [
         ...remainingUserRows(trackedKey),

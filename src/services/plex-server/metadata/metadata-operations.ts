@@ -17,6 +17,7 @@ import type {
 import { normalizeGuid } from '@utils/guid-handler.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
+import { fetchPlex } from '../plex-fetch.js'
 
 const PLEX_API_TIMEOUT = 30000 // 30 seconds
 
@@ -32,62 +33,68 @@ const PLEX_API_TIMEOUT = 30000 // 30 seconds
  * @param log - Logger instance for operation tracking
  * @returns Promise resolving to array of matching metadata items
  */
+export type GuidLookup =
+  | { status: 'found'; items: PlexMetadata[] }
+  | { status: 'none' }
+  | { status: 'error' }
+
+/** `none` is Plex answering 200 with no items, every other failure is `error`, including 401 and 404. */
+export async function lookupByGuid(
+  guid: string,
+  serverUrl: string,
+  token: string,
+  log: FastifyBaseLogger,
+): Promise<GuidLookup> {
+  if (!token) {
+    log.warn('No Plex token provided for library search')
+    return { status: 'error' }
+  }
+  // An empty guid filter makes Plex list the whole library and hang
+  if (!guid.trim()) {
+    log.warn('Refusing to search the Plex library with an empty guid')
+    return { status: 'error' }
+  }
+
+  const normalizedGuid = guid.startsWith('plex://') ? guid : normalizeGuid(guid)
+  const url = new URL('/library/all', serverUrl)
+  url.searchParams.append('guid', normalizedGuid)
+
+  try {
+    const response = await fetchPlex(url, {
+      headers: {
+        Accept: 'application/json',
+        'X-Plex-Token': token,
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+      },
+    })
+    if (!response.ok) {
+      log.error(
+        { status: response.status, guid: normalizedGuid },
+        `Plex library search failed: ${response.status} ${response.statusText}`,
+      )
+      return { status: 'error' }
+    }
+    const data = (await response.json()) as PlexSearchResponse
+    const items = data.MediaContainer.Metadata ?? []
+    log.debug(
+      { normalizedGuid, count: items.length },
+      `Found ${items.length} results for GUID: ${normalizedGuid}`,
+    )
+    return items.length > 0 ? { status: 'found', items } : { status: 'none' }
+  } catch (error) {
+    log.error({ error }, `Error searching library by GUID "${guid}":`)
+    return { status: 'error' }
+  }
+}
+
 export async function searchByGuid(
   guid: string,
   serverUrl: string,
   token: string,
   log: FastifyBaseLogger,
 ): Promise<PlexMetadata[]> {
-  try {
-    if (!token) {
-      log.warn('No Plex token provided for library search')
-      return []
-    }
-
-    // Don't normalize plex:// GUIDs as they're internal Plex identifiers
-    // Only normalize external provider GUIDs (tmdb://, tvdb://, etc.)
-    const normalizedGuid = guid.startsWith('plex://')
-      ? guid
-      : normalizeGuid(guid)
-
-    const url = new URL('/library/all', serverUrl)
-    url.searchParams.append('guid', normalizedGuid)
-
-    log.debug(`Searching Plex library for GUID: ${normalizedGuid}`)
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        Accept: 'application/json',
-        'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-      },
-      signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-    })
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to search library by GUID: ${response.status} ${response.statusText}`,
-      )
-    }
-
-    const data = (await response.json()) as PlexSearchResponse
-    const results = data.MediaContainer.Metadata || []
-
-    log.debug(
-      {
-        normalizedGuid,
-        originalGuid: guid,
-        hasMetadata: !!data.MediaContainer.Metadata,
-        containerSize: data.MediaContainer.size,
-        fullUrl: url.toString(),
-      },
-      `Found ${results.length} results for GUID: ${normalizedGuid}`,
-    )
-    return results
-  } catch (error) {
-    log.error({ error }, `Error searching library by GUID "${guid}":`)
-    return []
-  }
+  const lookup = await lookupByGuid(guid, serverUrl, token, log)
+  return lookup.status === 'found' ? lookup.items : []
 }
 
 /**

@@ -35,7 +35,7 @@ describe('stale-rating-key', () => {
 
   beforeEach(() => {
     mockPlexServer = {
-      searchByGuid: vi.fn().mockResolvedValue([]),
+      lookupByGuid: vi.fn().mockResolvedValue({ status: 'none' }),
     } as unknown as PlexServerService
 
     mockDb = {
@@ -55,12 +55,15 @@ describe('stale-rating-key', () => {
     vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
       watchlistItem('abc', 'movie'),
     ])
-    vi.mocked(mockPlexServer.searchByGuid).mockResolvedValue([plexItem('999')])
+    vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+      status: 'found',
+      items: [plexItem('999')],
+    })
 
     const result = await resolveStaleRatingKey(deps, '123', ['tmdb:1'])
 
     expect(result).toEqual({ outcome: 'relocated', ratingKey: '999' })
-    expect(mockPlexServer.searchByGuid).toHaveBeenCalledWith('plex://movie/abc')
+    expect(mockPlexServer.lookupByGuid).toHaveBeenCalledWith('plex://movie/abc')
     expect(mockDb.updateTrackingRatingKey).toHaveBeenCalledWith('123', '999')
     expect(mockDb.cleanupRatingKeyTracking).not.toHaveBeenCalled()
   })
@@ -69,7 +72,10 @@ describe('stale-rating-key', () => {
     vi.mocked(mockDb.getWatchlistItemsByGuid).mockImplementation(
       async (guid) => (guid === 'tvdb:2' ? [watchlistItem('def', 'show')] : []),
     )
-    vi.mocked(mockPlexServer.searchByGuid).mockResolvedValue([plexItem('555')])
+    vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+      status: 'found',
+      items: [plexItem('555')],
+    })
 
     const result = await resolveStaleRatingKey(deps, '123', [
       'tmdb:1',
@@ -78,7 +84,7 @@ describe('stale-rating-key', () => {
 
     expect(result).toEqual({ outcome: 'relocated', ratingKey: '555' })
     expect(mockDb.getWatchlistItemsByGuid).toHaveBeenCalledTimes(2)
-    expect(mockPlexServer.searchByGuid).toHaveBeenCalledWith('plex://show/def')
+    expect(mockPlexServer.lookupByGuid).toHaveBeenCalledWith('plex://show/def')
   })
 
   it('deletes tracking when no guid resolves to a Plex item', async () => {
@@ -93,6 +99,21 @@ describe('stale-rating-key', () => {
 
     expect(result).toEqual({ outcome: 'deleted' })
     expect(mockDb.cleanupRatingKeyTracking).toHaveBeenCalledWith('123')
+    expect(mockDb.updateTrackingRatingKey).not.toHaveBeenCalled()
+  })
+
+  it('keeps tracking when the Plex search itself fails', async () => {
+    vi.mocked(mockDb.getWatchlistItemsByGuid).mockResolvedValue([
+      watchlistItem('abc', 'movie'),
+    ])
+    vi.mocked(mockPlexServer.lookupByGuid).mockResolvedValue({
+      status: 'error',
+    })
+
+    const result = await resolveStaleRatingKey(deps, '123', ['tmdb:1'])
+
+    expect(result).toEqual({ outcome: 'unresolved' })
+    expect(mockDb.cleanupRatingKeyTracking).not.toHaveBeenCalled()
     expect(mockDb.updateTrackingRatingKey).not.toHaveBeenCalled()
   })
 })

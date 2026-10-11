@@ -39,10 +39,12 @@ import {
   updateLabels,
 } from './plex-server/labels/label-operations.js'
 import {
+  type GuidLookup,
   getMetadataChildren,
   getShowMetadata,
+  lookupByGuid,
   searchByGuid,
-} from './plex-server/metadata/index.js'
+} from './plex-server/metadata/metadata-operations.js'
 import {
   createUserPlaylist,
   findUserPlaylistByTitle,
@@ -1385,6 +1387,12 @@ export class PlexServerService {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return searchByGuid(guid, serverUrl, token, this.log)
+  }
+
+  async lookupByGuid(guid: string): Promise<GuidLookup> {
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return lookupByGuid(guid, serverUrl, token, this.log)
   }
 
   async getMetadataChildren(

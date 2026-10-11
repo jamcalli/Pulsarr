@@ -12,22 +12,34 @@ export interface StaleRatingKeyDeps {
 export type StaleRatingKeyResolution =
   | { outcome: 'relocated'; ratingKey: string }
   | { outcome: 'deleted' }
+  | { outcome: 'unresolved' }
 
-/** Call only once Plex reported the key missing. Moves its tracking to the content's current key, or deletes it for every user. */
+/** Call only once Plex reported the key missing. Moves its tracking to the content's current key, deletes it for every user when Plex has no copy, or leaves it when the search itself failed. */
 export async function resolveStaleRatingKey(
   deps: StaleRatingKeyDeps,
   ratingKey: string,
   contentGuids: string[],
 ): Promise<StaleRatingKeyResolution> {
-  const currentKey = await findCurrentRatingKey(deps, ratingKey, contentGuids)
+  const current = await findCurrentRatingKey(deps, ratingKey, contentGuids)
 
-  if (currentKey) {
-    const moved = await deps.db.updateTrackingRatingKey(ratingKey, currentKey)
-    deps.logger.info(
-      { ratingKey, currentKey, moved },
-      `Rating key ${ratingKey} is gone from Plex, moved its tracking to ${currentKey}`,
+  if (current.status === 'error') {
+    deps.logger.warn(
+      { ratingKey },
+      `Rating key ${ratingKey} is gone from Plex but the search for its content failed, keeping its tracking`,
     )
-    return { outcome: 'relocated', ratingKey: currentKey }
+    return { outcome: 'unresolved' }
+  }
+
+  if (current.status === 'found') {
+    const moved = await deps.db.updateTrackingRatingKey(
+      ratingKey,
+      current.ratingKey,
+    )
+    deps.logger.info(
+      { ratingKey, currentKey: current.ratingKey, moved },
+      `Rating key ${ratingKey} is gone from Plex, moved its tracking to ${current.ratingKey}`,
+    )
+    return { outcome: 'relocated', ratingKey: current.ratingKey }
   }
 
   const deleted = await deps.db.cleanupRatingKeyTracking(ratingKey)
@@ -38,11 +50,16 @@ export async function resolveStaleRatingKey(
   return { outcome: 'deleted' }
 }
 
+type CurrentRatingKey =
+  | { status: 'found'; ratingKey: string }
+  | { status: 'none' }
+  | { status: 'error' }
+
 async function findCurrentRatingKey(
   deps: StaleRatingKeyDeps,
   staleKey: string,
   contentGuids: string[],
-): Promise<string | null> {
+): Promise<CurrentRatingKey> {
   for (const guid of contentGuids) {
     // Tracking holds external ids, but Plex is only searchable by the plex:// guid the watchlist item carries
     const watchlistItems = await deps.db.getWatchlistItemsByGuid(guid)
@@ -55,11 +72,13 @@ async function findCurrentRatingKey(
     )
 
     for (const plexGuid of plexGuids) {
-      const plexItems = await deps.plexServer.searchByGuid(plexGuid)
-      const match = plexItems.find((item) => item.ratingKey !== staleKey)
-      if (match) return match.ratingKey
+      const lookup = await deps.plexServer.lookupByGuid(plexGuid)
+      if (lookup.status === 'error') return { status: 'error' }
+      if (lookup.status === 'none') continue
+      const match = lookup.items.find((item) => item.ratingKey !== staleKey)
+      if (match) return { status: 'found', ratingKey: match.ratingKey }
     }
   }
 
-  return null
+  return { status: 'none' }
 }
