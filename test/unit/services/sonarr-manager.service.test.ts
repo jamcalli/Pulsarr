@@ -4,7 +4,15 @@ import type { DatabaseService } from '@services/database.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyInstance } from 'fastify'
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
 
 const INSTANCE: SonarrInstance = {
@@ -260,5 +268,90 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
       'is not set up',
     )
     expect(addToSonarr).not.toHaveBeenCalled()
+  })
+})
+
+describe('SonarrManagerService.resyncWebhooks', () => {
+  let manager: SonarrManagerService
+  let fastify: Partial<FastifyInstance>
+  let initialize: Mock<SonarrService['initialize']>
+
+  function seedOldService(appBaseUrl: string) {
+    const oldService = new SonarrService(
+      createMockLogger(),
+      appBaseUrl,
+      3003,
+      fastify as FastifyInstance,
+    )
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    manager['sonarrServices'].set(1, oldService)
+    return vi.spyOn(oldService, 'removeWebhook').mockResolvedValue()
+  }
+
+  beforeEach(() => {
+    const db: Partial<DatabaseService> = {
+      getAllSonarrInstances: vi.fn<DatabaseService['getAllSonarrInstances']>(
+        async () => [INSTANCE],
+      ),
+    }
+    fastify = {
+      db: db as DatabaseService,
+      config: {
+        baseUrl: 'http://localhost',
+        port: 3003,
+      } as FastifyInstance['config'],
+    }
+    manager = new SonarrManagerService(
+      createMockLogger(),
+      fastify as FastifyInstance,
+    )
+    initialize = vi
+      .spyOn(SonarrService.prototype, 'initialize')
+      .mockResolvedValue()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('removes the old hook only after the new one is stored', async () => {
+    const removeWebhook = seedOldService('http://old-host')
+
+    const results = await manager.resyncWebhooks()
+
+    expect(results).toEqual([expect.objectContaining({ success: true })])
+    expect(removeWebhook).toHaveBeenCalledOnce()
+    expect(initialize.mock.invocationCallOrder[0]).toBeLessThan(
+      removeWebhook.mock.invocationCallOrder[0],
+    )
+  })
+
+  it('keeps the old hook and service when the new one is rejected', async () => {
+    const removeWebhook = seedOldService('http://old-host')
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    const oldService = manager['sonarrServices'].get(1)
+    initialize.mockRejectedValue(
+      new Error('Failed to create webhook: Unable to send test message'),
+    )
+
+    const results = await manager.resyncWebhooks()
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        success: false,
+        message: 'Failed to create webhook: Unable to send test message',
+      }),
+    ])
+    expect(removeWebhook).not.toHaveBeenCalled()
+    expect(manager.getSonarrService(1)).toBe(oldService)
+  })
+
+  it('never removes the hook when the name is unchanged', async () => {
+    const removeWebhook = seedOldService('http://localhost')
+
+    const results = await manager.resyncWebhooks()
+
+    expect(results).toEqual([expect.objectContaining({ success: true })])
+    expect(removeWebhook).not.toHaveBeenCalled()
   })
 })

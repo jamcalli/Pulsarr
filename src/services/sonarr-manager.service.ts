@@ -778,19 +778,7 @@ export class SonarrManagerService {
         .filter((instance) => instance.apiKey !== ARR_API_KEY_PLACEHOLDER)
         .map((instance) =>
           limit(async (): Promise<WebhookResyncInstanceResult> => {
-            // old service still holds the prior baseUrl/port, so this deletes the stale webhook name
             const oldService = this.sonarrServices.get(instance.id)
-            if (oldService) {
-              try {
-                await oldService.removeWebhook()
-              } catch (error) {
-                this.log.warn(
-                  { error, instanceId: instance.id },
-                  'Failed to remove stale webhook during resync',
-                )
-              }
-            }
-
             try {
               const sonarrService = new SonarrService(
                 this.baseLog,
@@ -799,6 +787,20 @@ export class SonarrManagerService {
                 this.fastify,
               )
               await sonarrService.initialize(instance)
+              // The arr tests the callback before storing a hook, so the old one goes only after the new one is stored
+              if (
+                oldService &&
+                oldService.getWebhookName() !== sonarrService.getWebhookName()
+              ) {
+                try {
+                  await oldService.removeWebhook()
+                } catch (error) {
+                  this.log.warn(
+                    { error, instanceId: instance.id },
+                    'Failed to remove stale webhook during resync',
+                  )
+                }
+              }
               this.sonarrServices.set(instance.id, sonarrService)
               return {
                 instanceId: instance.id,

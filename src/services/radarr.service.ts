@@ -123,7 +123,7 @@ export class RadarrService {
    * Format: "Pulsarr (hostname:port)" for HTTP, "Pulsarr (hostname)" for HTTPS
    * This allows multiple Pulsarr instances to create webhooks on the same Radarr.
    */
-  private getWebhookName(): string {
+  getWebhookName(): string {
     try {
       const url = new URL(this.appBaseUrl)
       const isHttps = url.protocol === 'https:'
@@ -176,6 +176,22 @@ export class RadarrService {
     return url.toString()
   }
 
+  // Legacy hooks also match on URL so another Pulsarr instance's "Pulsarr" hook is never touched
+  private findPulsarrWebhooks(
+    hooks: WebhookNotification[],
+    webhookName: string,
+    expectedUrl: string,
+  ): { current?: WebhookNotification; legacy?: WebhookNotification } {
+    return {
+      current: hooks.find((hook) => hook.name === webhookName),
+      legacy: hooks.find(
+        (hook) =>
+          hook.name === 'Pulsarr' &&
+          hook.fields?.some((f) => f.name === 'url' && f.value === expectedUrl),
+      ),
+    }
+  }
+
   private async setupWebhook(): Promise<void> {
     if (this.webhookInitialized) {
       return
@@ -190,21 +206,10 @@ export class RadarrService {
         `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Radarr: ${expectedWebhookUrl}`,
       )
 
-      const existingWebhooks =
-        await this.getFromRadarr<WebhookNotification[]>('notification')
-
-      // Find webhook with NEW format name (already migrated or fresh install)
-      const newFormatWebhook = existingWebhooks.find(
-        (hook) => hook.name === webhookName,
-      )
-
-      // Find LEGACY "Pulsarr" webhook with matching URL (needs migration)
-      const legacyWebhook = existingWebhooks.find(
-        (hook) =>
-          hook.name === 'Pulsarr' &&
-          hook.fields?.some(
-            (f) => f.name === 'url' && f.value === expectedWebhookUrl,
-          ),
+      const { current, legacy } = this.findPulsarrWebhooks(
+        await this.getFromRadarr<WebhookNotification[]>('notification'),
+        webhookName,
+        expectedWebhookUrl,
       )
 
       const webhookConfig = {
@@ -312,48 +317,23 @@ export class RadarrService {
       }
 
       try {
-        if (newFormatWebhook) {
-          // Already using new format - delete and recreate to ensure config is current
-          this.log.debug(
-            { webhookId: newFormatWebhook.id },
-            'Recreating existing Pulsarr webhook to ensure config is current',
-          )
-          await this.deleteNotification(newFormatWebhook.id)
-          // Clean up any orphaned legacy webhook with matching URL
-          if (legacyWebhook) {
-            this.log.debug(
-              { webhookId: legacyWebhook.id },
-              'Cleaning up orphaned legacy Pulsarr webhook',
-            )
-            await this.deleteNotification(legacyWebhook.id)
+        const existing = current ?? legacy
+        if (existing) {
+          await this.putToRadarr(`notification/${existing.id}`, {
+            ...webhookConfig,
+            id: existing.id,
+          })
+          if (current && legacy) {
+            await this.deleteNotification(legacy.id)
           }
-          await this.postToRadarr('notification', webhookConfig)
           this.log.info(
-            `Successfully updated Pulsarr webhook "${webhookName}" for Radarr`,
-          )
-        } else if (legacyWebhook) {
-          // Migrate from legacy "Pulsarr" to new format with unique name
-          this.log.info(
-            { webhookId: legacyWebhook.id },
-            'Migrating legacy "Pulsarr" webhook to new naming format',
-          )
-          await this.deleteNotification(legacyWebhook.id)
-          await this.postToRadarr('notification', webhookConfig)
-          this.log.info(
-            `Successfully migrated Pulsarr webhook to "${webhookName}" for Radarr`,
+            { webhookId: existing.id },
+            `Updated Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
           )
         } else {
-          // Fresh install - create new webhook
-          const response = await this.postToRadarr(
-            'notification',
-            webhookConfig,
-          )
+          await this.postToRadarr('notification', webhookConfig)
           this.log.info(
-            `Successfully created Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
-          )
-          this.log.debug(
-            { response: response },
-            'Webhook creation response for Radarr:',
+            `Created Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
           )
         }
       } catch (createError) {
@@ -388,20 +368,15 @@ export class RadarrService {
     try {
       const webhookName = this.getWebhookName()
       const expectedWebhookUrl = this.constructWebhookUrl()
-      const existingWebhooks =
-        await this.getFromRadarr<WebhookNotification[]>('notification')
-
-      // Find webhook with new format name OR legacy "Pulsarr" name with matching URL
-      // URL matching for legacy webhooks prevents deleting other instances' webhooks
-      const pulsarrWebhooks = existingWebhooks.filter(
-        (hook) =>
-          hook.name === webhookName ||
-          (hook.name === 'Pulsarr' &&
-            hook.fields?.some(
-              (f) => f.name === 'url' && f.value === expectedWebhookUrl,
-            )),
+      const { current, legacy } = this.findPulsarrWebhooks(
+        await this.getFromRadarr<WebhookNotification[]>('notification'),
+        webhookName,
+        expectedWebhookUrl,
       )
 
+      const pulsarrWebhooks = [current, legacy].filter(
+        (hook) => hook !== undefined,
+      )
       for (const webhook of pulsarrWebhooks) {
         await this.deleteNotification(webhook.id)
         this.log.info(

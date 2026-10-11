@@ -202,3 +202,122 @@ describe('SonarrService.addToSonarr', () => {
     })
   })
 })
+
+describe('SonarrService webhook setup', () => {
+  const NOTIFICATION_URL = 'http://sonarr.test/api/v3/notification'
+  let service: SonarrService
+  let requests: Array<{ method: string; id?: number }>
+
+  function serveHooks(
+    hooks: Array<{ id: number; name: string; url: string }>,
+    putStatus = 202,
+  ) {
+    server.use(
+      http.get(NOTIFICATION_URL, () =>
+        HttpResponse.json(
+          hooks.map((hook) => ({
+            id: hook.id,
+            name: hook.name,
+            fields: [{ name: 'url', value: hook.url }],
+          })),
+        ),
+      ),
+      http.put(`${NOTIFICATION_URL}/:id`, async ({ request, params }) => {
+        const body = (await request.json()) as { id: number }
+        requests.push({ method: 'PUT', id: Number(params.id) })
+        expect(body.id).toBe(Number(params.id))
+        return putStatus === 202
+          ? HttpResponse.json(body.id, { status: 202 })
+          : HttpResponse.json(
+              [
+                {
+                  propertyName: 'Url',
+                  errorMessage: 'Unable to send test message',
+                },
+              ],
+              { status: putStatus },
+            )
+      }),
+      http.post(NOTIFICATION_URL, () => {
+        requests.push({ method: 'POST' })
+        return HttpResponse.json({ id: 9 }, { status: 201 })
+      }),
+      http.delete(`${NOTIFICATION_URL}/:id`, ({ params }) => {
+        requests.push({ method: 'DELETE', id: Number(params.id) })
+        return HttpResponse.json({})
+      }),
+    )
+  }
+
+  async function initialize() {
+    vi.useFakeTimers({ toFake: ['setTimeout'] })
+    try {
+      await Promise.all([
+        service.initialize({ ...INSTANCE, apiKey: 'real-key' }),
+        vi.advanceTimersByTimeAsync(1000),
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  }
+
+  beforeEach(() => {
+    requests = []
+    const fastify = {
+      server: { listening: true },
+      config: { basePath: '/', webhookSecret: 'secret' },
+    }
+    service = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify as unknown as FastifyInstance,
+    )
+  })
+
+  const expectedUrl =
+    'http://localhost:3003/v1/notifications/webhook?instanceId=sonarrtest'
+
+  it('updates the current hook by id', async () => {
+    serveHooks([
+      { id: 172, name: service.getWebhookName(), url: 'http://stale' },
+      { id: 50, name: 'Pulsarr', url: expectedUrl },
+    ])
+
+    await initialize()
+
+    expect(requests).toEqual([
+      { method: 'PUT', id: 172 },
+      { method: 'DELETE', id: 50 },
+    ])
+  })
+
+  it('migrates a legacy hook by updating it in place', async () => {
+    serveHooks([{ id: 50, name: 'Pulsarr', url: expectedUrl }])
+
+    await initialize()
+
+    expect(requests).toEqual([{ method: 'PUT', id: 50 }])
+  })
+
+  it('creates a hook when none exists', async () => {
+    serveHooks([{ id: 50, name: 'Pulsarr', url: 'http://other-pulsarr' }])
+
+    await initialize()
+
+    expect(requests).toEqual([{ method: 'POST' }])
+  })
+
+  it('never deletes a hook when the update is rejected', async () => {
+    serveHooks(
+      [
+        { id: 172, name: service.getWebhookName(), url: 'http://stale' },
+        { id: 50, name: 'Pulsarr', url: expectedUrl },
+      ],
+      400,
+    )
+
+    await expect(initialize()).rejects.toThrow('Unable to send test message')
+    expect(requests).toEqual([{ method: 'PUT', id: 172 }])
+  })
+})
