@@ -23,7 +23,7 @@ interface ViewToggleProps {
 
 export function ViewToggle({ value, onValueChange }: ViewToggleProps) {
   return (
-    <div className="ml-auto hidden md:block">
+    <div className="ml-auto">
       <SegmentedControl
         aria-label="View"
         value={value}
