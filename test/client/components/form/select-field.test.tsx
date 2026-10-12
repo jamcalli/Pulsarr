@@ -21,7 +21,7 @@ function ModeForm({
     ...(live
       ? {
           validationLogic: liveValidation,
-          validators: { onMount: schema, onDynamic: schema },
+          validators: { onDynamic: schema },
         }
       : { validators: { onSubmit: schema } }),
     onSubmit: ({ value }) => onSubmit?.(value.mode),
