@@ -182,12 +182,6 @@ const sidebar: SidebarsConfig = {
           label: "Update configuration",
           className: "api-method put",
         },
-        {
-          type: "doc",
-          id: "api/resync-arr-webhooks",
-          label: "Resync arr webhooks",
-          className: "api-method post",
-        },
       ],
     },
     {
@@ -1035,6 +1029,12 @@ const sidebar: SidebarsConfig = {
           id: "api/remove-all-user-tags",
           label: "Remove all user tags",
           className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/get-user-tag-status",
+          label: "Get user tag status",
+          className: "api-method get",
         },
         {
           type: "doc",
