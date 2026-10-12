@@ -1,8 +1,6 @@
-import {
-  ErrorSchema,
-  QualityProfilesResponseSchema,
-  QuerystringSchema,
-} from '@schemas/sonarr/get-quality-profiles.schema.js'
+import { ArrInstanceQuerySchema } from '@schemas/common/arr-instance-query.schema.js'
+import { ArrQualityProfilesResponseSchema } from '@schemas/common/arr-options.schema.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -14,9 +12,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get Sonarr quality profiles',
         operationId: 'getSonarrQualityProfiles',
         description: 'Retrieve quality profiles from a Sonarr instance',
-        querystring: QuerystringSchema,
+        querystring: ArrInstanceQuerySchema,
         response: {
-          200: QualityProfilesResponseSchema,
+          200: ArrQualityProfilesResponseSchema,
           400: ErrorSchema,
           404: ErrorSchema,
           500: ErrorSchema,

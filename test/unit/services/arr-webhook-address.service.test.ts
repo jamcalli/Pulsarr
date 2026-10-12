@@ -49,19 +49,19 @@ describe('arr webhook address', () => {
     fastify = partial as FastifyInstance
   })
 
-  it('tests both arrs at the candidate address and strips the api prefix', async () => {
+  it('tests both arrs at the candidate address', async () => {
     radarr.testWebhookAddress.mockResolvedValue([
       row({
         success: false,
         code: 'callback_failed',
-        message: 'Radarr API error: Unable to send test message',
+        message: 'Unable to send test message',
       }),
     ])
     sonarr.testWebhookAddress.mockResolvedValue([
       row({
         success: false,
         code: 'unreachable',
-        message: 'Sonarr API error: Bad Gateway',
+        message: 'Bad Gateway',
       }),
     ])
 
@@ -82,7 +82,7 @@ describe('arr webhook address', () => {
     expect(results.sonarr[0].message).toBe('Bad Gateway')
   })
 
-  it('registers both arrs and strips the api prefix', async () => {
+  it('registers both arrs', async () => {
     radarr.resyncWebhooks.mockResolvedValue([
       row({ message: 'Webhook re-registered' }),
     ])
@@ -90,7 +90,7 @@ describe('arr webhook address', () => {
       row({
         success: false,
         code: 'unreachable',
-        message: 'Sonarr API error: Bad Gateway',
+        message: 'Bad Gateway',
       }),
     ])
 

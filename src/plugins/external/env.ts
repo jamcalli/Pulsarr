@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
+import { DEFAULT_PULSARR_PORT } from '@root/schemas/config/config.schema.js'
 import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
@@ -75,11 +76,11 @@ const schema = {
     },
     port: {
       type: 'number',
-      default: 3003,
+      default: DEFAULT_PULSARR_PORT,
     },
     listenPort: {
       type: 'number',
-      default: 3003,
+      default: DEFAULT_PULSARR_PORT,
     },
     dbType: {
       type: 'string',

@@ -1,8 +1,8 @@
 import {
-  CreateTagBodySchema,
-  CreateTagResponseSchema,
-  ErrorSchema,
-} from '@schemas/sonarr/create-tag.schema.js'
+  ArrCreateTagBodySchema,
+  ArrCreateTagResponseSchema,
+} from '@schemas/common/arr-create-tag.schema.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -14,9 +14,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Create Sonarr tag',
         operationId: 'createSonarrTag',
         description: 'Create a new tag in a Sonarr instance',
-        body: CreateTagBodySchema,
+        body: ArrCreateTagBodySchema,
         response: {
-          200: CreateTagResponseSchema,
+          200: ArrCreateTagResponseSchema,
           400: ErrorSchema,
           404: ErrorSchema,
           500: ErrorSchema,

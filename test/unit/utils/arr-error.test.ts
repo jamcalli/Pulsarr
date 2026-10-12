@@ -1,4 +1,10 @@
-import { parseArrErrorMessage } from '@utils/arr-error.js'
+import { HttpError } from '@root/types/arr-connection.types.js'
+import {
+  arrResponseError,
+  isWebhookCallbackFailure,
+  parseArrErrorMessage,
+  parseArrValidationFailures,
+} from '@utils/arr-error.js'
 import { describe, expect, it } from 'vitest'
 
 describe('arr-error', () => {
@@ -261,6 +267,139 @@ describe('arr-error', () => {
 
         expect(result).toBe('Tag with this label already exists')
       })
+    })
+  })
+
+  describe('parseArrValidationFailures', () => {
+    it('returns the failures from an array body', () => {
+      const failures = [{ propertyName: 'Url', errorMessage: 'refused' }]
+
+      expect(parseArrValidationFailures(failures)).toEqual(failures)
+    })
+
+    it('returns an empty list for a message object', () => {
+      expect(parseArrValidationFailures({ message: 'refused' })).toEqual([])
+    })
+
+    it('returns an empty list for null', () => {
+      expect(parseArrValidationFailures(null)).toEqual([])
+    })
+
+    it('drops items that are not objects and non-string fields', () => {
+      expect(
+        parseArrValidationFailures([
+          'refused',
+          null,
+          { propertyName: 'Url', errorMessage: 42, severity: 'Error' },
+        ]),
+      ).toEqual([{ propertyName: 'Url', severity: 'Error' }])
+    })
+  })
+
+  describe('arrResponseError', () => {
+    it('returns the auth message on a 401 without reading the body', async () => {
+      const response = new Response('{"message":"nope"}', {
+        status: 401,
+        statusText: 'Unauthorized',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error).toBeInstanceOf(HttpError)
+      expect(error.message).toBe('Authentication failed. Check API key.')
+      expect(error.status).toBe(401)
+      expect(response.bodyUsed).toBe(false)
+    })
+
+    it('returns the not found message on a 404', async () => {
+      const response = new Response(null, {
+        status: 404,
+        statusText: 'Not Found',
+      })
+
+      const error = await arrResponseError(response, 'Tag not found: 3')
+
+      expect(error.message).toBe('Tag not found: 3')
+      expect(error.status).toBe(404)
+    })
+
+    it('returns the joined messages and failures on a 400 array body', async () => {
+      const failures = [
+        { propertyName: 'Name', errorMessage: 'Name should be unique' },
+        { propertyName: 'Url', errorMessage: 'Unable to send test message' },
+      ]
+      const response = new Response(JSON.stringify(failures), {
+        status: 400,
+        statusText: 'Bad Request',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error.message).toBe(
+        'Name should be unique; Unable to send test message',
+      )
+      expect(error.status).toBe(400)
+      expect(error.failures).toEqual(failures)
+    })
+
+    it('returns the message and no failures on a 500 message body', async () => {
+      const response = new Response(JSON.stringify({ message: 'Boom' }), {
+        status: 500,
+        statusText: 'Internal Server Error',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error.message).toBe('Boom')
+      expect(error.status).toBe(500)
+      expect(error.failures).toEqual([])
+    })
+
+    it('falls back to statusText on a non-JSON body', async () => {
+      const response = new Response('<html>gateway</html>', {
+        status: 502,
+        statusText: 'Bad Gateway',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error.message).toBe('Bad Gateway')
+      expect(error.status).toBe(502)
+      expect(error.failures).toEqual([])
+    })
+  })
+
+  describe('isWebhookCallbackFailure', () => {
+    it('is true for a 500 with any body', () => {
+      expect(isWebhookCallbackFailure(new HttpError('refused', 500))).toBe(true)
+    })
+
+    it('is true for a 400 with a Url failure', () => {
+      const error = new HttpError('unable to post', 400, [
+        { propertyName: 'Url', errorMessage: 'Unable to send test message' },
+      ])
+
+      expect(isWebhookCallbackFailure(error)).toBe(true)
+    })
+
+    it('is false for a 400 with a Name failure', () => {
+      const error = new HttpError('not unique', 400, [
+        { propertyName: 'Name', errorMessage: 'Should be unique' },
+      ])
+
+      expect(isWebhookCallbackFailure(error)).toBe(false)
+    })
+
+    it('is false for a 400 with no failures', () => {
+      expect(isWebhookCallbackFailure(new HttpError('bad', 400, []))).toBe(
+        false,
+      )
+    })
+
+    it('is false for a 401', () => {
+      expect(
+        isWebhookCallbackFailure(new HttpError('Authentication failed', 401)),
+      ).toBe(false)
     })
   })
 })

@@ -1,8 +1,6 @@
-import {
-  ErrorSchema,
-  QuerystringSchema,
-} from '@schemas/sonarr/get-quality-profiles.schema.js'
-import { TagsResponseSchema } from '@schemas/sonarr/get-tags.schema.js'
+import { ArrInstanceQuerySchema } from '@schemas/common/arr-instance-query.schema.js'
+import { ArrTagsResponseSchema } from '@schemas/common/arr-options.schema.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -14,9 +12,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get Sonarr tags',
         operationId: 'getSonarrTags',
         description: 'Retrieve tags from a Sonarr instance',
-        querystring: QuerystringSchema,
+        querystring: ArrInstanceQuerySchema,
         response: {
-          200: TagsResponseSchema,
+          200: ArrTagsResponseSchema,
           400: ErrorSchema,
           404: ErrorSchema,
           500: ErrorSchema,

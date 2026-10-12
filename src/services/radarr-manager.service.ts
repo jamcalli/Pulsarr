@@ -1,4 +1,7 @@
-import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import {
+  ARR_API_KEY_PLACEHOLDER,
+  placeholderRadarrInstance,
+} from '@root/schemas/common/arr-placeholder.js'
 import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
 import type {
   MinimumAvailability,
@@ -19,10 +22,7 @@ import type {
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
-import {
-  PlaceholderResetError,
-  placeholderRadarrInstance,
-} from '@utils/arr-default-instance.js'
+import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -679,12 +679,26 @@ export class RadarrManagerService {
       this.log.error({ error }, 'Error testing Radarr connection')
       return {
         success: false,
+        code: 'unreachable',
         message:
           error instanceof Error
             ? error.message
             : 'Unknown error testing connection',
       }
     }
+  }
+
+  async probe(
+    baseUrl: string,
+    apiKey: string,
+  ): ReturnType<RadarrService['probe']> {
+    const tempService = new RadarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    return tempService.probe(baseUrl, apiKey)
   }
 
   private async webhookResults(

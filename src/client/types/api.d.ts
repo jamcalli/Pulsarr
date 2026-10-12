@@ -1316,6 +1316,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/radarr/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Radarr routing options
+         * @description Read quality profiles, root folders and tags from a Radarr instance with unsaved credentials
+         */
+        post: operations["probeRadarr"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/radarr/quality-profiles": {
         parameters: {
             query?: never;
@@ -1731,6 +1751,26 @@ export interface paths {
          * @description Delete a Sonarr instance configuration
          */
         delete: operations["deleteSonarrInstance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sonarr/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Sonarr routing options
+         * @description Read quality profiles, root folders and tags from a Sonarr instance with unsaved credentials
+         */
+        post: operations["probeSonarr"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3296,6 +3336,99 @@ export interface components {
          * @enum {string}
          */
         ApprovalTrigger: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+        /**
+         * @description Why a Radarr or Sonarr connection check failed
+         * @enum {string}
+         */
+        ArrConnectionFailureCode: "unreachable" | "auth" | "invalid" | "webhook_callback_failed";
+        /** @description Tag to create on a saved Radarr or Sonarr instance */
+        ArrCreateTagBody: {
+            instanceId: number;
+            label: string;
+        };
+        /** @description The tag as Radarr or Sonarr stored it */
+        ArrCreateTagResponse: {
+            id: number;
+            label: string;
+        };
+        /** @description Instance save rejected because the arr could not reach the Pulsarr webhook */
+        ArrInstanceConflict: {
+            /** @description HTTP status code */
+            statusCode: number;
+            /** @description HTTP status text */
+            error: string;
+            /** @description Error detail, replaced with a generic string for 5xx */
+            message: string;
+            code: components["schemas"]["ArrConnectionFailureCode"];
+        };
+        /** @description The Radarr or Sonarr instance a lookup ran against */
+        ArrInstanceInfo: {
+            id: number;
+            name: string;
+            baseUrl: string;
+        };
+        /** @description Quality profiles, root folders and tags read from a Radarr or Sonarr server with unsaved credentials */
+        ArrProbeResponse: {
+            /** @constant */
+            success: true;
+            qualityProfiles: ({
+                id: number;
+                name: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            rootFolders: ({
+                id: number;
+                path: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            tags: components["schemas"]["ArrTag"][];
+        };
+        /** @description Quality profiles read from a saved Radarr or Sonarr instance */
+        ArrQualityProfilesResponse: {
+            success: boolean;
+            instance: components["schemas"]["ArrInstanceInfo"];
+            qualityProfiles: ({
+                id: number;
+                name: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+        };
+        /** @description Root folders read from a saved Radarr or Sonarr instance */
+        ArrRootFoldersResponse: {
+            success: boolean;
+            instance: components["schemas"]["ArrInstanceInfo"];
+            rootFolders: ({
+                id: number;
+                path: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+        };
+        /** @description A Radarr or Sonarr tag */
+        ArrTag: {
+            id: number;
+            label: string;
+        };
+        /** @description Tags read from a saved Radarr or Sonarr instance */
+        ArrTagsResponse: {
+            success: boolean;
+            instance: components["schemas"]["ArrInstanceInfo"];
+            tags: components["schemas"]["ArrTag"][];
+        };
+        /** @description Radarr or Sonarr address and API key to check before saving */
+        ArrTestConnectionBody: {
+            baseUrl: string;
+            apiKey: string;
+        };
+        /** @description Radarr or Sonarr connection test result, code is null on success */
+        ArrTestConnectionResponse: {
+            success: boolean;
+            message: string;
+            code: components["schemas"]["ArrConnectionFailureCode"] | null;
+        };
         /** @description Outcome of testing or registering the Pulsarr webhook in one arr instance */
         ArrWebhookResult: {
             instanceId: number;
@@ -3870,6 +4003,75 @@ export interface components {
          * @enum {string}
          */
         QuotaType: "daily" | "weekly_rolling" | "monthly";
+        /** @description A configured Radarr instance */
+        RadarrInstance: {
+            name: string;
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored: boolean;
+            /** @default true */
+            searchOnAdd: boolean;
+            /** @default released */
+            minimumAvailability: components["schemas"]["RadarrMinimumAvailability"];
+            /** @default movieOnly */
+            monitor: components["schemas"]["RadarrMonitor"];
+            /** @default [] */
+            tags: string[];
+            /** @default false */
+            isDefault: boolean;
+            syncedInstances?: number[];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch: boolean;
+            id: number;
+        };
+        /** @description Id of the newly created Radarr instance */
+        RadarrInstanceCreateResponse: {
+            id: number;
+        };
+        /** @description All configured Radarr instances */
+        RadarrInstanceListResponse: components["schemas"]["RadarrInstance"][];
+        /** @description A new Radarr instance, omitted settings take their defaults */
+        RadarrInstancePayload: {
+            name: string;
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored?: boolean;
+            /** @default true */
+            searchOnAdd?: boolean;
+            /** @default released */
+            minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+            /** @default movieOnly */
+            monitor?: components["schemas"]["RadarrMonitor"];
+            /** @default [] */
+            tags?: string[];
+            /** @default false */
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
+        /** @description Partial Radarr instance update, omitted fields keep their stored value */
+        RadarrInstanceUpdatePayload: {
+            name?: string;
+            baseUrl?: string;
+            apiKey?: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            bypassIgnored?: boolean;
+            searchOnAdd?: boolean;
+            minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+            monitor?: components["schemas"]["RadarrMonitor"];
+            tags?: string[];
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
         /**
          * @description Release stage at which Radarr considers a movie available
          * @enum {string}
@@ -4211,7 +4413,6 @@ export interface components {
         /** @description A configured Sonarr instance */
         SonarrInstance: {
             name: string;
-            /** Format: uri */
             baseUrl: string;
             apiKey: string;
             qualityProfile?: string | number | null;
@@ -4246,7 +4447,6 @@ export interface components {
         /** @description A new Sonarr instance, omitted settings take their defaults */
         SonarrInstancePayload: {
             name: string;
-            /** Format: uri */
             baseUrl: string;
             apiKey: string;
             qualityProfile?: string | number | null;
@@ -4274,7 +4474,6 @@ export interface components {
         /** @description Partial Sonarr instance update, omitted fields keep their stored value */
         SonarrInstanceUpdatePayload: {
             name?: string;
-            /** Format: uri */
             baseUrl?: string;
             apiKey?: string;
             qualityProfile?: string | number | null;
@@ -8654,12 +8853,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Tag to create on a saved Radarr or Sonarr instance */
         requestBody: {
             content: {
-                "application/json": {
-                    instanceId: number;
-                    label: string;
-                };
+                "application/json": components["schemas"]["ArrCreateTagBody"];
             };
         };
         responses: {
@@ -8669,10 +8866,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                        label: string;
-                    };
+                    "application/json": components["schemas"]["ArrCreateTagResponse"];
                 };
             };
             /** @description Default Response */
@@ -8728,30 +8922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        name: string;
-                        /** Format: uri */
-                        baseUrl: string;
-                        apiKey: string;
-                        qualityProfile?: string | number | null;
-                        rootFolder?: string | null;
-                        /** @default false */
-                        bypassIgnored: boolean;
-                        /** @default true */
-                        searchOnAdd: boolean;
-                        /** @default released */
-                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"];
-                        /** @default movieOnly */
-                        monitor: components["schemas"]["RadarrMonitor"];
-                        /** @default [] */
-                        tags: string[];
-                        /** @default false */
-                        isDefault: boolean;
-                        syncedInstances?: number[];
-                        /** @default false */
-                        skipDefaultRoutingWhenNoMatch: boolean;
-                        id: number;
-                    }[];
+                    "application/json": components["schemas"]["RadarrInstanceListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -8772,31 +8943,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description A new Radarr instance, omitted settings take their defaults */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** Format: uri */
-                    baseUrl: string;
-                    apiKey: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    /** @default false */
-                    bypassIgnored?: boolean;
-                    /** @default true */
-                    searchOnAdd?: boolean;
-                    /** @default released */
-                    minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
-                    /** @default movieOnly */
-                    monitor?: components["schemas"]["RadarrMonitor"];
-                    /** @default [] */
-                    tags?: string[];
-                    /** @default false */
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    /** @default false */
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["RadarrInstancePayload"];
             };
         };
         responses: {
@@ -8806,9 +8956,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                    };
+                    "application/json": components["schemas"]["RadarrInstanceCreateResponse"];
                 };
             };
             /** @description Default Response */
@@ -8827,6 +8975,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -8858,24 +9015,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Partial Radarr instance update, omitted fields keep their stored value */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    /** Format: uri */
-                    baseUrl?: string;
-                    apiKey?: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    bypassIgnored?: boolean;
-                    searchOnAdd?: boolean;
-                    minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
-                    monitor?: components["schemas"]["RadarrMonitor"];
-                    tags?: string[];
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["RadarrInstanceUpdatePayload"];
             };
         };
         responses: {
@@ -8911,6 +9054,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -8980,6 +9132,58 @@ export interface operations {
             };
         };
     };
+    probeRadarr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Radarr or Sonarr address and API key to check before saving */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrProbeResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getRadarrQualityProfiles: {
         parameters: {
             query: {
@@ -8997,20 +9201,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        qualityProfiles: ({
-                            id: number;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrQualityProfilesResponse"];
                 };
             };
             /** @description Default Response */
@@ -9068,20 +9259,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        rootFolders: ({
-                            id: number;
-                            path: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrRootFoldersResponse"];
                 };
             };
             /** @description Default Response */
@@ -9139,18 +9317,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        tags: {
-                            id: number;
-                            label: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["ArrTagsResponse"];
                 };
             };
             /** @description Default Response */
@@ -9198,12 +9365,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Radarr or Sonarr address and API key to check before saving */
         requestBody: {
             content: {
-                "application/json": {
-                    baseUrl: string;
-                    apiKey: string;
-                };
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
             };
         };
         responses: {
@@ -9213,10 +9378,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ArrTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -10207,12 +10369,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Tag to create on a saved Radarr or Sonarr instance */
         requestBody: {
             content: {
-                "application/json": {
-                    instanceId: number;
-                    label: string;
-                };
+                "application/json": components["schemas"]["ArrCreateTagBody"];
             };
         };
         responses: {
@@ -10222,10 +10382,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                        label: string;
-                    };
+                    "application/json": components["schemas"]["ArrCreateTagResponse"];
                 };
             };
             /** @description Default Response */
@@ -10336,6 +10493,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
+                };
+            };
             /** @description Rate limit exceeded */
             429: {
                 headers: {
@@ -10406,6 +10572,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
+                };
+            };
             /** @description Rate limit exceeded */
             429: {
                 headers: {
@@ -10473,6 +10648,58 @@ export interface operations {
             };
         };
     };
+    probeSonarr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Radarr or Sonarr address and API key to check before saving */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrProbeResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getSonarrQualityProfiles: {
         parameters: {
             query: {
@@ -10490,20 +10717,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        qualityProfiles: ({
-                            id: number;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrQualityProfilesResponse"];
                 };
             };
             /** @description Default Response */
@@ -10561,20 +10775,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        rootFolders: ({
-                            id: number;
-                            path: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrRootFoldersResponse"];
                 };
             };
             /** @description Default Response */
@@ -10632,18 +10833,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        tags: {
-                            id: number;
-                            label: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["ArrTagsResponse"];
                 };
             };
             /** @description Default Response */
@@ -10691,12 +10881,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Radarr or Sonarr address and API key to check before saving */
         requestBody: {
             content: {
-                "application/json": {
-                    baseUrl: string;
-                    apiKey: string;
-                };
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
             };
         };
         responses: {
@@ -10706,10 +10894,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ArrTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */

@@ -72,6 +72,8 @@ const LogLevelEnum = z.enum([
   'silent',
 ])
 
+export const PULSARR_PORT_RANGE = { min: 1, max: 65535 } as const
+export const DEFAULT_PULSARR_PORT = 3003
 export const APPROVAL_EXPIRATION_HOURS = { min: 1, max: 8760 } as const
 export const EXPIRED_APPROVAL_CLEANUP_DAYS = { min: 1, max: 365 } as const
 export const QUOTA_USAGE_RETENTION_DAYS = { min: 1, max: 365 } as const
@@ -318,7 +320,12 @@ export const ConfigFullSchema = z
     updated_at: z.string(), // ISO timestamp from database
     // System Config (from database)
     baseUrl: z.string().optional(),
-    port: z.number().int().min(1).max(65535).optional(),
+    port: z
+      .number()
+      .int()
+      .min(PULSARR_PORT_RANGE.min)
+      .max(PULSARR_PORT_RANGE.max)
+      .optional(),
     dbPath: z.string().optional(),
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean(),
@@ -461,7 +468,12 @@ export const ConfigFullSchema = z
 export const ConfigUpdateSchema = z
   .object({
     baseUrl: HttpUrlOptionalSchema,
-    port: z.number().int().min(1).max(65535).optional(),
+    port: z
+      .number()
+      .int()
+      .min(PULSARR_PORT_RANGE.min)
+      .max(PULSARR_PORT_RANGE.max)
+      .optional(),
     dbPath: z.string().optional(),
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean().optional(),

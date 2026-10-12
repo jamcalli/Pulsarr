@@ -1,3 +1,4 @@
+import { ArrInstanceConflictSchema } from '@schemas/common/arr-test-connection.schema.js'
 import {
   ErrorSchema,
   SonarrInstanceCreateResponseSchema,
@@ -54,6 +55,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           201: SonarrInstanceCreateResponseSchema,
           400: ErrorSchema,
           401: ErrorSchema,
+          409: ArrInstanceConflictSchema,
           500: ErrorSchema,
         },
         tags: ['Sonarr'],
@@ -95,6 +97,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           400: ErrorSchema,
           401: ErrorSchema,
           404: ErrorSchema,
+          409: ArrInstanceConflictSchema,
           500: ErrorSchema,
         },
       },
