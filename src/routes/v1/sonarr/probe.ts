@@ -1,9 +1,7 @@
-import { ProbeResponseSchema } from '@schemas/sonarr/probe.schema.js'
-import {
-  ErrorSchema,
-  TestConnectionBodySchema,
-} from '@schemas/sonarr/test-connection.schema.js'
-import { HttpError } from '@services/sonarr.service.js'
+import { HttpError } from '@root/types/arr-connection.types.js'
+import { ArrProbeResponseSchema } from '@schemas/common/arr-probe.schema.js'
+import { ArrTestConnectionBodySchema } from '@schemas/common/arr-test-connection.schema.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { logRouteError, stripArrApiErrorPrefix } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -16,9 +14,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'probeSonarr',
         description:
           'Read quality profiles, root folders and tags from a Sonarr instance with unsaved credentials',
-        body: TestConnectionBodySchema,
+        body: ArrTestConnectionBodySchema,
         response: {
-          200: ProbeResponseSchema,
+          200: ArrProbeResponseSchema,
           400: ErrorSchema,
           500: ErrorSchema,
         },

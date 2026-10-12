@@ -1,8 +1,8 @@
 import {
-  ErrorSchema,
-  TestConnectionBodySchema,
-  TestConnectionResponseSchema,
-} from '@schemas/sonarr/test-connection.schema.js'
+  ArrTestConnectionBodySchema,
+  ArrTestConnectionResponseSchema,
+} from '@schemas/common/arr-test-connection.schema.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { logRouteError, stripArrApiErrorPrefix } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -15,9 +15,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'testSonarrConnection',
         description:
           'Test connectivity to a Sonarr instance with provided credentials',
-        body: TestConnectionBodySchema,
+        body: ArrTestConnectionBodySchema,
         response: {
-          200: TestConnectionResponseSchema,
+          200: ArrTestConnectionResponseSchema,
           500: ErrorSchema,
         },
         tags: ['Sonarr'],

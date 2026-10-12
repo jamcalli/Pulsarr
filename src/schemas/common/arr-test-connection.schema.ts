@@ -1,5 +1,16 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { ArrBaseUrlSchema } from '@root/schemas/common/url.schema.js'
 import { z } from 'zod'
+
+export const ArrTestConnectionBodySchema = z
+  .object({
+    baseUrl: ArrBaseUrlSchema,
+    apiKey: z.string().trim().min(1, { error: 'API key is required' }),
+  })
+  .meta({
+    id: 'ArrTestConnectionBody',
+    description: 'Radarr or Sonarr address and API key to check before saving',
+  })
 
 export const ArrConnectionFailureCodeSchema = z
   .enum(['unreachable', 'auth', 'invalid', 'webhook_callback_failed'])
@@ -30,7 +41,4 @@ export const ArrInstanceConflictSchema = ErrorSchema.extend({
 
 export type ArrConnectionFailureCode = z.infer<
   typeof ArrConnectionFailureCodeSchema
->
-export type ArrTestConnectionResponse = z.infer<
-  typeof ArrTestConnectionResponseSchema
 >
