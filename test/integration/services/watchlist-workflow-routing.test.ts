@@ -1,9 +1,12 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
+import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import {
   type ApprovedRecords,
   indexApprovedRecords,
   routeMovie,
+  routeShow,
 } from '@services/watchlist-workflow/routing/content-router.js'
 import { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { ContentRoutingDeps } from '@services/watchlist-workflow/types.js'
@@ -29,7 +32,22 @@ import {
 import {
   appliedRadarr,
   echoAppliedRadarr,
+  echoAppliedSonarr,
 } from '../../mocks/applied-routing.js'
+
+const routingDeps = (fastify: FastifyInstance): ContentRoutingDeps => ({
+  logger: fastify.log,
+  config: fastify.config,
+  db: fastify.db,
+  fastify,
+  state: new WorkflowState(),
+  contentRouter: fastify.contentRouter,
+  sonarrManager: fastify.sonarrManager,
+  radarrManager: fastify.radarrManager,
+  plexServerService: fastify.plexServerService,
+  plexService: fastify.plexWatchlist,
+  notifications: fastify.notifications,
+})
 
 describe('routeMovie with an approval record as the truth', () => {
   let fastify: FastifyInstance
@@ -193,19 +211,7 @@ describe('routeMovie with an approval record as the truth', () => {
       routeItemToRadarr as unknown as RadarrManagerService['routeItemToRadarr']
     fastify.notifications.sendWatchlistCapReached = vi.fn()
 
-    deps = {
-      logger: fastify.log,
-      config: fastify.config,
-      db: fastify.db,
-      fastify,
-      state: new WorkflowState(),
-      contentRouter: fastify.contentRouter,
-      sonarrManager: fastify.sonarrManager,
-      radarrManager: fastify.radarrManager,
-      plexServerService: fastify.plexServerService,
-      plexService: fastify.plexWatchlist,
-      notifications: fastify.notifications,
-    }
+    deps = routingDeps(fastify)
   })
 
   afterEach(() => {
@@ -293,7 +299,7 @@ describe('routeMovie with an approval record as the truth', () => {
     expect(routeItemToRadarr).not.toHaveBeenCalled()
   })
 
-  it('completes a record even when the item is on Plex', async () => {
+  it('skips a record completion when the item is on Plex', async () => {
     await seedRecord(radarrRouting(1, '/stored-1'), [
       radarrRouting(2, '/stored-2'),
     ])
@@ -303,12 +309,29 @@ describe('routeMovie with an approval record as the truth', () => {
     ).mockResolvedValue(true)
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
-    expect(await route(presentIn(1))).toEqual({ routed: true })
-    expect(routedInstanceIds()).toEqual([2])
+    expect(await route(presentIn(1))).toEqual({
+      routed: false,
+      skippedReason: 'exists-on-plex',
+    })
+    expect(routedInstanceIds()).toEqual([])
     expect(await route(presentIn())).toEqual({
       routed: false,
       skippedReason: 'exists-on-plex',
     })
+  })
+
+  it('completes a record when Plex does not have it', async () => {
+    await seedRecord(radarrRouting(1, '/stored-1'), [
+      radarrRouting(2, '/stored-2'),
+    ])
+    vi.spyOn(
+      fastify.plexServerService,
+      'checkExistenceAcrossServers',
+    ).mockResolvedValue(false)
+    deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
+
+    expect(await route(presentIn(1))).toEqual({ routed: true })
+    expect(routedInstanceIds()).toEqual([2])
   })
 
   it('completes a record destination outside the current targets when every target has it', async () => {
@@ -376,5 +399,157 @@ describe('routeMovie with an approval record as the truth', () => {
 
     expect(result).toEqual({ routed: true })
     expect(routedInstanceIds()).toEqual([1, 2])
+  })
+})
+
+describe('routeShow with an approval record as the truth', () => {
+  let fastify: FastifyInstance
+  let deps: ContentRoutingDeps
+  let routeItemToSonarr: ReturnType<typeof vi.fn>
+
+  const guids = ['tvdb:99999', 'tmdb:88888']
+  const key = 'partial-presence-show-key'
+
+  const sonarrItem: SonarrItem = {
+    title: 'Test Comedy Show',
+    type: 'show',
+    guids,
+    genres: ['Comedy'],
+  }
+
+  const presentIn = (...instanceIds: number[]): SonarrItem[] =>
+    instanceIds.map((sonarr_instance_id) => ({
+      ...sonarrItem,
+      sonarr_instance_id,
+    }))
+
+  const route = (existingSeries: SonarrItem[]) =>
+    routeShow(
+      {
+        tempItem: { title: sonarrItem.title, key, type: 'show', guids },
+        userId: 1,
+        userName: undefined,
+        sonarrItem,
+        existingSeries,
+        primaryUser: null,
+      },
+      deps,
+    )
+
+  const routedInstanceIds = () =>
+    routeItemToSonarr.mock.calls.map((call) => call[3])
+
+  const sonarrRouting = (instanceId: number, rootFolder: string) => ({
+    instanceId,
+    instanceType: 'sonarr',
+    qualityProfile: 7,
+    rootFolder,
+    tags: [],
+    searchOnAdd: false,
+    seasonMonitoring: 'all',
+    seriesType: 'standard',
+  })
+
+  const seedRecord = (
+    proposedRouting: Record<string, unknown>,
+    additionalRouting?: Record<string, unknown>[],
+  ) =>
+    getTestDatabase()('approval_requests').insert({
+      user_id: 1,
+      content_type: 'show',
+      content_title: sonarrItem.title,
+      content_key: key,
+      content_guids: JSON.stringify(guids),
+      router_decision: JSON.stringify({
+        action: 'require_approval',
+        approval: {
+          reason: 'seeded',
+          triggeredBy: 'router_rule',
+          data: {},
+          proposedRouting,
+          additionalRouting,
+        },
+      }),
+      triggered_by: 'router_rule',
+      status: 'approved',
+    })
+
+  const insertSonarrInstance = (id: number) =>
+    getTestDatabase()('sonarr_instances').insert({
+      id,
+      name: `Sonarr ${id}`,
+      base_url: `http://test-sonarr-${id}:8989`,
+      api_key: `test_sonarr_api_key_${id}`,
+      quality_profile: '1',
+      root_folder: `/data/shows${id}`,
+      is_default: false,
+      is_enabled: true,
+      tags: JSON.stringify([]),
+      synced_instances: JSON.stringify([]),
+    })
+
+  beforeAll(async () => {
+    fastify = await build()
+    await fastify.ready()
+  })
+
+  afterAll(async () => {
+    await fastify.close()
+  })
+
+  beforeEach(async () => {
+    const knex = getTestDatabase()
+    await resetDatabase()
+    await seedConfig(knex)
+    await seedUsers(knex)
+    await seedInstances(knex)
+    await insertSonarrInstance(2)
+    fastify.contentRouter.clearRouterRulesCache()
+
+    routeItemToSonarr = vi.fn(echoAppliedSonarr())
+    fastify.sonarrManager.routeItemToSonarr =
+      routeItemToSonarr as unknown as SonarrManagerService['routeItemToSonarr']
+    fastify.notifications.sendWatchlistCapReached = vi.fn()
+
+    deps = routingDeps(fastify)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('skips a record completion when the item is on Plex', async () => {
+    await seedRecord(sonarrRouting(1, '/stored-1'), [
+      sonarrRouting(2, '/stored-2'),
+    ])
+    vi.spyOn(
+      fastify.plexServerService,
+      'checkExistenceAcrossServers',
+    ).mockResolvedValue(true)
+    deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
+
+    expect(await route(presentIn(1))).toEqual({
+      routed: false,
+      skippedReason: 'exists-on-plex',
+    })
+    expect(routedInstanceIds()).toEqual([])
+    expect(await route(presentIn())).toEqual({
+      routed: false,
+      skippedReason: 'exists-on-plex',
+    })
+  })
+
+  it('completes a record when Plex does not have it', async () => {
+    await seedRecord(sonarrRouting(1, '/stored-1'), [
+      sonarrRouting(2, '/stored-2'),
+    ])
+    vi.spyOn(
+      fastify.plexServerService,
+      'checkExistenceAcrossServers',
+    ).mockResolvedValue(false)
+    deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
+
+    expect(await route(presentIn(1))).toEqual({ routed: true })
+    expect(routedInstanceIds()).toEqual([2])
   })
 })
