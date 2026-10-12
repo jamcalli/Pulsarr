@@ -1,4 +1,9 @@
-import { parseArrErrorMessage } from '@utils/arr-error.js'
+import { HttpError } from '@root/types/arr-connection.types.js'
+import {
+  isWebhookCallbackFailure,
+  parseArrErrorMessage,
+  parseArrValidationFailures,
+} from '@utils/arr-error.js'
 import { describe, expect, it } from 'vitest'
 
 describe('arr-error', () => {
@@ -261,6 +266,66 @@ describe('arr-error', () => {
 
         expect(result).toBe('Tag with this label already exists')
       })
+    })
+  })
+
+  describe('parseArrValidationFailures', () => {
+    it('returns the failures from an array body', () => {
+      const failures = [{ propertyName: 'Url', errorMessage: 'refused' }]
+
+      expect(parseArrValidationFailures(failures)).toEqual(failures)
+    })
+
+    it('returns an empty list for a message object', () => {
+      expect(parseArrValidationFailures({ message: 'refused' })).toEqual([])
+    })
+
+    it('returns an empty list for null', () => {
+      expect(parseArrValidationFailures(null)).toEqual([])
+    })
+
+    it('drops items that are not objects and non-string fields', () => {
+      expect(
+        parseArrValidationFailures([
+          'refused',
+          null,
+          { propertyName: 'Url', errorMessage: 42, severity: 'Error' },
+        ]),
+      ).toEqual([{ propertyName: 'Url', severity: 'Error' }])
+    })
+  })
+
+  describe('isWebhookCallbackFailure', () => {
+    it('is true for a 500 with any body', () => {
+      expect(isWebhookCallbackFailure(new HttpError('refused', 500))).toBe(true)
+    })
+
+    it('is true for a 400 with a Url failure', () => {
+      const error = new HttpError('unable to post', 400, [
+        { propertyName: 'Url', errorMessage: 'Unable to send test message' },
+      ])
+
+      expect(isWebhookCallbackFailure(error)).toBe(true)
+    })
+
+    it('is false for a 400 with a Name failure', () => {
+      const error = new HttpError('not unique', 400, [
+        { propertyName: 'Name', errorMessage: 'Should be unique' },
+      ])
+
+      expect(isWebhookCallbackFailure(error)).toBe(false)
+    })
+
+    it('is false for a 400 with no failures', () => {
+      expect(isWebhookCallbackFailure(new HttpError('bad', 400, []))).toBe(
+        false,
+      )
+    })
+
+    it('is false for a 401', () => {
+      expect(
+        isWebhookCallbackFailure(new HttpError('Authentication failed', 401)),
+      ).toBe(false)
     })
   })
 })

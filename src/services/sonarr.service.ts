@@ -1,6 +1,10 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
-import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
+import {
+  type ArrValidationFailure,
+  HttpError,
+  WebhookCallbackError,
+} from '@root/types/arr-connection.types.js'
 import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
@@ -25,7 +29,11 @@ import {
   isSonarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
-import { parseArrErrorMessage } from '@utils/arr-error.js'
+import {
+  isWebhookCallbackFailure,
+  parseArrErrorMessage,
+  parseArrValidationFailures,
+} from '@utils/arr-error.js'
 import {
   extractSonarrId,
   extractTvdbId,
@@ -43,25 +51,6 @@ const SONARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
 // Bulk tag update concurrency limit
 const BULK_TAG_CONCURRENCY = 4
-
-// Custom error class to include HTTP status
-export class HttpError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
-    super(message)
-    this.name = 'HttpError'
-
-    // Fix prototype chain – important after TS → JS down-emit
-    Object.setPrototypeOf(this, new.target.prototype)
-
-    // Preserve stack trace when available
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, HttpError)
-    }
-  }
-}
 
 export class SonarrService {
   private config: SonarrConfiguration | null = null
@@ -320,7 +309,7 @@ export class SonarrService {
         let errorMessage = 'Failed to create webhook'
         if (
           createError instanceof HttpError &&
-          (createError.status === 400 || createError.status === 500)
+          isWebhookCallbackFailure(createError)
         ) {
           throw new WebhookCallbackError(
             `Failed to create webhook: ${createError.message}`,
@@ -519,8 +508,11 @@ export class SonarrService {
 
     if (!response.ok) {
       let errorDetail = response.statusText
+      let failures: ArrValidationFailure[] = []
       try {
-        const parsed = parseArrErrorMessage(await response.json())
+        const errorData = await response.json()
+        failures = parseArrValidationFailures(errorData)
+        const parsed = parseArrErrorMessage(errorData)
         if (parsed) {
           errorDetail = parsed
         }
@@ -529,7 +521,11 @@ export class SonarrService {
       if (response.status === 401) {
         throw new HttpError('Authentication failed. Check API key.', 401)
       }
-      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
+      throw new HttpError(
+        `Sonarr API error: ${errorDetail}`,
+        response.status,
+        failures,
+      )
     }
 
     return response.json() as Promise<T>
@@ -657,12 +653,20 @@ export class SonarrService {
         }
       }
 
+      const webhookName = this.getWebhookName()
+      const webhookUrl = this.constructWebhookUrl(safeBaseUrl)
+      let existingWebhook: WebhookNotification | undefined
       try {
-        await this.requestWithCredentials<WebhookNotification[]>(
-          safeBaseUrl,
-          apiKey,
-          'notification',
+        const { current, legacy } = this.findPulsarrWebhooks(
+          await this.requestWithCredentials<WebhookNotification[]>(
+            safeBaseUrl,
+            apiKey,
+            'notification',
+          ),
+          webhookName,
+          webhookUrl,
         )
+        existingWebhook = current ?? legacy
       } catch (_notificationError) {
         return {
           success: false,
@@ -679,17 +683,19 @@ export class SonarrService {
           'notification/test',
           {
             method: 'POST',
-            body: this.buildWebhookDefinition(
-              this.getWebhookName(),
-              this.constructWebhookUrl(safeBaseUrl),
-            ),
+            body: {
+              ...this.buildWebhookDefinition(webhookName, webhookUrl),
+              ...(existingWebhook && { id: existingWebhook.id }),
+            },
           },
         )
       } catch (callbackError) {
         if (callbackError instanceof HttpError) {
           return {
             success: false,
-            code: 'webhook_callback_failed',
+            code: isWebhookCallbackFailure(callbackError)
+              ? 'webhook_callback_failed'
+              : 'invalid',
             message: callbackError.message,
           }
         }
@@ -1316,8 +1322,10 @@ export class SonarrService {
 
       if (!response.ok) {
         let errorDetail = response.statusText
+        let failures: ArrValidationFailure[] = []
         try {
           const errorData = await response.json()
+          failures = parseArrValidationFailures(errorData)
           const parsed = parseArrErrorMessage(errorData)
           if (parsed) {
             errorDetail = parsed
@@ -1330,7 +1338,11 @@ export class SonarrService {
         if (response.status === 404) {
           throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
         }
-        throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
+        throw new HttpError(
+          `Sonarr API error: ${errorDetail}`,
+          response.status,
+          failures,
+        )
       }
 
       // Some endpoints return 201 with empty body
@@ -1738,8 +1750,10 @@ export class SonarrService {
 
     if (!response.ok) {
       let errorDetail = response.statusText
+      let failures: ArrValidationFailure[] = []
       try {
         const errorData = await response.json()
+        failures = parseArrValidationFailures(errorData)
         const parsed = parseArrErrorMessage(errorData)
         if (parsed) {
           errorDetail = parsed
@@ -1752,7 +1766,11 @@ export class SonarrService {
       if (response.status === 404) {
         throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
       }
-      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
+      throw new HttpError(
+        `Sonarr API error: ${errorDetail}`,
+        response.status,
+        failures,
+      )
     }
 
     // Some endpoints return 204 No Content

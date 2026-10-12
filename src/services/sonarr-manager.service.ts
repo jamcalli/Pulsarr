@@ -1,4 +1,7 @@
-import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import {
+  ARR_API_KEY_PLACEHOLDER,
+  placeholderSonarrInstance,
+} from '@root/schemas/common/arr-placeholder.js'
 import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
 import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
@@ -16,10 +19,7 @@ import type {
   SonarrItem,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
-import {
-  PlaceholderResetError,
-  placeholderSonarrInstance,
-} from '@utils/arr-default-instance.js'
+import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {

@@ -509,6 +509,51 @@ describe('SonarrService webhook definition', () => {
     expect(bodies.test).toBeDefined()
     expect(bodies.test).toEqual(bodies.create)
   })
+
+  it.each([
+    {
+      label: 'carries the existing hook id',
+      hooks: [{ id: 172, name: 'Pulsarr (localhost:3003)', fields: [] }],
+      id: 172,
+    },
+    {
+      label: 'carries no id without an existing hook',
+      hooks: [],
+      id: undefined,
+    },
+  ])('$label in the notification test body', async ({ hooks, id }) => {
+    let testBody: { id?: number } | undefined
+    server.use(
+      http.get('http://sonarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Sonarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://sonarr.test/api/v3/notification', () =>
+        HttpResponse.json(hooks),
+      ),
+      http.post(
+        'http://sonarr.test/api/v3/notification/test',
+        async ({ request }) => {
+          testBody = (await request.json()) as { id?: number }
+          return HttpResponse.json('{}')
+        },
+      ),
+    )
+    const tester = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    await tester.testConnection('http://sonarr.test', 'key')
+
+    expect(testBody?.id).toBe(id)
+  })
 })
 
 describe('SonarrService.probe', () => {

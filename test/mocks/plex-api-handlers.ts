@@ -310,6 +310,54 @@ export const radarrTagHandler = http.get(
   },
 )
 
+export const PULSARR_TEST_BASE_URL = 'http://pulsarr-test'
+export const PULSARR_TEST_PORT = 3004
+export const PULSARR_TEST_WEBHOOK_ID = 172
+export const PULSARR_TEST_WEBHOOK_NAME = `Pulsarr (${new URL(PULSARR_TEST_BASE_URL).hostname}:${PULSARR_TEST_PORT})`
+
+export function pulsarrTestWebhook(arr: keyof typeof arrWebhookMocks) {
+  const instanceId = ARR_WEBHOOK_HOSTS[arr]
+    .replace(/https?:\/\//, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase()
+  return {
+    id: PULSARR_TEST_WEBHOOK_ID,
+    name: PULSARR_TEST_WEBHOOK_NAME,
+    url: `${PULSARR_TEST_BASE_URL}:${PULSARR_TEST_PORT}/v1/notifications/webhook?instanceId=${instanceId}`,
+  }
+}
+
+// The arr validates the definition before testing it and only skips the unique Name rule for the hook's own id.
+const pulsarrWebhookTestHandler = (arr: keyof typeof arrWebhookMocks) =>
+  http.post(
+    `${ARR_WEBHOOK_HOSTS[arr]}/api/v3/notification/test`,
+    async ({ request }) => {
+      const body = (await request.json()) as { id?: number; name?: string }
+      const collides =
+        body.id === undefined &&
+        arrWebhookMocks[arr].hooks.some(
+          (hook) => hook.name.toLowerCase() === body.name?.toLowerCase(),
+        )
+      if (collides) {
+        return HttpResponse.json(
+          [
+            {
+              propertyName: 'Name',
+              errorMessage: 'Should be unique',
+              attemptedValue: body.name,
+              severity: 'error',
+            },
+          ],
+          { status: 400 },
+        )
+      }
+      return HttpResponse.json('{}')
+    },
+  )
+
+export const sonarrNotificationTestHandler = pulsarrWebhookTestHandler('sonarr')
+export const radarrNotificationTestHandler = pulsarrWebhookTestHandler('radarr')
+
 export const plexApiHandlers = [
   plexResourcesHandler,
   plexUsersHandler,
@@ -324,9 +372,10 @@ export const plexApiHandlers = [
   sonarrQualityProfileHandler,
   radarrQualityProfileHandler,
   ...arrWebhookHandlers,
-
   sonarrRootFolderHandler,
   radarrRootFolderHandler,
   sonarrTagHandler,
   radarrTagHandler,
+  sonarrNotificationTestHandler,
+  radarrNotificationTestHandler,
 ]

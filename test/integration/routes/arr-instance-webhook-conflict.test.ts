@@ -72,32 +72,45 @@ describe('Arr instance webhook conflict', () => {
     app.contentRouter.clearRouterRulesCache()
   })
 
-  it.each(ARRS)(
-    'returns 409 and keeps no $type row when the arr rejects the webhook',
-    async (arr) => {
+  const REJECTIONS = [
+    {
+      kind: 'a Url validation failure',
+      reply: () =>
+        HttpResponse.json(
+          [
+            {
+              propertyName: 'Url',
+              errorMessage: CALLBACK_FAILURE,
+              severity: 'error',
+            },
+          ],
+          { status: 400 },
+        ),
+    },
+    {
+      kind: 'a socket error',
+      reply: () =>
+        HttpResponse.json({ message: CALLBACK_FAILURE }, { status: 500 }),
+    },
+  ] as const
+
+  const createInstance = (arr: (typeof ARRS)[number]) =>
+    app.inject({
+      method: 'POST',
+      url: `/v1/${arr.type}/instances`,
+      payload: arr.payload,
+    })
+
+  describe.each(REJECTIONS)('when the arr answers with $kind', (rejection) => {
+    it.each(ARRS)('returns 409 and keeps no $type row', async (arr) => {
       server.use(
         http.get(`${arr.baseUrl}/api/v3/notification`, () =>
           HttpResponse.json([]),
         ),
-        http.post(`${arr.baseUrl}/api/v3/notification`, () =>
-          HttpResponse.json(
-            [
-              {
-                propertyName: 'Url',
-                errorMessage: CALLBACK_FAILURE,
-                severity: 'error',
-              },
-            ],
-            { status: 400 },
-          ),
-        ),
+        http.post(`${arr.baseUrl}/api/v3/notification`, rejection.reply),
       )
 
-      const res = await app.inject({
-        method: 'POST',
-        url: `/v1/${arr.type}/instances`,
-        payload: arr.payload,
-      })
+      const res = await createInstance(arr)
 
       expect(res.statusCode).toBe(409)
       expect(res.json()).toMatchObject({
@@ -108,6 +121,33 @@ describe('Arr instance webhook conflict', () => {
       expect(
         await getTestDatabase()(arr.table).where('base_url', arr.baseUrl),
       ).toHaveLength(0)
+    })
+  })
+
+  it.each(ARRS)(
+    'returns 500 instead of 409 when the $type rejects another property',
+    async (arr) => {
+      server.use(
+        http.get(`${arr.baseUrl}/api/v3/notification`, () =>
+          HttpResponse.json([]),
+        ),
+        http.post(`${arr.baseUrl}/api/v3/notification`, () =>
+          HttpResponse.json(
+            [
+              {
+                propertyName: 'Method',
+                errorMessage: 'Method is not valid',
+                severity: 'error',
+              },
+            ],
+            { status: 400 },
+          ),
+        ),
+      )
+
+      const res = await createInstance(arr)
+
+      expect(res.statusCode).toBe(500)
     },
   )
 })
