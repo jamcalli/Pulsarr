@@ -1,4 +1,7 @@
-import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
+import {
+  HttpError,
+  WebhookCallbackError,
+} from '@root/types/arr-connection.types.js'
 import type { SonarrInstance, SonarrPost } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -446,6 +449,23 @@ describe('SonarrService webhook setup', () => {
       await expect(result).rejects.not.toBeInstanceOf(WebhookCallbackError)
       expect(requests).toEqual([])
     })
+
+    it('rethrows a 400 Name failure as an HttpError', async () => {
+      serveHooks([])
+      server.use(
+        http.post(`${NOTIFICATION_URL}/test`, () =>
+          HttpResponse.json(
+            [{ propertyName: 'Name', errorMessage: 'Name should be unique' }],
+            { status: 400 },
+          ),
+        ),
+      )
+
+      const result = testCallback()
+      await expect(result).rejects.toBeInstanceOf(HttpError)
+      await expect(result).rejects.not.toBeInstanceOf(WebhookCallbackError)
+      await expect(result).rejects.toThrow('Name should be unique')
+    })
   })
 })
 
@@ -554,6 +574,75 @@ describe('SonarrService webhook definition', () => {
     } finally {
       timeout.mockRestore()
     }
+  })
+
+  it('reports unreachable when the notification list times out', async () => {
+    const controllers: AbortController[] = []
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+      const controller = new AbortController()
+      controllers.push(controller)
+      return controller.signal
+    })
+    server.use(
+      http.get('http://sonarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Sonarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://sonarr.test/api/v3/notification', () => {
+        controllers.at(-1)?.abort(new DOMException('timed out', 'TimeoutError'))
+        return new Promise<never>(() => {})
+      }),
+    )
+    const tester = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    try {
+      const result = await tester.testConnection('http://sonarr.test', 'key')
+
+      expect(result).toMatchObject({ success: false, code: 'unreachable' })
+    } finally {
+      timeout.mockRestore()
+    }
+  })
+
+  it('reports auth when the notification list is forbidden', async () => {
+    server.use(
+      http.get('http://sonarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Sonarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get(
+        'http://sonarr.test/api/v3/notification',
+        () => new HttpResponse(null, { status: 403 }),
+      ),
+    )
+    const tester = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    const result = await tester.testConnection('http://sonarr.test', 'key')
+
+    expect(result).toEqual({
+      success: false,
+      code: 'auth',
+      message:
+        'Connected to Sonarr but cannot access notification API. Check API key permissions.',
+    })
   })
 
   it.each([

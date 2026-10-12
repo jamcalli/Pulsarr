@@ -100,24 +100,9 @@ export function logRouteError(
 
 type ArrService = 'radarr' | 'sonarr'
 
-const API_ERROR_PREFIX: Record<ArrService, RegExp> = {
-  radarr: /Radarr API error: /,
-  sonarr: /Sonarr API error: /,
-}
-
 const INIT_FAILURE_PREFIX: Record<ArrService, RegExp> = {
   radarr: /Failed to initialize Radarr instance/,
   sonarr: /Failed to initialize Sonarr instance/,
-}
-
-/**
- * Strip the internal `<Service> API error: ` prefix for user-facing display
- */
-export function stripArrApiErrorPrefix(
-  service: ArrService,
-  message: string,
-): string {
-  return message.replace(API_ERROR_PREFIX[service], '')
 }
 
 interface ArrInstanceErrorOptions {
@@ -144,7 +129,7 @@ export function handleArrInstanceError(
     return reply.code(409).send({
       statusCode: 409,
       error: 'Conflict',
-      message: stripArrApiErrorPrefix(service, error.message),
+      message: error.message,
       code: 'webhook_callback_failed',
     })
   }
@@ -158,7 +143,7 @@ export function handleArrInstanceError(
 
   if (error instanceof Error) {
     // Clean up error message for user display
-    const userMessage = stripArrApiErrorPrefix(service, error.message).replace(
+    const userMessage = error.message.replace(
       INIT_FAILURE_PREFIX[service],
       'Failed to save settings',
     )

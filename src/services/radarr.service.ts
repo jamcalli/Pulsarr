@@ -4,7 +4,6 @@ import type {
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
 import {
-  type ArrValidationFailure,
   HttpError,
   WebhookCallbackError,
 } from '@root/types/arr-connection.types.js'
@@ -31,11 +30,7 @@ import {
   isRadarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
-import {
-  isWebhookCallbackFailure,
-  parseArrErrorMessage,
-  parseArrValidationFailures,
-} from '@utils/arr-error.js'
+import { arrResponseError, isWebhookCallbackFailure } from '@utils/arr-error.js'
 import {
   extractRadarrId,
   extractTmdbId,
@@ -83,7 +78,11 @@ export class RadarrService {
     // Prefer undici/Node fetch cause codes when available
     const cause = error.cause as { code?: string } | undefined
     const code = cause?.code
-    if (error.name === 'AbortError' || code === 'ABORT_ERR') {
+    if (
+      error.name === 'TimeoutError' ||
+      error.name === 'AbortError' ||
+      code === 'ABORT_ERR'
+    ) {
       return 'Connection timeout. Please check your Radarr URL and network connection.'
     }
     if (code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
@@ -419,22 +418,10 @@ export class RadarrService {
       signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
     if (!response.ok) {
-      let errorDetail = response.statusText
-      try {
-        const errorData = await response.json()
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`Notification not found: ${notificationId}`, 404)
-      }
-      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
+      throw await arrResponseError(
+        response,
+        `Notification not found: ${notificationId}`,
+      )
     }
   }
 
@@ -472,10 +459,7 @@ export class RadarrService {
         ...(existingId === undefined ? {} : { id: existingId }),
       })
     } catch (error) {
-      if (
-        error instanceof HttpError &&
-        (error.status === 400 || error.status === 500)
-      ) {
+      if (error instanceof HttpError && isWebhookCallbackFailure(error)) {
         throw new WebhookCallbackError(error.message, { cause: error })
       }
       throw error
@@ -706,7 +690,7 @@ export class RadarrService {
         })
 
         if (!response.ok) {
-          throw new Error(`Radarr API error: ${response.statusText}`)
+          throw new Error(response.statusText)
         }
 
         const pagedResult = (await response.json()) as PagedResult<{
@@ -1018,22 +1002,10 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      try {
-        const errorData = await response.json()
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
-      }
-      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
+      throw await arrResponseError(
+        response,
+        `API endpoint not found: ${endpoint}`,
+      )
     }
 
     return response.json() as Promise<T>
@@ -1063,27 +1035,9 @@ export class RadarrService {
       }
 
       if (!response.ok) {
-        let errorDetail = response.statusText
-        let failures: ArrValidationFailure[] = []
-        try {
-          const errorData = await response.json()
-          failures = parseArrValidationFailures(errorData)
-          const parsed = parseArrErrorMessage(errorData)
-          if (parsed) {
-            errorDetail = parsed
-          }
-        } catch {}
-
-        if (response.status === 401) {
-          throw new HttpError('Authentication failed. Check API key.', 401)
-        }
-        if (response.status === 404) {
-          throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
-        }
-        throw new HttpError(
-          `Radarr API error: ${errorDetail}`,
-          response.status,
-          failures,
+        throw await arrResponseError(
+          response,
+          `API endpoint not found: ${endpoint}`,
         )
       }
 
@@ -1122,22 +1076,7 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      try {
-        const errorData = await response.json()
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`Resource not found: movie/${id}`, 404)
-      }
-      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
+      throw await arrResponseError(response, `Resource not found: movie/${id}`)
     }
   }
 
@@ -1146,7 +1085,6 @@ export class RadarrService {
     apiKey: string,
     endpoint: string,
     init?: { method: 'POST'; body: object },
-    timeout = RADARR_API_TIMEOUT,
   ): Promise<T> {
     const url = new URL(
       `${this.ensureUrlHasProtocol(baseUrl)}/api/v3/${endpoint}`,
@@ -1159,28 +1097,13 @@ export class RadarrService {
         ...(init && { 'Content-Type': 'application/json' }),
       },
       body: init && JSON.stringify(init.body),
-      signal: AbortSignal.timeout(timeout),
+      signal: AbortSignal.timeout(RADARR_CONNECTION_TEST_TIMEOUT),
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      let failures: ArrValidationFailure[] = []
-      try {
-        const errorData = await response.json()
-        failures = parseArrValidationFailures(errorData)
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      throw new HttpError(
-        `Radarr API error: ${errorDetail}`,
-        response.status,
-        failures,
+      throw await arrResponseError(
+        response,
+        `API endpoint not found: ${endpoint}`,
       )
     }
 
@@ -1318,20 +1241,38 @@ export class RadarrService {
             safeBaseUrl,
             apiKey,
             'notification',
-            undefined,
-            RADARR_CONNECTION_TEST_TIMEOUT,
           ),
           webhookName,
           webhookUrl,
         )
         existingWebhook = current ?? legacy
-      } catch (_notificationError) {
-        return {
-          success: false,
-          code: 'auth',
-          message:
-            'Connected to Radarr but cannot access notification API. Check API key permissions.',
+      } catch (notificationError) {
+        if (notificationError instanceof HttpError) {
+          if (
+            notificationError.status === 401 ||
+            notificationError.status === 403
+          ) {
+            return {
+              success: false,
+              code: 'auth',
+              message:
+                'Connected to Radarr but cannot access notification API. Check API key permissions.',
+            }
+          }
+          return {
+            success: false,
+            code: 'invalid',
+            message: notificationError.message,
+          }
         }
+        if (notificationError instanceof Error) {
+          return {
+            success: false,
+            code: 'unreachable',
+            message: this.mapConnectionErrorToMessage(notificationError),
+          }
+        }
+        throw notificationError
       }
 
       try {
@@ -1346,7 +1287,6 @@ export class RadarrService {
               ...(existingWebhook && { id: existingWebhook.id }),
             },
           },
-          RADARR_CONNECTION_TEST_TIMEOUT,
         )
       } catch (callbackError) {
         if (
@@ -1826,27 +1766,9 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      let failures: ArrValidationFailure[] = []
-      try {
-        const errorData = await response.json()
-        failures = parseArrValidationFailures(errorData)
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
-      }
-      throw new HttpError(
-        `Radarr API error: ${errorDetail}`,
-        response.status,
-        failures,
+      throw await arrResponseError(
+        response,
+        `API endpoint not found: ${endpoint}`,
       )
     }
 
@@ -1877,22 +1799,7 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      try {
-        const errorData = await response.json()
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`Tag not found: ${tagId}`, 404)
-      }
-      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
+      throw await arrResponseError(response, `Tag not found: ${tagId}`)
     }
 
     // Invalidate the tags cache since we've deleted a tag

@@ -1,5 +1,5 @@
 import { plexConfigNotificationSchema } from '@schemas/plex/configure-notifications.schema.js'
-import { logRouteError, stripArrApiErrorPrefix } from '@utils/route-errors.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
@@ -88,10 +88,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
               id: instance.id,
               name: instance.name,
               success: false,
-              message:
-                error instanceof Error
-                  ? stripArrApiErrorPrefix('radarr', error.message)
-                  : 'Unknown error',
+              message: error instanceof Error ? error.message : 'Unknown error',
             })
           }
         }
@@ -151,10 +148,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
               id: instance.id,
               name: instance.name,
               success: false,
-              message:
-                error instanceof Error
-                  ? stripArrApiErrorPrefix('sonarr', error.message)
-                  : 'Unknown error',
+              message: error instanceof Error ? error.message : 'Unknown error',
             })
           }
         }

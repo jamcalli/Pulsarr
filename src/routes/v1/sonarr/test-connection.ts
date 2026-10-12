@@ -3,7 +3,7 @@ import {
   ArrTestConnectionResponseSchema,
 } from '@schemas/common/arr-test-connection.schema.js'
 import { ErrorSchema } from '@schemas/common/error.schema.js'
-import { logRouteError, stripArrApiErrorPrefix } from '@utils/route-errors.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -26,15 +26,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { baseUrl, apiKey } = request.body
-        const result = await fastify.sonarrManager.testConnection(
-          baseUrl,
-          apiKey,
-        )
-
-        return {
-          ...result,
-          message: stripArrApiErrorPrefix('sonarr', result.message),
-        }
+        return await fastify.sonarrManager.testConnection(baseUrl, apiKey)
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Error testing Sonarr connection',
@@ -45,9 +37,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             ? error.message
             : 'Unable to test Sonarr connection'
 
-        return reply.internalServerError(
-          stripArrApiErrorPrefix('sonarr', errorMessage),
-        )
+        return reply.internalServerError(errorMessage)
       }
     },
   )

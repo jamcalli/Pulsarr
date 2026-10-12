@@ -245,7 +245,7 @@ describe('route-errors', () => {
     it('should return conflict with a code for webhook callback failures', () => {
       const reply = createMockReply()
       const error = new WebhookCallbackError(
-        'Radarr API error: Unable to send test message: Connection refused',
+        'Unable to send test message: Connection refused',
       )
       const result = handleArrInstanceError(error, reply, {
         service: 'radarr',
@@ -275,29 +275,6 @@ describe('route-errors', () => {
         status: 400,
         message: 'Cannot remove default status from active instance',
       })
-    })
-
-    it('should strip Radarr API error prefix from message', () => {
-      const reply = createMockReply()
-      const error = new Error('Radarr API error: Authentication failed')
-      const result = handleArrInstanceError(error, reply, {
-        service: 'radarr',
-        defaultMessage: 'Failed',
-      })
-      expect(result).toEqual({
-        status: 401,
-        message: 'Authentication failed',
-      })
-    })
-
-    it('should strip Sonarr API error prefix from message', () => {
-      const reply = createMockReply()
-      const error = new Error('Sonarr API error: Resource not found')
-      const result = handleArrInstanceError(error, reply, {
-        service: 'sonarr',
-        defaultMessage: 'Failed',
-      })
-      expect(result).toEqual({ status: 404, message: 'Resource not found' })
     })
 
     it('should replace init failure prefix with user-friendly message', () => {

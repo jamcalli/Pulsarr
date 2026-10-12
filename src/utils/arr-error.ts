@@ -1,5 +1,5 @@
-import type {
-  ArrValidationFailure,
+import {
+  type ArrValidationFailure,
   HttpError,
 } from '@root/types/arr-connection.types.js'
 
@@ -56,6 +56,25 @@ export function parseArrValidationFailures(
   if (!Array.isArray(errorData)) return []
   const items: unknown[] = errorData
   return items.filter(isObject).map(toValidationFailure)
+}
+
+/** Reads the arr error body once so every HttpError carries the arr's text and its validation failures. */
+export async function arrResponseError(
+  response: Response,
+  notFound: string,
+): Promise<HttpError> {
+  if (response.status === 401) {
+    return new HttpError('Authentication failed. Check API key.', 401)
+  }
+  if (response.status === 404) return new HttpError(notFound, 404)
+  let detail = response.statusText
+  let failures: ArrValidationFailure[] = []
+  try {
+    const data = await response.json()
+    failures = parseArrValidationFailures(data)
+    detail = parseArrErrorMessage(data) || detail
+  } catch {}
+  return new HttpError(detail, response.status, failures)
 }
 
 /** The arr wraps HTTP failures into a Url failure and lets socket errors escape as 500. */

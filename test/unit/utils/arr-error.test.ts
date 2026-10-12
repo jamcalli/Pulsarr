@@ -1,5 +1,6 @@
 import { HttpError } from '@root/types/arr-connection.types.js'
 import {
+  arrResponseError,
   isWebhookCallbackFailure,
   parseArrErrorMessage,
   parseArrValidationFailures,
@@ -292,6 +293,79 @@ describe('arr-error', () => {
           { propertyName: 'Url', errorMessage: 42, severity: 'Error' },
         ]),
       ).toEqual([{ propertyName: 'Url', severity: 'Error' }])
+    })
+  })
+
+  describe('arrResponseError', () => {
+    it('returns the auth message on a 401 without reading the body', async () => {
+      const response = new Response('{"message":"nope"}', {
+        status: 401,
+        statusText: 'Unauthorized',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error).toBeInstanceOf(HttpError)
+      expect(error.message).toBe('Authentication failed. Check API key.')
+      expect(error.status).toBe(401)
+      expect(response.bodyUsed).toBe(false)
+    })
+
+    it('returns the not found message on a 404', async () => {
+      const response = new Response(null, {
+        status: 404,
+        statusText: 'Not Found',
+      })
+
+      const error = await arrResponseError(response, 'Tag not found: 3')
+
+      expect(error.message).toBe('Tag not found: 3')
+      expect(error.status).toBe(404)
+    })
+
+    it('returns the joined messages and failures on a 400 array body', async () => {
+      const failures = [
+        { propertyName: 'Name', errorMessage: 'Name should be unique' },
+        { propertyName: 'Url', errorMessage: 'Unable to send test message' },
+      ]
+      const response = new Response(JSON.stringify(failures), {
+        status: 400,
+        statusText: 'Bad Request',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error.message).toBe(
+        'Name should be unique; Unable to send test message',
+      )
+      expect(error.status).toBe(400)
+      expect(error.failures).toEqual(failures)
+    })
+
+    it('returns the message and no failures on a 500 message body', async () => {
+      const response = new Response(JSON.stringify({ message: 'Boom' }), {
+        status: 500,
+        statusText: 'Internal Server Error',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error.message).toBe('Boom')
+      expect(error.status).toBe(500)
+      expect(error.failures).toEqual([])
+    })
+
+    it('falls back to statusText on a non-JSON body', async () => {
+      const response = new Response('<html>gateway</html>', {
+        status: 502,
+        statusText: 'Bad Gateway',
+      })
+
+      const error = await arrResponseError(response, 'Missing')
+
+      expect(error.message).toBe('Bad Gateway')
+      expect(error.status).toBe(502)
+      expect(error.failures).toEqual([])
     })
   })
 

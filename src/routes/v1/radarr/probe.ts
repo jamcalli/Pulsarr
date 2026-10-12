@@ -2,7 +2,7 @@ import { HttpError } from '@root/types/arr-connection.types.js'
 import { ArrProbeResponseSchema } from '@schemas/common/arr-probe.schema.js'
 import { ArrTestConnectionBodySchema } from '@schemas/common/arr-test-connection.schema.js'
 import { ErrorSchema } from '@schemas/common/error.schema.js'
-import { logRouteError, stripArrApiErrorPrefix } from '@utils/route-errors.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -34,17 +34,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         })
 
         if (error instanceof HttpError) {
-          return reply.badRequest(
-            stripArrApiErrorPrefix('radarr', error.message),
-          )
+          return reply.badRequest(error.message)
         }
 
         const errorMessage =
           error instanceof Error ? error.message : 'Unable to probe Radarr'
 
-        return reply.internalServerError(
-          stripArrApiErrorPrefix('radarr', errorMessage),
-        )
+        return reply.internalServerError(errorMessage)
       }
     },
   )
