@@ -13,7 +13,7 @@ import {
   routingFromValues,
 } from '@/lib/approval-routing-form'
 import { seasonMonitoringOptions } from '@/lib/arr-labels'
-import { submitThenBlurValidation, useAppForm } from '@/lib/form'
+import { liveValidation, useAppForm } from '@/lib/form'
 import type { components } from '@/types/api.js'
 
 type ApprovalRouting = components['schemas']['ApprovalRouting']
@@ -36,7 +36,7 @@ export function useApprovalRoutingForm({
 
   const form = useAppForm({
     defaultValues,
-    validationLogic: submitThenBlurValidation,
+    validationLogic: liveValidation,
     validators: { onDynamic: ApprovalRoutingFormSchema },
     onSubmit: ({ value }) => {
       const target = instances.findTarget(Number(value.instanceId))

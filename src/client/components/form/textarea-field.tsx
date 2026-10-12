@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react'
 import { FieldRow } from '@/components/form/field-row'
 import { FieldError } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
+import { useFieldErrors } from '@/hooks/useFieldErrors'
 import { useFieldContext } from '@/lib/form-context'
 
 type TextareaFieldProps = {
@@ -23,7 +24,8 @@ export function TextareaField({
   ...textareaProps
 }: TextareaFieldProps) {
   const field = useFieldContext<string>()
-  const isInvalid = field.state.meta.errors.length > 0
+  const errors = useFieldErrors()
+  const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
 
   return (
@@ -52,7 +54,7 @@ export function TextareaField({
           aria-invalid={isInvalid}
           aria-describedby={isInvalid ? errorId : undefined}
         />
-        <FieldError id={errorId} errors={field.state.meta.errors} />
+        <FieldError id={errorId} errors={errors} />
       </div>
     </FieldRow>
   )

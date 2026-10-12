@@ -21,7 +21,7 @@ import { useFormDirty } from '@/hooks/useFormDirty'
 import { withMinDuration } from '@/hooks/useMinLoading'
 import { instanceOptions } from '@/lib/approval'
 import { seasonMonitoringOptions } from '@/lib/arr-labels'
-import { submitThenBlurValidation, useAppForm } from '@/lib/form'
+import { liveValidation, useAppForm } from '@/lib/form'
 import { mutationErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
@@ -84,7 +84,7 @@ export function useRouteEditorForm({
 
   const form = useAppForm({
     defaultValues,
-    validationLogic: submitThenBlurValidation,
+    validationLogic: liveValidation,
     validators: { onDynamic: schema },
     // The editor shows the error from the mutation, so this catch only ends the submit.
     onSubmit: ({ value }) =>

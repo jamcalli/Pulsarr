@@ -4,13 +4,13 @@ import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { useLogin } from '@/features/auth/hooks/useLogin'
-import { submitThenBlurValidation, useAppForm } from '@/lib/form'
+import { liveValidation, useAppForm } from '@/lib/form'
 
 export function LoginForm() {
   const login = useLogin()
   const form = useAppForm({
     defaultValues: { login: '', password: '' },
-    validationLogic: submitThenBlurValidation,
+    validationLogic: liveValidation,
     validators: { onDynamic: CredentialsSchema },
     // The alert shows the error from the mutation, so this catch only ends the submit.
     onSubmit: ({ value }) =>

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { z } from 'zod'
-import { useAppForm } from '@/lib/form'
+import { liveValidation, useAppForm } from '@/lib/form'
 
 const schema = z.object({
   mode: z.enum(['', 'movie', 'show']).refine((value) => value !== '', {
@@ -9,10 +9,21 @@ const schema = z.object({
   }),
 })
 
-function ModeForm({ onSubmit }: { onSubmit?: (mode: string) => void }) {
+function ModeForm({
+  onSubmit,
+  live = false,
+}: {
+  onSubmit?: (mode: string) => void
+  live?: boolean
+}) {
   const form = useAppForm({
     defaultValues: { mode: '' as '' | 'movie' | 'show' },
-    validators: { onSubmit: schema },
+    ...(live
+      ? {
+          validationLogic: liveValidation,
+          validators: { onDynamic: schema },
+        }
+      : { validators: { onSubmit: schema } }),
     onSubmit: ({ value }) => onSubmit?.(value.mode),
   })
 
@@ -76,5 +87,17 @@ describe('SelectField', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(onSubmit).toHaveBeenCalledWith('movie')
+  })
+
+  it('shows the error when the popup closes without a pick, not when it opens', async () => {
+    const user = userEvent.setup()
+    render(<ModeForm live />)
+
+    await user.click(screen.getByLabelText('Mode'))
+    expect(await screen.findByRole('option', { name: 'Movie' })).toBeVisible()
+    expect(screen.queryByText('Pick a mode')).not.toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(await screen.findByText('Pick a mode')).toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from 'react'
 import { FieldRow } from '@/components/form/field-row'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { useFieldErrors } from '@/hooks/useFieldErrors'
 import { useFieldContext } from '@/lib/form-context'
 
 type TextFieldProps = {
@@ -25,7 +26,8 @@ export function TextField({
   ...inputProps
 }: TextFieldProps) {
   const field = useFieldContext<string>()
-  const isInvalid = field.state.meta.errors.length > 0
+  const errors = useFieldErrors()
+  const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
 
   return (
@@ -59,7 +61,7 @@ export function TextField({
             {preview(field.state.value)}
           </p>
         )}
-        <FieldError id={errorId} errors={field.state.meta.errors} />
+        <FieldError id={errorId} errors={errors} />
       </div>
     </FieldRow>
   )
