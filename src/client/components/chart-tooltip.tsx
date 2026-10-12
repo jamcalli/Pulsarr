@@ -1,12 +1,22 @@
 import { cn } from 'cn'
 import type { ComponentProps, ReactElement } from 'react'
 import {
+  createPopoverHandle,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
   createTooltipHandle,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useCoarsePointer } from '@/hooks/useCoarsePointer'
 import { CHART_FILL, type ChartColor } from '@/lib/chart-colors'
+
+const CHART_POPOVER_CLASS =
+  'w-fit max-w-xs gap-0 rounded-lg border-2 border-border bg-card px-3 py-1.5 text-xs shadow-shadow'
 
 export interface ChartTooltipPayload {
   label: string
@@ -15,13 +25,17 @@ export interface ChartTooltipPayload {
   color?: ChartColor
 }
 
-export type ChartTooltipHandle = ReturnType<
-  typeof createTooltipHandle<ChartTooltipPayload>
->
+export interface ChartTooltipHandle {
+  tooltip: ReturnType<typeof createTooltipHandle<ChartTooltipPayload>>
+  popover: ReturnType<typeof createPopoverHandle<ChartTooltipPayload>>
+}
 
-/** One tooltip shared by several marks, so moving between them moves the open popup instead of closing and reopening it. */
+/** One popup shared by several marks, so moving between them moves the open popup instead of closing and reopening it. */
 export function createChartTooltipHandle(): ChartTooltipHandle {
-  return createTooltipHandle<ChartTooltipPayload>()
+  return {
+    tooltip: createTooltipHandle<ChartTooltipPayload>(),
+    popover: createPopoverHandle<ChartTooltipPayload>(),
+  }
 }
 
 function ChartTooltipBody({
@@ -58,6 +72,19 @@ export function ChartTooltip({
   trackCursorAxis,
   ...payload
 }: ChartTooltipProps) {
+  const coarsePointer = useCoarsePointer()
+
+  if (coarsePointer) {
+    return (
+      <Popover>
+        <PopoverTrigger render={render} />
+        <PopoverContent side="top" className={CHART_POPOVER_CLASS}>
+          <ChartTooltipBody {...payload} />
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
   return (
     <Tooltip trackCursorAxis={trackCursorAxis}>
       <TooltipTrigger render={render} />
@@ -77,13 +104,43 @@ export function ChartTooltipTrigger({
   payload: ChartTooltipPayload
   render: ReactElement
 }) {
-  return <TooltipTrigger handle={handle} payload={payload} render={render} />
+  const coarsePointer = useCoarsePointer()
+
+  if (coarsePointer) {
+    return (
+      <PopoverTrigger
+        handle={handle.popover}
+        payload={payload}
+        render={render}
+      />
+    )
+  }
+
+  return (
+    <TooltipTrigger handle={handle.tooltip} payload={payload} render={render} />
+  )
 }
 
 /** The popup for every trigger on `handle`, showing the active one's payload. */
 export function SharedChartTooltip({ handle }: { handle: ChartTooltipHandle }) {
+  const coarsePointer = useCoarsePointer()
+
+  if (coarsePointer) {
+    return (
+      <Popover handle={handle.popover}>
+        {({ payload }) =>
+          payload && (
+            <PopoverContent side="top" className={CHART_POPOVER_CLASS}>
+              <ChartTooltipBody {...payload} />
+            </PopoverContent>
+          )
+        }
+      </Popover>
+    )
+  }
+
   return (
-    <Tooltip handle={handle}>
+    <Tooltip handle={handle.tooltip}>
       {({ payload }) =>
         payload && (
           <TooltipContent>
