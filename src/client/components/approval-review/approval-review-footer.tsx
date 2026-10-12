@@ -1,6 +1,6 @@
-import { Trash2 } from 'lucide-react'
 import { BusyLabel } from '@/components/busy-label'
 import { CredenzaFooter } from '@/components/credenza'
+import { DeleteButton } from '@/components/delete-button'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import type { ApprovalReview } from '@/hooks/useApprovalReview'
@@ -48,19 +48,13 @@ export function ApprovalReviewFooter({ review }: { review: ApprovalReview }) {
       </>
     ) : (
       <>
-        <Button
-          variant="ghost"
+        <DeleteButton
           className="md:mr-auto"
           disabled={locked || review.stage === 'edit'}
           onClick={review.startDelete}
         >
-          <Trash2
-            data-icon="inline-start"
-            aria-hidden
-            className="text-destructive-text"
-          />
           Delete
-        </Button>
+        </DeleteButton>
         {review.canDeny && (
           <Button
             variant="outline"

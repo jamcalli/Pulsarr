@@ -38,7 +38,7 @@ function RadioRowSkeleton({ options }: { options: number }) {
   )
 }
 
-function SectionSkeleton({ rows, pill = false }: SectionShape) {
+export function SettingsSectionSkeleton({ rows, pill = false }: SectionShape) {
   const shapes: readonly RowShape[] =
     typeof rows === 'number'
       ? Array.from({ length: rows }, () => 'field')
@@ -102,7 +102,7 @@ export function SettingsPageSkeleton({
         {pill && <Skeleton className="h-7 w-28" />}
       </div>
       {shapes.map((shape, section) => (
-        <SectionSkeleton
+        <SettingsSectionSkeleton
           key={`section-${section}`}
           rows={shape.rows}
           pill={shape.pill}

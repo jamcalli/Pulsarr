@@ -205,7 +205,7 @@ function byTextContent(text: string) {
 }
 
 function cardButton(name: string) {
-  return screen.getByRole('button', { name: new RegExp(`^${name}`) })
+  return screen.getByRole('button', { name: new RegExp(`^Edit ${name}`) })
 }
 
 describe('ContentRouterPage', () => {
@@ -329,7 +329,7 @@ describe('ContentRouterPage', () => {
     mockEndpoints()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^High/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit High/ }))
     expect(
       await screen.findByText('1 to 100. Higher runs first.'),
     ).toBeInTheDocument()
@@ -348,7 +348,7 @@ describe('ContentRouterPage', () => {
     const bodies = mockEndpoints()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^High/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit High/ }))
     await user.click(screen.getByRole('switch', { name: 'Enabled, High' }))
 
     await waitFor(() => expect(bodies.patch).toEqual([{ enabled: false }]))
@@ -423,8 +423,31 @@ describe('ContentRouterPage', () => {
       exclude_from_routing: false,
     })
     expect(
-      await screen.findByRole('button', { name: /^Anime movies/ }),
+      await screen.findByRole('button', { name: /^Edit Anime movies/ }),
     ).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('mounts the route editor while a card is open and drops it on collapse', async () => {
+    const user = userEvent.setup()
+    mockEndpoints([makeRule({ id: 9, name: 'Legacy' })])
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Legacy' }))
+    const panel = screen.getByRole('region', { name: 'Collapse Legacy' })
+    expect(
+      await within(panel).findByLabelText('Route name'),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Collapse Legacy' }))
+    expect(
+      await screen.findByRole('button', { name: 'Edit Legacy' }),
+    ).toHaveAttribute('aria-expanded', 'false')
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', { name: 'Collapse Legacy' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByLabelText('Route name')).not.toBeInTheDocument()
   })
 
   it('saves a legacy priority outside 1 to 100 unchanged', async () => {
@@ -434,7 +457,9 @@ describe('ContentRouterPage', () => {
     ])
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^Legacy/ }))
+    await user.click(
+      await screen.findByRole('button', { name: /^Edit Legacy/ }),
+    )
     const priority = await screen.findByLabelText('Priority')
     await user.clear(priority)
     await user.type(priority, '150')
@@ -453,7 +478,7 @@ describe('ContentRouterPage', () => {
     const bodies = mockEndpoints()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^Low/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit Low/ }))
     const name = await screen.findByLabelText('Route name')
     await user.clear(name)
     await user.type(name, 'Lower')
@@ -496,7 +521,7 @@ describe('ContentRouterPage', () => {
     expect(
       await screen.findByText(byTextContent('Radarr, HD-1080p, /movies')),
     ).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /^Inherit/ }))
+    await user.click(screen.getByRole('button', { name: /^Edit Inherit/ }))
     expect(await screen.findByLabelText('Quality profile')).toHaveTextContent(
       'Use instance default',
     )
@@ -560,7 +585,9 @@ describe('ContentRouterPage', () => {
     )
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^Tagged/ }))
+    await user.click(
+      await screen.findByRole('button', { name: /^Edit Tagged/ }),
+    )
     await waitFor(() =>
       expect(screen.getByLabelText('Quality profile')).toHaveTextContent(
         'HD-1080p',
@@ -618,7 +645,9 @@ describe('ContentRouterPage', () => {
     ])
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^Family/ }))
+    await user.click(
+      await screen.findByRole('button', { name: /^Edit Family/ }),
+    )
     await user.click(await screen.findByLabelText('Value'))
     const option = await screen.findByRole('option', {
       name: /^PG ?Parental guidance\./,
@@ -651,7 +680,7 @@ describe('ContentRouterPage', () => {
     ])
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^Rated/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit Rated/ }))
     await user.click(
       await screen.findByRole('button', { name: 'Add a minimum vote count' }),
     )
@@ -677,7 +706,7 @@ describe('ContentRouterPage', () => {
     const bodies = mockEndpoints()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^Low/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit Low/ }))
     await user.click(
       await screen.findByRole('button', { name: 'Delete route' }),
     )
@@ -715,7 +744,7 @@ describe('ContentRouterPage', () => {
     mockEndpoints()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^Low/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit Low/ }))
     await user.type(await screen.findByLabelText('Route name'), ' edited')
     await user.click(cardButton('High'))
 
@@ -732,7 +761,7 @@ describe('ContentRouterPage', () => {
     mockEndpoints()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^High/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit High/ }))
     const addGroups = await screen.findAllByRole('button', {
       name: 'Add group',
     })
@@ -756,7 +785,7 @@ describe('ContentRouterPage', () => {
     mockEndpoints()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: /^High/ }))
+    await user.click(await screen.findByRole('button', { name: /^Edit High/ }))
 
     expect(await screen.findByLabelText('Field')).toBeInTheDocument()
     expect(screen.getByLabelText('Operator')).toBeInTheDocument()

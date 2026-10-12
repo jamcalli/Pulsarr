@@ -16,15 +16,16 @@ import {
   pluralize,
 } from '@/lib/format'
 import { QUOTA_TYPE_LABELS, quotaWindowPhrase } from '@/lib/quota'
-import type { components, paths } from '@/types/api.js'
+import type { components } from '@/types/api.js'
+
+export const NOT_SET = 'Not set'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
 type RouterDecision = ApprovalRequest['proposedRouterDecision']
 type ApprovalRouting = NonNullable<RouterDecision['routing']>
 type ApprovalTrigger = components['schemas']['ApprovalTrigger']
 type QuotaSettings = components['schemas']['QuotaSettings']
-type RadarrInstance =
-  paths['/v1/radarr/instances']['get']['responses'][200]['content']['application/json'][number]
+type RadarrInstance = components['schemas']['RadarrInstance']
 type SonarrInstance = components['schemas']['SonarrInstance']
 
 export type ReviewStage = 'review' | 'edit' | 'deny' | 'delete'
@@ -322,7 +323,7 @@ export function routingFacts({
     label: 'Quality profile',
     value:
       profile == null
-        ? 'Not set'
+        ? NOT_SET
         : (qualityProfiles.find(
             (option) =>
               option.value === String(profile) ||
@@ -343,7 +344,7 @@ export function routingFacts({
           ? formatList(tagLabels)
           : formatCount(tagIds.length, 'tag'),
   })
-  facts.push({ label: 'Root folder', value: routing.rootFolder ?? 'Not set' })
+  facts.push({ label: 'Root folder', value: routing.rootFolder ?? NOT_SET })
   facts.push({
     label: 'Search on add',
     value:

@@ -72,8 +72,14 @@ export const NAV_PAGES = {
     ...page('Plex labels', '/users/plex-labels', ['/utilities/plex-labels']),
     rebuilt: true,
   },
-  radarr: page('Radarr', '/library/radarr', ['/radarr/instances']),
-  sonarr: page('Sonarr', '/library/sonarr', ['/sonarr/instances']),
+  radarr: {
+    ...page('Radarr', '/library/radarr', ['/radarr/instances']),
+    rebuilt: true,
+  },
+  sonarr: {
+    ...page('Sonarr', '/library/sonarr', ['/sonarr/instances']),
+    rebuilt: true,
+  },
   contentRouter: {
     ...page('Content router', '/library/content-router', [
       '/radarr/content-router',
