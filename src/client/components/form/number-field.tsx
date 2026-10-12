@@ -9,6 +9,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@/components/ui/input-group'
+import { useFieldErrors } from '@/hooks/useFieldErrors'
 import { useFieldContext } from '@/lib/form-context'
 import { formatLocale, formatNumber, pluralize } from '@/lib/format'
 
@@ -57,7 +58,8 @@ export function NumberField({
   allowOutOfRange = false,
 }: NumberFieldProps) {
   const field = useFieldContext<number | undefined>()
-  const isInvalid = field.state.meta.errors.length > 0
+  const errors = useFieldErrors()
+  const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
   const addon =
     unit === undefined
@@ -114,7 +116,7 @@ export function NumberField({
           </NumberFieldPrimitive.Group>
         </NumberFieldPrimitive.Root>
         {isInvalid ? (
-          <FieldError id={errorId} errors={field.state.meta.errors} />
+          <FieldError id={errorId} errors={errors} />
         ) : (
           !labelHidden && (
             <p className="text-sm text-muted-foreground">{hint}</p>

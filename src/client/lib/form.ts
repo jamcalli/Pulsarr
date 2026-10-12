@@ -28,7 +28,7 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
   formComponents: { Form },
 })
 
-export const submitThenBlurValidation = revalidateLogic({
-  mode: 'submit',
-  modeAfterSubmission: 'blur',
+export const liveValidation = revalidateLogic({
+  mode: 'change',
+  modeAfterSubmission: 'change',
 })

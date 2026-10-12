@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { usePopupBlur } from '@/hooks/usePopupBlur'
 import { useFieldContext } from '@/lib/form-context'
 import {
   cronForDayTime,
@@ -33,6 +34,7 @@ export function ScheduleField({
   orientation = 'responsive',
 }: ScheduleFieldProps) {
   const field = useFieldContext<string>()
+  const popup = usePopupBlur()
   const labelId = `${field.name}-label`
   const expression = field.state.value
   const schedule = parseDayTimeCron(expression)
@@ -99,12 +101,13 @@ export function ScheduleField({
             items={select.items}
             value={select.value}
             disabled={disabled}
+            onOpenChange={popup.onOpenChange}
             onValueChange={select.onChange}
           >
             <SelectTrigger
               aria-label={select.ariaLabel}
               className="w-full"
-              onBlur={field.handleBlur}
+              onBlur={popup.onBlur}
             >
               <SelectValue placeholder={select.placeholder} />
             </SelectTrigger>

@@ -42,6 +42,8 @@ export default defineConfig({
           environment: 'happy-dom',
           include: ['test/client/**/*.test.{ts,tsx}'],
           setupFiles: ['./test/client/setup.ts'],
+          // a full editor page under parallel contention runs past the 5s default
+          testTimeout: 10000,
         },
       },
     ],

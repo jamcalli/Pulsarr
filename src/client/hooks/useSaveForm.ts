@@ -4,7 +4,7 @@ import { useFormDirty } from '@/hooks/useFormDirty'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useTransientFlag } from '@/hooks/useTransientFlag'
 import { SAVE_FEEDBACK_DELAY } from '@/lib/constants'
-import { submitThenBlurValidation, useAppForm } from '@/lib/form'
+import { liveValidation, useAppForm } from '@/lib/form'
 import { mutationErrorMessage } from '@/lib/tanstackApi'
 
 interface SaveFormOptions<Source, Values> {
@@ -33,7 +33,7 @@ export function useSaveForm<Source, Values>({
 
   const form = useAppForm({
     defaultValues: toValues(source),
-    validationLogic: submitThenBlurValidation,
+    validationLogic: liveValidation,
     validators: { onDynamic: schema },
     // The save bar shows the error from the mutation, so this catch only ends the submit.
     onSubmit: ({ value }) =>

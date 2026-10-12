@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useFieldErrors } from '@/hooks/useFieldErrors'
+import { usePopupBlur } from '@/hooks/usePopupBlur'
 import { useFieldContext } from '@/lib/form-context'
 
 interface SelectFieldProps<T extends string | null> {
@@ -38,7 +40,9 @@ export function SelectField<T extends string | null>({
   options,
 }: SelectFieldProps<T>) {
   const field = useFieldContext<T>()
-  const isInvalid = field.state.meta.errors.length > 0
+  const errors = useFieldErrors()
+  const popup = usePopupBlur()
+  const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
 
   return (
@@ -63,6 +67,7 @@ export function SelectField<T extends string | null>({
           items={options}
           value={field.state.value === '' ? null : field.state.value}
           disabled={disabled}
+          onOpenChange={popup.onOpenChange}
           onValueChange={(next) => {
             const match = options.find((option) => option.value === next)
             if (match) field.handleChange(match.value)
@@ -71,7 +76,7 @@ export function SelectField<T extends string | null>({
           <SelectTrigger
             id={field.name}
             className="w-full"
-            onBlur={field.handleBlur}
+            onBlur={popup.onBlur}
             aria-invalid={isInvalid}
             aria-describedby={isInvalid ? errorId : undefined}
           >
@@ -91,7 +96,7 @@ export function SelectField<T extends string | null>({
             ))}
           </SelectContent>
         </Select>
-        <FieldError id={errorId} errors={field.state.meta.errors} />
+        <FieldError id={errorId} errors={errors} />
       </div>
     </FieldRow>
   )

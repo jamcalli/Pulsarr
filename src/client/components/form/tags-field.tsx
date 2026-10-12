@@ -22,6 +22,8 @@ import {
   type CreatableOption,
   useCreatableOptions,
 } from '@/hooks/useCreatableOptions'
+import { useFieldErrors } from '@/hooks/useFieldErrors'
+import { usePopupBlur } from '@/hooks/usePopupBlur'
 import { useFieldContext } from '@/lib/form-context'
 
 interface TagsFieldProps {
@@ -72,9 +74,11 @@ export function TagsField({
   const { labelFor } = creatable
   const descriptionFor = (value: string) =>
     options.find((option) => option.value === value)?.description
+  const fieldErrors = useFieldErrors()
+  const popup = usePopupBlur()
   const errors = creatable.error
-    ? [...field.state.meta.errors, { message: creatable.error }]
-    : field.state.meta.errors
+    ? [...fieldErrors, { message: creatable.error }]
+    : fieldErrors
   const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
 
@@ -105,6 +109,7 @@ export function TagsField({
           disabled={disabled || creatable.creating}
           inputValue={creatable.query}
           onInputValueChange={creatable.setQuery}
+          onOpenChange={popup.onOpenChange}
           onValueChange={(next, details) => {
             if (next.includes(CREATE_VALUE)) {
               details.cancel()
@@ -129,7 +134,7 @@ export function TagsField({
                   <ComboboxChipsInput
                     id={field.name}
                     placeholder={selected.length ? undefined : placeholder}
-                    onBlur={field.handleBlur}
+                    onBlur={popup.onBlur}
                     aria-invalid={isInvalid}
                     aria-describedby={isInvalid ? errorId : undefined}
                   />
