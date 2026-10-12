@@ -1146,6 +1146,7 @@ export class RadarrService {
     apiKey: string,
     endpoint: string,
     init?: { method: 'POST'; body: object },
+    timeout = RADARR_API_TIMEOUT,
   ): Promise<T> {
     const url = new URL(
       `${this.ensureUrlHasProtocol(baseUrl)}/api/v3/${endpoint}`,
@@ -1158,7 +1159,7 @@ export class RadarrService {
         ...(init && { 'Content-Type': 'application/json' }),
       },
       body: init && JSON.stringify(init.body),
-      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
+      signal: AbortSignal.timeout(timeout),
     })
 
     if (!response.ok) {
@@ -1317,6 +1318,8 @@ export class RadarrService {
             safeBaseUrl,
             apiKey,
             'notification',
+            undefined,
+            RADARR_CONNECTION_TEST_TIMEOUT,
           ),
           webhookName,
           webhookUrl,
@@ -1343,8 +1346,20 @@ export class RadarrService {
               ...(existingWebhook && { id: existingWebhook.id }),
             },
           },
+          RADARR_CONNECTION_TEST_TIMEOUT,
         )
       } catch (callbackError) {
+        if (
+          callbackError instanceof Error &&
+          callbackError.name === 'TimeoutError'
+        ) {
+          return {
+            success: false,
+            code: 'webhook_callback_failed',
+            message:
+              'Radarr did not finish calling Pulsarr back in time. Check the webhook address.',
+          }
+        }
         if (callbackError instanceof HttpError) {
           return {
             success: false,

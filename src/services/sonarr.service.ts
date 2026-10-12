@@ -491,6 +491,7 @@ export class SonarrService {
     apiKey: string,
     endpoint: string,
     init?: { method: 'POST'; body: object },
+    timeout = SONARR_API_TIMEOUT,
   ): Promise<T> {
     const url = new URL(
       `${this.ensureUrlHasProtocol(baseUrl)}/api/v3/${endpoint}`,
@@ -503,7 +504,7 @@ export class SonarrService {
         ...(init && { 'Content-Type': 'application/json' }),
       },
       body: init && JSON.stringify(init.body),
-      signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
+      signal: AbortSignal.timeout(timeout),
     })
 
     if (!response.ok) {
@@ -662,6 +663,8 @@ export class SonarrService {
             safeBaseUrl,
             apiKey,
             'notification',
+            undefined,
+            SONARR_CONNECTION_TEST_TIMEOUT,
           ),
           webhookName,
           webhookUrl,
@@ -688,8 +691,20 @@ export class SonarrService {
               ...(existingWebhook && { id: existingWebhook.id }),
             },
           },
+          SONARR_CONNECTION_TEST_TIMEOUT,
         )
       } catch (callbackError) {
+        if (
+          callbackError instanceof Error &&
+          callbackError.name === 'TimeoutError'
+        ) {
+          return {
+            success: false,
+            code: 'webhook_callback_failed',
+            message:
+              'Sonarr did not finish calling Pulsarr back in time. Check the webhook address.',
+          }
+        }
         if (callbackError instanceof HttpError) {
           return {
             success: false,

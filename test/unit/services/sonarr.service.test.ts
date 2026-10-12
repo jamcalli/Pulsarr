@@ -510,6 +510,52 @@ describe('SonarrService webhook definition', () => {
     expect(bodies.test).toEqual(bodies.create)
   })
 
+  it('reports a webhook callback failure when the callback test times out', async () => {
+    const controllers: AbortController[] = []
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+      const controller = new AbortController()
+      controllers.push(controller)
+      return controller.signal
+    })
+    server.use(
+      http.get('http://sonarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Sonarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://sonarr.test/api/v3/notification', () =>
+        HttpResponse.json([]),
+      ),
+      http.post('http://sonarr.test/api/v3/notification/test', () => {
+        controllers.at(-1)?.abort(new DOMException('timed out', 'TimeoutError'))
+        return new Promise<never>(() => {})
+      }),
+    )
+    const tester = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    try {
+      const result = await tester.testConnection('http://sonarr.test', 'key')
+
+      expect(result).toEqual({
+        success: false,
+        code: 'webhook_callback_failed',
+        message:
+          'Sonarr did not finish calling Pulsarr back in time. Check the webhook address.',
+      })
+      expect(timeout.mock.calls).toEqual([[10000], [10000], [10000]])
+    } finally {
+      timeout.mockRestore()
+    }
+  })
+
   it.each([
     {
       label: 'carries the existing hook id',
