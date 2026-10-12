@@ -414,6 +414,25 @@ export async function routeShow(
     )
     return { routed: false, skippedReason: 'exists-in-target' }
   }
+
+  if (deps.config.skipIfExistsOnPlex) {
+    const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
+
+    const existsOnPlex =
+      await deps.plexServerService.checkExistenceAcrossServers(
+        tempItem.key,
+        'show',
+        isPrimaryUser,
+      )
+
+    if (existsOnPlex) {
+      deps.logger.info(
+        `Show ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
+      )
+      return { routed: false, skippedReason: 'exists-on-plex' }
+    }
+  }
+
   const { presentInstanceIds } = presence
 
   if (presentInstanceIds.length > 0) {
@@ -438,24 +457,6 @@ export async function routeShow(
       completion,
       deps,
     )
-  }
-
-  if (deps.config.skipIfExistsOnPlex) {
-    const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
-
-    const existsOnPlex =
-      await deps.plexServerService.checkExistenceAcrossServers(
-        tempItem.key,
-        'show',
-        isPrimaryUser,
-      )
-
-    if (existsOnPlex) {
-      deps.logger.info(
-        `Show ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
-      )
-      return { routed: false, skippedReason: 'exists-on-plex' }
-    }
   }
 
   const outcome = await deps.contentRouter.routeContent(
@@ -555,6 +556,25 @@ export async function routeMovie(
     )
     return { routed: false, skippedReason: 'exists-in-target' }
   }
+
+  if (deps.config.skipIfExistsOnPlex) {
+    const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
+
+    const existsOnPlex =
+      await deps.plexServerService.checkExistenceAcrossServers(
+        tempItem.key,
+        'movie',
+        isPrimaryUser,
+      )
+
+    if (existsOnPlex) {
+      deps.logger.info(
+        `Movie ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
+      )
+      return { routed: false, skippedReason: 'exists-on-plex' }
+    }
+  }
+
   const { presentInstanceIds } = presence
 
   if (presentInstanceIds.length > 0) {
@@ -579,24 +599,6 @@ export async function routeMovie(
       completion,
       deps,
     )
-  }
-
-  if (deps.config.skipIfExistsOnPlex) {
-    const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
-
-    const existsOnPlex =
-      await deps.plexServerService.checkExistenceAcrossServers(
-        tempItem.key,
-        'movie',
-        isPrimaryUser,
-      )
-
-    if (existsOnPlex) {
-      deps.logger.info(
-        `Movie ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
-      )
-      return { routed: false, skippedReason: 'exists-on-plex' }
-    }
   }
 
   const outcome = await deps.contentRouter.routeContent(
