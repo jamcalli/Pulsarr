@@ -1,6 +1,6 @@
 import { cn } from 'cn'
 import { X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useId } from 'react'
 import { CardFrame } from '@/components/card-frame'
 import {
   AccordionContent,
@@ -37,6 +37,8 @@ export function AccordionCard({
   onToggle,
   children,
 }: AccordionCardProps) {
+  const badgesId = useId()
+  const summaryId = useId()
   const cancels = value === 'new'
   const triggerLabel = cancels
     ? 'Cancel adding'
@@ -67,6 +69,7 @@ export function AccordionCard({
               <div className="min-w-0 flex-1">
                 <AccordionTrigger
                   aria-label={triggerLabel}
+                  aria-describedby={`${badgesId} ${summaryId}`}
                   className="gap-3.5 **:data-[slot=accordion-trigger-icon]:mt-1"
                   icon={cancelIcon}
                 >
@@ -80,9 +83,13 @@ export function AccordionCard({
                       >
                         {title}
                       </span>
-                      {badges}
+                      <span id={badgesId} className="contents">
+                        {badges}
+                      </span>
                     </span>
-                    {summary}
+                    <span id={summaryId} className="contents">
+                      {summary}
+                    </span>
                   </span>
                 </AccordionTrigger>
               </div>
