@@ -24,7 +24,11 @@ function ToolbarSkeleton({ tab }: { tab: QueueTab }) {
   const isMobile = useIsMobile()
   return (
     <>
-      {tab === 'history' && <Skeleton className="h-8 w-96 max-w-full" />}
+      {tab === 'history' && (
+        <Skeleton
+          className={isMobile ? 'h-10 w-full' : 'h-8 w-96 max-w-full'}
+        />
+      )}
       {isMobile ? (
         <>
           <Skeleton className="h-10 w-full" />
