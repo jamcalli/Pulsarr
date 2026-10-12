@@ -1,5 +1,5 @@
-import { Lock } from 'lucide-react'
 import { Children, type ReactNode } from 'react'
+import { LockLine } from '@/components/settings/lock-line'
 import {
   Card,
   CardAction,
@@ -32,11 +32,7 @@ export function SettingsSection({
   const rows = Children.toArray(children)
   if (lock) {
     rows.unshift(
-      <div key="lock" className="flex items-center gap-2 text-muted-foreground">
-        <Lock className="size-4 shrink-0" />
-        <span className="flex-1">{lock.reason}</span>
-        {lock.action}
-      </div>,
+      <LockLine key="lock" reason={lock.reason} action={lock.action} />,
     )
   }
 

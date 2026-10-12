@@ -33,6 +33,8 @@ interface RouteEditorOptions {
   rule: RouterRule | null
   catalog: ConditionCatalog
   targets: RouteTargets
+  /** Ignored for a stored rule, which saves with its own enabled state. */
+  newEnabled: boolean
   onSaved: () => void
   reportDirty: (dirty: boolean) => void
 }
@@ -42,12 +44,12 @@ export function useRouteEditorForm({
   rule,
   catalog,
   targets,
+  newEnabled,
   onSaved,
   reportDirty,
 }: RouteEditorOptions) {
   const { instances } = targets
   const { config } = useConfig()
-  const [newEnabled, setNewEnabled] = useState(true)
 
   const routingDefaults = (instanceId: number | null): RouteRoutingValues => {
     const target =
@@ -126,8 +128,6 @@ export function useRouteEditorForm({
             mutation.error,
             'The route was not saved. Save again to retry.',
           ),
-    newEnabled,
-    setNewEnabled,
     routing,
     createTag,
     instanceOptions: instanceOptions(

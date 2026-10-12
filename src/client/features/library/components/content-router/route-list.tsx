@@ -1,12 +1,12 @@
 import { CornerDownRight, Route } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/empty-state'
+import { Accordion } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import {
-  ClosedRouteCard,
-  OpenRouteCard,
+  RouteCardItem,
   type RouteSwitch,
-} from '@/features/library/components/content-router/route-card'
+} from '@/features/library/components/content-router/route-card-item'
 import { RouteFallbackFrame } from '@/features/library/components/content-router/route-fallback-frame'
 import type { ConditionCatalog } from '@/features/library/hooks/content-router/useConditionCatalog'
 import type { OpenKey } from '@/features/library/hooks/content-router/useContentRouterPage'
@@ -49,20 +49,27 @@ export function RouteList({
   onDelete,
   reportDirty,
 }: RouteListProps) {
-  const openCard = (rule: RouterRule | null) => (
-    <OpenRouteCard
-      key={rule?.id ?? 'new'}
-      type={type}
-      rule={rule}
-      catalog={catalog}
-      targets={targets}
-      routeSwitch={routeSwitch}
-      onCollapse={onCollapse}
-      onClose={onClose}
-      onDelete={onDelete}
-      reportDirty={reportDirty}
-    />
-  )
+  const card = (rule: RouterRule | null) => {
+    const key = rule?.id ?? 'new'
+    const open = openKey === key
+    return (
+      <RouteCardItem
+        key={key}
+        type={type}
+        rule={rule}
+        open={open}
+        catalog={catalog}
+        targets={targets}
+        routeSwitch={routeSwitch}
+        onToggle={() =>
+          rule === null || open ? onCollapse() : onOpen(rule.id)
+        }
+        onClose={onClose}
+        onDelete={onDelete}
+        reportDirty={reportDirty}
+      />
+    )
+  }
 
   if (routes.length === 0 && !targets.hasInstance) {
     const empty = noInstanceCopy(type)
@@ -97,21 +104,10 @@ export function RouteList({
 
   return (
     <div className="flex flex-col gap-4">
-      {openKey === 'new' && openCard(null)}
-      {routes.map((rule) =>
-        openKey === rule.id ? (
-          openCard(rule)
-        ) : (
-          <ClosedRouteCard
-            key={rule.id}
-            rule={rule}
-            catalog={catalog}
-            targets={targets}
-            routeSwitch={routeSwitch}
-            onOpen={() => onOpen(rule.id)}
-          />
-        ),
-      )}
+      <Accordion value={openKey === null ? [] : [openKey]} className="gap-4">
+        {openKey === 'new' && card(null)}
+        {routes.map(card)}
+      </Accordion>
       <RouteFallbackFrame
         media={<CornerDownRight aria-hidden className="size-5 text-primary" />}
       >

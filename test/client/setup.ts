@@ -1,7 +1,13 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterAll, afterEach } from 'vitest'
+import { afterAll, afterEach, vi } from 'vitest'
+import type * as Constants from '@/lib/constants'
 import { createFetchMock } from '../setup/fetch-mock.js'
+
+vi.mock('@/lib/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof Constants>()),
+  MIN_LOADING_DELAY: 0,
+}))
 
 const mock = createFetchMock([], 'error')
 

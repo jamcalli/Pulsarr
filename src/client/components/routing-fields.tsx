@@ -57,8 +57,11 @@ interface RoutingFieldsProps {
   showMinimumAvailability: boolean
   /** Offers "Use instance default" on every instance-scoped field except tags, stored as null. */
   inherit?: boolean
-  onCreateTag: (label: string) => Promise<CreatableOption>
-  onInstanceChange: (instanceId: string) => void
+  /** False when the form edits the instance itself, so there is no instance to pick. */
+  showInstance?: boolean
+  tagsDescription?: string
+  onCreateTag?: (label: string) => Promise<CreatableOption>
+  onInstanceChange?: (instanceId: string) => void
 }
 
 const DEFAULT_PROPS: RoutingFieldsProps = {
@@ -73,7 +76,6 @@ const DEFAULT_PROPS: RoutingFieldsProps = {
   instanceDisabled: false,
   fieldsDisabled: false,
   showMinimumAvailability: false,
-  onCreateTag: () => Promise.reject(new Error('Tags cannot be created here.')),
   onInstanceChange: () => undefined,
 }
 
@@ -109,6 +111,8 @@ export const RoutingFields = withFieldGroup({
     fieldsDisabled,
     showMinimumAvailability,
     inherit = false,
+    showInstance = true,
+    tagsDescription = "Leave empty to apply the instance's tags. Listed tags replace them.",
     onCreateTag,
     onInstanceChange,
   }) {
@@ -168,20 +172,22 @@ export const RoutingFields = withFieldGroup({
 
     return (
       <>
-        <group.AppField
-          name="instanceId"
-          listeners={{ onChange: ({ value }) => onInstanceChange(value) }}
-        >
-          {(field) => (
-            <field.SelectField
-              label="Instance"
-              description="Switching instance resets the fields below to its defaults."
-              orientation={orientation}
-              disabled={instanceDisabled}
-              options={instanceOptions}
-            />
-          )}
-        </group.AppField>
+        {showInstance && (
+          <group.AppField
+            name="instanceId"
+            listeners={{ onChange: ({ value }) => onInstanceChange?.(value) }}
+          >
+            {(field) => (
+              <field.SelectField
+                label="Instance"
+                description="Switching instance resets the fields below to its defaults."
+                orientation={orientation}
+                disabled={instanceDisabled}
+                options={instanceOptions}
+              />
+            )}
+          </group.AppField>
+        )}
         <ErrorAlert message={errorMessage} />
         <group.AppField name="qualityProfile">
           {(field) => (
@@ -232,7 +238,7 @@ export const RoutingFields = withFieldGroup({
               label="Tags"
               orientation={orientation}
               disabled={fieldsDisabled}
-              description="Leave empty to apply the instance's tags. Listed tags replace them."
+              description={tagsDescription}
               emptyText="No tags on this instance"
               options={tags}
               onCreate={onCreateTag}

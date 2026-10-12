@@ -11,6 +11,7 @@ type TextFieldProps = {
   description?: string
   disabled?: boolean
   labelHidden?: boolean
+  orientation?: ComponentProps<typeof FieldRow>['orientation']
   preview?: (value: string) => ReactNode
 } & Pick<
   ComponentProps<typeof Input>,
@@ -22,6 +23,7 @@ export function TextField({
   description,
   disabled,
   labelHidden = false,
+  orientation = 'responsive',
   preview,
   ...inputProps
 }: TextFieldProps) {
@@ -36,13 +38,16 @@ export function TextField({
       description={description}
       disabled={disabled}
       labelHidden={labelHidden}
+      orientation={orientation}
       htmlFor={field.name}
       invalid={isInvalid}
     >
       <div
         className={cn(
           'flex flex-col gap-2',
-          !labelHidden && '@md/field-group:basis-72',
+          !labelHidden &&
+            orientation === 'responsive' &&
+            '@md/field-group:basis-72',
         )}
       >
         <Input

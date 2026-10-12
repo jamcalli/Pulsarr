@@ -1,6 +1,7 @@
 import { useArrInstances } from '@/hooks/useArrInstances'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { type ArrTarget, isConfiguredTarget } from '@/lib/approval'
+import { toArrOptions } from '@/lib/arr-options'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
 
 export function useArrInstanceOptions(
@@ -53,17 +54,11 @@ export function useArrInstanceOptions(
 
   return {
     connected,
-    qualityProfiles: (profilesQuery.data?.qualityProfiles ?? []).map(
-      (profile) => ({ value: String(profile.id), label: profile.name }),
-    ),
-    rootFolders: (foldersQuery.data?.rootFolders ?? []).map((folder) => ({
-      value: folder.path,
-      label: folder.path,
-    })),
-    tags: (tagsQuery.data?.tags ?? []).map((tag) => ({
-      value: String(tag.id),
-      label: tag.label,
-    })),
+    ...toArrOptions({
+      qualityProfiles: profilesQuery.data?.qualityProfiles,
+      rootFolders: foldersQuery.data?.rootFolders,
+      tags: tagsQuery.data?.tags,
+    }),
     isLoading:
       instances.isLoading ||
       profilesQuery.isLoading ||
@@ -72,5 +67,13 @@ export function useArrInstanceOptions(
     errorMessage: notConnected
       ? 'This instance is not connected. Check its API key.'
       : (queryError ?? null),
+    retrying: [profilesQuery, foldersQuery, tagsQuery].some(
+      (query) => query.isError && query.isFetching,
+    ),
+    retry: () => {
+      for (const query of [profilesQuery, foldersQuery, tagsQuery]) {
+        if (query.isError) void query.refetch()
+      }
+    },
   }
 }

@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { PageSkeleton } from '@/components/page-header'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
+import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
@@ -32,6 +33,9 @@ const QuotaSettingsPage = lazy(
 )
 const ContentRouterPage = lazy(
   () => import('@/features/library/pages/content-router'),
+)
+const ArrInstancesPage = lazy(
+  () => import('@/features/library/pages/arr-instances'),
 )
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
@@ -183,6 +187,22 @@ export const router = createBrowserRouter(
                   }
                 >
                   <QuotaSettingsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'library/radarr',
+              element: (
+                <Suspense fallback={<ArrInstancesSkeleton />}>
+                  <ArrInstancesPage key="radarr" type="radarr" />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'library/sonarr',
+              element: (
+                <Suspense fallback={<ArrInstancesSkeleton />}>
+                  <ArrInstancesPage key="sonarr" type="sonarr" />
                 </Suspense>
               ),
             },

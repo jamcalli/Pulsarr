@@ -9,6 +9,8 @@ interface SaveBarProps {
   saved: boolean
   errorMessage: string | null
   onDiscard: () => void
+  saveLabel?: string
+  saveDisabled?: boolean
 }
 
 export function SaveBar({
@@ -17,6 +19,8 @@ export function SaveBar({
   saved,
   errorMessage,
   onDiscard,
+  saveLabel = 'Save changes',
+  saveDisabled = false,
 }: SaveBarProps) {
   const showSaved = saved && !dirty && !isSubmitting
   if (!dirty && !isSubmitting && !showSaved) return null
@@ -44,10 +48,14 @@ export function SaveBar({
             >
               Discard
             </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={isSubmitting || saveDisabled}
+            >
               <BusyLabel
                 busy={isSubmitting}
-                label="Save changes"
+                label={saveLabel}
                 busyLabel="Saving..."
               />
             </Button>
