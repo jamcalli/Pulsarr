@@ -63,9 +63,9 @@ describe('analytics database methods', () => {
     fastify.contentRouter.clearRouterRulesCache()
   })
 
-  describe('getAverageTimeFromGrabbedToNotified', () => {
+  describe('getRequestToReadyTimes', () => {
     const statFor = async (type: string, days: number) => {
-      const rows = await fastify.db.getAverageTimeFromGrabbedToNotified(days)
+      const rows = await fastify.db.getRequestToReadyTimes(days)
       return rows.find((row) => row.content_type === type)
     }
 

@@ -113,7 +113,7 @@ export const StatusTransitionTimeSchema = z
       'Aggregate days spent moving between two watchlist statuses for a content type.',
   })
 
-export const GrabbedToNotifiedTimeSchema = z
+export const RequestToReadyTimeSchema = z
   .object({
     content_type: z.string(),
     avg_days: z.number(),
@@ -125,7 +125,7 @@ export const GrabbedToNotifiedTimeSchema = z
     pending: z.number(),
   })
   .meta({
-    id: 'GrabbedToNotifiedTime',
+    id: 'RequestToReadyTime',
     description: 'Days from request to a file on disk for a content type',
   })
 
@@ -252,7 +252,7 @@ export const DashboardStatsSchema = z
     recent_activity: ActivityStatsSchema,
     instance_activity: z.array(InstanceStatSchema),
     availability_times: z.array(AvailabilityTimeSchema),
-    grabbed_to_notified_times: z.array(GrabbedToNotifiedTimeSchema),
+    request_to_ready_times: z.array(RequestToReadyTimeSchema),
     status_transitions: z.array(StatusTransitionTimeSchema).optional(),
     notification_stats: NotificationStatsSchema.optional(),
     instance_content_breakdown: z.array(InstanceBreakdownSchema).optional(),
@@ -274,7 +274,7 @@ export type ActivityStats = z.infer<typeof ActivityStatsSchema>
 export type InstanceStat = z.infer<typeof InstanceStatSchema>
 export type AvailabilityTime = z.infer<typeof AvailabilityTimeSchema>
 export type StatusTransitionTime = z.infer<typeof StatusTransitionTimeSchema>
-export type GrabbedToNotifiedTime = z.infer<typeof GrabbedToNotifiedTimeSchema>
+export type RequestToReadyTime = z.infer<typeof RequestToReadyTimeSchema>
 export type DashboardStats = z.infer<typeof DashboardStatsSchema>
 export type InstanceContentItem = z.infer<typeof InstanceContentItemSchema>
 export type InstanceContentType = z.infer<typeof InstanceContentTypeSchema>

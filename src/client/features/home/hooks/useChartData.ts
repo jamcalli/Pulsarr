@@ -63,17 +63,11 @@ export function useTopGenresData() {
   }
 }
 
-/**
- * Provides the grabbed-to-notified times data, loading status, and any error.
- *
- * @returns An object containing the grabbed-to-notified times array,
- * a loading indicator, and an error if present.
- */
-export function useGrabbedToNotifiedData() {
+export function useRequestToReadyData() {
   const { data, isLoading, error } = useDashboardStatsQuery()
 
   return {
-    data: data?.grabbed_to_notified_times ?? [],
+    data: data?.request_to_ready_times ?? [],
     isLoading,
     error: apiErrorMessage(error),
   }

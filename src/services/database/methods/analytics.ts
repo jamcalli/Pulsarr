@@ -486,7 +486,7 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
 /**
  * Days from an item's requested history row to its earliest later grabbed or notified row, per content type, over items requested within the window.
  */
-export async function getAverageTimeFromGrabbedToNotified(
+export async function getRequestToReadyTimes(
   this: DatabaseService,
   days = 30,
 ): Promise<

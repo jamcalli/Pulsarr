@@ -107,7 +107,7 @@ declare module '@services/database.service.js' {
      * @param days - Number of days to look back (default: 30)
      * @returns Promise resolving to array of average time metrics by content type
      */
-    getAverageTimeFromGrabbedToNotified(days?: number): Promise<
+    getRequestToReadyTimes(days?: number): Promise<
       Array<{
         content_type: string
         avg_days: number
