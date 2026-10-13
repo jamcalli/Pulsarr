@@ -6,5 +6,6 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatusValue, string> = {
   pending_approval: 'Pending approval',
   pending: 'Pending',
   requested: 'Requested',
-  available: 'Available',
+  grabbed: 'Grabbed',
+  notified: 'Notified',
 }

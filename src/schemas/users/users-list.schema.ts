@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { PlexFriendStatusSchema } from '@root/schemas/shared/plex-friend-status.schema.js'
 import { z } from 'zod'
 
 export const UserBaseSchema = z.object({
@@ -22,7 +23,16 @@ export const UserBaseSchema = z.object({
   updated_at: z.string(),
 })
 
-const UserWithCountSchema = UserBaseSchema.extend({
+export const UserWithFriendStatusSchema = UserBaseSchema.extend({
+  friendStatus: PlexFriendStatusSchema.nullable(),
+  pendingSince: z.string().nullable(),
+}).meta({
+  id: 'UserWithFriendStatus',
+  description:
+    'User with their Plex friend status, null when Plex cannot classify them',
+})
+
+const UserWithCountSchema = UserWithFriendStatusSchema.extend({
   watchlist_count: z.number(),
 })
 

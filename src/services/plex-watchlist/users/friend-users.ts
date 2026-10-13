@@ -4,6 +4,7 @@ import type {
   Friend,
   UserMapEntry,
 } from '@root/types/plex.types.js'
+import type { UsersMetadata } from '@root/types/progress.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { createDefaultQuotasForUser } from './token-users.js'
@@ -13,6 +14,26 @@ export interface FriendUsersDeps {
   db: DatabaseService
   logger: FastifyBaseLogger
   fastify: FastifyInstance
+}
+
+function emitUsersEvent(
+  action: UsersMetadata['action'],
+  user: Pick<User, 'id' | 'name' | 'plex_uuid'>,
+  deps: FriendUsersDeps,
+): void {
+  const metadata: UsersMetadata = {
+    action,
+    userId: user.id,
+    plexUuid: user.plex_uuid ?? null,
+  }
+  deps.fastify.progress.emit({
+    operationId: `users-${user.id}`,
+    type: 'users',
+    phase: action,
+    progress: 100,
+    message: `${action === 'added' ? 'Added' : 'Removed'} user ${user.name}`,
+    metadata,
+  })
 }
 
 /** Creates a DB user and default quotas per unstored friend; `added` holds only those new users. */
@@ -58,6 +79,7 @@ export async function ensureFriendUsers(
         void deps.fastify.notifications.sendUserCreated(user)
 
         await createDefaultQuotasForUser(user.id, deps)
+        emitUsersEvent('added', user, deps)
       } else {
         const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
           {}
@@ -180,6 +202,7 @@ export async function checkForRemovedFriends(
           username: user.name,
           isPrimary: false,
         })
+        emitUsersEvent('removed', user, deps)
       }
 
       if (result.failedIds.length > 0) {

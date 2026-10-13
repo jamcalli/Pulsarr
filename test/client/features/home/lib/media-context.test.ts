@@ -12,6 +12,7 @@ function request(overrides: Partial<RecentRequest> = {}): RecentRequest {
     id: 7,
     source: 'watchlist',
     title: 'Severance',
+    key: 'severance',
     contentType: 'show',
     guids: ['tvdb:371980'],
     thumb: null,
@@ -32,7 +33,6 @@ function instance(
     id: 1,
     name: 'Sonarr',
     instanceType: 'sonarr',
-    status: 'requested',
     junctionStatus: 'requested',
     ...overrides,
   }
@@ -127,7 +127,6 @@ describe('mediaContext', () => {
             id: 2,
             name: 'Radarr 4K',
             instanceType: 'radarr',
-            status: 'pending',
             junctionStatus: 'pending',
           }),
         ],
@@ -155,11 +154,11 @@ describe('mediaContext', () => {
   })
 
   it('shows the file at the arr before the user is told', () => {
-    const grabbed = instance({ status: 'available', junctionStatus: 'grabbed' })
+    const grabbed = instance({ junctionStatus: 'grabbed' })
     const context = mediaContext({
       displayName,
       request: request({
-        status: 'available',
+        status: 'grabbed',
         primaryInstance: grabbed,
         allInstances: [grabbed],
       }),
@@ -177,14 +176,11 @@ describe('mediaContext', () => {
   })
 
   it('marks a notified title done', () => {
-    const notified = instance({
-      status: 'available',
-      junctionStatus: 'notified',
-    })
+    const notified = instance({ junctionStatus: 'notified' })
     const context = mediaContext({
       displayName,
       request: request({
-        status: 'available',
+        status: 'notified',
         primaryInstance: notified,
         allInstances: [notified],
       }),
@@ -206,7 +202,7 @@ describe('mediaContext', () => {
       request: request({
         title: 'Dune',
         contentType: 'movie',
-        status: 'available',
+        status: 'grabbed',
         primaryInstance: null,
         allInstances: [
           instance({ name: 'Radarr', instanceType: 'radarr' }),
@@ -214,7 +210,6 @@ describe('mediaContext', () => {
             id: 2,
             name: 'Radarr 4K',
             instanceType: 'radarr',
-            status: 'available',
             junctionStatus: 'grabbed',
           }),
         ],

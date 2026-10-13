@@ -15,7 +15,7 @@ const watchlistRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get user watchlist items',
         operationId: 'getUserWatchlist',
         description:
-          'Fetch all watchlist items for a specific user by their ID',
+          'Fetch the pending approvals and watchlist items of one user, newest first',
         params: GetUserWatchlistParamsSchema,
         response: {
           200: GetUserWatchlistResponseSchema,
@@ -35,19 +35,10 @@ const watchlistRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('User not found')
         }
 
-        const watchlistItems =
-          await fastify.db.getAllWatchlistItemsForUser(userId)
-
-        const transformedItems = watchlistItems.map((item) => ({
-          title: item.title,
-          key: item.key,
-          type: item.type,
-          thumb: item.thumb || null,
-          guids: Array.isArray(item.guids) ? item.guids : [],
-          genres: Array.isArray(item.genres) ? item.genres : [],
-          status: item.status,
-          added: item.added || null,
-        }))
+        const items = await fastify.db.getRecentRequests({
+          userId,
+          includeUnrouted: true,
+        })
 
         const response: GetUserWatchlistResponse = {
           success: true,
@@ -57,8 +48,8 @@ const watchlistRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               id: user.id,
               name: user.name,
             },
-            watchlistItems: transformedItems,
-            total: transformedItems.length,
+            items,
+            total: items.length,
           },
         }
 

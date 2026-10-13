@@ -1,3 +1,4 @@
+import { RecentRequestStatusSchema } from '@root/schemas/shared/recent-request.schema'
 import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { CompactSelect } from '@/components/compact-select'
@@ -44,17 +45,19 @@ import {
   recentViewPref,
 } from '@/features/home/lib/home-prefs'
 import { recentRequestItem } from '@/features/home/lib/media-item'
+import { REQUEST_STATUS_LABELS } from '@/features/home/lib/request-labels'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { formatCount, formatList, formatRelative } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { usePref } from '@/lib/prefs'
 
-const STATUS_FILTERS = [
+const STATUS_FILTERS: ReadonlyArray<{ value: RecentStatus; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'pending_approval', label: 'Pending approval' },
-  { value: 'requested', label: 'Requested' },
-  { value: 'available', label: 'Available' },
-] as const satisfies ReadonlyArray<{ value: RecentStatus; label: string }>
+  ...RecentRequestStatusSchema.options.map((value) => ({
+    value,
+    label: REQUEST_STATUS_LABELS[value],
+  })),
+]
 
 const LIMIT_OPTIONS = RECENT_LIMITS.map((limit) => ({
   value: limit,

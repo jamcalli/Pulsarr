@@ -1,11 +1,9 @@
-import type {
-  PlexFriendStatus,
-  UserStatusResponse,
-} from '@root/schemas/plex/user-status.schema'
+import type { UserStatusResponse } from '@root/schemas/plex/user-status.schema'
 import type {
   QuotaStatusResponse,
   UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
+import type { PlexFriendStatus } from '@root/schemas/shared/plex-friend-status.schema'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 import { useMutation } from '@tanstack/react-query'
 import { useMemo } from 'react'
@@ -33,7 +31,7 @@ export type UserQuotas = {
 
 export type UserWithQuotaInfo = UserWatchlistInfo & {
   userQuotas: UserQuotas | null
-  friendStatus?: PlexFriendStatus
+  friendStatus?: PlexFriendStatus | null
   pendingSince?: string | null
   isTracked?: boolean
 }

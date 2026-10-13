@@ -1,3 +1,4 @@
+import { RecentRequestStatusSchema } from '@root/schemas/shared/recent-request.schema'
 import { type PrefDef, parseOneOf } from '@/lib/prefs'
 
 function oneOfNumbers<const T extends readonly number[]>(values: T) {
@@ -9,9 +10,7 @@ export const MEDIA_VIEWS = ['carousel', 'list'] as const
 export const RECENT_LIMITS = [10, 20, 30, 50] as const
 export const RECENT_STATUSES = [
   'all',
-  'pending_approval',
-  'requested',
-  'available',
+  ...RecentRequestStatusSchema.options,
 ] as const
 
 export const APPROVAL_SORTS = ['oldest', 'newest'] as const

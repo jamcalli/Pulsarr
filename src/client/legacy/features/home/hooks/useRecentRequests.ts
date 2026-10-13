@@ -1,7 +1,7 @@
 import type {
   RecentRequestItem,
   RecentRequestStatus,
-} from '@root/schemas/dashboard/recent-requests.schema'
+} from '@root/schemas/shared/recent-request.schema'
 import { keepPreviousData } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { useMinLoading } from '@/hooks/useMinLoading'
@@ -13,7 +13,8 @@ export const STATUS_FILTER_OPTIONS = [
   { label: 'All', value: 'all' },
   { label: 'Pending Approval', value: 'pending_approval' },
   { label: 'Requested', value: 'requested' },
-  { label: 'Available', value: 'available' },
+  { label: 'Grabbed', value: 'grabbed' },
+  { label: 'Notified', value: 'notified' },
 ] as const
 
 export const LIMIT_PRESETS = [10, 20, 30, 50] as const
@@ -29,7 +30,8 @@ const STATUS_VALUES: readonly string[] = [
   'pending_approval',
   'pending',
   'requested',
-  'available',
+  'grabbed',
+  'notified',
 ]
 
 function toStatusFilter(value: string): StatusFilterValue {

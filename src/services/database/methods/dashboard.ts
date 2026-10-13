@@ -1,25 +1,11 @@
 import type { WatchlistStatus } from '@root/schemas/common/watchlist-status.schema.js'
-import type { RecentRequestItem } from '@root/schemas/dashboard/recent-requests.schema.js'
+import type {
+  RecentRequestItem,
+  RecentRequestStatus,
+} from '@root/schemas/shared/recent-request.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
-
-/**
- * Maps junction status to display status
- * Both 'grabbed' and 'notified' are treated as 'available' since
- * junction status is only updated on webhook confirmation.
- */
-function mapJunctionStatus(
-  status: string | null,
-): 'pending' | 'requested' | 'available' {
-  switch (status) {
-    case 'notified':
-    case 'grabbed':
-      return 'available'
-    case 'requested':
-      return 'requested'
-    default:
-      return 'pending'
-  }
-}
+import { isStatusUpgrade } from '@utils/watchlist-status-rank.js'
+import type { Knex } from 'knex'
 
 function toJunctionStatus(status: string | null): WatchlistStatus {
   switch (status) {
@@ -34,54 +20,31 @@ function toJunctionStatus(status: string | null): WatchlistStatus {
   }
 }
 
-/**
- * Determines the "best" status across all instances
- * Priority: available > requested > pending
- */
-function getBestStatus(
-  instances: Array<{ status: string }>,
-): 'pending' | 'requested' | 'available' {
-  const statusPriority = {
-    available: 3,
-    requested: 2,
-    pending: 1,
-  }
-
-  let bestStatus: 'pending' | 'requested' | 'available' = 'pending'
-  let bestPriority = 0
-
-  for (const instance of instances) {
-    const mappedStatus = mapJunctionStatus(instance.status)
-    const priority = statusPriority[mappedStatus]
-    if (priority > bestPriority) {
-      bestPriority = priority
-      bestStatus = mappedStatus
-    }
-  }
-
-  return bestStatus
+function getBestStatus(statuses: WatchlistStatus[]): WatchlistStatus {
+  return statuses.reduce<WatchlistStatus>(
+    (best, status) => (isStatusUpgrade(best, status) ? status : best),
+    'pending',
+  )
 }
 
-/**
- * Gets recent requests for the dashboard carousel.
- * Combines pending approvals and routed watchlist items.
- *
- * @param limit - Maximum number of items to return (default: 10)
- * @param status - Optional status filter
- * @returns Promise resolving to array of recent request items
- */
 export async function getRecentRequests(
   this: DatabaseService,
-  limit = 10,
-  status?: 'pending_approval' | 'pending' | 'requested' | 'available',
+  options: {
+    limit?: number
+    status?: RecentRequestStatus
+    userId?: number
+    includeUnrouted?: boolean
+  },
 ): Promise<RecentRequestItem[]> {
+  const { limit, status, userId, includeUnrouted = false } = options
   this.log.debug(
-    { limit, status },
+    { limit, status, userId, includeUnrouted },
     'Fetching recent requests for dashboard carousel',
   )
 
   try {
     const items: RecentRequestItem[] = []
+    const pendingApprovalKeys = new Set<string>()
 
     // Only fetch approvals if not filtering to watchlist-only statuses
     const shouldFetchApprovals = !status || status === 'pending_approval'
@@ -95,6 +58,7 @@ export async function getRecentRequests(
         .select(
           'approval_requests.id',
           'approval_requests.content_title as title',
+          'approval_requests.content_key as key',
           'approval_requests.content_type',
           'approval_requests.content_guids as guids',
           'approval_requests.user_id',
@@ -110,14 +74,20 @@ export async function getRecentRequests(
           )
         })
         .where('approval_requests.status', 'pending')
+        .modify((qb) => {
+          if (userId !== undefined)
+            qb.where('approval_requests.user_id', userId)
+          if (limit !== undefined) qb.limit(limit)
+        })
         .orderBy('approval_requests.created_at', 'desc')
-        .limit(limit)
 
       for (const row of approvals) {
+        pendingApprovalKeys.add(`${row.user_id}:${row.key}`)
         items.push({
           id: row.id,
           source: 'approval',
           title: row.title,
+          key: row.key,
           contentType: row.content_type as 'movie' | 'show',
           guids: this.safeJsonParse(row.guids, [], 'approval.guids'),
           thumb: row.thumb || null,
@@ -133,11 +103,22 @@ export async function getRecentRequests(
 
     // 2. Get watchlist items with their instance info
     if (shouldFetchWatchlist) {
+      // Over-fetch rows because each item has one row per routed instance
+      const scopeWatchlistQuery = (qb: Knex.QueryBuilder) => {
+        if (userId !== undefined) qb.where('wi.user_id', userId)
+        if (limit !== undefined) qb.limit(limit * 3)
+      }
+      const requireRouting =
+        (instanceColumn: string) => (qb: Knex.QueryBuilder) => {
+          if (!includeUnrouted) qb.whereNotNull(instanceColumn)
+        }
+
       // Fetch watchlist items for movies (Radarr)
       const radarrItems = await this.knex('watchlist_items as wi')
         .select(
           'wi.id',
           'wi.title',
+          'wi.key',
           'wi.type as content_type',
           'wi.guids',
           'wi.thumb',
@@ -157,15 +138,16 @@ export async function getRecentRequests(
         )
         .leftJoin('radarr_instances as ri', 'ri.id', 'wri.radarr_instance_id')
         .where('wi.type', 'movie')
-        .whereNotNull('wri.radarr_instance_id')
+        .modify(requireRouting('wri.radarr_instance_id'))
+        .modify(scopeWatchlistQuery)
         .orderBy('wi.created_at', 'desc')
-        .limit(limit * 3) // Fetch more to account for multiple instances per item
 
       // Fetch watchlist items for shows (Sonarr)
       const sonarrItems = await this.knex('watchlist_items as wi')
         .select(
           'wi.id',
           'wi.title',
+          'wi.key',
           'wi.type as content_type',
           'wi.guids',
           'wi.thumb',
@@ -185,9 +167,9 @@ export async function getRecentRequests(
         )
         .leftJoin('sonarr_instances as si', 'si.id', 'wsi.sonarr_instance_id')
         .where('wi.type', 'show')
-        .whereNotNull('wsi.sonarr_instance_id')
+        .modify(requireRouting('wsi.sonarr_instance_id'))
+        .modify(scopeWatchlistQuery)
         .orderBy('wi.created_at', 'desc')
-        .limit(limit * 3)
 
       // Group instances by watchlist item ID
       const watchlistItemsMap = new Map<
@@ -195,6 +177,7 @@ export async function getRecentRequests(
         {
           id: number
           title: string
+          key: string
           contentType: 'movie' | 'show'
           guids: string[]
           thumb: string | null
@@ -211,68 +194,41 @@ export async function getRecentRequests(
         }
       >()
 
-      // Process Radarr items
-      for (const row of radarrItems) {
-        const existing = watchlistItemsMap.get(row.id)
-        if (existing) {
-          existing.instances.push({
+      const rowsByInstanceType = [
+        ['radarr', radarrItems],
+        ['sonarr', sonarrItems],
+      ] as const
+      for (const [instanceType, rows] of rowsByInstanceType) {
+        for (const row of rows) {
+          if (
+            includeUnrouted &&
+            pendingApprovalKeys.has(`${row.user_id}:${row.key}`)
+          ) {
+            continue
+          }
+          let entry = watchlistItemsMap.get(row.id)
+          if (!entry) {
+            entry = {
+              id: row.id,
+              title: row.title,
+              key: row.key,
+              contentType: row.content_type as 'movie' | 'show',
+              guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+              thumb: row.thumb || null,
+              userId: row.user_id,
+              userName: row.user_name || 'Unknown',
+              createdAt: row.created_at,
+              instanceType,
+              instances: [],
+            }
+            watchlistItemsMap.set(row.id, entry)
+          }
+          if (row.instance_id === null) continue
+          entry.instances.push({
             id: row.instance_id,
             name: row.instance_name || 'Unknown',
             status: row.junction_status || 'pending',
             isPrimary: Boolean(row.is_primary),
-          })
-        } else {
-          watchlistItemsMap.set(row.id, {
-            id: row.id,
-            title: row.title,
-            contentType: row.content_type as 'movie' | 'show',
-            guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
-            thumb: row.thumb || null,
-            userId: row.user_id,
-            userName: row.user_name || 'Unknown',
-            createdAt: row.created_at,
-            instanceType: 'radarr',
-            instances: [
-              {
-                id: row.instance_id,
-                name: row.instance_name || 'Unknown',
-                status: row.junction_status || 'pending',
-                isPrimary: Boolean(row.is_primary),
-              },
-            ],
-          })
-        }
-      }
-
-      // Process Sonarr items
-      for (const row of sonarrItems) {
-        const existing = watchlistItemsMap.get(row.id)
-        if (existing) {
-          existing.instances.push({
-            id: row.instance_id,
-            name: row.instance_name || 'Unknown',
-            status: row.junction_status || 'pending',
-            isPrimary: Boolean(row.is_primary),
-          })
-        } else {
-          watchlistItemsMap.set(row.id, {
-            id: row.id,
-            title: row.title,
-            contentType: row.content_type as 'movie' | 'show',
-            guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
-            thumb: row.thumb || null,
-            userId: row.user_id,
-            userName: row.user_name || 'Unknown',
-            createdAt: row.created_at,
-            instanceType: 'sonarr',
-            instances: [
-              {
-                id: row.instance_id,
-                name: row.instance_name || 'Unknown',
-                status: row.junction_status || 'pending',
-                isPrimary: Boolean(row.is_primary),
-              },
-            ],
           })
         }
       }
@@ -288,12 +244,13 @@ export async function getRecentRequests(
           id: i.id,
           name: i.name,
           instanceType: item.instanceType,
-          status: mapJunctionStatus(i.status),
           junctionStatus: toJunctionStatus(i.status),
         }))
 
         // Determine the best status across all instances
-        const bestStatus = getBestStatus(item.instances)
+        const bestStatus = getBestStatus(
+          item.instances.map((i) => toJunctionStatus(i.status)),
+        )
 
         // Apply status filter if provided
         if (status && bestStatus !== status) {
@@ -304,6 +261,7 @@ export async function getRecentRequests(
           id: item.id,
           source: 'watchlist',
           title: item.title,
+          key: item.key,
           contentType: item.contentType,
           guids: item.guids,
           thumb: item.thumb,
@@ -316,7 +274,6 @@ export async function getRecentRequests(
                 id: primaryInstance.id,
                 name: primaryInstance.name,
                 instanceType: item.instanceType,
-                status: mapJunctionStatus(primaryInstance.status),
                 junctionStatus: toJunctionStatus(primaryInstance.status),
               }
             : null,
@@ -331,7 +288,7 @@ export async function getRecentRequests(
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
 
-    const result = items.slice(0, limit)
+    const result = limit === undefined ? items : items.slice(0, limit)
 
     this.log.debug(
       {

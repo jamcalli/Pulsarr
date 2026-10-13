@@ -1,4 +1,4 @@
-import type { PlexFriendStatus } from '@root/schemas/plex/user-status.schema'
+import type { PlexFriendStatus } from '@root/schemas/shared/plex-friend-status.schema'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'

@@ -18,9 +18,16 @@ export type ApprovalMetadata = {
   status: 'pending' | 'approved' | 'rejected' | 'expired' | 'auto_approved'
 }
 
+export type UsersMetadata = {
+  action: 'added' | 'removed'
+  userId: number
+  plexUuid: string | null
+}
+
 export type ProgressMetadata =
   | WorkflowMetadata
   | ApprovalMetadata
+  | UsersMetadata
   | SystemStatusMetadata
   | Record<string, never>
 
@@ -39,6 +46,7 @@ export interface ProgressEvent {
     | 'plex-label-sync'
     | 'plex-label-removal'
     | 'approval'
+    | 'users'
   phase: string
   progress: number
   message: string

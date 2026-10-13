@@ -3012,6 +3012,19 @@
         "additionalProperties": false,
         "description": "Orphaned tag reference cleanup result for one instance"
       },
+      "PlexFriendStatus": {
+        "type": "string",
+        "enum": [
+          "friend",
+          "server_only",
+          "pending_sent",
+          "pending_received",
+          "friend_only",
+          "self",
+          "managed"
+        ],
+        "description": "Plex relationship of a user to the server owner, from friends, server shares and pending requests"
+      },
       "PlexLabelSyncConfig": {
         "type": "object",
         "properties": {
@@ -3692,9 +3705,6 @@
           "instanceType": {
             "$ref": "#/components/schemas/InstanceType"
           },
-          "status": {
-            "$ref": "#/components/schemas/RecentRequestInstanceStatus"
-          },
           "junctionStatus": {
             "$ref": "#/components/schemas/WatchlistStatus"
           }
@@ -3703,20 +3713,10 @@
           "id",
           "name",
           "instanceType",
-          "status",
           "junctionStatus"
         ],
         "additionalProperties": false,
-        "description": "One arr instance a recent request was routed to, with its collapsed and raw status"
-      },
-      "RecentRequestInstanceStatus": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "requested",
-          "available"
-        ],
-        "description": "Collapsed per-instance status, never pending_approval since approvals are not routed yet"
+        "description": "One arr instance a recent request was routed to, with its watchlist status on that instance"
       },
       "RecentRequestItem": {
         "type": "object",
@@ -3732,6 +3732,9 @@
             ]
           },
           "title": {
+            "type": "string"
+          },
+          "key": {
             "type": "string"
           },
           "contentType": {
@@ -3782,6 +3785,7 @@
           "id",
           "source",
           "title",
+          "key",
           "contentType",
           "guids",
           "thumb",
@@ -3801,9 +3805,10 @@
           "pending_approval",
           "pending",
           "requested",
-          "available"
+          "grabbed",
+          "notified"
         ],
-        "description": "Collapsed request status, where pending_approval comes from the approval queue"
+        "description": "Request status, pending_approval from the approval queue, otherwise the highest watchlist status across routed instances"
       },
       "RecentRequestsResponse": {
         "type": "object",
@@ -7145,6 +7150,168 @@
         ],
         "additionalProperties": false,
         "description": "A user with their total watchlist item count in the range and its movie and show split"
+      },
+      "UserStats": {
+        "type": "object",
+        "properties": {
+          "watchlist": {
+            "type": "object",
+            "properties": {
+              "pending": {
+                "type": "number"
+              },
+              "requested": {
+                "type": "number"
+              },
+              "grabbed": {
+                "type": "number"
+              },
+              "notified": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "pending",
+              "requested",
+              "grabbed",
+              "notified",
+              "total"
+            ],
+            "additionalProperties": false
+          },
+          "notificationsSent": {
+            "type": "number"
+          },
+          "pendingApprovals": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "watchlist",
+          "notificationsSent",
+          "pendingApprovals"
+        ],
+        "additionalProperties": false,
+        "description": "Counts for one user across their watchlist, notifications and approvals"
+      },
+      "UserWithFriendStatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "apprise": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "alias": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "discord_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notify_apprise": {
+            "type": "boolean"
+          },
+          "notify_discord": {
+            "type": "boolean"
+          },
+          "notify_discord_mention": {
+            "type": "boolean"
+          },
+          "notify_plex_mobile": {
+            "type": "boolean"
+          },
+          "can_sync": {
+            "type": "boolean"
+          },
+          "requires_approval": {
+            "type": "boolean"
+          },
+          "is_primary_token": {
+            "type": "boolean"
+          },
+          "plex_uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "friend_created_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "friendStatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlexFriendStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pendingSince": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "apprise",
+          "alias",
+          "discord_id",
+          "notify_apprise",
+          "notify_discord",
+          "notify_discord_mention",
+          "notify_plex_mobile",
+          "can_sync",
+          "requires_approval",
+          "is_primary_token",
+          "created_at",
+          "updated_at",
+          "friendStatus",
+          "pendingSince"
+        ],
+        "additionalProperties": false,
+        "description": "User with their Plex friend status, null when Plex cannot classify them"
       },
       "WatchlistStatus": {
         "type": "string",
@@ -12076,16 +12243,7 @@
                             "type": "string"
                           },
                           "status": {
-                            "type": "string",
-                            "enum": [
-                              "friend",
-                              "server_only",
-                              "pending_sent",
-                              "pending_received",
-                              "friend_only",
-                              "self",
-                              "managed"
-                            ]
+                            "$ref": "#/components/schemas/PlexFriendStatus"
                           },
                           "friendCreatedAt": {
                             "type": [
@@ -12127,16 +12285,7 @@
                             "type": "string"
                           },
                           "status": {
-                            "type": "string",
-                            "enum": [
-                              "friend",
-                              "server_only",
-                              "pending_sent",
-                              "pending_received",
-                              "friend_only",
-                              "self",
-                              "managed"
-                            ]
+                            "$ref": "#/components/schemas/PlexFriendStatus"
                           },
                           "pendingSince": {
                             "type": [
@@ -19365,6 +19514,22 @@
                           "updated_at": {
                             "type": "string"
                           },
+                          "friendStatus": {
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/PlexFriendStatus"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "pendingSince": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
                           "watchlist_count": {
                             "type": "number"
                           }
@@ -19384,6 +19549,8 @@
                           "is_primary_token",
                           "created_at",
                           "updated_at",
+                          "friendStatus",
+                          "pendingSince",
                           "watchlist_count"
                         ],
                         "additionalProperties": false
@@ -20031,101 +20198,7 @@
                       "type": "string"
                     },
                     "user": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "apprise": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "alias": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "discord_id": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "notify_apprise": {
-                          "type": "boolean"
-                        },
-                        "notify_discord": {
-                          "type": "boolean"
-                        },
-                        "notify_discord_mention": {
-                          "type": "boolean"
-                        },
-                        "notify_plex_mobile": {
-                          "type": "boolean"
-                        },
-                        "can_sync": {
-                          "type": "boolean"
-                        },
-                        "requires_approval": {
-                          "type": "boolean"
-                        },
-                        "is_primary_token": {
-                          "type": "boolean"
-                        },
-                        "plex_uuid": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "avatar": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "display_name": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "friend_created_at": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "created_at": {
-                          "type": "string"
-                        },
-                        "updated_at": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "apprise",
-                        "alias",
-                        "discord_id",
-                        "notify_apprise",
-                        "notify_discord",
-                        "notify_discord_mention",
-                        "notify_plex_mobile",
-                        "can_sync",
-                        "requires_approval",
-                        "is_primary_token",
-                        "created_at",
-                        "updated_at"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/UserWithFriendStatus"
                     }
                   },
                   "required": [
@@ -20214,101 +20287,7 @@
                       "type": "string"
                     },
                     "user": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "apprise": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "alias": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "discord_id": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "notify_apprise": {
-                          "type": "boolean"
-                        },
-                        "notify_discord": {
-                          "type": "boolean"
-                        },
-                        "notify_discord_mention": {
-                          "type": "boolean"
-                        },
-                        "notify_plex_mobile": {
-                          "type": "boolean"
-                        },
-                        "can_sync": {
-                          "type": "boolean"
-                        },
-                        "requires_approval": {
-                          "type": "boolean"
-                        },
-                        "is_primary_token": {
-                          "type": "boolean"
-                        },
-                        "plex_uuid": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "avatar": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "display_name": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "friend_created_at": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "created_at": {
-                          "type": "string"
-                        },
-                        "updated_at": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "apprise",
-                        "alias",
-                        "discord_id",
-                        "notify_apprise",
-                        "notify_discord",
-                        "notify_discord_mention",
-                        "notify_plex_mobile",
-                        "can_sync",
-                        "requires_approval",
-                        "is_primary_token",
-                        "created_at",
-                        "updated_at"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/UserWithFriendStatus"
                     }
                   },
                   "required": [
@@ -20354,6 +20333,91 @@
         }
       }
     },
+    "/v1/users/{id}/stats": {
+      "get": {
+        "operationId": "getUserStats",
+        "summary": "Get user stats",
+        "tags": [
+          "Users"
+        ],
+        "description": "Count watchlist items by status, notifications sent and pending approvals for one user",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "stats": {
+                      "$ref": "#/components/schemas/UserStats"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "stats"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/users/{userId}/watchlist": {
       "get": {
         "operationId": "getUserWatchlist",
@@ -20361,7 +20425,7 @@
         "tags": [
           "Users"
         ],
-        "description": "Fetch all watchlist items for a specific user by their ID",
+        "description": "Fetch the pending approvals and watchlist items of one user, newest first",
         "parameters": [
           {
             "schema": {
@@ -20405,59 +20469,10 @@
                           ],
                           "additionalProperties": false
                         },
-                        "watchlistItems": {
+                        "items": {
                           "type": "array",
                           "items": {
-                            "type": "object",
-                            "properties": {
-                              "title": {
-                                "type": "string"
-                              },
-                              "key": {
-                                "type": "string"
-                              },
-                              "type": {
-                                "type": "string"
-                              },
-                              "thumb": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "guids": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "genres": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "status": {
-                                "$ref": "#/components/schemas/WatchlistStatus"
-                              },
-                              "added": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              }
-                            },
-                            "required": [
-                              "title",
-                              "key",
-                              "type",
-                              "thumb",
-                              "guids",
-                              "genres",
-                              "status",
-                              "added"
-                            ],
-                            "additionalProperties": false
+                            "$ref": "#/components/schemas/RecentRequestItem"
                           }
                         },
                         "total": {
@@ -20466,7 +20481,7 @@
                       },
                       "required": [
                         "user",
-                        "watchlistItems",
+                        "items",
                         "total"
                       ],
                       "additionalProperties": false

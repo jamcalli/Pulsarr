@@ -104,7 +104,7 @@ export function PulsarrContext({ context }: { context: MediaContext }) {
                   <span className="min-w-0 flex-1 truncate">
                     {instance.name}
                   </span>
-                  <RequestStatus status={instance.status} />
+                  <RequestStatus status={instance.junctionStatus} />
                 </li>
               )
             })}

@@ -1,8 +1,8 @@
+import type { WatchlistStatus } from '@root/schemas/common/watchlist-status.schema'
 import type {
-  InstanceStatus,
   RecentRequestItem,
   RecentRequestStatus,
-} from '@root/schemas/dashboard/recent-requests.schema'
+} from '@root/schemas/shared/recent-request.schema'
 import { Eye, Monitor, Tv } from 'lucide-react'
 import { useState } from 'react'
 import { AspectRatio } from '@/legacy/components/ui/aspect-ratio'
@@ -53,18 +53,24 @@ const STATUS_CONFIG: Record<
     variant: 'default',
     className: 'bg-status-requested text-black hover:bg-status-requested',
   },
-  available: {
-    label: 'Available',
+  grabbed: {
+    label: 'Grabbed',
+    variant: 'default',
+    className: 'bg-status-available text-black hover:bg-status-available',
+  },
+  notified: {
+    label: 'Notified',
     variant: 'default',
     className: 'bg-status-available text-black hover:bg-status-available',
   },
 }
 
 const INSTANCE_STATUS_CONFIG: Record<
-  InstanceStatus,
+  WatchlistStatus,
   { icon: string; label: string }
 > = {
-  available: { icon: '\u2713', label: 'Available' },
+  notified: { icon: '\u2713', label: 'Notified' },
+  grabbed: { icon: '\u2713', label: 'Grabbed' },
   requested: { icon: '\u25CF', label: 'Requested' },
   pending: { icon: '\u25CB', label: 'Pending' },
 }
@@ -150,7 +156,8 @@ export function RecentRequestCard({
         <p className="text-xs font-medium mb-1">Status:</p>
         <ul className="text-xs space-y-0.5">
           {item.allInstances.map((instance) => {
-            const instanceStatusConfig = INSTANCE_STATUS_CONFIG[instance.status]
+            const instanceStatusConfig =
+              INSTANCE_STATUS_CONFIG[instance.junctionStatus]
             return (
               <li
                 key={`${instance.instanceType}-${instance.id}`}

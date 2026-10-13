@@ -8,7 +8,8 @@ const STATUS_TONES: Record<RequestStatusValue, StatusTone> = {
   pending_approval: 'pending',
   pending: 'requested',
   requested: 'requested',
-  available: 'available',
+  grabbed: 'requested',
+  notified: 'available',
 }
 
 export function RequestStatus({ status }: { status: RequestStatusValue }) {
