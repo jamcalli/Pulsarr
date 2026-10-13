@@ -440,7 +440,7 @@ describe('plex/watchlist-fetcher', () => {
 
       await expect(
         fetchSelfWatchlist(config, mockLogger, 1, getAllWatchlistItemsForUser),
-      ).rejects.toThrow()
+      ).rejects.toBeInstanceOf(TypeError)
       expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
     }, 20000)
 
