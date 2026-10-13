@@ -513,7 +513,7 @@ export async function getRequestToReadyTimes(
       .join(requested, 'wi.id', 'r.watchlist_item_id')
       .leftJoin('watchlist_status_history as h', function () {
         this.on('h.watchlist_item_id', '=', 'wi.id')
-          .andOn('h.timestamp', '>', 'r.requested_at')
+          .andOn('h.timestamp', '>=', 'r.requested_at')
           .andOnIn('h.status', ['grabbed', 'notified'])
       })
       .whereIn('wi.type', ['movie', 'show'])
@@ -549,7 +549,7 @@ export async function getRequestToReadyTimes(
         continue
       }
       const daysToReady = Number(row.days_to_ready)
-      if (daysToReady > 0) group.durations.push(daysToReady)
+      if (daysToReady >= 0) group.durations.push(daysToReady)
     }
 
     const round = (value: number) => Number(value.toFixed(2))

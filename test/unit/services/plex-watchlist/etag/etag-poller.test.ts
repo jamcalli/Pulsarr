@@ -230,6 +230,66 @@ describe('EtagPoller staggered loop restart', () => {
     poller.stopStaggeredPolling()
   })
 
+  it('skips the baseline cache write for a stale generation', async () => {
+    const poller = new EtagPoller(
+      () => ({ plexTokens: ['token'] }) as Config,
+      createMockLogger(),
+    )
+    const primary = { userId: 1, username: 'primary', isPrimary: true }
+    captureTokens()
+    poller.startStaggeredPolling(
+      1,
+      [],
+      vi.fn(),
+      vi.fn(async () => []),
+    )
+
+    await poller.checkUser(primary, -1)
+    expect(poller.getCache().has('primary:1')).toBe(false)
+
+    await poller.checkUser(primary)
+    expect(poller.getCache().has('primary:1')).toBe(true)
+    poller.stopStaggeredPolling()
+  })
+
+  it('skips the friend cache write for a stale generation', async () => {
+    const poller = new EtagPoller(
+      () => ({ plexTokens: ['token'] }) as Config,
+      createMockLogger(),
+    )
+    const friend = {
+      userId: 2,
+      username: 'friend',
+      isPrimary: false,
+      watchlistId: 'friend-1',
+    }
+    let etag = 'W/"1"'
+    server.use(
+      http.post('https://community.plex.tv/api', () =>
+        HttpResponse.json(
+          { data: { userV2: { watchlist: { nodes: [] } } } },
+          { headers: { etag } },
+        ),
+      ),
+    )
+    await poller.establishBaseline(friend)
+    expect(poller.getCache().get('friend:friend-1')?.etag).toBe('W/"1"')
+    poller.startStaggeredPolling(
+      1,
+      [friend],
+      vi.fn(),
+      vi.fn(async () => []),
+    )
+
+    etag = 'W/"stale"'
+    await poller.checkUser(friend, -1)
+    expect(poller.getCache().get('friend:friend-1')?.etag).toBe('W/"1"')
+
+    await poller.checkUser(friend)
+    expect(poller.getCache().get('friend:friend-1')?.etag).toBe('W/"stale"')
+    poller.stopStaggeredPolling()
+  })
+
   it('drops the result of a check that finishes after a restart', async () => {
     const { poller, checkUser } = createPoller()
     let release: () => void = () => {}

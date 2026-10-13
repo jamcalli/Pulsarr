@@ -102,6 +102,9 @@ export const fetchSelfWatchlist = async (
       try {
         log.info(`Falling back to existing database items for user ${userId}`)
         const existingItems = await getAllWatchlistItemsForUser(userId)
+        if (existingItems.length === 0) {
+          throw err
+        }
         allItems.clear()
         seenKeys.clear()
 

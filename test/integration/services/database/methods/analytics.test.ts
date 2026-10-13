@@ -131,6 +131,17 @@ describe('analytics database methods', () => {
       })
     })
 
+    it('counts a ready row stamped in the same millisecond as the request', async () => {
+      const at = daysAgo(2)
+      await insertItem('movie', { requested: at, grabbed: at })
+
+      expect(await statFor('movie', 30)).toMatchObject({
+        count: 1,
+        pending: 0,
+        min_days: 0,
+      })
+    })
+
     it('reports median and nearest-rank p90 across durations', async () => {
       for (const duration of [4, 1, 10, 3, 2]) {
         await insertItem('movie', {

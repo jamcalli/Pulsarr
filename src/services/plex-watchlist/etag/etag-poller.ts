@@ -413,7 +413,7 @@ export class EtagPoller {
       username: user.username,
       userId: user.userId,
     }
-    return this.checkFriend(token, friend, user.userId)
+    return this.checkFriend(token, friend, user.userId, generation)
   }
 
   /**
@@ -548,6 +548,7 @@ export class EtagPoller {
   private async establishPrimaryBaseline(
     token: string,
     userId: number,
+    generation?: number,
   ): Promise<void> {
     const cacheKey = `primary:${userId}`
 
@@ -579,6 +580,7 @@ export class EtagPoller {
       const etag = response.headers.get('etag')
       const data = (await response.json()) as DiscoverWatchlistResponse
       const items = this.parseDiscoverItems(data)
+      if (this.isStaleLoop(generation)) return
 
       if (!etag) {
         this.log.warn(
@@ -607,6 +609,7 @@ export class EtagPoller {
     token: string,
     friend: Friend,
     userId: number,
+    generation?: number,
   ): Promise<void> {
     const cacheKey = `friend:${friend.watchlistId}`
 
@@ -686,6 +689,7 @@ export class EtagPoller {
       }
 
       const etag = etagResponse.headers.get('etag')
+      if (this.isStaleLoop(generation)) return
 
       if (!etag) {
         this.log.warn(
@@ -721,7 +725,7 @@ export class EtagPoller {
 
     if (!cached) {
       // No baseline - need to establish first
-      await this.establishPrimaryBaseline(token, userId)
+      await this.establishPrimaryBaseline(token, userId, generation)
       return { changed: false, userId, isPrimary: true, newItems: [] }
     }
 
@@ -825,7 +829,7 @@ export class EtagPoller {
 
     if (!cached) {
       // No baseline - need to establish first
-      await this.establishFriendBaseline(token, friend, userId)
+      await this.establishFriendBaseline(token, friend, userId, generation)
       return { changed: false, userId, isPrimary: false, newItems: [] }
     }
 

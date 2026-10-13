@@ -428,6 +428,22 @@ describe('plex/watchlist-fetcher', () => {
       expect(items[0].guids).toHaveLength(1)
     })
 
+    it('should reject with the Plex error when the database fallback is empty', async () => {
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          () => HttpResponse.error(),
+        ),
+      )
+      const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue([])
+      const config: Config = { plexTokens: ['token'] } as Config
+
+      await expect(
+        fetchSelfWatchlist(config, mockLogger, 1, getAllWatchlistItemsForUser),
+      ).rejects.toThrow()
+      expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
+    }, 20000)
+
     it('should reject with the Plex error when database fallback fails', async () => {
       server.use(
         http.get(
