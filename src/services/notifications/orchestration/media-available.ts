@@ -12,6 +12,7 @@ import type {
   NotificationResult,
   SonarrEpisodeSchema,
 } from '@root/types/sonarr.types.js'
+import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import { buildPosterUrl } from '@root/utils/poster-url.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -372,6 +373,45 @@ async function buildEnrichmentData(
   }
 }
 
+function instanceUpdateFor(
+  options: MediaAvailableOptions,
+): Pick<WatchlistItemUpdate, 'radarr_instance_id' | 'sonarr_instance_id'> {
+  if (!options.instanceId) return {}
+  if (options.instanceType === 'radarr') {
+    return { radarr_instance_id: options.instanceId }
+  }
+  if (options.instanceType === 'sonarr') {
+    return { sonarr_instance_id: options.instanceId }
+  }
+  return {}
+}
+
+async function recordAvailability(
+  deps: MediaAvailableDeps,
+  mediaInfo: MediaInfo,
+  options: MediaAvailableOptions,
+  watchlistItems: TokenWatchlistItem[],
+): Promise<void> {
+  const instanceUpdate = instanceUpdateFor(options)
+
+  for (const item of watchlistItems) {
+    const userId = Number(item.user_id)
+    if (Number.isNaN(userId) || !item.key) continue
+
+    try {
+      await deps.db.updateWatchlistItem(userId, item.key, {
+        status: 'grabbed',
+        ...instanceUpdate,
+      })
+    } catch (error) {
+      deps.logger.error(
+        { error, userId, key: item.key, title: mediaInfo.title },
+        'Failed to record availability for watchlist item',
+      )
+    }
+  }
+}
+
 export async function buildUserNotifications(
   deps: MediaAvailableDeps,
   mediaInfo: MediaInfo,
@@ -394,6 +434,8 @@ export async function buildUserNotifications(
   )
   const publicMentionsPossible =
     Boolean(deps.config.publicContentNotifications?.enabled) && hasDiscordUrls
+
+  const instanceUpdate = instanceUpdateFor(options)
 
   for (const item of watchlistItems) {
     const user = userMap.get(item.user_id)
@@ -439,20 +481,10 @@ export async function buildUserNotifications(
 
     if (isDuplicate) continue
 
-    const updateData: {
-      status: 'notified'
-      last_notified_at: string
-      radarr_instance_id?: number
-      sonarr_instance_id?: number
-    } = {
+    const updateData: WatchlistItemUpdate = {
       status: 'notified',
       last_notified_at: new Date().toISOString(),
-    }
-
-    if (options.instanceId && options.instanceType === 'radarr') {
-      updateData.radarr_instance_id = options.instanceId
-    } else if (options.instanceId && options.instanceType === 'sonarr') {
-      updateData.sonarr_instance_id = options.instanceId
+      ...instanceUpdate,
     }
 
     const episode =
@@ -629,6 +661,8 @@ async function buildNotificationResults(
   if (!notificationTypeInfo || watchlistItems.length === 0) {
     return { notifications: [], watchlistItems, hasNativeWebhooks, enrichment }
   }
+
+  await recordAvailability(deps, mediaInfo, options, watchlistItems)
 
   // Skip per-user availability notifications when off (public + native webhook
   // are built independently below). Default on for upgrades and fresh boots.

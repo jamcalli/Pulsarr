@@ -61,7 +61,7 @@ describe('plex/watchlist-api', () => {
       )
     })
 
-    it('should handle empty MediaContainer by creating defaults', async () => {
+    it('should reject when MediaContainer is missing', async () => {
       server.use(
         http.get(
           'https://discover.provider.plex.tv/library/sections/watchlist/all',
@@ -71,11 +71,9 @@ describe('plex/watchlist-api', () => {
         ),
       )
 
-      const result = await getWatchlist('token', mockLogger)
-
-      expect(result.MediaContainer).toBeDefined()
-      expect(result.MediaContainer.Metadata).toEqual([])
-      expect(result.MediaContainer.totalSize).toBe(0)
+      await expect(getWatchlist('token', mockLogger)).rejects.toThrow(
+        'Plex returned no watchlist payload',
+      )
     })
 
     it('should handle missing Metadata array by creating defaults', async () => {

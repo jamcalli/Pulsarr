@@ -128,15 +128,9 @@ const plexCommunityHandler = http.post('https://community.plex.tv/api', () => {
   })
 })
 
-const plexWatchlistRssHandler = http.get(
+const plexDiscoverWatchlistHandler = http.get(
   'https://discover.provider.plex.tv/library/sections/watchlist/all',
-  () => {
-    return HttpResponse.text(
-      `<?xml version="1.0" encoding="UTF-8"?>
-<MediaContainer size="0" totalSize="0" />`,
-      { headers: { 'Content-Type': 'application/xml; charset=utf-8' } },
-    )
-  },
+  () => HttpResponse.json({ MediaContainer: { Metadata: [], totalSize: 0 } }),
 )
 
 const sonarrSeriesHandler = http.get(
@@ -290,7 +284,7 @@ export const plexApiHandlers = [
   plexUserHandler,
   plexWatchlistHandler,
   plexCommunityHandler,
-  plexWatchlistRssHandler,
+  plexDiscoverWatchlistHandler,
   sonarrSeriesHandler,
   radarrMovieHandler,
   sonarrQualityProfileHandler,

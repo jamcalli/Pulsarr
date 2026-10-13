@@ -115,8 +115,7 @@ export const getWatchlist = async (
       const responseData = (await response.json()) as PlexResponse
 
       if (!responseData.MediaContainer) {
-        log.info('Plex API returned empty MediaContainer')
-        responseData.MediaContainer = { Metadata: [], totalSize: 0 }
+        throw new Error('Plex returned no watchlist payload')
       }
 
       if (!responseData.MediaContainer.Metadata) {

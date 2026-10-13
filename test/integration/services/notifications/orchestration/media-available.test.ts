@@ -234,6 +234,69 @@ describe('sendMediaAvailable Integration Tests', () => {
       expect(Boolean(junctionRecord.is_primary)).toBe(true)
     })
 
+    it('records availability for a user with no channel enabled', async () => {
+      const knex = getTestDatabase()
+      await knex('watchlist_items').where({ id: 1 }).update({
+        status: 'requested',
+      })
+      await knex('users').where({ id: 1 }).update({
+        notify_discord: false,
+        notify_apprise: false,
+        notify_plex_mobile: false,
+        notify_discord_mention: false,
+      })
+
+      await app.notifications.sendMediaAvailable(
+        {
+          type: 'movie',
+          guid: 'imdb:tt0063350',
+          title: 'Night of the Living Dead',
+        },
+        {
+          isBulkRelease: false,
+          instanceId: 1,
+          instanceType: 'radarr',
+        },
+      )
+
+      const history = await knex('watchlist_status_history')
+        .where({ watchlist_item_id: 1 })
+        .select('status')
+        .orderBy('id')
+      expect(history).toEqual([{ status: 'grabbed' }])
+    })
+
+    it('records both grabbed and notified for a notified user', async () => {
+      if (app.notifications?.discordBot) {
+        app.notifications.discordBot.sendDirectMessage = vi
+          .fn()
+          .mockResolvedValue(undefined)
+      }
+      const knex = getTestDatabase()
+      await knex('watchlist_items').where({ id: 1 }).update({
+        status: 'requested',
+      })
+
+      await app.notifications.sendMediaAvailable(
+        {
+          type: 'movie',
+          guid: 'imdb:tt0063350',
+          title: 'Night of the Living Dead',
+        },
+        {
+          isBulkRelease: false,
+          instanceId: 1,
+          instanceType: 'radarr',
+        },
+      )
+
+      const history = await knex('watchlist_status_history')
+        .where({ watchlist_item_id: 1 })
+        .select('status')
+        .orderBy('id')
+      expect(history).toEqual([{ status: 'grabbed' }, { status: 'notified' }])
+    })
+
     it('skips per-user availability notifications when notifyOnAvailability is off', async () => {
       const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
       if (app.notifications?.discordBot) {

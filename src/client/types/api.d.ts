@@ -1896,26 +1896,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stats/grabbed-to-notified": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get grabbed to notified time stats
-         * @description Retrieve average time from grabbed to notified statistics
-         */
-        get: operations["getGrabbedToNotifiedStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/stats/instance-content": {
         parameters: {
             query?: never;
@@ -1996,6 +1976,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/stats/request-to-ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get request to ready time stats
+         * @description Retrieve days from request to a file on disk per content type
+         */
+        get: operations["getRequestToReadyStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/stats/shows": {
         parameters: {
             query?: never;
@@ -2008,26 +2008,6 @@ export interface paths {
          * @description Retrieve the most watchlisted TV shows with optional date filtering and pagination
          */
         get: operations["getMostWatchedShows"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/status-flow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get status flow data
-         * @description Retrieve status flow data for visualization
-         */
-        get: operations["getStatusFlow"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3626,9 +3606,8 @@ export interface components {
             recent_activity: components["schemas"]["ActivityStats"];
             instance_activity: components["schemas"]["InstanceStat"][];
             availability_times: components["schemas"]["AvailabilityTime"][];
-            grabbed_to_notified_times: components["schemas"]["GrabbedToNotifiedTime"][];
+            request_to_ready_times: components["schemas"]["RequestToReadyTime"][];
             status_transitions?: components["schemas"]["StatusTransitionTime"][];
-            status_flow?: components["schemas"]["StatusFlowData"][];
             notification_stats?: components["schemas"]["NotificationStats"];
             instance_content_breakdown?: components["schemas"]["InstanceBreakdown"][];
         };
@@ -3667,14 +3646,6 @@ export interface components {
         /** @description A genre with the number of watchlist items tagged with it */
         GenreStat: {
             genre: string;
-            count: number;
-        };
-        /** @description Days from grabbed to notified for a content type */
-        GrabbedToNotifiedTime: {
-            content_type: string;
-            avg_days: number;
-            min_days: number;
-            max_days: number;
             count: number;
         };
         /** @description Routed content on one arr instance by status and content type */
@@ -3883,6 +3854,17 @@ export interface components {
             tagsDeleted: number;
             failed: number;
             instances: number;
+        };
+        /** @description Days from request to a file on disk for a content type */
+        RequestToReadyTime: {
+            content_type: string;
+            avg_days: number;
+            min_days: number;
+            max_days: number;
+            median_days: number;
+            p90_days: number;
+            count: number;
+            pending: number;
         };
         /** @description Rolling monitored show entry (master record or per-user tracking row) */
         RollingMonitoredShow: {
@@ -4111,14 +4093,6 @@ export interface components {
         StatusDistribution: {
             status: string;
             count: number;
-        };
-        /** @description Transition count and average days between two statuses for a content type */
-        StatusFlowData: {
-            from_status: string;
-            to_status: string;
-            content_type: string;
-            count: number;
-            avg_days: number;
         };
         /** @description Aggregate days spent moving between two watchlist statuses for a content type. */
         StatusTransitionTime: {
@@ -10972,55 +10946,6 @@ export interface operations {
             };
         };
     };
-    getGrabbedToNotifiedStats: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GrabbedToNotifiedTime"][];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     getInstanceContentBreakdown: {
         parameters: {
             query?: {
@@ -11202,11 +11127,9 @@ export interface operations {
             };
         };
     };
-    getMostWatchedShows: {
+    getRequestToReadyStats: {
         parameters: {
             query?: {
-                limit?: number;
-                offset?: number;
                 days?: number;
             };
             header?: never;
@@ -11221,7 +11144,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ContentStat"][];
+                    "application/json": components["schemas"]["RequestToReadyTime"][];
                 };
             };
             /** @description Default Response */
@@ -11253,9 +11176,11 @@ export interface operations {
             };
         };
     };
-    getStatusFlow: {
+    getMostWatchedShows: {
         parameters: {
             query?: {
+                limit?: number;
+                offset?: number;
                 days?: number;
             };
             header?: never;
@@ -11270,7 +11195,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StatusFlowData"][];
+                    "application/json": components["schemas"]["ContentStat"][];
                 };
             };
             /** @description Default Response */
