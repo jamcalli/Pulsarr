@@ -10,6 +10,15 @@ import {
 } from '@/components/ui/carousel'
 import { Skeleton } from '@/components/ui/skeleton'
 
+const NAV = 'ml-auto hidden gap-1 md:flex'
+
+function headerRow(heading: ReactNode) {
+  return cn(
+    'items-center justify-between gap-2',
+    heading ? 'flex' : 'hidden md:flex',
+  )
+}
+
 interface PosterRowProps {
   heading?: ReactNode
   children: ReactNode
@@ -21,14 +30,9 @@ export function PosterRow({ heading, children }: PosterRowProps) {
       opts={{ align: 'start', dragFree: true }}
       className="flex flex-col gap-2"
     >
-      <div
-        className={cn(
-          'items-center justify-between gap-2',
-          heading ? 'flex' : 'hidden md:flex',
-        )}
-      >
+      <div className={headerRow(heading)}>
         {heading}
-        <div className="ml-auto hidden gap-1 md:flex">
+        <div className={NAV}>
           <CarouselPrevious className="static" aria-label="Previous" />
           <CarouselNext className="static" aria-label="Next" />
         </div>
@@ -42,16 +46,25 @@ export function PosterRow({ heading, children }: PosterRowProps) {
   )
 }
 
-export function PosterRowSkeleton({ className }: { className?: string }) {
+export function PosterRowSkeleton({ heading }: { heading?: ReactNode }) {
   return (
-    <div className={cn('flex gap-4 overflow-hidden pb-2', className)}>
-      {['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((key) => (
-        <div key={key} className="flex w-36 shrink-0 flex-col gap-2">
-          <PosterFrameSkeleton />
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-3 w-20" />
+    <div className="flex flex-col gap-2">
+      <div className={headerRow(heading)}>
+        {heading}
+        <div className={NAV}>
+          <Skeleton className="size-8" />
+          <Skeleton className="size-8" />
         </div>
-      ))}
+      </div>
+      <div className="flex gap-4 overflow-hidden pb-2">
+        {['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((key) => (
+          <div key={key} className="flex w-36 shrink-0 flex-col gap-2">
+            <PosterFrameSkeleton />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { Page, PageHeader } from '@/components/page-header'
 import { AnalyticsSection } from '@/features/home/components/analytics/analytics-section'
 import { ApprovalsCard } from '@/features/home/components/approvals-card'
+import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { MostActiveCard } from '@/features/home/components/most-active-card'
 import { PopularityRankings } from '@/features/home/components/popularity-rankings'
 import { RangeSelect } from '@/features/home/components/range-select'
@@ -10,6 +11,7 @@ import { useDashboardStats } from '@/features/home/hooks/useDashboardStats'
 import { useRecentRequests } from '@/features/home/hooks/useRecentRequests'
 import { useTopGenres } from '@/features/home/hooks/useTopGenres'
 import { useTopUsers } from '@/features/home/hooks/useTopUsers'
+import { HOME_TOP_GRID } from '@/features/home/lib/home-layout'
 import { statusLine } from '@/features/home/lib/status-line'
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
@@ -22,6 +24,10 @@ export default function HomePage() {
   const topUsers = useTopUsers(stats.days)
   const topGenres = useTopGenres(stats.days)
   useDashboardInvalidation()
+  const firstLoad =
+    !stats.isReady || !recent.isReady || !topUsers.isReady || !topGenres.isReady
+
+  if (firstLoad) return <HomeSkeleton />
 
   return (
     <Page wide>
@@ -32,7 +38,7 @@ export default function HomePage() {
           <RangeSelect value={stats.days} onValueChange={stats.setDays} />
         }
       />
-      <div className="grid items-start gap-5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-stretch">
+      <div className={HOME_TOP_GRID}>
         <ApprovalsCard />
         <MostActiveCard topUsers={topUsers} />
       </div>

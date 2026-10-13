@@ -4,7 +4,10 @@ import { CredenzaTitle } from '@/components/credenza'
 import { PosterFrame, PosterFrameSkeleton } from '@/components/poster-frame'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { RatingRow } from '@/features/home/components/media-detail/rating-row'
+import {
+  RatingRow,
+  RatingRowSkeleton,
+} from '@/features/home/components/media-detail/rating-row'
 import {
   heroMeta,
   type MediaMetadata,
@@ -15,6 +18,9 @@ import { CONTENT_TYPE_LABELS } from '@/lib/content-type'
 import { formatList } from '@/lib/format'
 
 const HERO_PAD = 'px-4 pt-14 pb-5 md:px-6 md:pt-16 md:pb-6'
+const GENRE_ROW = 'flex flex-wrap gap-1.5'
+
+const SKELETON_GENRES = ['a', 'b', 'c']
 
 export function MediaBackdrop({ src }: { src: string }) {
   const [loaded, setLoaded] = useState(false)
@@ -69,7 +75,7 @@ export function MediaHero({
             {item.title}
           </CredenzaTitle>
           {genres.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className={GENRE_ROW}>
               {genres.map((genre) => (
                 <Badge key={genre.id} variant="secondary">
                   {genre.name}
@@ -93,7 +99,13 @@ export function MediaHeroSkeleton({ title }: { title: string }) {
         <div className="flex flex-1 flex-col justify-end gap-2">
           <CredenzaTitle className="sr-only">{title}</CredenzaTitle>
           <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-7 w-64 max-w-full" />
+          <Skeleton className="h-8 w-64 max-w-full md:h-9" />
+          <div className={GENRE_ROW}>
+            {SKELETON_GENRES.map((key) => (
+              <Skeleton key={key} className="h-6 w-16" />
+            ))}
+          </div>
+          <RatingRowSkeleton />
         </div>
       </div>
     </div>

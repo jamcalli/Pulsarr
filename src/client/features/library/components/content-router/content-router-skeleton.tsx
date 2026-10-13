@@ -9,10 +9,7 @@ export function ContentRouterSkeleton() {
   return (
     <Page>
       <div aria-busy="true" className="flex flex-col gap-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <PageHeaderSkeleton />
-          <Skeleton className="h-10 w-28" />
-        </div>
+        <PageHeaderSkeleton action={<Skeleton className="h-10 w-28" />} />
         <Skeleton className="h-11 w-56" />
         <div className="flex flex-col gap-4">
           {CARD_NAME_WIDTHS.map((width) => (

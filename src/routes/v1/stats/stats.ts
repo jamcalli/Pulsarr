@@ -1,7 +1,6 @@
 import {
   ActivityQuerySchema,
   ActivityStatsSchema,
-  AvailabilityTimeSchema,
   ContentStatSchema,
   ContentStatsQuerySchema,
   DashboardStatsSchema,
@@ -50,8 +49,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           statusDistribution,
           contentTypeDistribution,
           recentActivity,
-          instanceActivity,
-          availabilityTimes,
           requestToReadyTimes,
           notificationStats,
           instanceContentBreakdown,
@@ -60,11 +57,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           fastify.db.getMostWatchlistedShows({ limit, days }),
           fastify.db.getMostWatchlistedMovies({ limit, days }),
           fastify.db.getUsersWithMostWatchlistItems({ limit, days }),
-          fastify.db.getWatchlistStatusDistribution(),
+          fastify.db.getWatchlistStatusDistribution(days),
           fastify.db.getContentTypeDistribution(),
           fastify.db.getRecentActivityStats(days),
-          fastify.db.getInstanceActivityStats(),
-          fastify.db.getAverageTimeToAvailability(days),
           fastify.db.getRequestToReadyTimes(days),
           fastify.db.getNotificationStats(days),
           fastify.db.getInstanceContentBreakdown({ days }),
@@ -87,8 +82,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           status_distribution: statusDistribution,
           content_type_distribution: contentTypeDistribution,
           recent_activity: recentActivity,
-          instance_activity: instanceActivity,
-          availability_times: availabilityTimes,
           request_to_ready_times: requestToReadyTimes,
           status_transitions: statusTransitions,
           notification_stats: notificationStats,
@@ -306,40 +299,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Failed to fetch activity statistics',
         })
         return reply.internalServerError('Unable to fetch activity statistics')
-      }
-    },
-  )
-
-  // Get availability time stats
-  fastify.get(
-    '/availability',
-    {
-      schema: {
-        summary: 'Get availability time stats',
-        operationId: 'getAvailabilityStats',
-        description:
-          'Retrieve average time from adding to availability statistics',
-        querystring: ActivityQuerySchema,
-        response: {
-          200: z.array(AvailabilityTimeSchema),
-          400: ErrorSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Statistics'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { days } = request.query
-        const availability = await fastify.db.getAverageTimeToAvailability(days)
-        return availability
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to fetch availability statistics',
-        })
-        return reply.internalServerError(
-          'Unable to fetch availability statistics',
-        )
       }
     },
   )

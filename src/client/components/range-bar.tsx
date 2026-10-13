@@ -1,7 +1,13 @@
 import { cn } from 'cn'
 import { ChartTooltip } from '@/components/chart-tooltip'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CHART_FILL, type ChartColor } from '@/lib/chart-colors'
 import { formatNumber } from '@/lib/format'
+
+const ROW = 'flex flex-col gap-1.5'
+const HEADER = 'flex items-baseline justify-between gap-3'
+const TICKS = 'relative h-4 text-xs text-muted-foreground tabular-nums'
+const SKELETON_TICKS = ['a', 'b', 'c', 'd']
 
 interface RangeBarProps {
   label: string
@@ -34,8 +40,8 @@ export function RangeBar({
   const mark = toPercent(avg, domainMax)
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-3">
+    <div className={ROW}>
+      <div className={HEADER}>
         <span className="truncate font-medium">{label}</span>
         <span className="shrink-0 tabular-nums">
           <span className="font-medium">{formatNumber(avg)}</span>{' '}
@@ -90,7 +96,7 @@ export function RangeBarTicks({
   domainMax: number
 }) {
   return (
-    <div className="relative h-4 text-xs text-muted-foreground tabular-nums">
+    <div className={TICKS}>
       {ticks.map((tick) => (
         <span
           key={tick}
@@ -99,6 +105,29 @@ export function RangeBarTicks({
         >
           {formatNumber(tick)}
         </span>
+      ))}
+    </div>
+  )
+}
+
+export function RangeBarSkeleton() {
+  return (
+    <div className={ROW}>
+      <div className={HEADER}>
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-4 w-14" />
+      </div>
+      <Skeleton className="h-5 w-full" />
+      <Skeleton className="h-3 w-56 max-w-full" />
+    </div>
+  )
+}
+
+export function RangeBarTicksSkeleton() {
+  return (
+    <div className={cn(TICKS, 'flex items-center justify-between')}>
+      {SKELETON_TICKS.map((key) => (
+        <Skeleton key={key} className="h-3 w-5" />
       ))}
     </div>
   )

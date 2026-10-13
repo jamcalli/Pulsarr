@@ -91,8 +91,8 @@ describe('mediaContext', () => {
         detail: 'Expires in 2 days',
         state: 'waiting',
       },
-      { label: 'Downloaded', detail: 'After approval', state: 'todo' },
-      { label: 'Available', detail: 'Once it is downloaded', state: 'todo' },
+      { label: 'Download', detail: 'After approval', state: 'todo' },
+      { label: 'Notification', detail: 'Once it is downloaded', state: 'todo' },
     ])
   })
 
@@ -142,11 +142,11 @@ describe('mediaContext', () => {
     })
     expect(context.journey?.slice(2)).toEqual([
       {
-        label: 'Downloaded',
-        detail: 'Sent to the instance, waiting on a release',
+        label: 'Download',
+        detail: 'Radarr has no file yet',
         state: 'progress',
       },
-      { label: 'Available', detail: 'Once it is downloaded', state: 'todo' },
+      { label: 'Notification', detail: 'Once it is downloaded', state: 'todo' },
     ])
     expect(context.instances.map((instance) => instance.name)).toEqual([
       'Radarr',
@@ -154,7 +154,7 @@ describe('mediaContext', () => {
     ])
   })
 
-  it('shows the file at the arr while Plex has not picked it up', () => {
+  it('shows the file at the arr before the user is told', () => {
     const grabbed = instance({ status: 'available', junctionStatus: 'grabbed' })
     const context = mediaContext({
       displayName,
@@ -167,10 +167,10 @@ describe('mediaContext', () => {
     })
 
     expect(context.journey?.slice(2)).toEqual([
-      { label: 'Downloaded', detail: 'Sonarr has the file', state: 'done' },
+      { label: 'Download', detail: 'Sonarr has the file', state: 'done' },
       {
-        label: 'Available',
-        detail: 'Waiting for Plex to pick it up',
+        label: 'Notification',
+        detail: 'No notification yet',
         state: 'progress',
       },
     ])
@@ -197,7 +197,7 @@ describe('mediaContext', () => {
       'done',
       'done',
     ])
-    expect(context.journey?.[3]?.detail).toBe('In Plex, and the user was told')
+    expect(context.journey?.[3]?.detail).toBe('The user was told')
   })
 
   it('follows the furthest instance when there is no primary', () => {
@@ -223,7 +223,7 @@ describe('mediaContext', () => {
     })
 
     expect(context.journey?.[2]).toEqual({
-      label: 'Downloaded',
+      label: 'Download',
       detail: 'Radarr 4K has the file',
       state: 'done',
     })

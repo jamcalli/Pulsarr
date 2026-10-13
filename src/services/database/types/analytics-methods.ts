@@ -64,13 +64,10 @@ declare module '@services/database.service.js' {
       { name: string; count: number; movies: number; shows: number }[]
     >
 
-    /**
-     * Gets the distribution of watchlist item statuses
-     * @returns Promise resolving to array of statuses with their counts
-     */
-    getWatchlistStatusDistribution(): Promise<
-      { status: string; count: number }[]
-    >
+    /** Status counts over items created in the last `days` days, or all time when `days` is 0. */
+    getWatchlistStatusDistribution(
+      days?: number,
+    ): Promise<{ status: string; count: number }[]>
 
     /**
      * Gets the distribution of content types in watchlist
@@ -89,24 +86,7 @@ declare module '@services/database.service.js' {
       notifications_sent: number
     }>
 
-    /**
-     * Gets activity statistics for Sonarr/Radarr instances
-     * @returns Promise resolving to array of instance activity statistics
-     */
-    getInstanceActivityStats(): Promise<
-      Array<{
-        instance_id: number
-        instance_type: 'sonarr' | 'radarr'
-        name: string
-        item_count: number
-      }>
-    >
-
-    /**
-     * Gets days from request to a file on disk per content type
-     * @param days - Number of days to look back (default: 30)
-     * @returns Promise resolving to array of average time metrics by content type
-     */
+    /** Days from an item's requested row to its earliest later grabbed or notified row per content type, with median and p90, over items requested in the window. */
     getRequestToReadyTimes(days?: number): Promise<
       Array<{
         content_type: string
@@ -129,21 +109,6 @@ declare module '@services/database.service.js' {
       Array<{
         from_status: string
         to_status: string
-        content_type: string
-        avg_days: number
-        min_days: number
-        max_days: number
-        count: number
-      }>
-    >
-
-    /**
-     * Gets average time from watchlist addition to notification
-     * @param days - Number of days to look back (default: 30)
-     * @returns Promise resolving to array of time-to-availability metrics by content type
-     */
-    getAverageTimeToAvailability(days?: number): Promise<
-      Array<{
         content_type: string
         avg_days: number
         min_days: number

@@ -1218,35 +1218,6 @@
         "additionalProperties": false,
         "description": "Per-instance webhook outcomes for every Radarr and Sonarr"
       },
-      "AvailabilityTime": {
-        "type": "object",
-        "properties": {
-          "content_type": {
-            "type": "string"
-          },
-          "avg_days": {
-            "type": "number"
-          },
-          "min_days": {
-            "type": "number"
-          },
-          "max_days": {
-            "type": "number"
-          },
-          "count": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "content_type",
-          "avg_days",
-          "min_days",
-          "max_days",
-          "count"
-        ],
-        "additionalProperties": false,
-        "description": "Days from watchlisted to available for a content type"
-      },
       "BulkManageRollingPayload": {
         "type": "object",
         "properties": {
@@ -2552,18 +2523,6 @@
           "recent_activity": {
             "$ref": "#/components/schemas/ActivityStats"
           },
-          "instance_activity": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/InstanceStat"
-            }
-          },
-          "availability_times": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AvailabilityTime"
-            }
-          },
           "request_to_ready_times": {
             "type": "array",
             "items": {
@@ -2594,8 +2553,6 @@
           "status_distribution",
           "content_type_distribution",
           "recent_activity",
-          "instance_activity",
-          "availability_times",
           "request_to_ready_times"
         ],
         "additionalProperties": false,
@@ -2860,31 +2817,6 @@
         ],
         "additionalProperties": false,
         "description": "Routed item count for one content type on an instance"
-      },
-      "InstanceStat": {
-        "type": "object",
-        "properties": {
-          "instance_id": {
-            "type": "number"
-          },
-          "instance_type": {
-            "$ref": "#/components/schemas/InstanceType"
-          },
-          "name": {
-            "type": "string"
-          },
-          "item_count": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "instance_id",
-          "instance_type",
-          "name",
-          "item_count"
-        ],
-        "additionalProperties": false,
-        "description": "Watchlist item count routed to one arr instance"
       },
       "InstanceType": {
         "type": "string",
@@ -16927,73 +16859,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DashboardStats"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/stats/availability": {
-      "get": {
-        "operationId": "getAvailabilityStats",
-        "summary": "Get availability time stats",
-        "tags": [
-          "Statistics"
-        ],
-        "description": "Retrieve average time from adding to availability statistics",
-        "parameters": [
-          {
-            "schema": {
-              "default": 30,
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "in": "query",
-            "name": "days"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AvailabilityTime"
-                  }
                 }
               }
             }

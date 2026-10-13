@@ -1,6 +1,6 @@
 import { Webhook } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { StatBar, StatBarList } from '@/components/stat-bar'
+import { StatBar, StatBarList, StatBarSkeleton } from '@/components/stat-bar'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -10,11 +10,14 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import { useNativeWebhookConfigured } from '@/features/home/hooks/useNativeWebhookConfigured'
 import {
   channelRows,
   type FamilyGroup,
   groupNotificationTypes,
+  NOTIFICATION_CHANNELS,
+  NOTIFICATION_FAMILIES,
 } from '@/features/home/lib/notification-labels'
 import { formatCount } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
@@ -86,16 +89,14 @@ function TypeFamily({
 }
 
 function TypeFamiliesSkeleton() {
-  return (
-    <div className="flex flex-col gap-3">
-      {['a', 'b', 'c'].map((key) => (
-        <div key={key} className="flex flex-col gap-1.5">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-3 w-full" />
-        </div>
+  return NOTIFICATION_FAMILIES.map((family) => (
+    <div key={family.family} className="flex flex-col gap-3">
+      <Skeleton className="h-3 w-24" />
+      {family.types.map((type) => (
+        <StatBarSkeleton key={type.type} />
       ))}
     </div>
-  )
+  ))
 }
 
 export function NotificationsCard({ stats }: { stats: NotificationStats }) {
@@ -161,6 +162,27 @@ export function NotificationsCard({ stats }: { stats: NotificationStats }) {
         )}
       </CardHeader>
       <CardContent className="gap-5">{content}</CardContent>
+    </Card>
+  )
+}
+
+export function NotificationsCardSkeleton() {
+  return (
+    <Card>
+      <CardHeaderSkeleton action={<Skeleton className="h-4 w-20" />} />
+      <CardContent className="gap-5">
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-4 w-28" />
+          {NOTIFICATION_CHANNELS.map((channel) => (
+            <StatBarSkeleton key={channel.channel} />
+          ))}
+          <Skeleton className="h-3 w-72 max-w-full" />
+        </div>
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-4 w-40" />
+          <TypeFamiliesSkeleton />
+        </div>
+      </CardContent>
     </Card>
   )
 }

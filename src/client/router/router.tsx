@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import { PageSkeleton } from '@/components/page-header'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
+import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
@@ -123,7 +123,7 @@ export const router = createBrowserRouter(
             {
               index: true,
               element: (
-                <Suspense fallback={<PageSkeleton wide />}>
+                <Suspense fallback={<HomeSkeleton />}>
                   <HomePage />
                 </Suspense>
               ),

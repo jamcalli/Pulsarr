@@ -72,31 +72,6 @@ export const ActivityStatsSchema = z
     description: 'Activity counts within the requested range',
   })
 
-export const InstanceStatSchema = z
-  .object({
-    instance_id: z.number(),
-    instance_type: InstanceTypeSchema,
-    name: z.string(),
-    item_count: z.number(),
-  })
-  .meta({
-    id: 'InstanceStat',
-    description: 'Watchlist item count routed to one arr instance',
-  })
-
-export const AvailabilityTimeSchema = z
-  .object({
-    content_type: z.string(),
-    avg_days: z.number(),
-    min_days: z.number(),
-    max_days: z.number(),
-    count: z.number(),
-  })
-  .meta({
-    id: 'AvailabilityTime',
-    description: 'Days from watchlisted to available for a content type',
-  })
-
 export const StatusTransitionTimeSchema = z
   .object({
     from_status: z.string(),
@@ -250,8 +225,6 @@ export const DashboardStatsSchema = z
     status_distribution: z.array(StatusDistributionSchema),
     content_type_distribution: z.array(ContentTypeDistributionSchema),
     recent_activity: ActivityStatsSchema,
-    instance_activity: z.array(InstanceStatSchema),
-    availability_times: z.array(AvailabilityTimeSchema),
     request_to_ready_times: z.array(RequestToReadyTimeSchema),
     status_transitions: z.array(StatusTransitionTimeSchema).optional(),
     notification_stats: NotificationStatsSchema.optional(),
@@ -271,8 +244,6 @@ export type ContentTypeDistribution = z.infer<
 >
 export type NotificationStats = z.infer<typeof NotificationStatsSchema>
 export type ActivityStats = z.infer<typeof ActivityStatsSchema>
-export type InstanceStat = z.infer<typeof InstanceStatSchema>
-export type AvailabilityTime = z.infer<typeof AvailabilityTimeSchema>
 export type StatusTransitionTime = z.infer<typeof StatusTransitionTimeSchema>
 export type RequestToReadyTime = z.infer<typeof RequestToReadyTimeSchema>
 export type DashboardStats = z.infer<typeof DashboardStatsSchema>

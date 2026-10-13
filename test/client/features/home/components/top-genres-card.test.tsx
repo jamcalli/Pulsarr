@@ -6,7 +6,7 @@ import { setFormatLocale } from '@/lib/format'
 import { stubViewport } from '../../../viewport.js'
 
 function topGenres(data: TopGenres['data'] = []): TopGenres {
-  return { days: 7, data, isLoading: false, errorMessage: null }
+  return { days: 7, data, isLoading: false, isReady: true, errorMessage: null }
 }
 
 function rankedGenres(length: number) {

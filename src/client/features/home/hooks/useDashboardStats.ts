@@ -33,6 +33,7 @@ export function useDashboardStats() {
     setLimit,
     data: query.data,
     isLoading: query.isLoading,
+    isReady: query.data !== undefined || query.isError,
     isFetching: query.isFetching,
     updatedAt: query.dataUpdatedAt,
     refresh: () => void refreshDashboardStats(),

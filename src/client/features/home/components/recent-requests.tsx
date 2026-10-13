@@ -4,7 +4,7 @@ import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
 import { ItemButton } from '@/components/item-button'
 import { PosterCard } from '@/components/poster-card'
-import { PosterFrame, PosterFrameSkeleton } from '@/components/poster-frame'
+import { PosterFrame } from '@/components/poster-frame'
 import { PosterRow, PosterRowSkeleton } from '@/components/poster-row'
 import { SegmentedControl } from '@/components/segmented-control'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
-  Item,
   ItemActions,
   ItemContent,
   ItemDescription,
@@ -26,6 +25,8 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
+import { ItemRowsSkeleton } from '@/features/home/components/item-rows-skeleton'
 import { MediaDetail } from '@/features/home/components/media-detail/media-detail'
 import { RequestStatus } from '@/features/home/components/request-status'
 import { ViewToggle } from '@/features/home/components/view-toggle'
@@ -39,11 +40,14 @@ import {
   type MediaView,
   RECENT_LIMITS,
   type RecentStatus,
+  recentLimitPref,
+  recentViewPref,
 } from '@/features/home/lib/home-prefs'
 import { recentRequestItem } from '@/features/home/lib/media-item'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { formatCount, formatList, formatRelative } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
+import { usePref } from '@/lib/prefs'
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All' },
@@ -128,28 +132,37 @@ function RequestPosters({ items, onSelect, onIntent }: RequestViewProps) {
   )
 }
 
-function RecentRequestsSkeleton({ view }: { view: MediaView }) {
-  if (view === 'carousel') return <PosterRowSkeleton className="md:pt-10" />
+function RecentRequestsSkeleton({
+  view,
+  limit,
+}: {
+  view: MediaView
+  limit: number
+}) {
+  if (view === 'carousel') return <PosterRowSkeleton />
   return (
-    <ItemGroup className="gap-0">
-      {['a', 'b', 'c', 'd', 'e'].map((key, index) => (
-        <Fragment key={key}>
-          {index > 0 && <ItemSeparator className="my-0" />}
-          <Item className="flex-nowrap px-2">
-            <ItemMedia>
-              <PosterFrameSkeleton size="thumb" />
-            </ItemMedia>
-            <ItemContent className="gap-2">
-              <Skeleton className="h-4 w-48 max-w-full" />
-              <Skeleton className="h-4 w-32" />
-            </ItemContent>
-            <ItemActions>
-              <Skeleton className="h-7 w-24" />
-            </ItemActions>
-          </Item>
-        </Fragment>
-      ))}
-    </ItemGroup>
+    <ItemRowsSkeleton
+      count={limit}
+      action={<Skeleton className="h-6 w-20" />}
+    />
+  )
+}
+
+export function RecentRequestsCardSkeleton() {
+  const [view] = usePref(recentViewPref)
+  const [limit] = usePref(recentLimitPref)
+  return (
+    <Card>
+      <CardHeaderSkeleton action={<Skeleton className="h-8 w-28" />} />
+      <CardContent className="gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-8 w-80 max-w-full" />
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="ml-auto h-8 w-18" />
+        </div>
+        <RecentRequestsSkeleton view={view} limit={limit} />
+      </CardContent>
+    </Card>
   )
 }
 
@@ -175,7 +188,7 @@ export function RecentRequests({ recent }: { recent: RecentRequestsState }) {
   const content = recent.errorMessage ? (
     <ErrorAlert message={recent.errorMessage} />
   ) : recent.isLoading ? (
-    <RecentRequestsSkeleton view={view} />
+    <RecentRequestsSkeleton view={view} limit={recent.limit} />
   ) : items === undefined ? null : items.length === 0 ? (
     <p className="text-muted-foreground">{emptyMessage}</p>
   ) : view === 'carousel' ? (

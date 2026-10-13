@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UserAvatar } from '@/components/user-avatar'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import {
   OverflowList,
   OverflowSummarySkeleton,
@@ -55,6 +56,17 @@ function MostActiveSkeleton() {
       </div>
       <OverflowSummarySkeleton />
     </>
+  )
+}
+
+export function MostActiveCardSkeleton() {
+  return (
+    <Card>
+      <CardHeaderSkeleton description />
+      <CardContent className="flex-1 gap-4">
+        <MostActiveSkeleton />
+      </CardContent>
+    </Card>
   )
 }
 

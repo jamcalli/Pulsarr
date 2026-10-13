@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import { Page } from '@/components/page-header'
+import { Page, PageHeaderSkeleton } from '@/components/page-header'
 import { Card, CardAction, CardHeader } from '@/components/ui/card'
 import { FieldGroup, FieldSeparator } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -93,14 +93,10 @@ export function SettingsPageSkeleton({
 
   return (
     <Page>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          {sectionLabel && <Skeleton className="h-5 w-20" />}
-          <Skeleton className="h-9 w-56" />
-          <Skeleton className="h-5 w-80 max-w-full" />
-        </div>
-        {pill && <Skeleton className="h-7 w-28" />}
-      </div>
+      <PageHeaderSkeleton
+        section={sectionLabel}
+        action={pill && <Skeleton className="h-7 w-28" />}
+      />
       {shapes.map((shape, section) => (
         <SettingsSectionSkeleton
           key={`section-${section}`}

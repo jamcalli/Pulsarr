@@ -1,5 +1,11 @@
 import type { DatabaseService } from '@services/database.service.js'
 
+function cutoffISO(days: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() - days)
+  return date.toISOString()
+}
+
 /**
  * Return the most frequent genres across all watchlist items.
  *
@@ -16,12 +22,7 @@ export async function getTopGenres(
   try {
     this.log.debug('Processing genres with streaming approach')
 
-    let cutoff: string | null = null
-    if (days > 0) {
-      const cutoffDate = new Date()
-      cutoffDate.setDate(cutoffDate.getDate() - days)
-      cutoff = cutoffDate.toISOString()
-    }
+    const cutoff = days > 0 ? cutoffISO(days) : null
 
     // Use streaming to process genres in batches to reduce memory usage
     const genreCounts: Record<string, number> = {}
@@ -136,13 +137,7 @@ export async function getMostWatchlistedShows(
   let query = this.knex('watchlist_items').where('type', 'show')
 
   if (!isAllTime) {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - days)
-    query = query.where(
-      'watchlist_items.created_at',
-      '>=',
-      cutoffDate.toISOString(),
-    )
+    query = query.where('watchlist_items.created_at', '>=', cutoffISO(days))
   }
 
   // Use JSON aggregation to collect unique user names as a proper array
@@ -207,13 +202,7 @@ export async function getMostWatchlistedMovies(
   let query = this.knex('watchlist_items').where('type', 'movie')
 
   if (!isAllTime) {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - days)
-    query = query.where(
-      'watchlist_items.created_at',
-      '>=',
-      cutoffDate.toISOString(),
-    )
+    query = query.where('watchlist_items.created_at', '>=', cutoffISO(days))
   }
 
   // Use JSON aggregation to collect unique user names as a proper array
@@ -261,12 +250,7 @@ export async function getUsersWithMostWatchlistItems(
   options: { limit?: number; days?: number } = {},
 ): Promise<{ name: string; count: number; movies: number; shows: number }[]> {
   const { limit = 10, days = 0 } = options
-  let cutoff: string | null = null
-  if (days > 0) {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - days)
-    cutoff = cutoffDate.toISOString()
-  }
+  const cutoff = days > 0 ? cutoffISO(days) : null
 
   let query = this.knex('watchlist_items')
     .join('users', 'watchlist_items.user_id', '=', 'users.id')
@@ -316,12 +300,19 @@ export async function getUsersWithMostWatchlistItems(
 
 export async function getWatchlistStatusDistribution(
   this: DatabaseService,
+  days = 0,
 ): Promise<{ status: string; count: number }[]> {
-  const rows = await this.knex('watchlist_items')
+  const query = this.knex('watchlist_items')
     .select('status')
     .count('* as count')
     .groupBy('status')
     .orderBy('count', 'desc')
+
+  if (days > 0) {
+    query.where('created_at', '>=', cutoffISO(days))
+  }
+
+  const rows = await query
 
   return rows.map((row) => ({
     status: String(row.status),
@@ -383,23 +374,10 @@ export async function getRecentActivityStats(
   let notificationsQuery = this.knex('notifications')
 
   if (!isAllTime) {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - days)
-    newItemsQuery = newItemsQuery.where(
-      'created_at',
-      '>=',
-      cutoffDate.toISOString(),
-    )
-    statusChangesQuery = statusChangesQuery.where(
-      'timestamp',
-      '>=',
-      cutoffDate.toISOString(),
-    )
-    notificationsQuery = notificationsQuery.where(
-      'created_at',
-      '>=',
-      cutoffDate.toISOString(),
-    )
+    const cutoff = cutoffISO(days)
+    newItemsQuery = newItemsQuery.where('created_at', '>=', cutoff)
+    statusChangesQuery = statusChangesQuery.where('timestamp', '>=', cutoff)
+    notificationsQuery = notificationsQuery.where('created_at', '>=', cutoff)
   }
 
   const [newItems, statusChanges, notifications] = await Promise.all([
@@ -417,70 +395,6 @@ export async function getRecentActivityStats(
   this.log.debug({ stats }, 'Computed recent activity stats')
 
   return stats
-}
-
-/**
- * Retrieves the number of watchlist items associated with each Sonarr and Radarr instance.
- *
- * @returns An array of objects containing the instance ID, type ('sonarr' or 'radarr'), name, and item count, sorted by item count in descending order.
- */
-export async function getInstanceActivityStats(this: DatabaseService): Promise<
-  {
-    instance_id: number
-    instance_type: 'sonarr' | 'radarr'
-    name: string
-    item_count: number
-  }[]
-> {
-  this.log.debug('Retrieving instance activity statistics')
-
-  const sonarrResults = await this.knex('watchlist_items')
-    .join(
-      'sonarr_instances',
-      'watchlist_items.sonarr_instance_id',
-      '=',
-      'sonarr_instances.id',
-    )
-    .whereNotNull('watchlist_items.sonarr_instance_id')
-    .select('sonarr_instances.id as instance_id', 'sonarr_instances.name')
-    .count('watchlist_items.id as item_count')
-    .groupBy('sonarr_instances.id', 'sonarr_instances.name')
-
-  const radarrResults = await this.knex('watchlist_items')
-    .join(
-      'radarr_instances',
-      'watchlist_items.radarr_instance_id',
-      '=',
-      'radarr_instances.id',
-    )
-    .whereNotNull('watchlist_items.radarr_instance_id')
-    .select('radarr_instances.id as instance_id', 'radarr_instances.name')
-    .count('watchlist_items.id as item_count')
-    .groupBy('radarr_instances.id', 'radarr_instances.name')
-
-  const sonarrStats = sonarrResults.map((row) => ({
-    instance_id: Number(row.instance_id),
-    instance_type: 'sonarr' as const,
-    name: String(row.name),
-    item_count: Number(row.item_count),
-  }))
-
-  const radarrStats = radarrResults.map((row) => ({
-    instance_id: Number(row.instance_id),
-    instance_type: 'radarr' as const,
-    name: String(row.name),
-    item_count: Number(row.item_count),
-  }))
-
-  const combinedStats = [...sonarrStats, ...radarrStats].sort(
-    (a, b) => b.item_count - a.item_count,
-  )
-
-  this.log.debug(
-    `Retrieved activity stats for ${sonarrStats.length} Sonarr instances and ${radarrStats.length} Radarr instances`,
-  )
-
-  return combinedStats
 }
 
 /**
@@ -526,9 +440,7 @@ export async function getRequestToReadyTimes(
       )
 
     if (days > 0) {
-      const cutoffDate = new Date()
-      cutoffDate.setDate(cutoffDate.getDate() - days)
-      query.where('r.requested_at', '>=', cutoffDate.toISOString())
+      query.where('r.requested_at', '>=', cutoffISO(days))
     }
 
     const rows: {
@@ -552,8 +464,6 @@ export async function getRequestToReadyTimes(
       if (daysToReady >= 0) group.durations.push(daysToReady)
     }
 
-    const round = (value: number) => Number(value.toFixed(2))
-
     return Array.from(groups.entries()).map(
       ([contentType, { durations, pending }]) => {
         const sorted = durations.sort((a, b) => a - b)
@@ -575,11 +485,11 @@ export async function getRequestToReadyTimes(
           n % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
         return {
           content_type: contentType,
-          avg_days: round(sorted.reduce((sum, d) => sum + d, 0) / n),
-          min_days: round(sorted[0]),
-          max_days: round(sorted[n - 1]),
-          median_days: round(median),
-          p90_days: round(sorted[Math.ceil(0.9 * n) - 1]),
+          avg_days: sorted.reduce((sum, d) => sum + d, 0) / n,
+          min_days: sorted[0],
+          max_days: sorted[n - 1],
+          median_days: median,
+          p90_days: sorted[Math.ceil(0.9 * n) - 1],
           count: n,
           pending,
         }
@@ -620,11 +530,7 @@ export async function getDetailedStatusTransitionMetrics(
       `Calculating detailed status transition metrics ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
     )
 
-    let cutoffDate: Date | undefined
-    if (!isAllTime) {
-      cutoffDate = new Date()
-      cutoffDate.setDate(cutoffDate.getDate() - days)
-    }
+    const cutoff = isAllTime ? undefined : cutoffISO(days)
 
     // Step 1: Get all direct status transitions using Knex
     let transitionsQuery = this.knex('watchlist_status_history as h1')
@@ -646,12 +552,8 @@ export async function getDetailedStatusTransitionMetrics(
         )
       })
       .join('watchlist_items as w', 'h1.watchlist_item_id', 'w.id')
-    if (!isAllTime && cutoffDate) {
-      transitionsQuery = transitionsQuery.where(
-        'h2.timestamp',
-        '>=',
-        cutoffDate.toISOString(),
-      )
+    if (cutoff) {
+      transitionsQuery = transitionsQuery.where('h2.timestamp', '>=', cutoff)
     }
     transitionsQuery = transitionsQuery
       .whereRaw('h1.status != h2.status')
@@ -801,118 +703,4 @@ export async function getDetailedStatusTransitionMetrics(
     )
     throw error
   }
-}
-
-/**
- * Calculates average, minimum, and maximum time in days from when a watchlist item is added to when it becomes available, grouped by content type.
- *
- * Only includes movies that have reached 'available' status and shows that have reached 'ended' status. Returns an array of metrics for each content type.
- *
- * @param days - Number of days to look back for notifications (default: 30)
- * @returns Array of objects containing content type, average days, minimum days, maximum days, and count of items.
- */
-export async function getAverageTimeToAvailability(
-  this: DatabaseService,
-  days = 30,
-): Promise<
-  {
-    content_type: string
-    avg_days: number
-    min_days: number
-    max_days: number
-    count: number
-  }[]
-> {
-  // Define type for the raw SQL query result
-  type AvailabilityStatsRow = {
-    content_type: string
-    avg_days: number
-    min_days: number
-    max_days: number
-    count: number
-  }
-
-  const isAllTime = days === 0
-
-  this.log.debug(
-    `Calculating average time from addition to availability ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
-  )
-
-  let cutoffISO: string | undefined
-  if (!isAllTime) {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - days)
-    cutoffISO = cutoffDate.toISOString()
-  }
-
-  // Execute raw SQL query with CTEs for first add and first notification timestamps
-  const availabilityDateDiffFunction = this.getDateDiffSQL(
-    'n.first_notification',
-    'a.created_at',
-  )
-
-  // Build date filter clause conditionally
-  const dateFilterClause = isAllTime ? '' : `AND h.timestamp >= '${cutoffISO}'`
-
-  const results = await this.knex.raw<AvailabilityStatsRow[]>(`
-    WITH first_added AS (
-      -- Get initial addition timestamp for each item
-      SELECT
-        w.id,
-        w.type AS content_type,
-        w.created_at
-      FROM watchlist_items w
-      WHERE w.created_at IS NOT NULL
-    ),
-    first_notified AS (
-      -- Get first notification timestamp for each item within the time period
-      SELECT
-        h.watchlist_item_id,
-        MIN(h.timestamp) AS first_notification
-      FROM watchlist_status_history h
-      WHERE h.status = 'notified'
-      ${dateFilterClause}
-      GROUP BY h.watchlist_item_id
-    )
-    -- Join and calculate statistics on the time difference
-    SELECT
-      a.content_type,
-      AVG(${availabilityDateDiffFunction}) AS avg_days,
-      MIN(${availabilityDateDiffFunction}) AS min_days,
-      MAX(${availabilityDateDiffFunction}) AS max_days,
-      COUNT(*) AS count
-    FROM first_added a
-    JOIN first_notified n ON a.id = n.watchlist_item_id
-    WHERE
-      -- Filter to only include items that have reached availability
-      (a.content_type = 'movie' AND EXISTS (
-        SELECT 1 FROM watchlist_items w
-        WHERE w.id = a.id AND w.movie_status = 'available'
-      ))
-      OR
-      (a.content_type = 'show' AND EXISTS (
-        SELECT 1 FROM watchlist_items w
-        WHERE w.id = a.id AND w.series_status = 'ended'
-      ))
-    GROUP BY a.content_type
-  `)
-
-  // Format and return the results
-  const availabilityRawResults =
-    this.extractRawQueryRows<AvailabilityStatsRow>(results)
-  const formattedResults = availabilityRawResults.map(
-    (row: AvailabilityStatsRow) => ({
-      content_type: String(row.content_type),
-      avg_days: Number(row.avg_days),
-      min_days: Number(row.min_days),
-      max_days: Number(row.max_days),
-      count: Number(row.count),
-    }),
-  )
-
-  this.log.debug(
-    `Calculated time-to-availability metrics for ${formattedResults.length} content types`,
-  )
-
-  return formattedResults
 }

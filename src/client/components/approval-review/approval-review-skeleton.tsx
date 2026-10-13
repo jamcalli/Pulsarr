@@ -1,9 +1,9 @@
 import { CredenzaTitle } from '@/components/credenza'
+import { FactListSkeleton } from '@/components/fact-list'
 import { PosterFrameSkeleton } from '@/components/poster-frame'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const ROUTING_ROWS = ['instance', 'profile', 'tags', 'folder', 'search', 'type']
 const ROUTING_FIELDS = [
   'instance',
   'profile',
@@ -43,14 +43,7 @@ export function ApprovalReviewSkeleton({
       <Separator />
       <div className="flex flex-col gap-3">
         <Skeleton className="h-5 w-36" />
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          {ROUTING_ROWS.map((row) => (
-            <div key={row} className="flex flex-col gap-1">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-5 w-28 max-w-full" />
-            </div>
-          ))}
-        </div>
+        <FactListSkeleton rows={6} />
       </div>
     </div>
   )

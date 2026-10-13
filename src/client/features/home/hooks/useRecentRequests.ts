@@ -42,6 +42,7 @@ export function useRecentRequests() {
     setStatus,
     items: query.data?.items,
     isLoading: query.isLoading,
+    isReady: query.data !== undefined || query.isError,
     errorMessage: query.isError
       ? (apiErrorMessage(query.error) ?? 'Recent requests failed to load.')
       : null,

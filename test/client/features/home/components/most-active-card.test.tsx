@@ -10,7 +10,7 @@ import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
 function topUsers(data: TopUsers['data'] = []): TopUsers {
-  return { days: 30, data, isLoading: false, errorMessage: null }
+  return { days: 30, data, isLoading: false, isReady: true, errorMessage: null }
 }
 
 function renderCard(users: TopUsers) {
