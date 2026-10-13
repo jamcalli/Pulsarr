@@ -1,5 +1,6 @@
 import { Webhook } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { StatBar, StatBarList, StatBarSkeleton } from '@/components/stat-bar'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,7 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import { useNativeWebhookConfigured } from '@/features/home/hooks/useNativeWebhookConfigured'
 import {
   channelRows,

@@ -1,10 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  DEFAULT_REGION,
-  mediaDetailQuery,
-} from '@/features/home/lib/media-detail-query'
 import { useConfig } from '@/hooks/useConfig'
 import { useMinLoading } from '@/hooks/useMinLoading'
+import { DEFAULT_REGION, mediaDetailQuery } from '@/lib/media-detail-query'
 import { apiErrorMessage } from '@/lib/tanstackApi'
 
 export function useMediaDetail({

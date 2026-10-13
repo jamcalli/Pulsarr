@@ -1,7 +1,7 @@
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ErrorAlert } from '@/components/error-alert'
 import { StatBar, StatBarList, StatBarSkeleton } from '@/components/stat-bar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import {
   OverflowList,
   OverflowSummarySkeleton,

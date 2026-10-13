@@ -1,5 +1,5 @@
 import { StatusPill, type StatusTone } from '@/components/status-pill'
-import { REQUEST_STATUS_LABELS } from '@/features/home/lib/request-labels'
+import { REQUEST_STATUS_LABELS } from '@/lib/request-labels'
 import type { components } from '@/types/api.js'
 
 type RequestStatusValue = components['schemas']['RecentRequestStatus']
@@ -8,7 +8,8 @@ const STATUS_TONES: Record<RequestStatusValue, StatusTone> = {
   pending_approval: 'pending',
   pending: 'requested',
   requested: 'requested',
-  available: 'available',
+  grabbed: 'requested',
+  notified: 'available',
 }
 
 export function RequestStatus({ status }: { status: RequestStatusValue }) {

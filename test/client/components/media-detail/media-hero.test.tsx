@@ -1,5 +1,5 @@
 import { fireEvent, render } from '@testing-library/react'
-import { MediaBackdrop } from '@/features/home/components/media-detail/media-hero'
+import { MediaBackdrop } from '@/components/media-detail/media-hero'
 
 function backdropImage(container: HTMLElement) {
   const img = container.querySelector('img')

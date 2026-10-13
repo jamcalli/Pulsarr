@@ -59,14 +59,24 @@ import {
   type ItemCategorizerDeps,
 } from './plex-watchlist/sync/item-categorizer.js'
 import {
+  attachFriendStatus,
+  type FriendStatusFields,
+} from './plex-watchlist/users/friend-status.js'
+import {
   checkForRemovedFriends,
   ensureFriendUsers,
   type FriendUsersDeps,
 } from './plex-watchlist/users/friend-users.js'
 import { ensureTokenUsers } from './plex-watchlist/users/token-users.js'
 
+export const USER_STATUS_CACHE_MS = 60_000
+
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger
+  private classifiedUsersCache: {
+    fetchedAt: number
+    result: UserStatusResponse
+  } | null = null
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -377,7 +387,11 @@ export class PlexWatchlistService {
   private async ensureFriendUsers(
     friends: Set<[Friend, string]>,
   ): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
-    return ensureFriendUsers(friends, this.userDeps)
+    const result = await ensureFriendUsers(friends, this.userDeps)
+    if (result.added.length > 0) {
+      this.clearClassifiedUsersCache()
+    }
+    return result
   }
 
   private categorizeItems(
@@ -402,14 +416,47 @@ export class PlexWatchlistService {
   }
 
   async sendFriendRequest(uuid: string): Promise<{ success: boolean }> {
-    return sendFriendRequest(this.config, this.log, uuid)
+    const result = await sendFriendRequest(this.config, this.log, uuid)
+    if (result.success) {
+      this.clearClassifiedUsersCache()
+    }
+    return result
   }
 
   async cancelFriendRequest(uuid: string): Promise<{ success: boolean }> {
-    return cancelFriendRequest(this.config, this.log, uuid)
+    const result = await cancelFriendRequest(this.config, this.log, uuid)
+    if (result.success) {
+      this.clearClassifiedUsersCache()
+    }
+    return result
+  }
+
+  clearClassifiedUsersCache(): void {
+    this.classifiedUsersCache = null
+  }
+
+  async withFriendStatus<
+    T extends { plex_uuid?: string | null; is_primary_token: boolean },
+  >(users: T[]): Promise<(T & FriendStatusFields)[]> {
+    return attachFriendStatus(users, { plexWatchlist: this, logger: this.log })
   }
 
   async getClassifiedUsers(): Promise<UserStatusResponse> {
+    const cached = this.classifiedUsersCache
+    if (cached && Date.now() - cached.fetchedAt < USER_STATUS_CACHE_MS) {
+      return cached.result
+    }
+    const { result, complete } = await this.classifyUsers()
+    if (complete) {
+      this.classifiedUsersCache = { fetchedAt: Date.now(), result }
+    }
+    return result
+  }
+
+  private async classifyUsers(): Promise<{
+    result: UserStatusResponse
+    complete: boolean
+  }> {
     const [friendsResult, serverUsers, friendRequests, dbUsers] =
       await Promise.all([
         getFriends(this.config, this.log),
@@ -422,7 +469,10 @@ export class PlexWatchlistService {
       this.log.warn(
         'Friend API failed - skipping classification to prevent misclassifying users',
       )
-      return { success: false, users: [], untracked: [] }
+      return {
+        result: { success: false, users: [], untracked: [] },
+        complete: false,
+      }
     }
 
     if (!friendRequests.success) {
@@ -555,7 +605,10 @@ export class PlexWatchlistService {
       }
     }
 
-    return { success: true, users, untracked }
+    return {
+      result: { success: true, users, untracked },
+      complete: friendRequests.success,
+    }
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
@@ -569,6 +622,10 @@ export class PlexWatchlistService {
   private async checkForRemovedFriends(
     currentFriends: Set<[Friend, string]>,
   ): Promise<EtagUserInfo[]> {
-    return checkForRemovedFriends(currentFriends, this.userDeps)
+    const removed = await checkForRemovedFriends(currentFriends, this.userDeps)
+    if (removed.length > 0) {
+      this.clearClassifiedUsersCache()
+    }
+    return removed
   }
 }

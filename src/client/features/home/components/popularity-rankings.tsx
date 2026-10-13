@@ -1,11 +1,14 @@
 import { AvatarStack } from '@/components/avatar-stack'
 import { BusyLabel } from '@/components/busy-label'
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
+import { MediaDetail } from '@/components/media-detail/media-detail'
 import { PosterCard } from '@/components/poster-card'
 import { PosterFrame, PosterFrameSkeleton } from '@/components/poster-frame'
 import { PosterRow, PosterRowSkeleton } from '@/components/poster-row'
 import { RankedList } from '@/components/ranked-list'
+import { ViewToggle } from '@/components/request-list/view-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,25 +27,22 @@ import {
   ItemMedia,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
-import { MediaDetail } from '@/features/home/components/media-detail/media-detail'
-import { ViewToggle } from '@/features/home/components/view-toggle'
 import type { DashboardStats } from '@/features/home/hooks/useDashboardStats'
-import { useMediaSelection } from '@/features/home/hooks/useMediaSelection'
 import { usePopularityRankings } from '@/features/home/hooks/usePopularityRankings'
-import { usePrefetchMediaDetail } from '@/features/home/hooks/usePrefetchMediaDetail'
-import type { RecentRequest } from '@/features/home/hooks/useRecentRequests'
 import {
-  type MediaView,
   RANKING_LIMITS,
   rankingLimitPref,
   rankingViewPref,
 } from '@/features/home/lib/home-prefs'
-import { rankingItem } from '@/features/home/lib/media-item'
 import { rangeLabel } from '@/features/home/lib/range-label'
+import { useMediaSelection } from '@/hooks/useMediaSelection'
+import { usePrefetchMediaDetail } from '@/hooks/usePrefetchMediaDetail'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { formatCount, formatNumber, formatTime } from '@/lib/format'
+import type { RecentRequest } from '@/lib/media-item'
+import { rankingItem } from '@/lib/media-item'
 import { usePref } from '@/lib/prefs'
+import type { MediaView } from '@/lib/request-list-prefs'
 import type { components } from '@/types/api.js'
 
 type RankedContent = components['schemas']['ContentStat']

@@ -2,8 +2,10 @@ import { CircleCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
+import { ItemRowsSkeleton } from '@/components/request-list/item-rows-skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,19 +18,17 @@ import {
 import { ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApprovalRow } from '@/features/home/components/approval-row'
-import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
-import { ItemRowsSkeleton } from '@/features/home/components/item-rows-skeleton'
 import {
   OverflowList,
   OverflowSummarySkeleton,
 } from '@/features/home/components/overflow-list'
-import { invalidateDashboard } from '@/features/home/hooks/useDashboardInvalidation'
 import {
   PENDING_APPROVALS_SHOWN,
   type PendingApproval,
   usePendingApprovals,
 } from '@/features/home/hooks/usePendingApprovals'
 import type { ApprovalSort } from '@/features/home/lib/home-prefs'
+import { invalidateDashboard } from '@/lib/dashboard-invalidation'
 import { formatCount, formatNumber } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 

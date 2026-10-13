@@ -14,21 +14,21 @@ import { LeaveDialog } from '@/components/leave-dialog'
 import {
   MediaAbout,
   MediaAboutSkeleton,
-} from '@/features/home/components/media-detail/media-about'
+} from '@/components/media-detail/media-about'
 import {
   MediaBackdrop,
   MediaHero,
   MediaHeroSkeleton,
-} from '@/features/home/components/media-detail/media-hero'
-import { PulsarrContext } from '@/features/home/components/media-detail/pulsarr-context'
-import { invalidateDashboard } from '@/features/home/hooks/useDashboardInvalidation'
-import { useMediaDetail } from '@/features/home/hooks/useMediaDetail'
-import { usePendingApprovalFor } from '@/features/home/hooks/usePendingApprovalFor'
-import { mediaContext } from '@/features/home/lib/media-context'
-import { type MediaItem, metadataGuid } from '@/features/home/lib/media-item'
+} from '@/components/media-detail/media-hero'
+import { PulsarrContext } from '@/components/media-detail/pulsarr-context'
 import { useApprovalReview } from '@/hooks/useApprovalReview'
 import { useGuardedClose } from '@/hooks/useGuardedClose'
+import { useMediaDetail } from '@/hooks/useMediaDetail'
+import { usePendingApprovalFor } from '@/hooks/usePendingApprovalFor'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
+import { invalidateDashboard } from '@/lib/dashboard-invalidation'
+import { mediaContext } from '@/lib/media-context'
+import { type MediaItem, metadataGuid } from '@/lib/media-item'
 import { backdropUrl } from '@/lib/poster-url'
 import type { components } from '@/types/api.js'
 

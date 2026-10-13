@@ -1,9 +1,6 @@
-import {
-  DEFAULT_REGION,
-  mediaDetailQuery,
-} from '@/features/home/lib/media-detail-query'
-import { type MediaItem, metadataGuid } from '@/features/home/lib/media-item'
 import { useConfig } from '@/hooks/useConfig'
+import { DEFAULT_REGION, mediaDetailQuery } from '@/lib/media-detail-query'
+import { type MediaItem, metadataGuid } from '@/lib/media-item'
 import { backdropUrl, posterCardUrl } from '@/lib/poster-url'
 import { queryClient } from '@/lib/queryClient'
 

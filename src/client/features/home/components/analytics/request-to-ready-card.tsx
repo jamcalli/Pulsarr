@@ -1,3 +1,4 @@
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import {
   RangeBar,
   RangeBarSkeleton,
@@ -12,7 +13,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import {
   type DurationUnit,
   durationScale,

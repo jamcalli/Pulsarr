@@ -2640,6 +2640,26 @@ export interface paths {
         patch: operations["updateUser"];
         trace?: never;
     };
+    "/v1/users/{id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user stats
+         * @description Count watchlist items by status, notifications sent and pending approvals for one user
+         */
+        get: operations["getUserStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/users/{userId}/watchlist": {
         parameters: {
             query?: never;
@@ -2649,7 +2669,7 @@ export interface paths {
         };
         /**
          * Get user watchlist items
-         * @description Fetch all watchlist items for a specific user by their ID
+         * @description Fetch the pending approvals and watchlist items of one user, newest first
          */
         get: operations["getUserWatchlist"];
         put?: never;
@@ -3859,6 +3879,11 @@ export interface components {
             itemsUpdated: number;
             error?: string;
         };
+        /**
+         * @description Plex relationship of a user to the server owner, from friends, server shares and pending requests
+         * @enum {string}
+         */
+        PlexFriendStatus: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
         /** @description How Plex labels are synced from user watchlists, always returned with defaults filled in */
         PlexLabelSyncConfig: {
             enabled: boolean;
@@ -4049,25 +4074,20 @@ export interface components {
                 type: "user" | "critic";
             };
         };
-        /** @description One arr instance a recent request was routed to, with its collapsed and raw status */
+        /** @description One arr instance a recent request was routed to, with its watchlist status on that instance */
         RecentRequestInstance: {
             id: number;
             name: string;
             instanceType: components["schemas"]["InstanceType"];
-            status: components["schemas"]["RecentRequestInstanceStatus"];
             junctionStatus: components["schemas"]["WatchlistStatus"];
         };
-        /**
-         * @description Collapsed per-instance status, never pending_approval since approvals are not routed yet
-         * @enum {string}
-         */
-        RecentRequestInstanceStatus: "pending" | "requested" | "available";
         /** @description A pending approval or routed watchlist item shown in recent requests */
         RecentRequestItem: {
             id: number;
             /** @enum {string} */
             source: "approval" | "watchlist";
             title: string;
+            key: string;
             contentType: components["schemas"]["ContentType"];
             guids: string[];
             thumb: string | null;
@@ -4079,10 +4099,10 @@ export interface components {
             allInstances: components["schemas"]["RecentRequestInstance"][];
         };
         /**
-         * @description Collapsed request status, where pending_approval comes from the approval queue
+         * @description Request status, pending_approval from the approval queue, otherwise the highest watchlist status across routed instances
          * @enum {string}
          */
-        RecentRequestStatus: "pending_approval" | "pending" | "requested" | "available";
+        RecentRequestStatus: "pending_approval" | "pending" | "requested" | "grabbed" | "notified";
         /** @description Recent requests for the dashboard, newest first */
         RecentRequestsResponse: {
             success: boolean;
@@ -4874,6 +4894,41 @@ export interface components {
             count: number;
             movies: number;
             shows: number;
+        };
+        /** @description Counts for one user across their watchlist, notifications and approvals */
+        UserStats: {
+            watchlist: {
+                pending: number;
+                requested: number;
+                grabbed: number;
+                notified: number;
+                total: number;
+            };
+            notificationsSent: number;
+            pendingApprovals: number;
+        };
+        /** @description User with their Plex friend status, null when Plex cannot classify them */
+        UserWithFriendStatus: {
+            id: number;
+            name: string;
+            apprise: string | null;
+            alias: string | null;
+            discord_id: string | null;
+            notify_apprise: boolean;
+            notify_discord: boolean;
+            notify_discord_mention: boolean;
+            notify_plex_mobile: boolean;
+            can_sync: boolean;
+            requires_approval: boolean;
+            is_primary_token: boolean;
+            plex_uuid?: string | null;
+            avatar?: string | null;
+            display_name?: string | null;
+            friend_created_at?: string | null;
+            created_at: string;
+            updated_at: string;
+            friendStatus: components["schemas"]["PlexFriendStatus"] | null;
+            pendingSince: string | null;
         };
         /**
          * @description Routing state of a watchlist item or one of its instance rows: pending (not routed), requested (sent to the arr, no file), grabbed (the arr has the file), notified (in Plex and the user was told)
@@ -8020,8 +8075,7 @@ export interface operations {
                             username: string;
                             avatar: string;
                             displayName: string;
-                            /** @enum {string} */
-                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
+                            status: components["schemas"]["PlexFriendStatus"];
                             friendCreatedAt: string | null;
                             pendingSince: string | null;
                         }[];
@@ -8029,8 +8083,7 @@ export interface operations {
                             uuid: string;
                             username: string;
                             avatar: string;
-                            /** @enum {string} */
-                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
+                            status: components["schemas"]["PlexFriendStatus"];
                             pendingSince: string | null;
                         }[];
                     };
@@ -12467,6 +12520,8 @@ export interface operations {
                             friend_created_at?: string | null;
                             created_at: string;
                             updated_at: string;
+                            friendStatus: components["schemas"]["PlexFriendStatus"] | null;
+                            pendingSince: string | null;
                             watchlist_count: number;
                         }[];
                     };
@@ -12884,26 +12939,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
+                        user: components["schemas"]["UserWithFriendStatus"];
                     };
                 };
             };
@@ -12971,26 +13007,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
+                        user: components["schemas"]["UserWithFriendStatus"];
                     };
                 };
             };
@@ -13005,6 +13022,67 @@ export interface operations {
             };
             /** @description Default Response */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getUserStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        stats: components["schemas"]["UserStats"];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13057,16 +13135,7 @@ export interface operations {
                                 id: number;
                                 name: string;
                             };
-                            watchlistItems: {
-                                title: string;
-                                key: string;
-                                type: string;
-                                thumb: string | null;
-                                guids: string[];
-                                genres: string[];
-                                status: components["schemas"]["WatchlistStatus"];
-                                added: string | null;
-                            }[];
+                            items: components["schemas"]["RecentRequestItem"][];
                             total: number;
                         };
                     };

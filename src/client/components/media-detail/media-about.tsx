@@ -3,13 +3,13 @@ import { ErrorAlert } from '@/components/error-alert'
 import { FactList, FactListSkeleton } from '@/components/fact-list'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useWatchRegion } from '@/features/home/hooks/useWatchRegion'
+import { useImageFallback } from '@/hooks/useImageFallback'
+import { useWatchRegion } from '@/hooks/useWatchRegion'
 import {
   type MediaMetadata,
   mediaFacts,
   providerGroups,
-} from '@/features/home/lib/media-facts'
-import { useImageFallback } from '@/hooks/useImageFallback'
+} from '@/lib/media-facts'
 import { providerLogoUrl } from '@/lib/poster-url'
 
 const SECTION = 'flex flex-col gap-6'

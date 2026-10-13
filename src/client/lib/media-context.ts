@@ -1,7 +1,7 @@
-import type { RecentRequest } from '@/features/home/hooks/useRecentRequests'
 import { expiryLine } from '@/lib/approval'
 import { ARR_TYPE_LABELS, arrTypeOf } from '@/lib/arr-labels'
 import { formatRelative } from '@/lib/format'
+import type { RecentRequest } from '@/lib/media-item'
 import type { components } from '@/types/api.js'
 
 export type StepState = 'done' | 'waiting' | 'progress' | 'todo'

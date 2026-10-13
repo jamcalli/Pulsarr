@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { MediaItem } from '@/features/home/lib/media-item'
+import type { MediaItem } from '@/lib/media-item'
 
 /** The item is looked up live by key and falls back to the clicked snapshot, so it outlives the close and leaving the list. */
 export function useMediaSelection(

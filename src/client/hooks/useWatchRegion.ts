@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
-import { DEFAULT_REGION } from '@/features/home/lib/media-detail-query'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { useMinLoadingMutation } from '@/hooks/useMinLoading'
+import { DEFAULT_REGION } from '@/lib/media-detail-query'
 import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
 
 export function useWatchRegion(enabled: boolean) {

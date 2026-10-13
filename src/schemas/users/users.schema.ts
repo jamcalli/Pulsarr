@@ -1,5 +1,8 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
-import { UserBaseSchema } from '@root/schemas/users/users-list.schema.js'
+import {
+  UserBaseSchema,
+  UserWithFriendStatusSchema,
+} from '@root/schemas/users/users-list.schema.js'
 import { z } from 'zod'
 
 export const CreateUserSchema = z.object({
@@ -19,6 +22,12 @@ export const UserResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   user: UserBaseSchema,
+})
+
+export const UserWithFriendStatusResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  user: UserWithFriendStatusSchema,
 })
 
 export const UpdateUserSchema = CreateUserSchema.partial()

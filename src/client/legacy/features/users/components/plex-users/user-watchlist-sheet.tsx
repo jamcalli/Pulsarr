@@ -1,4 +1,3 @@
-import type { WatchlistItem } from '@root/schemas/users/watchlist.schema'
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -62,6 +61,9 @@ import {
   TableRow,
 } from '@/legacy/components/ui/table'
 import { useTablePagination } from '@/legacy/hooks/useTablePagination'
+import type { components } from '@/types/api.js'
+
+type WatchlistItem = components['schemas']['RecentRequestItem']
 
 interface ColumnMetaType {
   className?: string
@@ -136,7 +138,8 @@ export function UserWatchlistSheet({
       ),
     },
     {
-      accessorKey: 'type',
+      id: 'type',
+      accessorKey: 'contentType',
       header: () => <div>Type</div>,
       cell: ({ row }) => {
         const type = row.getValue('type') as string
@@ -181,7 +184,13 @@ export function UserWatchlistSheet({
         )
       },
       sortingFn: (rowA, rowB) => {
-        const statusOrder = ['pending', 'requested', 'grabbed', 'notified']
+        const statusOrder = [
+          'pending_approval',
+          'pending',
+          'requested',
+          'grabbed',
+          'notified',
+        ]
         const statusA = rowA.getValue('status') as string
         const statusB = rowB.getValue('status') as string
 
@@ -192,7 +201,8 @@ export function UserWatchlistSheet({
       },
     },
     {
-      accessorKey: 'added',
+      id: 'added',
+      accessorKey: 'createdAt',
       header: ({ column }) => {
         return (
           <Button

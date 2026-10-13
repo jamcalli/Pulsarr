@@ -1,7 +1,4 @@
-import type {
-  PlexFriendStatus,
-  UserStatusResponse,
-} from '@root/schemas/plex/user-status.schema'
+import type { UserStatusResponse } from '@root/schemas/plex/user-status.schema'
 import type {
   QuotaStatusResponse,
   UserQuotaResponse,
@@ -13,6 +10,9 @@ import type { z } from 'zod'
 import type { plexUserSchema } from '@/legacy/lib/plex-schemas'
 import { queryClient } from '@/lib/queryClient'
 import { $api, apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type PlexFriendStatus = components['schemas']['PlexFriendStatus']
 
 export type UserWatchlistInfo = UserWithCount
 
@@ -33,7 +33,7 @@ export type UserQuotas = {
 
 export type UserWithQuotaInfo = UserWatchlistInfo & {
   userQuotas: UserQuotas | null
-  friendStatus?: PlexFriendStatus
+  friendStatus?: PlexFriendStatus | null
   pendingSince?: string | null
   isTracked?: boolean
 }

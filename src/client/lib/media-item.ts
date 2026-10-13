@@ -1,5 +1,6 @@
-import type { RecentRequest } from '@/features/home/hooks/useRecentRequests'
 import type { components } from '@/types/api.js'
+
+export type RecentRequest = components['schemas']['RecentRequestItem']
 
 type RankedContent = components['schemas']['ContentStat']
 

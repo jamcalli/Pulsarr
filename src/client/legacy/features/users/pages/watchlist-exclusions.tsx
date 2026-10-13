@@ -111,12 +111,12 @@ export function WatchlistExclusionsPage() {
             { params: { path: { userId: user.id } } },
           )
           if (error) return []
-          return data.data.watchlistItems.map((item) => ({
+          return data.data.items.map((item) => ({
             title: item.title,
             key: item.key,
-            type: item.type,
+            type: item.contentType,
             status: item.status,
-            added: item.added,
+            added: item.createdAt,
             guids: item.guids,
             userId: user.id,
             username: user.name,

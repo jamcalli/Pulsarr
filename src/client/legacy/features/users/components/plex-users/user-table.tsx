@@ -709,7 +709,7 @@ export default function UserTable({
           isOpen={isOpen}
           onClose={handleClose}
           userName={selectedUserName}
-          watchlistItems={watchlistData?.watchlistItems}
+          watchlistItems={watchlistData?.items}
           isLoading={isWatchlistLoading}
           error={watchlistError}
         />

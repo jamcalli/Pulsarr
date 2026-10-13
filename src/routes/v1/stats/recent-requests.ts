@@ -26,7 +26,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { limit, status } = request.query
-        const items = await fastify.db.getRecentRequests(limit, status)
+        const items = await fastify.db.getRecentRequests({ limit, status })
 
         return {
           success: true,
