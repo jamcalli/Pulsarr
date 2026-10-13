@@ -778,24 +778,48 @@ describe('routeContent gates', () => {
   })
 
   describe('several matching rules', () => {
-    const seedNoApprovalAndApprovalRules = async (
-      overrides: Record<string, unknown> = {},
-    ): Promise<void> => {
+    const seedApprovalAndPlainRules = async (): Promise<void> => {
       await insertSecondRadarrInstance()
-      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 50,
+        order: 80,
+        target_instance_id: 1,
+        always_require_approval: true,
+      })
       await seedComedyRule({
         id: 51,
         name: 'Comedy Review',
         order: 60,
         target_instance_id: 2,
         root_folder: '/data/review',
-        always_require_approval: true,
-        ...overrides,
       })
     }
 
-    it('requires approval when a lower matching rule demands it', async () => {
-      await seedNoApprovalAndApprovalRules()
+    it('ignores approval demanded by a lower matching rule', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 51,
+        name: 'Comedy Review',
+        order: 1,
+        target_instance_id: 2,
+        always_require_approval: true,
+      })
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-lower-approval-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([1, 2])
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      expect(requests[0].status).toBe('auto_approved')
+    })
+
+    it('requires approval when the top matching rule demands it', async () => {
+      await seedApprovalAndPlainRules()
 
       const result = await fastify.contentRouter.routeContent(
         comedyMovie,
@@ -809,7 +833,7 @@ describe('routeContent gates', () => {
       const requests = await getApprovalRequests()
       expect(requests).toHaveLength(1)
       expect(requests[0].triggered_by).toBe('router_rule')
-      expect(requests[0].router_rule_id).toBe(51)
+      expect(requests[0].router_rule_id).toBe(50)
 
       const decision = JSON.parse(requests[0].router_decision)
       expect(decision.approval.proposedRouting.instanceId).toBe(1)
@@ -820,7 +844,7 @@ describe('routeContent gates', () => {
     })
 
     it('routes the approved request to every matched instance with its own settings', async () => {
-      await seedNoApprovalAndApprovalRules()
+      await seedApprovalAndPlainRules()
       await fastify.contentRouter.routeContent(
         comedyMovie,
         'several-approve-key',
@@ -845,7 +869,7 @@ describe('routeContent gates', () => {
     })
 
     it('rolls the approval back when any instance fails', async () => {
-      await seedNoApprovalAndApprovalRules()
+      await seedApprovalAndPlainRules()
       await fastify.contentRouter.routeContent(
         comedyMovie,
         'several-rollback-key',
@@ -872,7 +896,7 @@ describe('routeContent gates', () => {
     })
 
     it('approves when an instance already holds the item', async () => {
-      await seedNoApprovalAndApprovalRules()
+      await seedApprovalAndPlainRules()
       await fastify.contentRouter.routeContent(
         comedyMovie,
         'several-existing-key',
@@ -897,7 +921,7 @@ describe('routeContent gates', () => {
     })
 
     it('replays an approved request to every matched instance', async () => {
-      await seedNoApprovalAndApprovalRules()
+      await seedApprovalAndPlainRules()
       await fastify.contentRouter.routeContent(
         comedyMovie,
         'several-replay-key',
@@ -920,15 +944,19 @@ describe('routeContent gates', () => {
       ])
     })
 
-    it('honours a quota bypass set on a lower matching rule', async () => {
+    it('honours a quota bypass set on the top matching rule', async () => {
       await insertSecondRadarrInstance()
-      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 50,
+        order: 80,
+        target_instance_id: 1,
+        bypass_user_quotas: true,
+      })
       await seedComedyRule({
         id: 51,
-        name: 'Comedy Bypass',
+        name: 'Comedy Second',
         order: 60,
         target_instance_id: 2,
-        bypass_user_quotas: true,
       })
       await seedUserQuota(getTestDatabase(), {
         user_id: 1,
