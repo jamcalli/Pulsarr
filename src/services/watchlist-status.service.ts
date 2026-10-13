@@ -13,12 +13,12 @@ import {
   createRadarrJunctionConfig,
   createSonarrJunctionConfig,
   processJunctionUpdates,
-} from './watchlist-status/junction/index.js'
+} from './watchlist-status/junction/junction-processor.js'
 import {
   createRadarrStatusConfig,
   createSonarrStatusConfig,
   processStatusUpdates,
-} from './watchlist-status/status-sync/index.js'
+} from './watchlist-status/status-sync/status-processor.js'
 
 export class StatusService {
   private readonly log: FastifyBaseLogger
@@ -63,8 +63,8 @@ export class StatusService {
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 
       // Process status updates using unified processor
-      const mainUpdates = await processStatusUpdates(
-        { db: this.dbService, logger: this.log },
+      const mainUpdates = processStatusUpdates(
+        { logger: this.log },
         createSonarrStatusConfig(),
         existingSeries,
         dbWatchlistItems,
@@ -113,8 +113,8 @@ export class StatusService {
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 
       // Process status updates using unified processor
-      const mainUpdates = await processStatusUpdates(
-        { db: this.dbService, logger: this.log },
+      const mainUpdates = processStatusUpdates(
+        { logger: this.log },
         createRadarrStatusConfig(this.log),
         existingMovies,
         dbWatchlistItems,
@@ -170,7 +170,7 @@ export class StatusService {
     watchlistItems: DatabaseWatchlistItem[],
   ): Promise<number> {
     return processJunctionUpdates(
-      { db: this.dbService, logger: this.log },
+      { logger: this.log },
       createSonarrJunctionConfig(this.dbService),
       sonarrItems,
       watchlistItems,
@@ -183,7 +183,7 @@ export class StatusService {
     watchlistItems: DatabaseWatchlistItem[],
   ): Promise<number> {
     return processJunctionUpdates(
-      { db: this.dbService, logger: this.log },
+      { logger: this.log },
       createRadarrJunctionConfig(this.dbService),
       radarrItems,
       watchlistItems,

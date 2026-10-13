@@ -2016,26 +2016,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stats/status-flow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get status flow data
-         * @description Retrieve status flow data for visualization
-         */
-        get: operations["getStatusFlow"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/stats/status-transitions": {
         parameters: {
             query?: never;
@@ -3628,7 +3608,6 @@ export interface components {
             availability_times: components["schemas"]["AvailabilityTime"][];
             grabbed_to_notified_times: components["schemas"]["GrabbedToNotifiedTime"][];
             status_transitions?: components["schemas"]["StatusTransitionTime"][];
-            status_flow?: components["schemas"]["StatusFlowData"][];
             notification_stats?: components["schemas"]["NotificationStats"];
             instance_content_breakdown?: components["schemas"]["InstanceBreakdown"][];
         };
@@ -3669,13 +3648,16 @@ export interface components {
             genre: string;
             count: number;
         };
-        /** @description Days from grabbed to notified for a content type */
+        /** @description Days from request to a file on disk for a content type */
         GrabbedToNotifiedTime: {
             content_type: string;
             avg_days: number;
             min_days: number;
             max_days: number;
+            median_days: number;
+            p90_days: number;
             count: number;
+            pending: number;
         };
         /** @description Routed content on one arr instance by status and content type */
         InstanceBreakdown: {
@@ -4111,14 +4093,6 @@ export interface components {
         StatusDistribution: {
             status: string;
             count: number;
-        };
-        /** @description Transition count and average days between two statuses for a content type */
-        StatusFlowData: {
-            from_status: string;
-            to_status: string;
-            content_type: string;
-            count: number;
-            avg_days: number;
         };
         /** @description Aggregate days spent moving between two watchlist statuses for a content type. */
         StatusTransitionTime: {
@@ -11222,55 +11196,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContentStat"][];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getStatusFlow: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StatusFlowData"][];
                 };
             };
             /** @description Default Response */

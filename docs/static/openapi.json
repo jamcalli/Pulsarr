@@ -2206,12 +2206,6 @@
               "$ref": "#/components/schemas/StatusTransitionTime"
             }
           },
-          "status_flow": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatusFlowData"
-            }
-          },
           "notification_stats": {
             "$ref": "#/components/schemas/NotificationStats"
           },
@@ -2388,7 +2382,16 @@
           "max_days": {
             "type": "number"
           },
+          "median_days": {
+            "type": "number"
+          },
+          "p90_days": {
+            "type": "number"
+          },
           "count": {
+            "type": "number"
+          },
+          "pending": {
             "type": "number"
           }
         },
@@ -2397,10 +2400,13 @@
           "avg_days",
           "min_days",
           "max_days",
-          "count"
+          "median_days",
+          "p90_days",
+          "count",
+          "pending"
         ],
         "additionalProperties": false,
-        "description": "Days from grabbed to notified for a content type"
+        "description": "Days from request to a file on disk for a content type"
       },
       "InstanceBreakdown": {
         "type": "object",
@@ -4215,35 +4221,6 @@
         ],
         "additionalProperties": false,
         "description": "Watchlist item count for one status"
-      },
-      "StatusFlowData": {
-        "type": "object",
-        "properties": {
-          "from_status": {
-            "type": "string"
-          },
-          "to_status": {
-            "type": "string"
-          },
-          "content_type": {
-            "type": "string"
-          },
-          "count": {
-            "type": "number"
-          },
-          "avg_days": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "from_status",
-          "to_status",
-          "content_type",
-          "count",
-          "avg_days"
-        ],
-        "additionalProperties": false,
-        "description": "Transition count and average days between two statuses for a content type"
       },
       "StatusTransitionTime": {
         "type": "object",
@@ -17824,73 +17801,6 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ContentStat"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/stats/status-flow": {
-      "get": {
-        "operationId": "getStatusFlow",
-        "summary": "Get status flow data",
-        "tags": [
-          "Statistics"
-        ],
-        "description": "Retrieve status flow data for visualization",
-        "parameters": [
-          {
-            "schema": {
-              "default": 30,
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "in": "query",
-            "name": "days"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StatusFlowData"
                   }
                 }
               }

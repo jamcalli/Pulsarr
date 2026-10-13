@@ -447,6 +447,10 @@ export async function routeShow(
       deps.logger.debug(
         `Show ${tempItem.title} already exists in Sonarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
       )
+      await deps.db.updateWatchlistItem(userId, tempItem.key, {
+        status: 'requested',
+        sonarr_instance_id: presentInstanceIds[0],
+      })
       return { routed: false, skippedReason: 'exists-in-target' }
     }
     return await reportRouted(
@@ -589,6 +593,10 @@ export async function routeMovie(
       deps.logger.debug(
         `Movie ${tempItem.title} already exists in Radarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
       )
+      await deps.db.updateWatchlistItem(userId, tempItem.key, {
+        status: 'requested',
+        radarr_instance_id: presentInstanceIds[0],
+      })
       return { routed: false, skippedReason: 'exists-in-target' }
     }
     return await reportRouted(

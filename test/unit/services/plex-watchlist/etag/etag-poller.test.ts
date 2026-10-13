@@ -1,7 +1,8 @@
 import type { Config } from '@root/types/config.types.js'
+import type { EtagPollResult, EtagUserInfo } from '@root/types/plex.types.js'
 import { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { server } from '../../../../setup/msw-setup.js'
 
@@ -99,5 +100,110 @@ describe('EtagPoller config access', () => {
       isPrimary: true,
     })
     expect(tokens).toEqual(['token-new'])
+  })
+})
+
+describe('EtagPoller staggered loop restart', () => {
+  const SLOT_MS = (5 * 60 * 1000) / 2
+
+  function unchanged(user: EtagUserInfo): EtagPollResult {
+    return {
+      changed: false,
+      userId: user.userId,
+      isPrimary: user.isPrimary,
+      newItems: [],
+    }
+  }
+
+  function createPoller() {
+    const poller = new EtagPoller(
+      () => ({ plexTokens: ['token'] }) as Config,
+      createMockLogger(),
+    )
+    const checkedAt: number[] = []
+    const checkUser = vi
+      .spyOn(poller, 'checkUser')
+      .mockImplementation(async (user) => {
+        checkedAt.push(Date.now())
+        return unchanged(user)
+      })
+    return { poller, checkedAt, checkUser }
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(0)
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
+  it('runs a single loop when restarted while the old loop has a check in flight', async () => {
+    const { poller, checkedAt, checkUser } = createPoller()
+    let release: () => void = () => {}
+    checkUser.mockImplementationOnce(
+      (user) =>
+        new Promise((resolve) => {
+          checkedAt.push(Date.now())
+          release = () => resolve(unchanged(user))
+        }),
+    )
+    const onCycleStart = vi.fn(async () => [])
+
+    poller.startStaggeredPolling(1, [], vi.fn(), onCycleStart)
+    await vi.advanceTimersByTimeAsync(SLOT_MS)
+    expect(checkUser).toHaveBeenCalledTimes(1)
+
+    poller.stopStaggeredPolling()
+    poller.startStaggeredPolling(1, [], vi.fn(), onCycleStart)
+    await vi.advanceTimersByTimeAsync(0)
+    const cycleStartsBeforeRelease = onCycleStart.mock.calls.length
+    release()
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(onCycleStart).toHaveBeenCalledTimes(cycleStartsBeforeRelease)
+    expect(vi.getTimerCount()).toBe(1)
+
+    await vi.advanceTimersByTimeAsync(2 * SLOT_MS)
+    expect(checkedAt).toEqual([SLOT_MS, 2 * SLOT_MS, 3 * SLOT_MS])
+    expect(vi.getTimerCount()).toBe(1)
+
+    poller.stopStaggeredPolling()
+  })
+
+  it('drops the result of a check that finishes after a restart', async () => {
+    const { poller, checkUser } = createPoller()
+    let release: () => void = () => {}
+    checkUser.mockImplementationOnce(
+      (user) =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve({
+              changed: true,
+              userId: user.userId,
+              isPrimary: user.isPrimary,
+              newItems: [{ id: 'new', title: 'New', type: 'movie' }],
+            })
+        }),
+    )
+    const staleOnUserChanged = vi.fn().mockResolvedValue(undefined)
+    const onUserChanged = vi.fn().mockResolvedValue(undefined)
+
+    poller.startStaggeredPolling(1, [], staleOnUserChanged, async () => [])
+    await vi.advanceTimersByTimeAsync(SLOT_MS)
+    expect(checkUser).toHaveBeenCalledTimes(1)
+
+    poller.stopStaggeredPolling()
+    poller.startStaggeredPolling(1, [], onUserChanged, async () => [])
+    release()
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(staleOnUserChanged).not.toHaveBeenCalled()
+    expect(onUserChanged).not.toHaveBeenCalled()
+
+    poller.stopStaggeredPolling()
   })
 })

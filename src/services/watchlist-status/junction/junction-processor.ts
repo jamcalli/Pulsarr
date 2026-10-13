@@ -14,13 +14,13 @@ import type {
 } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import { isStatusUpgrade } from '@utils/watchlist-status-rank.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
  * Dependencies required for junction processing
  */
 export interface JunctionProcessorDeps {
-  db: DatabaseService
   logger: FastifyBaseLogger
 }
 
@@ -276,19 +276,12 @@ export async function processJunctionUpdates<
               updates.last_notified_at =
                 currentJunction.last_notified_at || undefined
               needsUpdate = true
-            } else if (
-              currentJunction.status !== matchingItem.status &&
-              !(
-                currentJunction.status === 'notified' &&
-                matchingItem.status !== 'notified'
-              )
-            ) {
-              updates.status = validateStatus(matchingItem.status)
-              if (currentJunction.status === 'notified') {
-                updates.last_notified_at =
-                  currentJunction.last_notified_at || undefined
+            } else {
+              const arrStatus = validateStatus(matchingItem.status)
+              if (isStatusUpgrade(currentJunction.status, arrStatus)) {
+                updates.status = arrStatus
+                needsUpdate = true
               }
-              needsUpdate = true
             }
 
             if (needsUpdate) {

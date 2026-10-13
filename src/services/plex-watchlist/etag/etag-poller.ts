@@ -84,6 +84,9 @@ export class EtagPoller {
   /** Callback for when a new polling cycle starts (for friend refresh) */
   private onCycleStartCallback: (() => Promise<EtagUserInfo[]>) | null = null
 
+  /** Bumped on every start and stop so callbacks of a previous loop cannot re-arm the timer */
+  private staggeredGeneration = 0
+
   // Read through the getter: the poller outlives config updates, which reassign fastify.config
   constructor(
     private readonly getConfig: () => Config,
@@ -316,6 +319,7 @@ export class EtagPoller {
     }
 
     this.isStaggeredPollingActive = true
+    this.staggeredGeneration++
     this.onUserChangedCallback = onUserChanged
     this.onCycleStartCallback = onCycleStart
 
@@ -336,7 +340,7 @@ export class EtagPoller {
     )
 
     // Start the first cycle immediately
-    this.startNextCycle()
+    this.startNextCycle(this.staggeredGeneration)
   }
 
   /**
@@ -349,6 +353,7 @@ export class EtagPoller {
     }
 
     this.isStaggeredPollingActive = false
+    this.staggeredGeneration++
     this.staggeredPrimaryUser = null
     this.staggeredUserQueue = []
     this.staggeredCurrentIndex = 0
@@ -411,13 +416,14 @@ export class EtagPoller {
    * Start a new polling cycle.
    * Refreshes friend list, rebalances timing, then begins sequential polling.
    */
-  private async startNextCycle(): Promise<void> {
-    if (!this.isStaggeredPollingActive) return
+  private async startNextCycle(generation: number): Promise<void> {
+    if (!this.isLoopCurrent(generation)) return
 
     // Refresh friend list at cycle start
     if (this.onCycleStartCallback) {
       try {
         const updatedFriends = await this.onCycleStartCallback()
+        if (!this.isLoopCurrent(generation)) return
 
         // Use stored primary user (more robust than searching queue)
         if (this.staggeredPrimaryUser) {
@@ -438,24 +444,32 @@ export class EtagPoller {
       }
     }
 
+    if (!this.isLoopCurrent(generation)) return
+
     // Reset to first user
     this.staggeredCurrentIndex = 0
 
     // Schedule first user check
-    this.scheduleNextUserCheck()
+    this.scheduleNextUserCheck(generation)
+  }
+
+  private isLoopCurrent(generation: number): boolean {
+    return (
+      this.isStaggeredPollingActive && generation === this.staggeredGeneration
+    )
   }
 
   /**
    * Schedule the next user check with calculated interval and jitter.
    */
-  private scheduleNextUserCheck(): void {
-    if (!this.isStaggeredPollingActive) return
+  private scheduleNextUserCheck(generation: number): void {
+    if (!this.isLoopCurrent(generation)) return
 
     const userCount = this.staggeredUserQueue.length
     if (userCount === 0) {
       // No users, just wait for next cycle
       this.staggeredTimer = setTimeout(
-        () => this.startNextCycle(),
+        () => this.startNextCycle(generation),
         STAGGERED_CYCLE_MS,
       )
       return
@@ -470,20 +484,24 @@ export class EtagPoller {
     const jitter = (Math.random() * 2 - 1) * jitterRange
     const interval = Math.max(1000, baseInterval + jitter) // Minimum 1 second
 
-    this.staggeredTimer = setTimeout(() => this.pollNextUser(), interval)
+    this.staggeredTimer = setTimeout(
+      () => this.pollNextUser(generation),
+      interval,
+    )
   }
 
   /**
    * Poll the next user in the queue.
    */
-  private async pollNextUser(): Promise<void> {
-    if (!this.isStaggeredPollingActive) return
+  private async pollNextUser(generation: number): Promise<void> {
+    if (!this.isLoopCurrent(generation)) return
 
     const user = this.staggeredUserQueue[this.staggeredCurrentIndex]
 
     if (user) {
       try {
         const result = await this.checkUser(user)
+        if (!this.isLoopCurrent(generation)) return
 
         // Notify callback if there are changes
         if (result.changed && result.newItems.length > 0) {
@@ -498,18 +516,19 @@ export class EtagPoller {
         )
       }
 
+      if (!this.isLoopCurrent(generation)) return
       this.staggeredCurrentIndex++
     }
 
     // Check if cycle is complete
     if (this.staggeredCurrentIndex >= this.staggeredUserQueue.length) {
       // Cycle complete, start next cycle
-      this.startNextCycle().catch((error) => {
+      this.startNextCycle(generation).catch((error) => {
         this.log.error({ error }, 'Error starting next polling cycle')
       })
     } else {
       // More users to check, schedule next
-      this.scheduleNextUserCheck()
+      this.scheduleNextUserCheck(generation)
     }
   }
 

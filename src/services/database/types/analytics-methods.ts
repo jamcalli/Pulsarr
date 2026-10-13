@@ -103,7 +103,7 @@ declare module '@services/database.service.js' {
     >
 
     /**
-     * Gets average time from grabbed to notified status
+     * Gets days from request to a file on disk per content type
      * @param days - Number of days to look back (default: 30)
      * @returns Promise resolving to array of average time metrics by content type
      */
@@ -113,7 +113,10 @@ declare module '@services/database.service.js' {
         avg_days: number
         min_days: number
         max_days: number
+        median_days: number
+        p90_days: number
         count: number
+        pending: number
       }>
     >
 
@@ -146,21 +149,6 @@ declare module '@services/database.service.js' {
         min_days: number
         max_days: number
         count: number
-      }>
-    >
-
-    /**
-     * Gets status flow data for visualization
-     * @param days - Number of days to look back (default: 30)
-     * @returns Promise resolving to array of status flow data points
-     */
-    getStatusFlowData(days?: number): Promise<
-      Array<{
-        from_status: string
-        to_status: string
-        content_type: string
-        count: number
-        avg_days: number
       }>
     >
   }

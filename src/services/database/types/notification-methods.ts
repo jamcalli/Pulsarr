@@ -65,18 +65,5 @@ declare module '@services/database.service.js' {
       by_channel: { channel: string; count: number }[]
       by_user: { user_name: string; count: number }[]
     }>
-
-    /**
-     * Adds a status history entry for backfilling missing transitions
-     * @param watchlistItemId - The ID of the watchlist item
-     * @param status - The status to record
-     * @param timestamp - The timestamp when this status should have been recorded
-     * @returns Promise that resolves when the entry is added
-     */
-    addStatusHistoryEntry(
-      watchlistItemId: number,
-      status: 'pending' | 'requested' | 'grabbed' | 'notified',
-      timestamp: string,
-    ): Promise<void>
   }
 }

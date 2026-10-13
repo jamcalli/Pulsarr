@@ -10,7 +10,7 @@ import type { FastifyBaseLogger } from 'fastify'
 import { getWatchlist, getWatchlistForUser } from '../api/graphql.js'
 import { isRateLimitError } from '../api/helpers.js'
 
-/** Falls back to the stored DB items when the Plex fetch fails and a DB getter is supplied. */
+/** Returns the full Plex watchlist, or the stored DB items when the fetch fails or is incomplete, and throws when neither is available. */
 export const fetchSelfWatchlist = async (
   config: Config,
   log: FastifyBaseLogger,
@@ -34,63 +34,58 @@ export const fetchSelfWatchlist = async (
     try {
       while (true) {
         log.debug(`Fetching watchlist for token with start: ${currentStart}`)
-        try {
-          const response = await getWatchlist(token, log, currentStart)
+        const response = await getWatchlist(token, log, currentStart)
 
-          const metadata = response?.MediaContainer?.Metadata || []
-          const totalSize = response?.MediaContainer?.totalSize || 0
+        const metadata = response.MediaContainer.Metadata || []
+        const totalSize = response.MediaContainer.totalSize || 0
 
-          if (metadata.length === 0 && currentStart === 0) {
-            log.info('User has no items in their watchlist')
-            break
-          }
-
-          const items = metadata
-            .filter((metadata) => Boolean(metadata.key))
-            .map((metadata) => {
-              const key = metadata.key
-                ?.replace('/library/metadata/', '')
-                .replace('/children', '')
-
-              return {
-                title: metadata.title || 'Unknown Title',
-                id: key,
-                key: key,
-                thumb: normalizePosterPath(metadata.thumb) || null,
-                type: metadata.type || 'unknown',
-                guids: [],
-                genres: [],
-                user_id: userId,
-                status: 'pending',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              }
-            })
-
-          log.debug(`Found ${items.length} items in current page`)
-          for (const item of items) {
-            const key = String(item.key)
-            if (!seenKeys.has(key)) {
-              allItems.add(item as TokenWatchlistItem)
-              seenKeys.add(key)
-            }
-          }
-
-          if (totalSize <= currentStart + metadata.length) {
-            log.debug('Completed processing all pages for current token')
-            break
-          }
-
-          currentStart += metadata.length
-        } catch (innerError) {
-          if (isRateLimitError(innerError)) {
-            log.warn(
-              `Rate limit exhausted while fetching watchlist for token at start=${currentStart}. Moving to next token.`,
+        if (metadata.length === 0) {
+          if (totalSize > currentStart) {
+            throw new Error(
+              `Plex returned an empty page at start=${currentStart} while reporting ${totalSize} items`,
             )
-            break
           }
-          throw innerError
+          log.info('User has no items in their watchlist')
+          break
         }
+
+        const items = metadata
+          .filter((metadata) => Boolean(metadata.key))
+          .map((metadata) => {
+            const key = metadata.key
+              ?.replace('/library/metadata/', '')
+              .replace('/children', '')
+
+            return {
+              title: metadata.title || 'Unknown Title',
+              id: key,
+              key: key,
+              thumb: normalizePosterPath(metadata.thumb) || null,
+              type: metadata.type || 'unknown',
+              guids: [],
+              genres: [],
+              user_id: userId,
+              status: 'pending',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          })
+
+        log.debug(`Found ${items.length} items in current page`)
+        for (const item of items) {
+          const key = String(item.key)
+          if (!seenKeys.has(key)) {
+            allItems.add(item as TokenWatchlistItem)
+            seenKeys.add(key)
+          }
+        }
+
+        if (totalSize <= currentStart + metadata.length) {
+          log.debug('Completed processing all pages for current token')
+          break
+        }
+
+        currentStart += metadata.length
 
         // Delay between pagination requests per Plex developer request
         await new Promise((resolve) =>
@@ -100,45 +95,50 @@ export const fetchSelfWatchlist = async (
     } catch (err) {
       log.error({ error: err }, 'Error fetching watchlist for token')
 
-      if (getAllWatchlistItemsForUser) {
-        try {
-          log.info(`Falling back to existing database items for user ${userId}`)
-          const existingItems = await getAllWatchlistItemsForUser(userId)
+      if (!getAllWatchlistItemsForUser) {
+        throw err
+      }
 
-          for (const item of existingItems) {
-            const guids = parseGuids(item.guids)
+      try {
+        log.info(`Falling back to existing database items for user ${userId}`)
+        const existingItems = await getAllWatchlistItemsForUser(userId)
+        allItems.clear()
+        seenKeys.clear()
 
-            const genres = parseGenres(item.genres)
+        for (const item of existingItems) {
+          const guids = parseGuids(item.guids)
 
-            const tokenItem: TokenWatchlistItem = {
-              id: item.key,
-              key: item.key,
-              title: item.title,
-              type: item.type,
-              user_id: userId,
-              status: item.status || 'pending',
-              created_at: item.created_at,
-              updated_at: item.updated_at,
-              guids,
-              genres,
-            }
-            const key = String(tokenItem.key)
-            if (!seenKeys.has(key)) {
-              allItems.add(tokenItem)
-              seenKeys.add(key)
-            }
+          const genres = parseGenres(item.genres)
+
+          const tokenItem: TokenWatchlistItem = {
+            id: item.key,
+            key: item.key,
+            title: item.title,
+            type: item.type,
+            user_id: userId,
+            status: item.status || 'pending',
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            guids,
+            genres,
           }
-
-          log.info(
-            `Successfully fell back to ${existingItems.length} existing database items for user ${userId}`,
-          )
-          break
-        } catch (fallbackError) {
-          log.error(
-            { error: fallbackError, userId },
-            'Failed to fetch fallback database items for user',
-          )
+          const key = String(tokenItem.key)
+          if (!seenKeys.has(key)) {
+            allItems.add(tokenItem)
+            seenKeys.add(key)
+          }
         }
+
+        log.info(
+          `Successfully fell back to ${existingItems.length} existing database items for user ${userId}`,
+        )
+        break
+      } catch (fallbackError) {
+        log.error(
+          { error: fallbackError, userId },
+          'Failed to fetch fallback database items for user',
+        )
+        throw err
       }
     }
   }

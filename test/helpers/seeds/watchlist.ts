@@ -184,7 +184,9 @@ export const SEED_WATCHLIST_ITEMS = [
  * Seeds the watchlist_items table
  */
 export async function seedWatchlist(knex: Knex): Promise<void> {
-  await knex('watchlist_items').insert(SEED_WATCHLIST_ITEMS)
+  await knex('watchlist_items').insert(
+    SEED_WATCHLIST_ITEMS.map((item) => ({ ...item, created_at: item.added })),
+  )
 
   // Update sqlite_sequence to ensure future auto-increments start after our seed data
   if (SEED_WATCHLIST_ITEMS.length > 0) {

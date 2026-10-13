@@ -13,7 +13,6 @@ import {
   LimitQuerySchema,
   NotificationStatsSchema,
   RankedStatsQuerySchema,
-  StatusFlowDataSchema,
   StatusTransitionTimeSchema,
   UserStatSchema,
 } from '@schemas/stats/stats.schema.js'
@@ -72,12 +71,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         ])
 
         let statusTransitions: z.infer<typeof StatusTransitionTimeSchema>[] = []
-        let statusFlow: z.infer<typeof StatusFlowDataSchema>[] = []
 
         try {
           statusTransitions =
             await fastify.db.getDetailedStatusTransitionMetrics(days)
-          statusFlow = await fastify.db.getStatusFlowData(days)
         } catch (error) {
           fastify.log.warn({ error }, 'Could not fetch advanced status metrics')
         }
@@ -94,7 +91,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           availability_times: availabilityTimes,
           grabbed_to_notified_times: grabbedToNotifiedTimes,
           status_transitions: statusTransitions,
-          status_flow: statusFlow,
           notification_stats: notificationStats,
           instance_content_breakdown: instanceContentBreakdown?.instances,
         }
@@ -410,36 +406,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return reply.internalServerError(
           'Unable to fetch status transition metrics',
         )
-      }
-    },
-  )
-
-  fastify.get(
-    '/status-flow',
-    {
-      schema: {
-        summary: 'Get status flow data',
-        operationId: 'getStatusFlow',
-        description: 'Retrieve status flow data for visualization',
-        querystring: ActivityQuerySchema,
-        response: {
-          200: z.array(StatusFlowDataSchema),
-          400: ErrorSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Statistics'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { days } = request.query
-        const flowData = await fastify.db.getStatusFlowData(days)
-        return flowData
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to fetch status flow data',
-        })
-        return reply.internalServerError('Unable to fetch status flow data')
       }
     },
   )

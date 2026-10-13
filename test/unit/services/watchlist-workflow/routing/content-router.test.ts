@@ -89,6 +89,7 @@ function buildDeps(
   return createWorkflowDeps({
     db: {
       getApprovalRequestByContent: vi.fn().mockResolvedValue(record),
+      updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
     },
     contentRouter: {
       getTargetInstances: vi.fn(async () => ({ instanceIds })),
@@ -272,6 +273,8 @@ const MISSING: ExistenceCheckResult = {
 const ROUTERS = [
   {
     contentType: 'show',
+    itemKey: 'show-key',
+    instanceField: 'sonarr_instance_id',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.sonarrManager.routeItemToSonarr).mock.calls,
     route: (
@@ -308,6 +311,8 @@ const ROUTERS = [
   },
   {
     contentType: 'movie',
+    itemKey: 'movie-key',
+    instanceField: 'radarr_instance_id',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.radarrManager.routeItemToRadarr).mock.calls,
     route: (
@@ -472,5 +477,30 @@ describe.each(ROUTERS)('$contentType partial presence', ({ route, added }) => {
 
     expect(await route(deps)).toEqual(exists)
     expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+  })
+})
+
+describe.each(ROUTERS)('$contentType existing copy status', (router) => {
+  it('marks the item requested on the instance that has it', async () => {
+    const deps = buildDeps([MISSING, FOUND])
+
+    await router.route(deps)
+
+    expect(deps.db.updateWatchlistItem).toHaveBeenCalledWith(
+      1,
+      router.itemKey,
+      {
+        status: 'requested',
+        [router.instanceField]: 2,
+      },
+    )
+  })
+
+  it('leaves an import list exclusion alone', async () => {
+    const deps = buildDeps([MISSING, MISSING])
+
+    await router.route(deps, [], [1])
+
+    expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
   })
 })
