@@ -74,7 +74,7 @@ describe('checkApprovalRequirements', () => {
     })
   })
 
-  it('requires approval when a lower decision demands it', async () => {
+  it('ignores approval demanded by a lower decision', async () => {
     const decisions = [
       ruleDecision({ ruleId: 1 }),
       ruleDecision({
@@ -92,22 +92,29 @@ describe('checkApprovalRequirements', () => {
     expect(
       await checkApprovalRequirements(context, decisions, approvalDeps()),
     ).toEqual({
-      required: true,
-      reason: 'Approval required by router rule: Lower',
-      trigger: 'router_rule',
-      data: {
-        ruleId: 2,
-        criteriaType: 'router_rule',
-        criteriaValue: 'Lower',
-        quotasBypassedByRule: false,
-      },
+      required: false,
+      data: { quotasBypassedByRule: false },
     })
   })
 
-  it('records a quota bypass from any decision', async () => {
+  it('ignores a quota bypass on a lower decision', async () => {
     const decisions = [
       ruleDecision({ ruleId: 1 }),
       ruleDecision({ ruleId: 2, bypassUserQuotas: true }),
+    ]
+
+    expect(
+      await checkApprovalRequirements(context, decisions, approvalDeps()),
+    ).toEqual({
+      required: false,
+      data: { quotasBypassedByRule: false },
+    })
+  })
+
+  it('takes approval and bypass from the top decision only', async () => {
+    const decisions = [
+      ruleDecision({ ruleId: 1, bypassUserQuotas: true }),
+      ruleDecision({ ruleId: 2, alwaysRequireApproval: true }),
     ]
 
     expect(
@@ -141,6 +148,23 @@ describe('checkApprovalRequirements', () => {
     ).toMatchObject({
       required: true,
       trigger: 'manual_flag',
+    })
+  })
+
+  it('the user flag still applies when the top rule does not ask', async () => {
+    expect(
+      await checkApprovalRequirements(
+        context,
+        [
+          ruleDecision({ ruleId: 1 }),
+          ruleDecision({ ruleId: 2, bypassUserQuotas: true }),
+        ],
+        approvalDeps({ requires_approval: true }),
+      ),
+    ).toMatchObject({
+      required: true,
+      trigger: 'manual_flag',
+      data: { quotasBypassedByRule: false },
     })
   })
 

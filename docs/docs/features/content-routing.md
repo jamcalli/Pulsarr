@@ -126,7 +126,7 @@ Anime Rule 2 → Anime-Sonarr-4K (priority 90)
 Both rules fire for anime content, sending to both instances with their respective configurations.
 
 :::tip Priority Behavior
-Priorities only matter when multiple rules target the *same* instance. The highest priority rule wins and applies its settings. Rules targeting *different* instances all execute independently. Exclude rules always take precedence over normal rules regardless of priority weight.
+Priorities only matter when multiple rules target the *same* instance. The highest priority rule wins and applies its settings. Rules targeting *different* instances all execute independently. Exclude rules always take precedence over normal rules regardless of priority weight. The highest priority matching rule also decides whether the item needs approval and whether it bypasses quotas. Lower rules do not add either.
 :::
 
 For multi-instance synchronization features, see [Multi-Instance Support](multi-instance-support).
