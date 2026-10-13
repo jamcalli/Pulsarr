@@ -113,31 +113,20 @@ export const StatusTransitionTimeSchema = z
       'Aggregate days spent moving between two watchlist statuses for a content type.',
   })
 
-export const StatusFlowDataSchema = z
-  .object({
-    from_status: z.string(),
-    to_status: z.string(),
-    content_type: z.string(),
-    count: z.number(),
-    avg_days: z.number(),
-  })
-  .meta({
-    id: 'StatusFlowData',
-    description:
-      'Transition count and average days between two statuses for a content type',
-  })
-
-export const GrabbedToNotifiedTimeSchema = z
+export const RequestToReadyTimeSchema = z
   .object({
     content_type: z.string(),
     avg_days: z.number(),
     min_days: z.number(),
     max_days: z.number(),
+    median_days: z.number(),
+    p90_days: z.number(),
     count: z.number(),
+    pending: z.number(),
   })
   .meta({
-    id: 'GrabbedToNotifiedTime',
-    description: 'Days from grabbed to notified for a content type',
+    id: 'RequestToReadyTime',
+    description: 'Days from request to a file on disk for a content type',
   })
 
 export const NotificationChannelStatSchema = z
@@ -263,9 +252,8 @@ export const DashboardStatsSchema = z
     recent_activity: ActivityStatsSchema,
     instance_activity: z.array(InstanceStatSchema),
     availability_times: z.array(AvailabilityTimeSchema),
-    grabbed_to_notified_times: z.array(GrabbedToNotifiedTimeSchema),
+    request_to_ready_times: z.array(RequestToReadyTimeSchema),
     status_transitions: z.array(StatusTransitionTimeSchema).optional(),
-    status_flow: z.array(StatusFlowDataSchema).optional(),
     notification_stats: NotificationStatsSchema.optional(),
     instance_content_breakdown: z.array(InstanceBreakdownSchema).optional(),
   })
@@ -286,8 +274,7 @@ export type ActivityStats = z.infer<typeof ActivityStatsSchema>
 export type InstanceStat = z.infer<typeof InstanceStatSchema>
 export type AvailabilityTime = z.infer<typeof AvailabilityTimeSchema>
 export type StatusTransitionTime = z.infer<typeof StatusTransitionTimeSchema>
-export type StatusFlowData = z.infer<typeof StatusFlowDataSchema>
-export type GrabbedToNotifiedTime = z.infer<typeof GrabbedToNotifiedTimeSchema>
+export type RequestToReadyTime = z.infer<typeof RequestToReadyTimeSchema>
 export type DashboardStats = z.infer<typeof DashboardStatsSchema>
 export type InstanceContentItem = z.infer<typeof InstanceContentItemSchema>
 export type InstanceContentType = z.infer<typeof InstanceContentTypeSchema>

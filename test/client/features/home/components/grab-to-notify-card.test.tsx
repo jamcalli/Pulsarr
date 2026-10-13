@@ -9,7 +9,10 @@ const movie = {
   avg_days: 14 * MINUTE,
   min_days: 3 * MINUTE,
   max_days: 42 * MINUTE,
+  median_days: 12 * MINUTE,
+  p90_days: 30 * MINUTE,
   count: 84,
+  pending: 0,
 }
 
 const show = {
@@ -17,7 +20,10 @@ const show = {
   avg_days: 22 * MINUTE,
   min_days: 5 * MINUTE,
   max_days: 30 * MINUTE,
+  median_days: 20 * MINUTE,
+  p90_days: 28 * MINUTE,
   count: 16,
+  pending: 0,
 }
 
 describe('GrabToNotifyCard', () => {

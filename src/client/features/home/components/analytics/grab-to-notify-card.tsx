@@ -18,7 +18,7 @@ import type { ChartColor } from '@/lib/chart-colors'
 import { formatCount, formatNumber } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
-type GrabTime = components['schemas']['GrabbedToNotifiedTime']
+type GrabTime = components['schemas']['RequestToReadyTime']
 
 const CONTENT_TYPES = [
   { type: 'movie', label: 'Movies', color: 'chart-movie' },

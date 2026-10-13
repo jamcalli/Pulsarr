@@ -28,18 +28,6 @@ declare module '@services/database.service.js' {
     ): Promise<void>
 
     /**
-     * Updates watchlist items by matching GUID
-     * @param guid - GUID to match against watchlist item GUIDs array
-     * @param updates - Fields to update on matching watchlist items
-     * @returns Promise resolving to the number of items updated
-     */
-    updateWatchlistItemByGuid(
-      this: DatabaseService,
-      guid: string,
-      updates: WatchlistItemUpdate,
-    ): Promise<number>
-
-    /**
      * Retrieves a specific watchlist item for a user
      * @param userId - ID of the user
      * @param key - Unique key of the watchlist item

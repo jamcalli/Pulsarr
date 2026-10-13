@@ -81,7 +81,7 @@ export function AnalyticsSection({
       <PipelineCard instances={data.instance_content_breakdown} />
       <div className={GRID}>
         <div className={COLUMN}>
-          <GrabToNotifyCard times={data.grabbed_to_notified_times} />
+          <GrabToNotifyCard times={data.request_to_ready_times} />
           <TopGenresCard topGenres={topGenres} />
         </div>
         <div className={COLUMN}>

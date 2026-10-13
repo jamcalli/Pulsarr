@@ -25,7 +25,7 @@ export function dashboardStats(
       },
       instance_activity: [],
       availability_times: [],
-      grabbed_to_notified_times: [],
+      request_to_ready_times: [],
       ...data,
     },
     isLoading: false,

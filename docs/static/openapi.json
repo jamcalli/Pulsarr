@@ -2564,22 +2564,16 @@
               "$ref": "#/components/schemas/AvailabilityTime"
             }
           },
-          "grabbed_to_notified_times": {
+          "request_to_ready_times": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/GrabbedToNotifiedTime"
+              "$ref": "#/components/schemas/RequestToReadyTime"
             }
           },
           "status_transitions": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StatusTransitionTime"
-            }
-          },
-          "status_flow": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatusFlowData"
             }
           },
           "notification_stats": {
@@ -2602,7 +2596,7 @@
           "recent_activity",
           "instance_activity",
           "availability_times",
-          "grabbed_to_notified_times"
+          "request_to_ready_times"
         ],
         "additionalProperties": false,
         "description": "Every dashboard statistic in one response"
@@ -2742,35 +2736,6 @@
         ],
         "additionalProperties": false,
         "description": "A genre with the number of watchlist items tagged with it"
-      },
-      "GrabbedToNotifiedTime": {
-        "type": "object",
-        "properties": {
-          "content_type": {
-            "type": "string"
-          },
-          "avg_days": {
-            "type": "number"
-          },
-          "min_days": {
-            "type": "number"
-          },
-          "max_days": {
-            "type": "number"
-          },
-          "count": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "content_type",
-          "avg_days",
-          "min_days",
-          "max_days",
-          "count"
-        ],
-        "additionalProperties": false,
-        "description": "Days from grabbed to notified for a content type"
       },
       "ImdbConditionValue": {
         "type": "object",
@@ -4061,6 +4026,47 @@
           "special-tag"
         ],
         "description": "What happens to a user tag once that user drops the content"
+      },
+      "RequestToReadyTime": {
+        "type": "object",
+        "properties": {
+          "content_type": {
+            "type": "string"
+          },
+          "avg_days": {
+            "type": "number"
+          },
+          "min_days": {
+            "type": "number"
+          },
+          "max_days": {
+            "type": "number"
+          },
+          "median_days": {
+            "type": "number"
+          },
+          "p90_days": {
+            "type": "number"
+          },
+          "count": {
+            "type": "number"
+          },
+          "pending": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content_type",
+          "avg_days",
+          "min_days",
+          "max_days",
+          "median_days",
+          "p90_days",
+          "count",
+          "pending"
+        ],
+        "additionalProperties": false,
+        "description": "Days from request to a file on disk for a content type"
       },
       "RollingMonitoredShow": {
         "type": "object",
@@ -5530,35 +5536,6 @@
         ],
         "additionalProperties": false,
         "description": "Watchlist item count for one status"
-      },
-      "StatusFlowData": {
-        "type": "object",
-        "properties": {
-          "from_status": {
-            "type": "string"
-          },
-          "to_status": {
-            "type": "string"
-          },
-          "content_type": {
-            "type": "string"
-          },
-          "count": {
-            "type": "number"
-          },
-          "avg_days": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "from_status",
-          "to_status",
-          "content_type",
-          "count",
-          "avg_days"
-        ],
-        "additionalProperties": false,
-        "description": "Transition count and average days between two statuses for a content type"
       },
       "StatusTransitionTime": {
         "type": "object",
@@ -17131,73 +17108,6 @@
         }
       }
     },
-    "/v1/stats/grabbed-to-notified": {
-      "get": {
-        "operationId": "getGrabbedToNotifiedStats",
-        "summary": "Get grabbed to notified time stats",
-        "tags": [
-          "Statistics"
-        ],
-        "description": "Retrieve average time from grabbed to notified statistics",
-        "parameters": [
-          {
-            "schema": {
-              "default": 30,
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "in": "query",
-            "name": "days"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GrabbedToNotifiedTime"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/stats/instance-content": {
       "get": {
         "operationId": "getInstanceContentBreakdown",
@@ -17464,6 +17374,73 @@
         }
       }
     },
+    "/v1/stats/request-to-ready": {
+      "get": {
+        "operationId": "getRequestToReadyStats",
+        "summary": "Get request to ready time stats",
+        "tags": [
+          "Statistics"
+        ],
+        "description": "Retrieve days from request to a file on disk per content type",
+        "parameters": [
+          {
+            "schema": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "days"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RequestToReadyTime"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/stats/shows": {
       "get": {
         "operationId": "getMostWatchedShows",
@@ -17513,73 +17490,6 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ContentStat"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/stats/status-flow": {
-      "get": {
-        "operationId": "getStatusFlow",
-        "summary": "Get status flow data",
-        "tags": [
-          "Statistics"
-        ],
-        "description": "Retrieve status flow data for visualization",
-        "parameters": [
-          {
-            "schema": {
-              "default": 30,
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "in": "query",
-            "name": "days"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StatusFlowData"
                   }
                 }
               }

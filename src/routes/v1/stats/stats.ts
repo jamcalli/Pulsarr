@@ -7,13 +7,12 @@ import {
   DashboardStatsSchema,
   ErrorSchema,
   GenreStatSchema,
-  GrabbedToNotifiedTimeSchema,
   InstanceContentBreakdownSchema,
   InstanceContentQuerySchema,
   LimitQuerySchema,
   NotificationStatsSchema,
   RankedStatsQuerySchema,
-  StatusFlowDataSchema,
+  RequestToReadyTimeSchema,
   StatusTransitionTimeSchema,
   UserStatSchema,
 } from '@schemas/stats/stats.schema.js'
@@ -53,7 +52,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           recentActivity,
           instanceActivity,
           availabilityTimes,
-          grabbedToNotifiedTimes,
+          requestToReadyTimes,
           notificationStats,
           instanceContentBreakdown,
         ] = await Promise.all([
@@ -66,18 +65,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           fastify.db.getRecentActivityStats(days),
           fastify.db.getInstanceActivityStats(),
           fastify.db.getAverageTimeToAvailability(days),
-          fastify.db.getAverageTimeFromGrabbedToNotified(days),
+          fastify.db.getRequestToReadyTimes(days),
           fastify.db.getNotificationStats(days),
           fastify.db.getInstanceContentBreakdown({ days }),
         ])
 
         let statusTransitions: z.infer<typeof StatusTransitionTimeSchema>[] = []
-        let statusFlow: z.infer<typeof StatusFlowDataSchema>[] = []
 
         try {
           statusTransitions =
             await fastify.db.getDetailedStatusTransitionMetrics(days)
-          statusFlow = await fastify.db.getStatusFlowData(days)
         } catch (error) {
           fastify.log.warn({ error }, 'Could not fetch advanced status metrics')
         }
@@ -92,9 +89,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           recent_activity: recentActivity,
           instance_activity: instanceActivity,
           availability_times: availabilityTimes,
-          grabbed_to_notified_times: grabbedToNotifiedTimes,
+          request_to_ready_times: requestToReadyTimes,
           status_transitions: statusTransitions,
-          status_flow: statusFlow,
           notification_stats: notificationStats,
           instance_content_breakdown: instanceContentBreakdown?.instances,
         }
@@ -349,16 +345,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   fastify.get(
-    '/grabbed-to-notified',
+    '/request-to-ready',
     {
       schema: {
-        summary: 'Get grabbed to notified time stats',
-        operationId: 'getGrabbedToNotifiedStats',
+        summary: 'Get request to ready time stats',
+        operationId: 'getRequestToReadyStats',
         description:
-          'Retrieve average time from grabbed to notified statistics',
+          'Retrieve days from request to a file on disk per content type',
         querystring: ActivityQuerySchema,
         response: {
-          200: z.array(GrabbedToNotifiedTimeSchema),
+          200: z.array(RequestToReadyTimeSchema),
           400: ErrorSchema,
           500: ErrorSchema,
         },
@@ -368,14 +364,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { days } = request.query
-        const times = await fastify.db.getAverageTimeFromGrabbedToNotified(days)
+        const times = await fastify.db.getRequestToReadyTimes(days)
         return times
       } catch (error) {
         logRouteError(fastify.log, request, error, {
-          message: 'Failed to fetch grabbed-to-notified statistics',
+          message: 'Failed to fetch request-to-ready statistics',
         })
         return reply.internalServerError(
-          'Unable to fetch grabbed-to-notified statistics',
+          'Unable to fetch request-to-ready statistics',
         )
       }
     },
@@ -410,36 +406,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return reply.internalServerError(
           'Unable to fetch status transition metrics',
         )
-      }
-    },
-  )
-
-  fastify.get(
-    '/status-flow',
-    {
-      schema: {
-        summary: 'Get status flow data',
-        operationId: 'getStatusFlow',
-        description: 'Retrieve status flow data for visualization',
-        querystring: ActivityQuerySchema,
-        response: {
-          200: z.array(StatusFlowDataSchema),
-          400: ErrorSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Statistics'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { days } = request.query
-        const flowData = await fastify.db.getStatusFlowData(days)
-        return flowData
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to fetch status flow data',
-        })
-        return reply.internalServerError('Unable to fetch status flow data')
       }
     },
   )
