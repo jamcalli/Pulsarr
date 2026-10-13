@@ -100,12 +100,9 @@ export async function checkApprovalRequirements(
     return { required: false }
   }
 
-  const quotasBypassedByRule = decisions.some(
-    (decision) => decision.bypassUserQuotas,
-  )
-  const approvalDecision = decisions.find(
-    (decision) => decision.alwaysRequireApproval,
-  )
+  const topRule = decisions[0]
+  const quotasBypassedByRule = topRule?.bypassUserQuotas === true
+  const approvalDecision = topRule?.alwaysRequireApproval ? topRule : undefined
 
   if (approvalDecision) {
     return {
