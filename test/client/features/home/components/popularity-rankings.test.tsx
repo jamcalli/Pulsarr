@@ -96,12 +96,18 @@ describe('PopularityRankings', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps phones on the poster shelf', () => {
+  it('honours the saved list view on phones', () => {
     localStorage.setItem('pulsarr-rankings-view', 'list')
     stubViewport({ mobile: true })
     renderRankings()
 
-    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Next' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'List view' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
   it('opens the title that was picked when two share a name', async () => {

@@ -4,13 +4,17 @@ import { Popover as PopoverPrimitive } from '@base-ui/react/popover'
 import { cn } from 'cn'
 import type * as React from 'react'
 
-function Popover({ ...props }: PopoverPrimitive.Root.Props) {
+function Popover<Payload>({ ...props }: PopoverPrimitive.Root.Props<Payload>) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />
 }
 
-function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
+function PopoverTrigger<Payload>({
+  ...props
+}: PopoverPrimitive.Trigger.Props<Payload>) {
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
 }
+
+const createPopoverHandle = PopoverPrimitive.createHandle
 
 function PopoverContent({
   className,
@@ -80,6 +84,7 @@ function PopoverDescription({
 }
 
 export {
+  createPopoverHandle,
   Popover,
   PopoverContent,
   PopoverDescription,

@@ -1,5 +1,4 @@
 import { keepPreviousData } from '@tanstack/react-query'
-import { useMediaView } from '@/features/home/hooks/useMediaView'
 import {
   recentLimitPref,
   recentStatusPref,
@@ -17,7 +16,7 @@ export type RecentRequestsState = ReturnType<typeof useRecentRequests>
 const POLL_INTERVAL_MS = 30_000
 
 export function useRecentRequests() {
-  const [view, setView] = useMediaView(recentViewPref)
+  const [view, setView] = usePref(recentViewPref)
   const [limit, setLimit] = usePref(recentLimitPref)
   const [status, setStatus] = usePref(recentStatusPref)
 
