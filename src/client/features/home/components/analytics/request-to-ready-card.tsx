@@ -81,11 +81,16 @@ export function RequestToReadyCard({ times }: { times: ReadyTime[] }) {
   const headline = roundDuration(weightedAvg)
   const scale = durationScale(Math.max(0, ...rows.map((row) => row.max)))
   const sentence = comparison(rows, unit)
+  const pending = times.reduce((sum, row) => sum + row.pending, 0)
+  const waiting =
+    pending === 1
+      ? `${formatCount(pending, 'request')} is still waiting for a file.`
+      : `${formatCount(pending, 'request')} are still waiting for a file.`
 
   const content =
     rows.length === 0 ? (
       <p className="text-muted-foreground">
-        Nothing was requested in this range.
+        Nothing became ready in this range.{pending > 0 && ` ${waiting}`}
       </p>
     ) : (
       <>

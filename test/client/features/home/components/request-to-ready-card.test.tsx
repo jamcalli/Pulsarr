@@ -56,4 +56,19 @@ describe('RequestToReadyCard', () => {
     expect(screen.queryByText('Shows')).not.toBeInTheDocument()
     expect(screen.queryByText(/^\d/)).not.toBeInTheDocument()
   })
+
+  it('counts requests still waiting when none became ready', () => {
+    render(
+      <RequestToReadyCard
+        times={[
+          { ...movie, count: 0, pending: 2 },
+          { ...show, count: 0 },
+        ]}
+      />,
+    )
+
+    expect(screen.queryByText('Movies')).not.toBeInTheDocument()
+    expect(screen.queryByText('Shows')).not.toBeInTheDocument()
+    expect(screen.getByText(/2 requests/)).toBeInTheDocument()
+  })
 })
