@@ -78,7 +78,11 @@ export function ChartTooltip({
     return (
       <Popover>
         <PopoverTrigger render={render} />
-        <PopoverContent side="top" className={CHART_POPOVER_CLASS}>
+        <PopoverContent
+          side="top"
+          className={CHART_POPOVER_CLASS}
+          aria-label={`${payload.value} ${payload.label}`}
+        >
           <ChartTooltipBody {...payload} />
         </PopoverContent>
       </Popover>
@@ -130,7 +134,11 @@ export function SharedChartTooltip({ handle }: { handle: ChartTooltipHandle }) {
       <Popover handle={handle.popover}>
         {({ payload }) =>
           payload && (
-            <PopoverContent side="top" className={CHART_POPOVER_CLASS}>
+            <PopoverContent
+              side="top"
+              className={CHART_POPOVER_CLASS}
+              aria-label={`${payload.value} ${payload.label}`}
+            >
               <ChartTooltipBody {...payload} />
             </PopoverContent>
           )
