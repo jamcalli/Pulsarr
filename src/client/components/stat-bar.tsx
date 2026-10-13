@@ -1,6 +1,7 @@
 import { cn } from 'cn'
 import type { ReactNode } from 'react'
 import { ChartTooltip } from '@/components/chart-tooltip'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CHART_FILL, type ChartColor } from '@/lib/chart-colors'
 import { formatNumber, formatPercent } from '@/lib/format'
 
@@ -104,4 +105,16 @@ export function StatBarList({
   children: ReactNode
 }) {
   return <div className={cn('group/stat-list', className)}>{children}</div>
+}
+
+export function StatBarSkeleton() {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-12" />
+      </div>
+      <Skeleton className="h-3 w-full" />
+    </div>
+  )
 }

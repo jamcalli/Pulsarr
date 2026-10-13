@@ -219,7 +219,7 @@ describe('MediaDetail', () => {
     ).toHaveTextContent('74/100')
     expect(screen.getByText('Streaming')).toBeInTheDocument()
     expect(screen.getByText('Sent to Radarr')).toBeInTheDocument()
-    expect(screen.getByText('Downloaded')).toBeInTheDocument()
+    expect(screen.getByText('Download')).toBeInTheDocument()
     expect(screen.getByText('$402,000,000')).toBeInTheDocument()
   })
 

@@ -19,6 +19,7 @@ export function useTopGenres(days: number) {
     days,
     data: query.data,
     isLoading: query.isLoading,
+    isReady: query.data !== undefined || query.isError,
     errorMessage: query.isError
       ? (apiErrorMessage(query.error) ?? 'Top genres failed to load.')
       : null,

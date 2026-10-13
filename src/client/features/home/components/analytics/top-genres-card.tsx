@@ -1,7 +1,7 @@
 import { ErrorAlert } from '@/components/error-alert'
-import { StatBar, StatBarList } from '@/components/stat-bar'
+import { StatBar, StatBarList, StatBarSkeleton } from '@/components/stat-bar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import {
   OverflowList,
   OverflowSummarySkeleton,
@@ -24,13 +24,7 @@ function TopGenresSkeleton() {
     <>
       <div className="flex flex-col gap-3">
         {SKELETON_ROWS.map((key) => (
-          <div key={key} className="flex flex-col gap-1.5">
-            <div className="flex justify-between gap-3">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-12" />
-            </div>
-            <Skeleton className="h-3 w-full" />
-          </div>
+          <StatBarSkeleton key={key} />
         ))}
       </div>
       <OverflowSummarySkeleton />
@@ -97,6 +91,17 @@ export function TopGenresCard({ topGenres }: { topGenres: TopGenres }) {
         <CardTitle>Top genres</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 gap-4">{content}</CardContent>
+    </Card>
+  )
+}
+
+export function TopGenresCardSkeleton() {
+  return (
+    <Card>
+      <CardHeaderSkeleton />
+      <CardContent className="flex-1 gap-4">
+        <TopGenresSkeleton />
+      </CardContent>
     </Card>
   )
 }

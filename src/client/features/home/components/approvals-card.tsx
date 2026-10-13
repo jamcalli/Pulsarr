@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
 import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
-import { PosterFrameSkeleton } from '@/components/poster-frame'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,16 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemGroup,
-  ItemMedia,
-  ItemSeparator,
-} from '@/components/ui/item'
+import { ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApprovalRow } from '@/features/home/components/approval-row'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
+import { ItemRowsSkeleton } from '@/features/home/components/item-rows-skeleton'
 import {
   OverflowList,
   OverflowSummarySkeleton,
@@ -43,36 +37,26 @@ const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first' },
 ] as const satisfies ReadonlyArray<{ value: ApprovalSort; label: string }>
 
-const SKELETON_ROWS = Array.from(
-  { length: PENDING_APPROVALS_SHOWN },
-  (_, row) => `row-${row}`,
-)
-
 function ApprovalRowsSkeleton() {
   return (
     <>
-      <ItemGroup className="gap-0">
-        {SKELETON_ROWS.map((key, index) => (
-          <Fragment key={key}>
-            {index > 0 && <ItemSeparator className="my-0" />}
-            <Item className="flex-nowrap px-2">
-              <ItemMedia>
-                <PosterFrameSkeleton size="thumb" />
-              </ItemMedia>
-              <ItemContent className="gap-2">
-                <Skeleton className="h-4 w-48 max-w-full" />
-                <Skeleton className="h-4 w-64 max-w-full" />
-                <Skeleton className="h-4 w-40 max-w-full" />
-              </ItemContent>
-              <ItemActions>
-                <Skeleton className="size-4" />
-              </ItemActions>
-            </Item>
-          </Fragment>
-        ))}
-      </ItemGroup>
+      <ItemRowsSkeleton
+        count={PENDING_APPROVALS_SHOWN}
+        action={<Skeleton className="size-4" />}
+      />
       <OverflowSummarySkeleton />
     </>
+  )
+}
+
+export function ApprovalsCardSkeleton() {
+  return (
+    <Card>
+      <CardHeaderSkeleton action={<Skeleton className="h-8 w-28" />} />
+      <CardContent className="flex-1 gap-4">
+        <ApprovalRowsSkeleton />
+      </CardContent>
+    </Card>
   )
 }
 

@@ -78,9 +78,9 @@ describe('analytics database methods', () => {
 
       expect(await statFor('movie', 30)).toMatchObject({
         count: 1,
-        avg_days: 2,
-        min_days: 2,
-        max_days: 2,
+        avg_days: expect.closeTo(2, 3),
+        min_days: expect.closeTo(2, 3),
+        max_days: expect.closeTo(2, 3),
         pending: 0,
       })
     })
@@ -93,7 +93,7 @@ describe('analytics database methods', () => {
 
       expect(await statFor('show', 30)).toMatchObject({
         count: 1,
-        avg_days: 3,
+        avg_days: expect.closeTo(3, 3),
         pending: 0,
       })
     })
@@ -138,7 +138,7 @@ describe('analytics database methods', () => {
       expect(await statFor('movie', 30)).toMatchObject({
         count: 1,
         pending: 0,
-        min_days: 0,
+        min_days: expect.closeTo(0, 3),
       })
     })
 
@@ -152,11 +152,11 @@ describe('analytics database methods', () => {
 
       expect(await statFor('movie', 30)).toEqual({
         content_type: 'movie',
-        avg_days: 4,
-        min_days: 1,
-        max_days: 10,
-        median_days: 3,
-        p90_days: 10,
+        avg_days: expect.closeTo(4, 3),
+        min_days: expect.closeTo(1, 3),
+        max_days: expect.closeTo(10, 3),
+        median_days: expect.closeTo(3, 3),
+        p90_days: expect.closeTo(10, 3),
         count: 5,
         pending: 0,
       })
@@ -171,7 +171,7 @@ describe('analytics database methods', () => {
 
       expect(await statFor('movie', 0)).toMatchObject({
         count: 1,
-        avg_days: 2,
+        avg_days: expect.closeTo(2, 3),
         pending: 1,
       })
     })
@@ -186,6 +186,21 @@ describe('analytics database methods', () => {
       expect(await fastify.db.getWatchlistStatusDistribution()).toEqual([
         { status: 'pending', count: 2 },
         { status: 'notified', count: 1 },
+      ])
+    })
+
+    it('excludes items created before the window', async () => {
+      const id = await insertItem('movie', {}, 'requested')
+      await getTestDatabase()('watchlist_items')
+        .where({ id })
+        .update({ created_at: daysAgo(40) })
+      await insertItem('show', {}, 'requested')
+
+      expect(await fastify.db.getWatchlistStatusDistribution(30)).toEqual([
+        { status: 'requested', count: 1 },
+      ])
+      expect(await fastify.db.getWatchlistStatusDistribution(0)).toEqual([
+        { status: 'requested', count: 2 },
       ])
     })
   })

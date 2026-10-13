@@ -8,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import type { ChartColor } from '@/lib/chart-colors'
 import { formatCount, formatNumber, formatPercent } from '@/lib/format'
 import type { components } from '@/types/api.js'
@@ -78,6 +80,31 @@ export function LibraryMixCard({
         )}
       </CardHeader>
       <CardContent className="gap-4">{content}</CardContent>
+    </Card>
+  )
+}
+
+export function LibraryMixCardSkeleton() {
+  return (
+    <Card>
+      <CardHeaderSkeleton
+        description
+        action={<Skeleton className="h-4 w-20" />}
+      />
+      <CardContent className="gap-4">
+        <div className="flex flex-col gap-2">
+          {CONTENT_TYPES.map((contentType) => (
+            <div
+              key={contentType.type}
+              className="flex items-center justify-between gap-3"
+            >
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-5 w-full" />
+      </CardContent>
     </Card>
   )
 }

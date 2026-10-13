@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { GrabToNotifyCard } from '@/features/home/components/analytics/grab-to-notify-card'
+import { RequestToReadyCard } from '@/features/home/components/analytics/request-to-ready-card'
 import { setFormatLocale } from '@/lib/format'
 
 const MINUTE = 1 / (24 * 60)
@@ -26,12 +26,12 @@ const show = {
   pending: 0,
 }
 
-describe('GrabToNotifyCard', () => {
+describe('RequestToReadyCard', () => {
   beforeEach(() => setFormatLocale('en-US'))
   afterEach(() => setFormatLocale(undefined))
 
   it('compares the two types when both have data', () => {
-    render(<GrabToNotifyCard times={[movie, show]} />)
+    render(<RequestToReadyCard times={[movie, show]} />)
 
     expect(
       screen.getByText('Movies are ready about 8 min sooner than shows.'),
@@ -42,18 +42,18 @@ describe('GrabToNotifyCard', () => {
   })
 
   it('shows only the measured type and no comparison with one type', () => {
-    render(<GrabToNotifyCard times={[movie, { ...show, count: 0 }]} />)
+    render(<RequestToReadyCard times={[movie, { ...show, count: 0 }]} />)
 
     expect(screen.getByText('Movies')).toBeInTheDocument()
     expect(screen.queryByText('Shows')).not.toBeInTheDocument()
     expect(screen.queryByText(/sooner than/)).not.toBeInTheDocument()
   })
 
-  it('shows the empty state with no measured types', () => {
-    render(<GrabToNotifyCard times={[]} />)
+  it('draws no rows and no headline with no measured types', () => {
+    render(<RequestToReadyCard times={[]} />)
 
-    expect(
-      screen.getByText('Nothing was grabbed in this range.'),
-    ).toBeInTheDocument()
+    expect(screen.queryByText('Movies')).not.toBeInTheDocument()
+    expect(screen.queryByText('Shows')).not.toBeInTheDocument()
+    expect(screen.queryByText(/^\d/)).not.toBeInTheDocument()
   })
 })

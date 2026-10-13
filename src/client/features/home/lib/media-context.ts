@@ -67,7 +67,7 @@ function downloadedStep(
   pending: boolean,
   instance: MediaInstance | null,
 ): JourneyStep {
-  const label = 'Downloaded'
+  const label = 'Download'
   if (pending) return { label, detail: 'After approval', state: 'todo' }
   switch (instance?.junctionStatus) {
     case 'grabbed':
@@ -76,7 +76,7 @@ function downloadedStep(
     case 'requested':
       return {
         label,
-        detail: 'Sent to the instance, waiting on a release',
+        detail: `${instance.name} has no file yet`,
         state: 'progress',
       }
     default:
@@ -84,17 +84,13 @@ function downloadedStep(
   }
 }
 
-function availableStep(instance: MediaInstance | null): JourneyStep {
-  const label = 'Available'
+function notifiedStep(instance: MediaInstance | null): JourneyStep {
+  const label = 'Notification'
   switch (instance?.junctionStatus) {
     case 'notified':
-      return { label, detail: 'In Plex, and the user was told', state: 'done' }
+      return { label, detail: 'The user was told', state: 'done' }
     case 'grabbed':
-      return {
-        label,
-        detail: 'Waiting for Plex to pick it up',
-        state: 'progress',
-      }
+      return { label, detail: 'No notification yet', state: 'progress' }
     default:
       return { label, detail: 'Once it is downloaded', state: 'todo' }
   }
@@ -126,7 +122,7 @@ function journeyOf(
     requested,
     sent,
     downloadedStep(pending, instance),
-    availableStep(instance),
+    notifiedStep(instance),
   ]
 }
 

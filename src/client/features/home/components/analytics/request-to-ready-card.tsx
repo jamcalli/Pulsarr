@@ -1,4 +1,9 @@
-import { RangeBar, RangeBarTicks } from '@/components/range-bar'
+import {
+  RangeBar,
+  RangeBarSkeleton,
+  RangeBarTicks,
+  RangeBarTicksSkeleton,
+} from '@/components/range-bar'
 import {
   Card,
   CardContent,
@@ -6,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import {
   type DurationUnit,
   durationScale,
@@ -18,7 +25,7 @@ import type { ChartColor } from '@/lib/chart-colors'
 import { formatCount, formatNumber } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
-type GrabTime = components['schemas']['RequestToReadyTime']
+type ReadyTime = components['schemas']['RequestToReadyTime']
 
 const CONTENT_TYPES = [
   { type: 'movie', label: 'Movies', color: 'chart-movie' },
@@ -48,25 +55,7 @@ function comparison(
     : `${faster.label} are ready about ${duration(gap, unit)} sooner than ${slower.label.toLowerCase()}.`
 }
 
-function Legend() {
-  return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-      <li className="flex items-center gap-1.5">
-        <span aria-hidden className="h-3 w-0.5 bg-foreground" />
-        Average
-      </li>
-      <li className="flex items-center gap-1.5">
-        <span
-          aria-hidden
-          className="h-3 w-5 rounded-xs border-2 border-border bg-chart-track"
-        />
-        Fastest to slowest
-      </li>
-    </ul>
-  )
-}
-
-export function GrabToNotifyCard({ times }: { times: GrabTime[] }) {
+export function RequestToReadyCard({ times }: { times: ReadyTime[] }) {
   const measured = CONTENT_TYPES.flatMap((contentType) => {
     const time = times.find(
       (row) => row.content_type === contentType.type && row.count > 0,
@@ -96,7 +85,7 @@ export function GrabToNotifyCard({ times }: { times: GrabTime[] }) {
   const content =
     rows.length === 0 ? (
       <p className="text-muted-foreground">
-        Nothing was grabbed in this range.
+        Nothing was requested in this range.
       </p>
     ) : (
       <>
@@ -124,7 +113,6 @@ export function GrabToNotifyCard({ times }: { times: GrabTime[] }) {
           ))}
           <RangeBarTicks ticks={scale.ticks} domainMax={scale.domainMax} />
         </div>
-        <Legend />
         {sentence && <p className="text-muted-foreground">{sentence}</p>}
       </>
     )
@@ -132,12 +120,30 @@ export function GrabToNotifyCard({ times }: { times: GrabTime[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Grab to notify</CardTitle>
+        <CardTitle>Request to ready</CardTitle>
         <CardDescription>
-          From a download being grabbed to the user hearing it's ready
+          From a request reaching Radarr or Sonarr to a file on disk
         </CardDescription>
       </CardHeader>
       <CardContent className="gap-4">{content}</CardContent>
+    </Card>
+  )
+}
+
+export function RequestToReadyCardSkeleton() {
+  return (
+    <Card>
+      <CardHeaderSkeleton description />
+      <CardContent className="gap-4">
+        <Skeleton className="h-9 w-28" />
+        <div className="flex flex-col gap-3">
+          {CONTENT_TYPES.map((contentType) => (
+            <RangeBarSkeleton key={contentType.type} />
+          ))}
+          <RangeBarTicksSkeleton />
+        </div>
+        <Skeleton className="h-4 w-72 max-w-full" />
+      </CardContent>
     </Card>
   )
 }

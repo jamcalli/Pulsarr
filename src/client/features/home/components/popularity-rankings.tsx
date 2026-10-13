@@ -16,7 +16,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+} from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import { MediaDetail } from '@/features/home/components/media-detail/media-detail'
 import { ViewToggle } from '@/features/home/components/view-toggle'
 import type { DashboardStats } from '@/features/home/hooks/useDashboardStats'
@@ -24,11 +32,17 @@ import { useMediaSelection } from '@/features/home/hooks/useMediaSelection'
 import { usePopularityRankings } from '@/features/home/hooks/usePopularityRankings'
 import { usePrefetchMediaDetail } from '@/features/home/hooks/usePrefetchMediaDetail'
 import type { RecentRequest } from '@/features/home/hooks/useRecentRequests'
-import { type MediaView, RANKING_LIMITS } from '@/features/home/lib/home-prefs'
+import {
+  type MediaView,
+  RANKING_LIMITS,
+  rankingLimitPref,
+  rankingViewPref,
+} from '@/features/home/lib/home-prefs'
 import { rankingItem } from '@/features/home/lib/media-item'
 import { rangeLabel } from '@/features/home/lib/range-label'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { formatCount, formatNumber, formatTime } from '@/lib/format'
+import { usePref } from '@/lib/prefs'
 import type { components } from '@/types/api.js'
 
 type RankedContent = components['schemas']['ContentStat']
@@ -152,28 +166,57 @@ function Shelf({
   )
 }
 
-function ShelfSkeleton({ view }: { view: MediaView }) {
+function ShelfSkeleton({ view, limit }: { view: MediaView; limit: number }) {
+  const heading = <Skeleton className="h-5 w-48" />
+  if (view === 'carousel') return <PosterRowSkeleton heading={heading} />
   return (
     <div className="flex flex-col gap-2">
-      <Skeleton className="h-5 w-48" />
-      {view === 'carousel' ? (
-        <PosterRowSkeleton />
-      ) : (
-        <div className="flex flex-col">
-          {['a', 'b', 'c', 'd', 'e'].map((key) => (
-            <div key={key} className="flex items-center gap-2.5 py-2.5">
-              <Skeleton className="h-4 w-6" />
+      {heading}
+      <ItemGroup className="gap-0">
+        {Array.from({ length: limit }, (_, row) => `row-${row}`).map((key) => (
+          <Item key={key} size="sm" className="flex-nowrap px-2">
+            <Skeleton className="h-4 w-6" />
+            <ItemMedia>
               <PosterFrameSkeleton size="thumb" />
-              <div className="flex flex-1 flex-col gap-1.5">
-                <Skeleton className="h-4 w-48 max-w-full" />
-                <Skeleton className="h-3 w-24" />
-              </div>
+            </ItemMedia>
+            <ItemContent className="gap-1.5">
+              <Skeleton className="h-4 w-48 max-w-full" />
+              <Skeleton className="h-4 w-24" />
+            </ItemContent>
+            <ItemActions>
               <Skeleton className="h-6 w-16 rounded-full" />
-            </div>
-          ))}
-        </div>
-      )}
+            </ItemActions>
+          </Item>
+        ))}
+      </ItemGroup>
     </div>
+  )
+}
+
+export function PopularityRankingsCardSkeleton() {
+  const [view] = usePref(rankingViewPref)
+  const [limit] = usePref(rankingLimitPref)
+  return (
+    <Card>
+      <CardHeaderSkeleton
+        description
+        action={
+          <span className="flex items-center gap-2">
+            <Skeleton className="hidden h-4 w-32 sm:block" />
+            <Skeleton className="h-8 w-20" />
+          </span>
+        }
+      />
+      <CardContent className="gap-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="ml-auto h-8 w-18" />
+        </div>
+        {SHELVES.map((shelf) => (
+          <ShelfSkeleton key={shelf.key} view={view} limit={limit} />
+        ))}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -205,7 +248,9 @@ export function PopularityRankings({
   const content = rankings.errorMessage ? (
     <ErrorAlert message={rankings.errorMessage} />
   ) : rankings.isLoading ? (
-    SHELVES.map((shelf) => <ShelfSkeleton key={shelf.key} view={view} />)
+    SHELVES.map((shelf) => (
+      <ShelfSkeleton key={shelf.key} view={view} limit={rankings.limit} />
+    ))
   ) : data === undefined ? null : (
     SHELVES.map((shelf) => (
       <Shelf

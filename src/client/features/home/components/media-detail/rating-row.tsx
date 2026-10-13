@@ -6,6 +6,7 @@ import rtFreshIcon from '@/assets/images/rating-icons/rt-fresh.svg'
 import rtRottenIcon from '@/assets/images/rating-icons/rt-rotten.svg'
 import tmdbIcon from '@/assets/images/rating-icons/tmdb.svg'
 import traktIcon from '@/assets/images/rating-icons/trakt.svg'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Tooltip,
   TooltipContent,
@@ -13,6 +14,9 @@ import {
 } from '@/components/ui/tooltip'
 import type { Rating, RatingIcon } from '@/features/home/lib/media-facts'
 import { formatNumber } from '@/lib/format'
+
+const ROW = 'flex flex-wrap items-center gap-x-4 gap-y-2'
+const SKELETON_RATINGS = ['a', 'b', 'c']
 
 const ICONS: Record<RatingIcon, string> = {
   tmdb: tmdbIcon,
@@ -28,7 +32,7 @@ const ICONS: Record<RatingIcon, string> = {
 export function RatingRow({ ratings }: { ratings: Rating[] }) {
   if (ratings.length === 0) return null
   return (
-    <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <ul className={ROW}>
       {ratings.map((rating) => (
         <li key={rating.name}>
           <Tooltip>
@@ -57,5 +61,15 @@ export function RatingRow({ ratings }: { ratings: Rating[] }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+export function RatingRowSkeleton() {
+  return (
+    <div className={ROW}>
+      {SKELETON_RATINGS.map((key) => (
+        <Skeleton key={key} className="h-5 w-14" />
+      ))}
+    </div>
   )
 }

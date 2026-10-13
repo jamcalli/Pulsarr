@@ -2,6 +2,8 @@ import { cn } from 'cn'
 import type { ReactNode } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 
+const HEADER_ROW = 'flex flex-wrap items-start justify-between gap-4'
+
 export function Page({
   className,
   wide = false,
@@ -38,7 +40,7 @@ export function PageHeader({
   action,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className={HEADER_ROW}>
       <div className="min-w-0">
         {section && (
           <div className="text-sm text-muted-foreground">{section}</div>
@@ -57,12 +59,25 @@ export function PageHeader({
   )
 }
 
-export function PageHeaderSkeleton() {
-  return (
+export function PageHeaderSkeleton({
+  section = true,
+  action,
+}: {
+  section?: boolean
+  action?: ReactNode
+}) {
+  const header = (
     <div className="flex flex-col gap-2">
-      <Skeleton className="h-4 w-20" />
+      {section && <Skeleton className="h-4 w-20" />}
       <Skeleton className="h-9 w-56" />
       <Skeleton className="h-5 w-80 max-w-full" />
+    </div>
+  )
+  if (!action) return header
+  return (
+    <div className={HEADER_ROW}>
+      {header}
+      {action}
     </div>
   )
 }

@@ -1896,26 +1896,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stats/availability": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get availability time stats
-         * @description Retrieve average time from adding to availability statistics
-         */
-        get: operations["getAvailabilityStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/stats/genres": {
         parameters: {
             query?: never;
@@ -3422,14 +3402,6 @@ export interface components {
             radarr: components["schemas"]["ArrWebhookResult"][];
             sonarr: components["schemas"]["ArrWebhookResult"][];
         };
-        /** @description Days from watchlisted to available for a content type */
-        AvailabilityTime: {
-            content_type: string;
-            avg_days: number;
-            min_days: number;
-            max_days: number;
-            count: number;
-        };
         /** @description Shows to enroll in or switch between rolling monitoring types */
         BulkManageRollingPayload: {
             shows: {
@@ -3755,8 +3727,6 @@ export interface components {
             status_distribution: components["schemas"]["StatusDistribution"][];
             content_type_distribution: components["schemas"]["ContentTypeDistribution"][];
             recent_activity: components["schemas"]["ActivityStats"];
-            instance_activity: components["schemas"]["InstanceStat"][];
-            availability_times: components["schemas"]["AvailabilityTime"][];
             request_to_ready_times: components["schemas"]["RequestToReadyTime"][];
             status_transitions?: components["schemas"]["StatusTransitionTime"][];
             notification_stats?: components["schemas"]["NotificationStats"];
@@ -3828,13 +3798,6 @@ export interface components {
         InstanceContentType: {
             content_type: string;
             count: number;
-        };
-        /** @description Watchlist item count routed to one arr instance */
-        InstanceStat: {
-            instance_id: number;
-            instance_type: components["schemas"]["InstanceType"];
-            name: string;
-            item_count: number;
         };
         /**
          * @description Arr instance kind, radarr or sonarr
@@ -10959,55 +10922,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardStats"];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getAvailabilityStats: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AvailabilityTime"][];
                 };
             };
             /** @description Default Response */

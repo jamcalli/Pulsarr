@@ -11,8 +11,10 @@ import { Credenza, CredenzaContent, CredenzaTitle } from '@/components/credenza'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import { MediaAbout } from '@/features/home/components/media-detail/media-about'
+import {
+  MediaAbout,
+  MediaAboutSkeleton,
+} from '@/features/home/components/media-detail/media-about'
 import {
   MediaBackdrop,
   MediaHero,
@@ -41,23 +43,6 @@ interface MediaDetailProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   item: MediaItem
-}
-
-function AboutSkeleton() {
-  return (
-    <div className="flex flex-col gap-3">
-      <Skeleton className="h-5 w-20" />
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-3/4" />
-      <div className="grid grid-cols-2 gap-3 pt-2">
-        <Skeleton className="h-9" />
-        <Skeleton className="h-9" />
-        <Skeleton className="h-9" />
-        <Skeleton className="h-9" />
-      </div>
-    </div>
-  )
 }
 
 function NoDetails() {
@@ -99,7 +84,7 @@ function MediaBody({ item, open, approval, panel }: MediaBodyProps) {
   ) : notFound ? (
     <NoDetails />
   ) : (
-    <AboutSkeleton />
+    <MediaAboutSkeleton />
   )
 
   const details = panel ? (
