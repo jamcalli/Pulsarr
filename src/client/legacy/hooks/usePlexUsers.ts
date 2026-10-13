@@ -3,7 +3,6 @@ import type {
   QuotaStatusResponse,
   UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
-import type { PlexFriendStatus } from '@root/schemas/shared/plex-friend-status.schema'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 import { useMutation } from '@tanstack/react-query'
 import { useMemo } from 'react'
@@ -11,6 +10,9 @@ import type { z } from 'zod'
 import type { plexUserSchema } from '@/legacy/lib/plex-schemas'
 import { queryClient } from '@/lib/queryClient'
 import { $api, apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type PlexFriendStatus = components['schemas']['PlexFriendStatus']
 
 export type UserWatchlistInfo = UserWithCount
 

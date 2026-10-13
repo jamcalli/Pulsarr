@@ -387,7 +387,11 @@ export class PlexWatchlistService {
   private async ensureFriendUsers(
     friends: Set<[Friend, string]>,
   ): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
-    return ensureFriendUsers(friends, this.userDeps)
+    const result = await ensureFriendUsers(friends, this.userDeps)
+    if (result.added.length > 0) {
+      this.clearClassifiedUsersCache()
+    }
+    return result
   }
 
   private categorizeItems(
@@ -442,14 +446,17 @@ export class PlexWatchlistService {
     if (cached && Date.now() - cached.fetchedAt < USER_STATUS_CACHE_MS) {
       return cached.result
     }
-    const result = await this.classifyUsers()
-    if (result.success) {
+    const { result, complete } = await this.classifyUsers()
+    if (complete) {
       this.classifiedUsersCache = { fetchedAt: Date.now(), result }
     }
     return result
   }
 
-  private async classifyUsers(): Promise<UserStatusResponse> {
+  private async classifyUsers(): Promise<{
+    result: UserStatusResponse
+    complete: boolean
+  }> {
     const [friendsResult, serverUsers, friendRequests, dbUsers] =
       await Promise.all([
         getFriends(this.config, this.log),
@@ -462,7 +469,10 @@ export class PlexWatchlistService {
       this.log.warn(
         'Friend API failed - skipping classification to prevent misclassifying users',
       )
-      return { success: false, users: [], untracked: [] }
+      return {
+        result: { success: false, users: [], untracked: [] },
+        complete: false,
+      }
     }
 
     if (!friendRequests.success) {
@@ -595,7 +605,10 @@ export class PlexWatchlistService {
       }
     }
 
-    return { success: true, users, untracked }
+    return {
+      result: { success: true, users, untracked },
+      complete: friendRequests.success,
+    }
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
@@ -609,6 +622,10 @@ export class PlexWatchlistService {
   private async checkForRemovedFriends(
     currentFriends: Set<[Friend, string]>,
   ): Promise<EtagUserInfo[]> {
-    return checkForRemovedFriends(currentFriends, this.userDeps)
+    const removed = await checkForRemovedFriends(currentFriends, this.userDeps)
+    if (removed.length > 0) {
+      this.clearClassifiedUsersCache()
+    }
+    return removed
   }
 }

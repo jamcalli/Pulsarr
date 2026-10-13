@@ -2,7 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
-import { SEED_WATCHLIST_ITEMS, seedAll } from '../../helpers/seeds/index.js'
+import {
+  SEED_RADARR_INSTANCES,
+  SEED_WATCHLIST_ITEMS,
+  seedAll,
+} from '../../helpers/seeds/index.js'
 
 describe('recent requests junction status', () => {
   let app: FastifyInstance
@@ -132,7 +136,11 @@ describe('recent requests junction status', () => {
     expect(other.json().data.items).toEqual([])
   })
 
-  const insertWatchlistItem = async (userId: number, key: string) => {
+  const insertWatchlistItem = async (
+    userId: number,
+    key: string,
+    createdAt = '2025-06-01T00:00:00Z',
+  ) => {
     const [row] = await getTestDatabase()('watchlist_items')
       .insert({
         user_id: userId,
@@ -140,12 +148,12 @@ describe('recent requests junction status', () => {
         key,
         type: 'movie',
         thumb: null,
-        added: '2025-06-01T00:00:00Z',
+        added: createdAt,
         guids: JSON.stringify([]),
         genres: JSON.stringify([]),
         status: 'pending',
-        created_at: '2025-06-01T00:00:00Z',
-        updated_at: '2025-06-01T00:00:00Z',
+        created_at: createdAt,
+        updated_at: createdAt,
       })
       .returning('id')
     return row.id
@@ -193,6 +201,70 @@ describe('recent requests junction status', () => {
       .filter((item) => item.userId === 2)
       .map((item) => item.id)
     expect(dashboardIds).toEqual([routedId])
+  })
+
+  it('GET /v1/stats/recent-requests limits by item, not by instance row', async () => {
+    const knex = getTestDatabase()
+    const { id: _seedId, ...radarrInstance } = SEED_RADARR_INSTANCES[0]
+    const extraInstanceIds = await knex('radarr_instances')
+      .insert(
+        ['Second Radarr', 'Third Radarr', 'Fourth Radarr'].map(
+          (name, index) => ({
+            ...radarrInstance,
+            name,
+            base_url: `http://test-radarr-${index + 2}:7878`,
+            is_default: false,
+          }),
+        ),
+      )
+      .returning('id')
+    const instanceIds = [1, ...extraInstanceIds.map((row) => row.id)]
+
+    const olderId = await insertWatchlistItem(
+      2,
+      'older',
+      '2030-01-01T00:00:00Z',
+    )
+    const newestIds = [
+      await insertWatchlistItem(2, 'newest-1', '2030-01-02T00:00:00Z'),
+      await insertWatchlistItem(2, 'newest-2', '2030-01-03T00:00:00Z'),
+      await insertWatchlistItem(2, 'newest-3', '2030-01-04T00:00:00Z'),
+    ]
+    const junctionRow = (watchlistId: number, instanceId: number) => ({
+      watchlist_id: watchlistId,
+      radarr_instance_id: instanceId,
+      status: 'requested',
+      is_primary: instanceId === 1,
+      syncing: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    await knex('watchlist_radarr_instances').insert([
+      junctionRow(olderId, 1),
+      ...newestIds.flatMap((id) =>
+        instanceIds.map((instanceId) => junctionRow(id, instanceId)),
+      ),
+    ])
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/stats/recent-requests?limit=3',
+    })
+
+    expect(res.statusCode).toBe(200)
+    const items: Array<{ id: number; allInstances: Array<{ id: number }> }> =
+      res.json().items
+    expect(
+      items
+        .map(({ id, allInstances }) => ({
+          id,
+          instanceIds: allInstances
+            .map((instance) => instance.id)
+            .sort((a, b) => a - b),
+        }))
+        .sort((a, b) => a.id - b.id),
+    ).toEqual(newestIds.map((id) => ({ id, instanceIds })))
+    expect(items.some((item) => item.id === olderId)).toBe(false)
   })
 
   it('GET /v1/users/:userId/watchlist shows an item awaiting approval once', async () => {

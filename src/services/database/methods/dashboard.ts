@@ -103,11 +103,29 @@ export async function getRecentRequests(
 
     // 2. Get watchlist items with their instance info
     if (shouldFetchWatchlist) {
-      // Over-fetch rows because each item has one row per routed instance
-      const scopeWatchlistQuery = (qb: Knex.QueryBuilder) => {
-        if (userId !== undefined) qb.where('wi.user_id', userId)
-        if (limit !== undefined) qb.limit(limit * 3)
-      }
+      const scopeWatchlistQuery =
+        (type: 'movie' | 'show', junctionTable: string) =>
+        (qb: Knex.QueryBuilder) => {
+          if (userId !== undefined) qb.where('wi.user_id', userId)
+          if (limit === undefined) return
+          const newestIds = this.knex('watchlist_items as newest')
+            .select('newest.id')
+            .where('newest.type', type)
+            .modify((sub) => {
+              if (userId !== undefined) sub.where('newest.user_id', userId)
+              if (!includeUnrouted) {
+                sub.whereExists((exists) => {
+                  exists
+                    .select(1)
+                    .from(junctionTable)
+                    .whereRaw(`${junctionTable}.watchlist_id = newest.id`)
+                })
+              }
+            })
+            .orderBy('newest.created_at', 'desc')
+            .limit(limit)
+          qb.whereIn('wi.id', newestIds)
+        }
       const requireRouting =
         (instanceColumn: string) => (qb: Knex.QueryBuilder) => {
           if (!includeUnrouted) qb.whereNotNull(instanceColumn)
@@ -139,7 +157,7 @@ export async function getRecentRequests(
         .leftJoin('radarr_instances as ri', 'ri.id', 'wri.radarr_instance_id')
         .where('wi.type', 'movie')
         .modify(requireRouting('wri.radarr_instance_id'))
-        .modify(scopeWatchlistQuery)
+        .modify(scopeWatchlistQuery('movie', 'watchlist_radarr_instances'))
         .orderBy('wi.created_at', 'desc')
 
       // Fetch watchlist items for shows (Sonarr)
@@ -168,7 +186,7 @@ export async function getRecentRequests(
         .leftJoin('sonarr_instances as si', 'si.id', 'wsi.sonarr_instance_id')
         .where('wi.type', 'show')
         .modify(requireRouting('wsi.sonarr_instance_id'))
-        .modify(scopeWatchlistQuery)
+        .modify(scopeWatchlistQuery('show', 'watchlist_sonarr_instances'))
         .orderBy('wi.created_at', 'desc')
 
       // Group instances by watchlist item ID

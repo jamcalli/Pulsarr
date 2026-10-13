@@ -1,5 +1,6 @@
 import { USER_STATUS_CACHE_MS } from '@services/plex-watchlist.service.js'
 import type { FastifyInstance } from 'fastify'
+import { HttpResponse, http } from 'msw'
 import {
   afterAll,
   afterEach,
@@ -13,9 +14,11 @@ import {
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedAll } from '../../helpers/seeds/index.js'
+import { server } from '../../setup/msw-setup.js'
 
 const FRIEND_UUID = 'friend-uuid'
 const UNKNOWN_UUID = 'unknown-uuid'
+const NO_SYNC_UUID = 'no-sync-uuid'
 
 describe('users friend status', () => {
   let app: FastifyInstance
@@ -174,6 +177,66 @@ describe('users friend status', () => {
 
       const sent = await app.plexWatchlist.sendFriendRequest(FRIEND_UUID)
       expect(sent.success).toBe(true)
+
+      expect((await list()).statusCode).toBe(200)
+      expect(serverUsers).toHaveBeenCalledTimes(2)
+    })
+
+    const onCommunityQuery = (
+      operation: 'GetAllFriends' | 'GetFriendRequests',
+      respond: () => Response,
+    ) =>
+      server.use(
+        http.post('https://community.plex.tv/api', async ({ request }) => {
+          const body = (await request.clone().json()) as { query: string }
+          if (body.query.includes(`query ${operation}`)) return respond()
+        }),
+      )
+
+    it('does not cache a classification when friend requests fail', async () => {
+      const serverUsers = spyServerUsers()
+      onCommunityQuery(
+        'GetFriendRequests',
+        () => new HttpResponse(null, { status: 500 }),
+      )
+      const list = () =>
+        app.inject({ method: 'GET', url: '/v1/users/list/with-counts' })
+
+      expect((await list()).statusCode).toBe(200)
+      expect((await list()).statusCode).toBe(200)
+      expect(serverUsers).toHaveBeenCalledTimes(2)
+    })
+
+    it('clears the classification when the friend sync creates a user', async () => {
+      const serverUsers = spyServerUsers()
+      await getTestDatabase()('users')
+        .where('id', 4)
+        .update({ plex_uuid: NO_SYNC_UUID })
+      const friend = (id: string, username: string) => ({
+        user: { id, username, avatar: '', displayName: username },
+        createdAt: '2024-01-01T00:00:00Z',
+      })
+      onCommunityQuery('GetAllFriends', () =>
+        HttpResponse.json({
+          data: {
+            allFriendsV2: [
+              friend(FRIEND_UUID, 'test-user-discord-apprise'),
+              friend(UNKNOWN_UUID, 'test-user-all-notifications'),
+              friend(NO_SYNC_UUID, 'test-user-no-sync'),
+              friend('new-friend-uuid', 'new-friend'),
+            ],
+          },
+        }),
+      )
+      const list = () =>
+        app.inject({ method: 'GET', url: '/v1/users/list/with-counts' })
+
+      expect((await list()).statusCode).toBe(200)
+      expect(serverUsers).toHaveBeenCalledTimes(1)
+
+      const changes = await app.plexWatchlist.checkFriendChanges()
+      expect(changes.removed).toEqual([])
+      expect(changes.added.map((user) => user.username)).toEqual(['new-friend'])
 
       expect((await list()).statusCode).toBe(200)
       expect(serverUsers).toHaveBeenCalledTimes(2)

@@ -1,4 +1,3 @@
-import type { PlexFriendStatus } from '@root/schemas/shared/plex-friend-status.schema'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -30,6 +29,9 @@ import {
   TooltipTrigger,
 } from '@/legacy/components/ui/tooltip'
 import { apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type PlexFriendStatus = components['schemas']['PlexFriendStatus']
 
 interface FriendStatusBadgeProps {
   status: PlexFriendStatus
