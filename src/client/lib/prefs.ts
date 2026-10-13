@@ -70,6 +70,13 @@ export function parseOneOf<const T extends readonly string[]>(values: T) {
     values.includes(raw) ? (raw as T[number]) : undefined
 }
 
+export function parseOneOfNumbers<const T extends readonly number[]>(
+  values: T,
+) {
+  return (raw: string): T[number] | undefined =>
+    values.find((value) => String(value) === raw)
+}
+
 export function parseIntInRange(min: number, max: number) {
   return (raw: string): number | undefined => {
     const parsed = Number(raw)

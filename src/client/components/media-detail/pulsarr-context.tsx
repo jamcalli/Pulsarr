@@ -9,14 +9,10 @@ import {
   Tv,
 } from 'lucide-react'
 import { PersonPill } from '@/components/person-pill'
-import { RequestStatus } from '@/features/home/components/request-status'
-import type {
-  JourneyStep,
-  MediaContext,
-  StepState,
-} from '@/features/home/lib/media-context'
+import { RequestStatus } from '@/components/request-list/request-status'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { formatCount } from '@/lib/format'
+import type { JourneyStep, MediaContext, StepState } from '@/lib/media-context'
 
 const STEP_STYLES: Record<StepState, { icon: LucideIcon; className: string }> =
   {

@@ -1,6 +1,6 @@
+import { FilterSelect } from '@/components/filter-select'
 import { SegmentedControl } from '@/components/segmented-control'
 import { Badge } from '@/components/ui/badge'
-import { FilterSelect } from '@/features/requests/components/approval-queue/filter-select'
 import type { ApprovalQueuePage } from '@/features/requests/hooks/approval-queue/useApprovalQueuePage'
 import { HISTORY_STATUS_OPTIONS } from '@/features/requests/lib/approval-queue/queue-state'
 import { useIsMobile } from '@/hooks/useIsMobile'

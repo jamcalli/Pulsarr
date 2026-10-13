@@ -1,3 +1,4 @@
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ChartLegend } from '@/components/chart-legend'
 import { ErrorAlert } from '@/components/error-alert'
 import { StackedBar } from '@/components/stacked-bar'
@@ -11,7 +12,6 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UserAvatar } from '@/components/user-avatar'
-import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import {
   OverflowList,
   OverflowSummarySkeleton,

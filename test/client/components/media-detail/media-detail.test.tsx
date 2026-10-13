@@ -3,17 +3,13 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { MediaDetail } from '@/features/home/components/media-detail/media-detail'
-import type { RecentRequest } from '@/features/home/hooks/useRecentRequests'
-import type { MediaItem } from '@/features/home/lib/media-item'
+import { MediaDetail } from '@/components/media-detail/media-detail'
 import { setFormatLocale } from '@/lib/format'
+import type { MediaItem, RecentRequest } from '@/lib/media-item'
 import { queryClient } from '@/lib/queryClient'
-import {
-  makeApproval,
-  mockApprovalEndpoints,
-} from '../../../approval-fixtures.js'
-import { server } from '../../../setup.js'
-import { stubViewport } from '../../../viewport.js'
+import { makeApproval, mockApprovalEndpoints } from '../../approval-fixtures.js'
+import { server } from '../../setup.js'
+import { stubViewport } from '../../viewport.js'
 
 const movieDetails = {
   adult: false,

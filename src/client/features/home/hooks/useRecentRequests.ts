@@ -1,15 +1,12 @@
 import { keepPreviousData } from '@tanstack/react-query'
+import { useMinLoading } from '@/hooks/useMinLoading'
+import { usePref } from '@/lib/prefs'
 import {
   recentLimitPref,
   recentStatusPref,
   recentViewPref,
-} from '@/features/home/lib/home-prefs'
-import { useMinLoading } from '@/hooks/useMinLoading'
-import { usePref } from '@/lib/prefs'
+} from '@/lib/request-list-prefs'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
-import type { components } from '@/types/api.js'
-
-export type RecentRequest = components['schemas']['RecentRequestItem']
 
 export type RecentRequestsState = ReturnType<typeof useRecentRequests>
 

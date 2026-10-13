@@ -1,3 +1,4 @@
+import { setFormatLocale } from '@/lib/format'
 import {
   heroMeta,
   type MediaMetadata,
@@ -5,8 +6,7 @@ import {
   mediaRatings,
   providerGroups,
   tmdbDay,
-} from '@/features/home/lib/media-facts'
-import { setFormatLocale } from '@/lib/format'
+} from '@/lib/media-facts'
 import type { components } from '@/types/api.js'
 
 type ShowDetails = components['schemas']['TmdbTvDetails']

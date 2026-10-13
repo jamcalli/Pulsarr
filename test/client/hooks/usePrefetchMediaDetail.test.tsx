@@ -2,12 +2,12 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
-import { useMediaDetail } from '@/features/home/hooks/useMediaDetail'
-import { usePrefetchMediaDetail } from '@/features/home/hooks/usePrefetchMediaDetail'
-import type { MediaItem } from '@/features/home/lib/media-item'
 import { useConfig } from '@/hooks/useConfig'
+import { useMediaDetail } from '@/hooks/useMediaDetail'
+import { usePrefetchMediaDetail } from '@/hooks/usePrefetchMediaDetail'
+import type { MediaItem } from '@/lib/media-item'
 import { queryClient } from '@/lib/queryClient'
-import { server } from '../../../setup.js'
+import { server } from '../setup.js'
 
 const dune: MediaItem = {
   title: 'Dune',

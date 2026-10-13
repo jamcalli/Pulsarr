@@ -1,21 +1,17 @@
 import { cn } from 'cn'
 import { useCallback, useState } from 'react'
 import { CredenzaTitle } from '@/components/credenza'
-import { PosterFrame, PosterFrameSkeleton } from '@/components/poster-frame'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   RatingRow,
   RatingRowSkeleton,
-} from '@/features/home/components/media-detail/rating-row'
-import {
-  heroMeta,
-  type MediaMetadata,
-  mediaRatings,
-} from '@/features/home/lib/media-facts'
-import type { MediaItem } from '@/features/home/lib/media-item'
+} from '@/components/media-detail/rating-row'
+import { PosterFrame, PosterFrameSkeleton } from '@/components/poster-frame'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CONTENT_TYPE_LABELS } from '@/lib/content-type'
 import { formatList } from '@/lib/format'
+import { heroMeta, type MediaMetadata, mediaRatings } from '@/lib/media-facts'
+import type { MediaItem } from '@/lib/media-item'
 
 const HERO_PAD = 'px-4 pt-14 pb-5 md:px-6 md:pt-16 md:pb-6'
 const GENRE_ROW = 'flex flex-wrap gap-1.5'

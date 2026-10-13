@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
-import { useMediaSelection } from '@/features/home/hooks/useMediaSelection'
-import type { MediaItem } from '@/features/home/lib/media-item'
+import { useMediaSelection } from '@/hooks/useMediaSelection'
+import type { MediaItem } from '@/lib/media-item'
 
 const snapshot: MediaItem = {
   title: 'Dune',

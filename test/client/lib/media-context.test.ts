@@ -1,7 +1,9 @@
-import type { PendingApproval } from '@/features/home/hooks/usePendingApprovals'
-import type { RecentRequest } from '@/features/home/hooks/useRecentRequests'
-import { mediaContext } from '@/features/home/lib/media-context'
 import { setFormatLocale } from '@/lib/format'
+import { mediaContext } from '@/lib/media-context'
+import type { RecentRequest } from '@/lib/media-item'
+import type { components } from '@/types/api.js'
+
+type PendingApproval = components['schemas']['ApprovalRequest']
 
 const now = new Date(2026, 9, 4, 14, 0, 0).getTime()
 const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString()

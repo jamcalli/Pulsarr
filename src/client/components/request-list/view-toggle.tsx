@@ -1,7 +1,7 @@
 import { GalleryHorizontal, List } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { SegmentedControl } from '@/components/segmented-control'
-import type { MediaView } from '@/features/home/lib/home-prefs'
+import type { MediaView } from '@/lib/request-list-prefs'
 
 const VIEW_OPTIONS = [
   {

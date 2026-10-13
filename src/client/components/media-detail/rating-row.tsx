@@ -12,8 +12,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { Rating, RatingIcon } from '@/features/home/lib/media-facts'
 import { formatNumber } from '@/lib/format'
+import type { Rating, RatingIcon } from '@/lib/media-facts'
 
 const ROW = 'flex flex-wrap items-center gap-x-4 gap-y-2'
 const SKELETON_RATINGS = ['a', 'b', 'c']

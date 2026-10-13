@@ -1,4 +1,5 @@
 import { Film, Tv } from 'lucide-react'
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ColorSwatch } from '@/components/color-swatch'
 import { StackedBar } from '@/components/stacked-bar'
 import {
@@ -9,7 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CardHeaderSkeleton } from '@/features/home/components/card-header-skeleton'
 import type { ChartColor } from '@/lib/chart-colors'
 import { formatCount, formatNumber, formatPercent } from '@/lib/format'
 import type { components } from '@/types/api.js'

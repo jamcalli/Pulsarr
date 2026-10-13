@@ -1,5 +1,5 @@
-import type { MediaItem } from '@/features/home/lib/media-item'
 import { useApprovalRequest } from '@/hooks/useApprovalRequest'
+import type { MediaItem } from '@/lib/media-item'
 import { $api } from '@/lib/tanstackApi'
 
 const LOOKUP_LIMIT = 10
