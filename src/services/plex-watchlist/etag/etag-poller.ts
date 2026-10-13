@@ -377,7 +377,11 @@ export class EtagPoller {
    * @param user - User info to check
    * @returns Poll result with any new items
    */
-  async checkUser(user: EtagUserInfo): Promise<EtagPollResult> {
+  /** A generation makes the cache write conditional on that staggered loop still being current */
+  async checkUser(
+    user: EtagUserInfo,
+    generation?: number,
+  ): Promise<EtagPollResult> {
     const token = this.getConfig().plexTokens?.[0]
     if (!token) {
       return {
@@ -391,7 +395,7 @@ export class EtagPoller {
     this.adoptToken(token)
 
     if (user.isPrimary) {
-      return this.checkPrimary(token, user.userId)
+      return this.checkPrimary(token, user.userId, generation)
     }
 
     if (!user.watchlistId) {
@@ -459,6 +463,10 @@ export class EtagPoller {
     )
   }
 
+  private isStaleLoop(generation: number | undefined): boolean {
+    return generation !== undefined && !this.isLoopCurrent(generation)
+  }
+
   /**
    * Schedule the next user check with calculated interval and jitter.
    */
@@ -500,7 +508,7 @@ export class EtagPoller {
 
     if (user) {
       try {
-        const result = await this.checkUser(user)
+        const result = await this.checkUser(user, generation)
         if (!this.isLoopCurrent(generation)) return
 
         // Notify callback if there are changes
@@ -706,6 +714,7 @@ export class EtagPoller {
   private async checkPrimary(
     token: string,
     userId: number,
+    generation?: number,
   ): Promise<EtagPollResult> {
     const cacheKey = `primary:${userId}`
     const cached = this.cache.get(cacheKey)
@@ -759,6 +768,10 @@ export class EtagPoller {
       const data = (await response.json()) as DiscoverWatchlistResponse
       const freshItems = this.parseDiscoverItems(data)
 
+      if (this.isStaleLoop(generation)) {
+        return { changed: false, userId, isPrimary: true, newItems: [] }
+      }
+
       // Diff to find new items
       const newItems = this.diffItems(freshItems, cached.items)
 
@@ -805,6 +818,7 @@ export class EtagPoller {
     token: string,
     friend: Friend,
     userId: number,
+    generation?: number,
   ): Promise<EtagPollResult> {
     const cacheKey = `friend:${friend.watchlistId}`
     const cached = this.cache.get(cacheKey)
@@ -915,6 +929,10 @@ export class EtagPoller {
       }
 
       const freshItems = this.parseGraphQLItems(data)
+
+      if (this.isStaleLoop(generation)) {
+        return { changed: false, userId, isPrimary: false, newItems: [] }
+      }
 
       // Diff to find new items
       const newItems = this.diffItems(freshItems, cached.items)

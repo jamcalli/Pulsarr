@@ -7,6 +7,7 @@ import type {
   RoutingDetails,
 } from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import {
   approvedDestinations,
   routeUsingApprovedDecision,
@@ -309,6 +310,28 @@ async function sendRoutingNotification(
   }
 }
 
+async function markRequested(
+  deps: ContentRoutingDeps,
+  userId: number,
+  key: string,
+  instanceUpdate: Pick<
+    WatchlistItemUpdate,
+    'radarr_instance_id' | 'sonarr_instance_id'
+  >,
+): Promise<void> {
+  try {
+    await deps.db.updateWatchlistItem(userId, key, {
+      status: 'requested',
+      ...instanceUpdate,
+    })
+  } catch (error) {
+    deps.logger.error(
+      { error, userId, key },
+      'Failed to mark existing item as requested',
+    )
+  }
+}
+
 async function reportRouted(
   tempItem: TemptRssWatchlistItem,
   userId: number,
@@ -447,8 +470,7 @@ export async function routeShow(
       deps.logger.debug(
         `Show ${tempItem.title} already exists in Sonarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
       )
-      await deps.db.updateWatchlistItem(userId, tempItem.key, {
-        status: 'requested',
+      await markRequested(deps, userId, tempItem.key, {
         sonarr_instance_id: presentInstanceIds[0],
       })
       return { routed: false, skippedReason: 'exists-in-target' }
@@ -593,8 +615,7 @@ export async function routeMovie(
       deps.logger.debug(
         `Movie ${tempItem.title} already exists in Radarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
       )
-      await deps.db.updateWatchlistItem(userId, tempItem.key, {
-        status: 'requested',
+      await markRequested(deps, userId, tempItem.key, {
         radarr_instance_id: presentInstanceIds[0],
       })
       return { routed: false, skippedReason: 'exists-in-target' }

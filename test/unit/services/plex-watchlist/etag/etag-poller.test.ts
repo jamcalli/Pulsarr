@@ -174,6 +174,62 @@ describe('EtagPoller staggered loop restart', () => {
     poller.stopStaggeredPolling()
   })
 
+  it('does not let a check that finishes after a restart overwrite the cache', async () => {
+    const poller = new EtagPoller(
+      () => ({ plexTokens: ['token'] }) as Config,
+      createMockLogger(),
+    )
+    const primary = { userId: 1, username: 'primary', isPrimary: true }
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let calls = 0
+    server.use(
+      http.get(WATCHLIST_URL, async () => {
+        calls++
+        if (calls === 1) {
+          return HttpResponse.json(
+            { MediaContainer: { Metadata: [] } },
+            { headers: { etag: 'W/"1"' } },
+          )
+        }
+        await held
+        return HttpResponse.json(
+          {
+            MediaContainer: {
+              Metadata: [{ ratingKey: 'stale', title: 'Stale', type: 'movie' }],
+            },
+          },
+          { headers: { etag: 'W/"stale"' } },
+        )
+      }),
+    )
+
+    await poller.establishBaseline(primary)
+    poller.startStaggeredPolling(
+      1,
+      [],
+      vi.fn(),
+      vi.fn(async () => []),
+    )
+    await vi.advanceTimersByTimeAsync(SLOT_MS)
+    expect(calls).toBe(2)
+
+    poller.stopStaggeredPolling()
+    poller.startStaggeredPolling(
+      1,
+      [],
+      vi.fn(),
+      vi.fn(async () => []),
+    )
+    release()
+    for (let i = 0; i < 10; i++) await vi.advanceTimersByTimeAsync(0)
+
+    expect(poller.getCache().get('primary:1')?.etag).toBe('W/"1"')
+    poller.stopStaggeredPolling()
+  })
+
   it('drops the result of a check that finishes after a restart', async () => {
     const { poller, checkUser } = createPoller()
     let release: () => void = () => {}

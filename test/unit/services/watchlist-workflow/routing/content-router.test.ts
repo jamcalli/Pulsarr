@@ -503,4 +503,16 @@ describe.each(ROUTERS)('$contentType existing copy status', (router) => {
 
     expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
   })
+
+  it('still reports the skip when the status write fails', async () => {
+    const deps = buildDeps([MISSING, FOUND])
+    vi.mocked(deps.db.updateWatchlistItem).mockRejectedValueOnce(
+      new Error('db down'),
+    )
+
+    expect(await router.route(deps)).toEqual({
+      routed: false,
+      skippedReason: 'exists-in-target',
+    })
+  })
 })
