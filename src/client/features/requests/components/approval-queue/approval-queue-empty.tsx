@@ -1,6 +1,6 @@
-import { History, Inbox, SearchX } from 'lucide-react'
+import { History, Inbox } from 'lucide-react'
 import { EmptyState } from '@/components/empty-state'
-import { Button } from '@/components/ui/button'
+import { NoMatchesEmpty } from '@/components/no-matches-empty'
 import type { ApprovalQueuePage } from '@/features/requests/hooks/approval-queue/useApprovalQueuePage'
 import { HISTORY_STATUS_OPTIONS } from '@/features/requests/lib/approval-queue/queue-state'
 
@@ -9,15 +9,11 @@ export function ApprovalQueueEmpty({ page }: { page: ApprovalQueuePage }) {
 
   if (page.filtered) {
     return (
-      <EmptyState
-        icon={<SearchX />}
+      <NoMatchesEmpty
         title="No requests match these filters"
         description="Try another search, or clear the filters to see everything."
-      >
-        <Button type="button" variant="outline" onClick={page.clearFilters}>
-          Clear filters
-        </Button>
-      </EmptyState>
+        onClear={page.clearFilters}
+      />
     )
   }
   if (tab === 'pending') {

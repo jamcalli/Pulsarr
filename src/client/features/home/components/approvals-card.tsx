@@ -3,18 +3,12 @@ import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
+import { CardTitleCount } from '@/components/card-title-count'
 import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
 import { ItemRowsSkeleton } from '@/components/request-list/item-rows-skeleton'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader } from '@/components/ui/card'
 import { ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApprovalRow } from '@/features/home/components/approval-row'
@@ -52,7 +46,7 @@ function ApprovalRowsSkeleton() {
 export function ApprovalsCardSkeleton() {
   return (
     <Card>
-      <CardHeaderSkeleton action={<Skeleton className="h-8 w-28" />} />
+      <CardHeaderSkeleton badge action={<Skeleton className="h-8 w-28" />} />
       <CardContent className="flex-1 gap-4">
         <ApprovalRowsSkeleton />
       </CardContent>
@@ -120,14 +114,11 @@ export function ApprovalsCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Needs your approval
-          {hasPending && (
-            <Badge variant="warn" className="tabular-nums">
-              {formatNumber(total)}
-            </Badge>
-          )}
-        </CardTitle>
+        <CardTitleCount
+          title="Needs your approval"
+          count={total}
+          tone="pending"
+        />
         <CardAction>
           <Button
             variant="neutral"

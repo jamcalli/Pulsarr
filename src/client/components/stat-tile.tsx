@@ -38,11 +38,18 @@ export function StatTile({
   )
 }
 
-export function StatTileSkeleton({ className }: { className?: string }) {
+/** `children` stands in for the value skeleton, matching a tile that draws a chart. */
+export function StatTileSkeleton({
+  children,
+  className,
+}: {
+  children?: ReactNode
+  className?: string
+}) {
   return (
     <div className={cn('flex flex-col gap-1', className)}>
       <Skeleton className="h-4 w-24" />
-      <Skeleton className="h-8 w-20" />
+      {children ?? <Skeleton className="h-8 w-20" />}
       <Skeleton className="h-3 w-40 max-w-full" />
     </div>
   )

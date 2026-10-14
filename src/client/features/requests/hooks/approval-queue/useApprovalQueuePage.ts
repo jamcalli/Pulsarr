@@ -1,6 +1,7 @@
 import { canTransitionApproval } from '@root/schemas/approval/approval.schema'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
 import {
   invalidateApprovalQueue,
   useApprovalQueueList,
@@ -13,7 +14,6 @@ import {
 import {
   hasFilters,
   parseQueueState,
-  QUEUE_PAGE_SIZE,
   type QueueState,
   SORTABLE,
   selectionScope,
@@ -69,7 +69,7 @@ export function useApprovalQueuePage() {
 
   const rows = list.rows ?? []
   const selected = rows.filter((row) => selection.rows[String(row.id)])
-  const lastPage = Math.max(1, Math.ceil(list.total / QUEUE_PAGE_SIZE))
+  const lastPage = Math.max(1, Math.ceil(list.total / DEFAULT_PAGE_SIZE))
 
   useEffect(() => {
     if (list.rows?.length === 0 && state.page > lastPage) {

@@ -1,5 +1,6 @@
 import { ApprovalTriggerSchema } from '@root/schemas/approval/approval.schema'
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema'
+import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
 import { APPROVAL_STATUS_LABELS, TRIGGER_LABELS } from '@/lib/approval'
 import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
 import { APPROVAL_QUEUE_USER_PARAM } from '@/lib/navigation'
@@ -42,8 +43,6 @@ export interface QueueState {
   /** One-based. */
   page: number
 }
-
-export const QUEUE_PAGE_SIZE = 20
 
 export const QUEUE_TABS: ReadonlyArray<{ value: QueueTab; label: string }> = [
   { value: 'pending', label: 'Pending' },
@@ -192,7 +191,7 @@ export function requestQuery(state: QueueState) {
     search: state.q.trim() || undefined,
     sortBy: SORT_FIELDS[state.sort],
     sortOrder: state.dir,
-    limit: QUEUE_PAGE_SIZE,
-    offset: (state.page - 1) * QUEUE_PAGE_SIZE,
+    limit: DEFAULT_PAGE_SIZE,
+    offset: (state.page - 1) * DEFAULT_PAGE_SIZE,
   } satisfies RequestsQuery
 }

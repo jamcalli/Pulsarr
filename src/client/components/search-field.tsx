@@ -39,6 +39,6 @@ export function SearchField({
   )
 }
 
-export function SearchFieldSkeleton() {
-  return <Skeleton className={cn('h-10', SEARCH_FIELD_SIZE)} />
+export function SearchFieldSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={cn('h-10', SEARCH_FIELD_SIZE, className)} />
 }
