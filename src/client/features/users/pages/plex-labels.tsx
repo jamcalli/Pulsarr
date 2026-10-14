@@ -49,7 +49,7 @@ const ACTION_ROWS: Array<{
     id: 'cleanup',
     title: 'Clean up orphaned labels',
     description:
-      'Deletes labels from removed or renamed users, and queued ones that never reached Plex.',
+      'Deletes labels of removed, renamed or non-syncing users, and stuck ones.',
     buttonLabel: 'Clean up',
     busyLabel: 'Cleaning...',
   },
@@ -73,7 +73,7 @@ const REMOVED_LABEL_OPTIONS = [
     value: 'special-label',
     label: 'Swap for a removed label',
     description:
-      'Once nobody wants it, the user labels come off and a marker label goes on, so you can find leftovers.',
+      'Once nobody wants it, its labels swap for one marker you can find.',
   },
 ] as const satisfies Array<{
   value: components['schemas']['RemovedLabelMode']
@@ -179,14 +179,14 @@ function PlexLabelsSettings({
               {(field) => (
                 <field.SwitchField
                   label="Label content in Plex"
-                  description="Labels each item with the users who watchlist it, once it's in Plex."
+                  description="Labels each item with who watchlists it, once it's in Plex."
                 />
               )}
             </configForm.AppField>
           </SettingsSection>
           <ScheduledJobPanel
             title="Full sync"
-            description="Rechecks every watchlisted item and fixes its labels. Skipped while labeling is off."
+            description="Rechecks every watchlisted item and fixes its labels. Needs labeling on."
             schedule={schedule}
             dirty={dirty}
             run={labels.syncRun}

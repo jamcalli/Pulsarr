@@ -295,29 +295,33 @@ describe('PlexLabelsPage', () => {
     expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
     expect(
       screen.getAllByText('Turn on Label content in Plex and save first.'),
-    ).toHaveLength(2)
+    ).toHaveLength(3)
     expect(screen.getByLabelText('Prefix')).toBeEnabled()
 
     await user.click(
       screen.getByRole('switch', { name: 'Label content in Plex' }),
     )
     expect(
-      screen.getByText('Save or discard your changes before running these.'),
-    ).toBeInTheDocument()
+      screen.getAllByText('Save or discard your changes first.'),
+    ).toHaveLength(2)
   })
 
-  it('explains why clean-up is off when orphan clean-up is not saved', async () => {
+  it('disables Run now while labeling is off', async () => {
+    mockEndpoints({ saved: { ...plexLabelSync, enabled: false } })
+    renderPage()
+
+    expect(
+      await screen.findByRole('button', { name: 'Run now' }),
+    ).toBeDisabled()
+  })
+
+  it('keeps clean-up available when orphan clean-up is off', async () => {
     mockEndpoints({ saved: { ...plexLabelSync, cleanupOrphanedLabels: false } })
     renderPage()
 
     expect(
       await screen.findByRole('button', { name: 'Clean up' }),
-    ).toBeDisabled()
-    expect(
-      screen.getByText(
-        'Turn on Clean up orphaned labels on sync and save first.',
-      ),
-    ).toBeInTheDocument()
+    ).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Remove' })).toBeEnabled()
   })
 
@@ -358,8 +362,10 @@ describe('PlexLabelsPage', () => {
     expect(
       await screen.findByRole('progressbar', { name: 'Plex progress' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('42%')).toBeInTheDocument()
-    expect(screen.getByText('Labeling 21 of 50 items')).toBeInTheDocument()
+    expect(await screen.findByText('42%')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Labeling 21 of 50 items'),
+    ).toBeInTheDocument()
 
     release()
     expect(

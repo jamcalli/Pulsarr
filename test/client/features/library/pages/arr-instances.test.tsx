@@ -757,7 +757,7 @@ describe('ArrInstancesPage', () => {
     expect(
       await screen.findByRole('progressbar', { name: 'Sonarr 4K progress' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('42%')).toBeInTheDocument()
+    expect(await screen.findByText('42%')).toBeInTheDocument()
 
     release()
     expect(

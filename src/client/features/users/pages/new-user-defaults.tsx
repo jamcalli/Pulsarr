@@ -13,8 +13,7 @@ import type { components } from '@/types/api.js'
 
 const SECTION = 'Users'
 const TITLE = NAV_PAGES.newUserDefaults.label
-const DESCRIPTION =
-  'The settings new Plex users start with. Changes apply to users added after you save, never to existing users.'
+const DESCRIPTION = 'The settings Plex users get when Pulsarr first adds them.'
 
 function NewUserDefaults({
   config,
@@ -46,7 +45,7 @@ function NewUserDefaults({
               {(field) => (
                 <field.SwitchField
                   label="Require approval"
-                  description="Every request from a new user waits for your approval, whatever their quota."
+                  description="Every request waits for your approval, whatever their quota."
                 />
               )}
             </form.AppField>

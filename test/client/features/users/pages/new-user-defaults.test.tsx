@@ -20,7 +20,7 @@ const savedConfig = {
   newUserDefaultShowQuotaEnabled: true,
   newUserDefaultShowQuotaType: 'monthly',
   newUserDefaultShowQuotaLimit: 10,
-  newUserDefaultShowBypassApproval: true,
+  newUserDefaultShowBypassApproval: false,
   newUserDefaultShowWatchlistCap: null,
 }
 
@@ -106,7 +106,7 @@ describe('NewUserDefaultsPage', () => {
     expect(shows.getByLabelText('Requests per period')).toHaveValue('10')
     expect(
       shows.getByRole('switch', { name: 'Bypass approval over the limit' }),
-    ).toBeChecked()
+    ).not.toBeChecked()
     expect(
       shows.getByRole('switch', { name: 'Cap the watchlist' }),
     ).not.toBeChecked()
@@ -182,6 +182,24 @@ describe('NewUserDefaultsPage', () => {
       movies.getByRole('switch', { name: 'Cap the watchlist' }),
     ).toHaveAttribute('aria-disabled', 'true')
     expect(movies.getByLabelText('Watchlist cap')).toBeDisabled()
+  })
+
+  it('disables the cap fields while bypass is on', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    renderPage()
+
+    const movies = await findSection('Movies')
+    expect(movies.getByLabelText('Watchlist cap')).toBeEnabled()
+
+    await user.click(
+      movies.getByRole('switch', { name: 'Bypass approval over the limit' }),
+    )
+    expect(
+      movies.getByRole('switch', { name: 'Cap the watchlist' }),
+    ).toHaveAttribute('aria-disabled', 'true')
+    expect(movies.getByLabelText('Watchlist cap')).toBeDisabled()
+    expect(movies.getByLabelText('Requests per period')).toBeEnabled()
   })
 
   it('blocks saving an empty limit and shows the field message', async () => {

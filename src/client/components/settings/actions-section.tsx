@@ -2,6 +2,7 @@ import { ActionResults } from '@/components/settings/action-results'
 import { ActionRow } from '@/components/settings/action-row'
 import { SettingsSection } from '@/components/settings/settings-section'
 import type { ActionState } from '@/lib/action-state'
+import { UNSAVED_CHANGES_REASON } from '@/lib/settings'
 
 export interface ActionSpec {
   id: string
@@ -27,11 +28,7 @@ export function ActionsSection({ dirty, actions }: ActionsSectionProps) {
     <SettingsSection
       title="Run now"
       description="These use your saved settings."
-      lock={
-        dirty
-          ? { reason: 'Save or discard your changes before running these.' }
-          : undefined
-      }
+      lock={dirty ? { reason: UNSAVED_CHANGES_REASON } : undefined}
     >
       {actions.map(({ id, state, onRun, destructive, ...row }) => (
         <ActionRow

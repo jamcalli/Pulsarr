@@ -22,4 +22,6 @@ export const fullscreenPref: PrefDef<boolean> = {
   serialize: String,
 }
 
+export const UNSAVED_CHANGES_REASON = 'Save or discard your changes first.'
+
 export const SettingsContext = createContext<SettingsState | null>(null)

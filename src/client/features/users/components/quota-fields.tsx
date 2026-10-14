@@ -16,7 +16,12 @@ export const QuotaFields = withFieldGroup({
   render: function Render({ group, unit, disabled = false }) {
     const on = useStore(group.store, (state) => state.values.on)
     const capOn = useStore(group.store, (state) => state.values.capOn)
+    const bypass = useStore(group.store, (state) => state.values.bypassApproval)
     const quotaOff = disabled || !on
+    const capLocked = quotaOff || bypass
+    const capDescription = bypass
+      ? "The cap doesn't apply while bypass is on."
+      : 'New watchlist items past the cap are skipped instead of requested.'
 
     return (
       <>
@@ -54,7 +59,7 @@ export const QuotaFields = withFieldGroup({
           {(field) => (
             <field.SwitchField
               label="Bypass approval over the limit"
-              description="Over-limit requests skip approval and the cap. Require approval still applies."
+              description="Over-limit requests skip approval, and the cap is off."
               disabled={quotaOff}
             />
           )}
@@ -63,8 +68,8 @@ export const QuotaFields = withFieldGroup({
           {(field) => (
             <field.SwitchField
               label="Cap the watchlist"
-              description="New watchlist items past the cap are skipped instead of requested."
-              disabled={quotaOff}
+              description={capDescription}
+              disabled={capLocked}
             />
           )}
         </group.AppField>
@@ -75,7 +80,7 @@ export const QuotaFields = withFieldGroup({
               unit={unit}
               min={WATCHLIST_CAP_ITEMS.min}
               max={WATCHLIST_CAP_ITEMS.max}
-              disabled={quotaOff || !capOn}
+              disabled={capLocked || !capOn}
             />
           )}
         </group.AppField>

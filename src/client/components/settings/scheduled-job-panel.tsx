@@ -10,12 +10,14 @@ import { StatusPill, type StatusTone } from '@/components/status-pill'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
 import type { ActionState } from '@/lib/action-state'
 import { formatRelative } from '@/lib/format'
+import { UNSAVED_CHANGES_REASON } from '@/lib/settings'
 
 interface ScheduledRun {
   running: boolean
   errorMessage: string | null
   run: () => void
   progress?: ActionProgress[]
+  unavailableReason?: string | null
 }
 
 interface ScheduledJobPanelProps {
@@ -48,9 +50,7 @@ function lockReason(
   dirty: boolean,
   requiresSchedule: boolean,
 ): string | null {
-  if (dirty) {
-    return 'Save or discard your changes first. A run uses the saved settings.'
-  }
+  if (dirty) return UNSAVED_CHANGES_REASON
   if (requiresSchedule && !schedule.enabled) {
     return 'Turn on the schedule to run it now.'
   }
@@ -93,7 +93,8 @@ export function ScheduledJobPanel({
         description="Runs it once now, outside the schedule."
         buttonLabel="Run now"
         busyLabel="Running..."
-        disabled={reason !== null}
+        disabled={reason !== null || Boolean(run.unavailableReason)}
+        unavailableReason={run.unavailableReason}
         running={run.running}
         onRun={() => run.run()}
         progress={run.progress}

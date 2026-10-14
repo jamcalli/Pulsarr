@@ -70,16 +70,11 @@ export function useLabelActions(
   const labelingReason = saved.enabled
     ? null
     : 'Turn on Label content in Plex and save first.'
-  const cleanupReason =
-    labelingReason ??
-    (saved.cleanupOrphanedLabels
-      ? null
-      : 'Turn on Clean up orphaned labels on sync and save first.')
 
   const actions: Record<LabelActionId, ActionState> = {
     cleanup: {
       running: cleanup.running,
-      unavailableReason: cleanupReason,
+      unavailableReason: labelingReason,
       errorMessage: cleanup.errorMessage,
       result: toActionResult(cleanup.result, cleanupLabelResultRows),
     },
@@ -102,6 +97,7 @@ export function useLabelActions(
     syncRun: {
       run: sync.run,
       running: sync.running,
+      unavailableReason: labelingReason,
       errorMessage: sync.errorMessage,
       progress: [toActionProgress(PROGRESS_TARGET, syncProgress)],
       result: toActionResult(sync.result, syncLabelResultRows),
