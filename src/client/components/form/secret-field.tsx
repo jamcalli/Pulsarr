@@ -1,12 +1,11 @@
 import { cn } from 'cn'
-import { Eye, EyeOff } from 'lucide-react'
 import { type ComponentProps, useState } from 'react'
 import { FieldRow } from '@/components/form/field-row'
+import { SecretRevealButton } from '@/components/form/secret-reveal-button'
 import { FieldError } from '@/components/ui/field'
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group'
 import { useFieldErrors } from '@/hooks/useFieldErrors'
@@ -79,15 +78,12 @@ export function SecretField({
             aria-describedby={isInvalid ? errorId : undefined}
           />
           <InputGroupAddon align="inline-end">
-            <InputGroupButton
-              size="icon-xs"
-              aria-label={shown ? revealLabel.hide : revealLabel.show}
-              aria-pressed={shown}
+            <SecretRevealButton
+              shown={shown}
+              onToggle={() => setRevealed(!shown)}
               disabled={disabled || !hasValue}
-              onClick={() => setRevealed(!shown)}
-            >
-              {shown ? <EyeOff /> : <Eye />}
-            </InputGroupButton>
+              revealLabel={revealLabel}
+            />
           </InputGroupAddon>
         </InputGroup>
         <FieldError id={errorId} errors={errors} />

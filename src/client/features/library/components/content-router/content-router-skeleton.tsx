@@ -7,29 +7,27 @@ const CARD_NAME_WIDTHS = ['w-48', 'w-40', 'w-56'] as const
 
 export function ContentRouterSkeleton() {
   return (
-    <Page>
-      <div aria-busy="true" className="flex flex-col gap-5">
-        <PageHeaderSkeleton action={<Skeleton className="h-10 w-28" />} />
-        <Skeleton className="h-11 w-56" />
-        <div className="flex flex-col gap-4">
-          {CARD_NAME_WIDTHS.map((width) => (
-            <CardFrame key={width}>
-              <div className="flex items-start gap-3.5">
-                <Skeleton className="h-14 w-14 shrink-0" />
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <Skeleton className={`h-6 ${width} max-w-full`} />
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-5 w-60 max-w-full" />
-                </div>
-                <Skeleton className="mt-1 size-4 shrink-0" />
-                <Skeleton className="h-6 w-11 shrink-0" />
+    <Page busy>
+      <PageHeaderSkeleton action={<Skeleton className="h-10 w-28" />} />
+      <Skeleton className="h-11 w-56" />
+      <div className="flex flex-col gap-4">
+        {CARD_NAME_WIDTHS.map((width) => (
+          <CardFrame key={width}>
+            <div className="flex items-start gap-3.5">
+              <Skeleton className="h-14 w-14 shrink-0" />
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <Skeleton className={`h-6 ${width} max-w-full`} />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-5 w-60 max-w-full" />
               </div>
-            </CardFrame>
-          ))}
-          <RouteFallbackFrame media={<Skeleton className="size-5" />}>
-            <Skeleton className="h-4 w-3/4" />
-          </RouteFallbackFrame>
-        </div>
+              <Skeleton className="mt-1 size-4 shrink-0" />
+              <Skeleton className="h-6 w-11 shrink-0" />
+            </div>
+          </CardFrame>
+        ))}
+        <RouteFallbackFrame media={<Skeleton className="size-5" />}>
+          <Skeleton className="h-4 w-3/4" />
+        </RouteFallbackFrame>
       </div>
     </Page>
   )

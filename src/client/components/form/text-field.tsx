@@ -13,6 +13,8 @@ type TextFieldProps = {
   labelHidden?: boolean
   orientation?: ComponentProps<typeof FieldRow>['orientation']
   preview?: (value: string) => ReactNode
+  /** A control drawn beside the input, such as the form's submit button. */
+  action?: ReactNode
 } & Pick<
   ComponentProps<typeof Input>,
   'type' | 'autoComplete' | 'autoFocus' | 'placeholder' | 'required'
@@ -25,12 +27,27 @@ export function TextField({
   labelHidden = false,
   orientation = 'responsive',
   preview,
+  action,
   ...inputProps
 }: TextFieldProps) {
   const field = useFieldContext<string>()
   const errors = useFieldErrors()
   const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
+  const input = (
+    <Input
+      {...inputProps}
+      id={field.name}
+      name={field.name}
+      value={field.state.value}
+      disabled={disabled}
+      onBlur={field.handleBlur}
+      onChange={(event) => field.handleChange(event.target.value)}
+      aria-invalid={isInvalid}
+      aria-describedby={isInvalid ? errorId : undefined}
+      className={cn(action && 'min-w-0 flex-1')}
+    />
+  )
 
   return (
     <FieldRow
@@ -47,20 +64,17 @@ export function TextField({
           'flex flex-col gap-2',
           !labelHidden &&
             orientation === 'responsive' &&
-            '@md/field-group:basis-72',
+            (action ? '@md/field-group:basis-96' : '@md/field-group:basis-72'),
         )}
       >
-        <Input
-          {...inputProps}
-          id={field.name}
-          name={field.name}
-          value={field.state.value}
-          disabled={disabled}
-          onBlur={field.handleBlur}
-          onChange={(event) => field.handleChange(event.target.value)}
-          aria-invalid={isInvalid}
-          aria-describedby={isInvalid ? errorId : undefined}
-        />
+        {action ? (
+          <div className="flex gap-2">
+            {input}
+            {action}
+          </div>
+        ) : (
+          input
+        )}
         {preview && (
           <p className="text-sm text-muted-foreground">
             {preview(field.state.value)}

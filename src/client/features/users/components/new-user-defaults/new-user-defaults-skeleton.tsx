@@ -4,13 +4,11 @@ import { QuotaCardSkeleton } from '@/features/users/components/quota-card'
 
 export function NewUserDefaultsSkeleton() {
   return (
-    <Page>
-      <div aria-busy="true" className="flex flex-col gap-5">
-        <PageHeaderSkeleton />
-        <SettingsSectionSkeleton rows={['switch', 'switch']} />
-        <QuotaCardSkeleton description />
-        <QuotaCardSkeleton description />
-      </div>
+    <Page busy>
+      <PageHeaderSkeleton />
+      <SettingsSectionSkeleton rows={['switch', 'switch']} />
+      <QuotaCardSkeleton description />
+      <QuotaCardSkeleton description />
     </Page>
   )
 }

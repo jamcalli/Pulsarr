@@ -86,3 +86,7 @@ export const quotaStatusKeys = {
 export const plexUserStatusKeys = {
   all: $api.queryOptions('get', '/v1/plex/user-status').queryKey,
 }
+
+export const apiKeysKeys = {
+  all: $api.queryOptions('get', '/v1/api-keys/').queryKey,
+}

@@ -1,24 +1,32 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-// Common API Key Schema
-const ApiKeySchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  key: z.string(),
-  user_id: z.number(),
-  created_at: z.string(),
-  is_active: z.boolean(),
-})
+const ApiKeySchema = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    key: z.string(),
+    user_id: z.number(),
+    created_at: z.string(),
+    is_active: z.boolean(),
+  })
+  .meta({
+    id: 'ApiKey',
+    description: 'An API key, returned in full so the admin can copy it',
+  })
 
-// Create API Key Schema
-export const CreateApiKeySchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, { error: 'Name is required' })
-    .max(100, { error: 'Name must be at most 100 characters' }),
-})
+export const CreateApiKeySchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, { error: 'Name is required' })
+      .max(100, { error: 'Name must be at most 100 characters' }),
+  })
+  .meta({
+    id: 'ApiKeyCreatePayload',
+    description: 'Name for a new API key',
+  })
 
 export const CreateApiKeyResponseSchema = z.object({
   success: z.boolean(),

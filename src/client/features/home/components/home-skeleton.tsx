@@ -9,20 +9,18 @@ import { HOME_TOP_GRID } from '@/features/home/lib/home-layout'
 
 export function HomeSkeleton() {
   return (
-    <Page wide>
-      <div aria-busy="true" className="flex flex-col gap-5">
-        <PageHeaderSkeleton
-          section={false}
-          action={<Skeleton className="h-8 w-28" />}
-        />
-        <div className={HOME_TOP_GRID}>
-          <ApprovalsCardSkeleton />
-          <MostActiveCardSkeleton />
-        </div>
-        <RecentRequestsCardSkeleton />
-        <PopularityRankingsCardSkeleton />
-        <AnalyticsSectionSkeleton />
+    <Page wide busy>
+      <PageHeaderSkeleton
+        section={false}
+        action={<Skeleton className="h-8 w-28" />}
+      />
+      <div className={HOME_TOP_GRID}>
+        <ApprovalsCardSkeleton />
+        <MostActiveCardSkeleton />
       </div>
+      <RecentRequestsCardSkeleton />
+      <PopularityRankingsCardSkeleton />
+      <AnalyticsSectionSkeleton />
     </Page>
   )
 }

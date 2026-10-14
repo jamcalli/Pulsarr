@@ -7,15 +7,13 @@ import { UserWatchlistSectionSkeleton } from '@/features/users/components/user/u
 
 export function UserPageSkeleton() {
   return (
-    <Page>
-      <div aria-busy="true" className="flex flex-col gap-5">
-        <PageHeaderSkeleton />
-        <UserIdentityCardSkeleton />
-        <UserStatsRowSkeleton />
-        <UserSettingsSectionsSkeleton />
-        <UserQuotasSectionSkeleton />
-        <UserWatchlistSectionSkeleton />
-      </div>
+    <Page busy>
+      <PageHeaderSkeleton />
+      <UserIdentityCardSkeleton />
+      <UserStatsRowSkeleton />
+      <UserSettingsSectionsSkeleton />
+      <UserQuotasSectionSkeleton />
+      <UserWatchlistSectionSkeleton />
     </Page>
   )
 }

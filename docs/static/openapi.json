@@ -54,6 +54,53 @@
         "additionalProperties": false,
         "description": "Activity counts within the requested range"
       },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "key",
+          "user_id",
+          "created_at",
+          "is_active"
+        ],
+        "additionalProperties": false,
+        "description": "An API key, returned in full so the admin can copy it"
+      },
+      "ApiKeyCreatePayload": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "Name for a new API key"
+      },
       "ApprovalBulkApprovePayload": {
         "type": "object",
         "properties": {
@@ -7574,20 +7621,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100
-                  }
-                },
-                "required": [
-                  "name"
-                ]
+                "$ref": "#/components/schemas/ApiKeyCreatePayload"
               }
             }
-          }
+          },
+          "description": "Name for a new API key"
         },
         "responses": {
           "201": {
@@ -7604,36 +7642,7 @@
                       "type": "string"
                     },
                     "apiKey": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "key": {
-                          "type": "string"
-                        },
-                        "user_id": {
-                          "type": "number"
-                        },
-                        "created_at": {
-                          "type": "string"
-                        },
-                        "is_active": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "key",
-                        "user_id",
-                        "created_at",
-                        "is_active"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/ApiKey"
                     }
                   },
                   "required": [
@@ -7702,36 +7711,7 @@
                     "apiKeys": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "key": {
-                            "type": "string"
-                          },
-                          "user_id": {
-                            "type": "number"
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "is_active": {
-                            "type": "boolean"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "key",
-                          "user_id",
-                          "created_at",
-                          "is_active"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/ApiKey"
                       }
                     }
                   },

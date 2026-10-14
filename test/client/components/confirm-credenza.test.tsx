@@ -53,4 +53,26 @@ describe('ConfirmCredenza', () => {
 
     expect(await screen.findByText('Something broke')).toBeInTheDocument()
   })
+
+  it('ignores a close request while pending', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    renderConfirm({ pending: true, onOpenChange })
+    await screen.findByRole('dialog', { name: 'Remove tags?' })
+
+    await user.keyboard('{Escape}')
+
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('closes on Escape when idle', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    renderConfirm({ onOpenChange })
+    await screen.findByRole('dialog', { name: 'Remove tags?' })
+
+    await user.keyboard('{Escape}')
+
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
 })

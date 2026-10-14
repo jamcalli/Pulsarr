@@ -47,7 +47,12 @@ export function ConfirmCredenza({
   const hasBody = Boolean(children) || Boolean(errorMessage)
 
   return (
-    <Credenza open={open} onOpenChange={onOpenChange}>
+    <Credenza
+      open={open}
+      onOpenChange={(next) => {
+        if (!pending) onOpenChange(next)
+      }}
+    >
       <CredenzaContent>
         <CredenzaHeader>
           <CredenzaTitle>{title}</CredenzaTitle>

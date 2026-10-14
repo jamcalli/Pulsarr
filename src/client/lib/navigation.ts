@@ -121,7 +121,10 @@ export const NAV_PAGES = {
     '/plex/configuration',
     '/utilities/plex-notifications',
   ]),
-  apiKeys: page('API keys', '/system/api-keys', ['/utilities/api-keys']),
+  apiKeys: {
+    ...page('API keys', '/system/api-keys', ['/utilities/api-keys']),
+    rebuilt: true,
+  },
   logs: page('Logs', '/system/logs', ['/utilities/log-viewer']),
 } as const satisfies Record<string, NavPage>
 

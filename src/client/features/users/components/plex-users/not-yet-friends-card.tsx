@@ -1,8 +1,12 @@
-import { Fragment, type ReactNode } from 'react'
 import { BusyLabel } from '@/components/busy-label'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CardTitleCount } from '@/components/card-title-count'
 import { ErrorAlert } from '@/components/error-alert'
+import {
+  SeparatedList,
+  SeparatedListActions,
+  SeparatedListRow,
+} from '@/components/separated-list'
 import { StatusPill } from '@/components/status-pill'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,13 +16,9 @@ import {
   CardHeader,
 } from '@/components/ui/card'
 import {
-  Item,
-  ItemActions,
   ItemContent,
   ItemDescription,
-  ItemGroup,
   ItemMedia,
-  ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -41,7 +41,6 @@ type UntrackedUser =
 const SKELETON_ROWS = 3
 const CONTENT_CLASS = 'min-w-0 basis-70'
 const DESCRIPTION_ROW = 'flex flex-wrap items-center gap-x-2 gap-y-1'
-const ACTIONS_CLASS = 'max-md:w-full max-md:*:h-10 max-md:*:flex-1'
 
 const ACTIONS: Partial<
   Record<
@@ -64,72 +63,59 @@ function meaningLine(account: UntrackedUser): string {
   return `${meaning} Request sent ${formatRelative(new Date(account.pendingSince))}.`
 }
 
-function ItemShell({ children }: { children: ReactNode }) {
-  return (
-    <Item role="listitem" className="flex-wrap px-0 max-md:items-start">
-      {children}
-    </Item>
-  )
-}
-
 function FriendRows({ accounts }: { accounts: UntrackedUser[] }) {
   const requests = useFriendRequests()
 
   return (
     <>
       <ErrorAlert message={requests.errorMessage} />
-      <ItemGroup role="list" aria-label="Not yet friends" className="gap-0">
-        {accounts.map((account, index) => {
+      <SeparatedList label="Not yet friends">
+        {accounts.map((account) => {
           const actions = ACTIONS[account.status] ?? []
           return (
-            <Fragment key={account.uuid}>
-              {index > 0 && <ItemSeparator className="my-0" />}
-              <ItemShell>
-                <ItemMedia>
-                  <UserAvatar name={account.username} avatar={account.avatar} />
-                </ItemMedia>
-                <ItemContent className={CONTENT_CLASS}>
-                  <ItemTitle className="break-all">
-                    {account.username}
-                  </ItemTitle>
-                  <ItemDescription className={DESCRIPTION_ROW}>
-                    <StatusPill
-                      tone={RELATIONSHIP_TONES[account.status]}
-                      label={RELATIONSHIP_LABELS[account.status]}
-                    />
-                    {meaningLine(account)}
-                  </ItemDescription>
-                </ItemContent>
-                {actions.length > 0 && (
-                  <ItemActions className={ACTIONS_CLASS}>
-                    {actions.map(({ action, label, busyLabel }) => {
-                      const running =
-                        requests.running?.uuid === account.uuid &&
-                        requests.running.action === action
-                      return (
-                        <Button
-                          key={action}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={requests.running !== null}
-                          onClick={() => requests.run(action, account.uuid)}
-                        >
-                          <BusyLabel
-                            busy={running}
-                            label={label}
-                            busyLabel={busyLabel}
-                          />
-                        </Button>
-                      )
-                    })}
-                  </ItemActions>
-                )}
-              </ItemShell>
-            </Fragment>
+            <SeparatedListRow key={account.uuid}>
+              <ItemMedia>
+                <UserAvatar name={account.username} avatar={account.avatar} />
+              </ItemMedia>
+              <ItemContent className={CONTENT_CLASS}>
+                <ItemTitle className="break-all">{account.username}</ItemTitle>
+                <ItemDescription className={DESCRIPTION_ROW}>
+                  <StatusPill
+                    tone={RELATIONSHIP_TONES[account.status]}
+                    label={RELATIONSHIP_LABELS[account.status]}
+                  />
+                  {meaningLine(account)}
+                </ItemDescription>
+              </ItemContent>
+              {actions.length > 0 && (
+                <SeparatedListActions>
+                  {actions.map(({ action, label, busyLabel }) => {
+                    const running =
+                      requests.running?.uuid === account.uuid &&
+                      requests.running.action === action
+                    return (
+                      <Button
+                        key={action}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={requests.running !== null}
+                        onClick={() => requests.run(action, account.uuid)}
+                      >
+                        <BusyLabel
+                          busy={running}
+                          label={label}
+                          busyLabel={busyLabel}
+                        />
+                      </Button>
+                    )
+                  })}
+                </SeparatedListActions>
+              )}
+            </SeparatedListRow>
           )
         })}
-      </ItemGroup>
+      </SeparatedList>
     </>
   )
 }
@@ -158,30 +144,27 @@ export function NotYetFriendsCardSkeleton() {
     <Card>
       <CardHeaderSkeleton description badge />
       <CardContent>
-        <ItemGroup role="list" className="gap-0">
+        <SeparatedList>
           {Array.from({ length: SKELETON_ROWS }, (_, row) => `row-${row}`).map(
-            (key, index) => (
-              <Fragment key={key}>
-                {index > 0 && <ItemSeparator className="my-0" />}
-                <ItemShell>
-                  <ItemMedia>
-                    <UserAvatarSkeleton />
-                  </ItemMedia>
-                  <ItemContent className={CONTENT_CLASS}>
-                    <Skeleton className="h-4 w-32" />
-                    <div className={DESCRIPTION_ROW}>
-                      <Skeleton className="h-6 w-20" />
-                      <Skeleton className="h-4 w-56 max-w-full" />
-                    </div>
-                  </ItemContent>
-                  <ItemActions className={ACTIONS_CLASS}>
-                    <Skeleton className="h-8 w-40" />
-                  </ItemActions>
-                </ItemShell>
-              </Fragment>
+            (key) => (
+              <SeparatedListRow key={key}>
+                <ItemMedia>
+                  <UserAvatarSkeleton />
+                </ItemMedia>
+                <ItemContent className={CONTENT_CLASS}>
+                  <Skeleton className="h-4 w-32" />
+                  <div className={DESCRIPTION_ROW}>
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-4 w-56 max-w-full" />
+                  </div>
+                </ItemContent>
+                <SeparatedListActions>
+                  <Skeleton className="h-8 w-40" />
+                </SeparatedListActions>
+              </SeparatedListRow>
             ),
           )}
-        </ItemGroup>
+        </SeparatedList>
       </CardContent>
     </Card>
   )
