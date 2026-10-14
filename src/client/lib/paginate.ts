@@ -5,7 +5,7 @@ export function paginate<T>(
   pageSize: number,
 ): { page: number; rows: T[] } {
   const lastPage = Math.max(1, Math.ceil(items.length / pageSize))
-  const current = Math.min(page, lastPage)
+  const current = Math.min(Math.max(1, page), lastPage)
   return {
     page: current,
     rows: items.slice((current - 1) * pageSize, current * pageSize),

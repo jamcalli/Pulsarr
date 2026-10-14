@@ -233,6 +233,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                         aria-label={expansion.expandedLabel(row.original)}
                         aria-expanded={open}
                         aria-controls={open ? detailId : undefined}
+                        disabled={frozen}
                         className="flex rounded-sm text-muted-foreground outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0"
                       >
                         <ChevronDown

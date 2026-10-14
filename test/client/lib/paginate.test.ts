@@ -20,4 +20,9 @@ describe('paginate', () => {
   it('stays on page 1 for an empty list', () => {
     expect(paginate([], 4, 10)).toEqual({ page: 1, rows: [] })
   })
+
+  it('treats a page below 1 as the first page', () => {
+    expect(paginate(items, 0, 10).page).toBe(1)
+    expect(paginate(items, -3, 10).rows).toHaveLength(10)
+  })
 })

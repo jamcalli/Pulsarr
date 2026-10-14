@@ -234,6 +234,7 @@ describe('DataTable row expansion', () => {
     expect(screen.queryByRole('region')).not.toBeInTheDocument()
 
     rerender(<ExpandHarness frozen />)
+    expect(screen.getByRole('button', { name: 'Alpha details' })).toBeDisabled()
     await user.click(screen.getByText('Alpha'))
     expect(screen.queryByRole('region')).not.toBeInTheDocument()
   })

@@ -11,7 +11,7 @@ export function CardHeaderWithActions({
   children: ReactNode
 }) {
   return (
-    <CardHeader className="max-md:grid-cols-1">
+    <CardHeader className="max-md:has-data-[slot=card-action]:grid-cols-1">
       {children}
       {actions && (
         <CardAction className="max-md:col-span-full max-md:col-start-1 max-md:row-span-1 max-md:row-start-auto max-md:mt-2 max-md:justify-self-stretch">
