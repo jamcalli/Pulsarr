@@ -3107,6 +3107,19 @@ export interface components {
             status_changes: number;
             notifications_sent: number;
         };
+        /** @description An API key, returned in full so the admin can copy it */
+        ApiKey: {
+            id: number;
+            name: string;
+            key: string;
+            user_id: number;
+            created_at: string;
+            is_active: boolean;
+        };
+        /** @description Name for a new API key */
+        ApiKeyCreatePayload: {
+            name: string;
+        };
         /** @description Approval requests to approve, with optional notes */
         ApprovalBulkApprovePayload: {
             requestIds: number[];
@@ -5042,14 +5055,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        apiKeys: {
-                            id: number;
-                            name: string;
-                            key: string;
-                            user_id: number;
-                            created_at: string;
-                            is_active: boolean;
-                        }[];
+                        apiKeys: components["schemas"]["ApiKey"][];
                     };
                 };
             };
@@ -5080,11 +5086,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Name for a new API key */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                };
+                "application/json": components["schemas"]["ApiKeyCreatePayload"];
             };
         };
         responses: {
@@ -5097,14 +5102,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        apiKey: {
-                            id: number;
-                            name: string;
-                            key: string;
-                            user_id: number;
-                            created_at: string;
-                            is_active: boolean;
-                        };
+                        apiKey: components["schemas"]["ApiKey"];
                     };
                 };
             };

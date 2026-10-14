@@ -114,9 +114,7 @@ export function BulkQuotaCredenza({ page }: { page: PlexUsersPage }) {
       </BulkFormCredenza>
       <ConfirmCredenza
         open={confirmOpen}
-        onOpenChange={(open) => {
-          if (!busy) setConfirmOpen(open)
-        }}
+        onOpenChange={setConfirmOpen}
         title={`Remove quotas for ${users}?`}
         description={QUOTA_REMOVAL_DESCRIPTION}
         confirmLabel="Remove quotas"

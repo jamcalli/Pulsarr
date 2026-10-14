@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { z } from 'zod'
 import { useAppForm } from '@/lib/form'
 
@@ -7,7 +8,7 @@ const schema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
 })
 
-function NameForm() {
+function NameForm({ action }: { action?: ReactNode } = {}) {
   const form = useAppForm({
     defaultValues: { name: '' },
     validators: { onSubmit: schema },
@@ -22,7 +23,9 @@ function NameForm() {
       }}
     >
       <form.AppField name="name">
-        {(field) => <field.TextField label="Name" type="text" required />}
+        {(field) => (
+          <field.TextField label="Name" type="text" required action={action} />
+        )}
       </form.AppField>
       <button type="submit">Save</button>
     </form>
@@ -49,5 +52,14 @@ describe('TextField', () => {
     expect(await screen.findByText('Name is required')).toBeInTheDocument()
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(input).toHaveAccessibleDescription('Name is required')
+  })
+
+  it('draws an action beside the input', () => {
+    render(<NameForm action={<button type="button">Create key</button>} />)
+
+    const input = screen.getByLabelText('Name')
+    expect(input.parentElement).toContainElement(
+      screen.getByRole('button', { name: 'Create key' }),
+    )
   })
 })

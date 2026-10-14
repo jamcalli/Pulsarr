@@ -25,9 +25,12 @@ const CONTROL_CLASSES: Record<RowControl, string> = {
 export function FieldRowSkeleton({
   control = 'field',
   description = true,
+  action = false,
 }: {
   control?: RowControl
   description?: boolean
+  /** Mirrors a `TextField` with an action beside its input. */
+  action?: boolean
 }) {
   return (
     <div className="flex flex-col gap-3 @md/field-group:flex-row @md/field-group:items-start">
@@ -35,7 +38,14 @@ export function FieldRowSkeleton({
         <Skeleton className="h-4 w-40" />
         {description && <Skeleton className="h-4 w-72 max-w-full" />}
       </div>
-      <Skeleton className={CONTROL_CLASSES[control]} />
+      {action ? (
+        <div className="flex w-full gap-2 @md/field-group:w-auto @md/field-group:basis-96">
+          <Skeleton className="h-10 min-w-0 flex-1" />
+          <Skeleton className="h-10 w-28 shrink-0" />
+        </div>
+      ) : (
+        <Skeleton className={CONTROL_CLASSES[control]} />
+      )}
     </div>
   )
 }

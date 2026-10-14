@@ -7,6 +7,7 @@ import { ArrInstancesSkeleton } from '@/features/library/components/instances/ar
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
+import { ApiKeysSkeleton } from '@/features/system/components/api-keys/api-keys-skeleton'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
 import { PlexUsersSkeleton } from '@/features/users/components/plex-users/plex-users-skeleton'
 import { UserPageSkeleton } from '@/features/users/components/user/user-page-skeleton'
@@ -42,6 +43,7 @@ const ContentRouterPage = lazy(
 const ArrInstancesPage = lazy(
   () => import('@/features/library/pages/arr-instances'),
 )
+const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),
@@ -69,7 +71,7 @@ const LegacyUserTagsPage = lazy(
 const LegacyPlexLabelsPage = lazy(
   () => import('@/legacy/features/users/pages/plex-labels'),
 )
-const ApiKeysPage = lazy(
+const LegacyApiKeysPage = lazy(
   () => import('@/legacy/features/system/pages/api-keys'),
 )
 const WatchlistExclusionsPage = lazy(
@@ -227,6 +229,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<ContentRouterSkeleton />}>
                   <ContentRouterPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'system/api-keys',
+              element: (
+                <Suspense fallback={<ApiKeysSkeleton />}>
+                  <ApiKeysPage />
                 </Suspense>
               ),
             },
@@ -421,7 +431,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <ApiKeysPage />
+                    <LegacyApiKeysPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

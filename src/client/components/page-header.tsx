@@ -7,14 +7,18 @@ const HEADER_ROW = 'flex flex-wrap items-start justify-between gap-4'
 export function Page({
   className,
   wide = false,
+  busy = false,
   children,
 }: {
   className?: string
   wide?: boolean
+  /** Marks the page as loading, for a page-shaped skeleton. */
+  busy?: boolean
   children: ReactNode
 }) {
   return (
     <div
+      aria-busy={busy || undefined}
       className={cn(
         'mx-auto flex w-full flex-col gap-5 px-4 pt-7 pb-8 md:px-8',
         wide ? 'max-w-310' : 'max-w-220',

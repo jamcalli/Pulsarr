@@ -50,9 +50,7 @@ export function GuardedRemoval({
       </div>
       <ConfirmCredenza
         open={open}
-        onOpenChange={(next) => {
-          if (!pending) onOpenChange(next)
-        }}
+        onOpenChange={onOpenChange}
         title={title}
         description={description}
         confirmLabel={label}
