@@ -14,10 +14,13 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useSettings } from '@/hooks/useSettings'
 import { breadcrumbFor, DOCS_URL } from '@/lib/navigation'
+import { useBreadcrumbStore } from '@/stores/breadcrumbStore'
 
 export function AppHeader() {
   const location = useLocation()
-  const crumbs = breadcrumbFor(location.pathname, location.hash)
+  const tail = useBreadcrumbStore((state) => state.tail)
+  const sectionCrumbs = breadcrumbFor(location.pathname, location.hash)
+  const crumbs = tail ? [...sectionCrumbs, { label: tail }] : sectionCrumbs
   const { fullscreenEnabled, setFullscreenEnabled } = useSettings()
   const frameLabel = fullscreenEnabled ? 'Windowed' : 'Full screen'
 

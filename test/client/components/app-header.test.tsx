@@ -4,6 +4,7 @@ import { AppHeader } from '@/components/app-header'
 import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import { useBreadcrumbStore } from '@/stores/breadcrumbStore'
 
 function renderHeader(path: string) {
   const router = createMemoryRouter(
@@ -30,6 +31,25 @@ function renderHeader(path: string) {
 }
 
 describe('AppHeader', () => {
+  afterEach(() => {
+    useBreadcrumbStore.setState({ tail: null })
+  })
+
+  it('links the section and page crumbs on a user page and ends on the name', () => {
+    useBreadcrumbStore.setState({ tail: 'Maya R.' })
+    const trail = renderHeader('/users/2')
+
+    expect(trail.getByRole('link', { name: 'Users' })).toHaveAttribute(
+      'href',
+      '/plex/users',
+    )
+    expect(trail.getByRole('link', { name: 'Plex users' })).toHaveAttribute(
+      'href',
+      '/plex/users',
+    )
+    expect(trail.getByText('Maya R.')).toHaveAttribute('aria-current', 'page')
+  })
+
   it('shows the current page as the last crumb without a link', () => {
     const trail = renderHeader('/requests/settings')
 

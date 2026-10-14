@@ -20,3 +20,11 @@ export const SAMPLE_USER_NAMES: Record<UserNamingSource, string> = {
   username: 'jamie',
   alias: 'jj',
 }
+
+/** The alias when set, else the Plex username. */
+export function displayName(user: {
+  alias: string | null
+  name: string
+}): string {
+  return user.alias ?? user.name
+}

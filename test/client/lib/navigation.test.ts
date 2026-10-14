@@ -120,6 +120,13 @@ describe('breadcrumbFor', () => {
     ])
   })
 
+  it('links a user page back to Plex users', () => {
+    expect(breadcrumbFor('/users/2')).toEqual([
+      { label: 'Users', to: '/plex/users' },
+      { label: 'Plex users', to: '/plex/users' },
+    ])
+  })
+
   it('shows only an unlinked section for a single-page section on its page', () => {
     expect(breadcrumbFor('/')).toEqual([{ label: 'Home' }])
   })

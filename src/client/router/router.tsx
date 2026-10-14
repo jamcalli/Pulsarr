@@ -8,6 +8,7 @@ import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-q
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
+import { UserPageSkeleton } from '@/features/users/components/user/user-page-skeleton'
 import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
 import { USER_TAGS_SKELETON } from '@/features/users/lib/user-tags-skeleton'
 import AppLayout from '@/layouts/app'
@@ -23,6 +24,7 @@ const NewUserDefaultsPage = lazy(
   () => import('@/features/users/pages/new-user-defaults'),
 )
 const PlexLabelsPage = lazy(() => import('@/features/users/pages/plex-labels'))
+const UserPage = lazy(() => import('@/features/users/pages/user'))
 const ApprovalQueuePage = lazy(
   () => import('@/features/requests/pages/approval-queue'),
 )
@@ -126,6 +128,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<HomeSkeleton />}>
                   <HomePage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'users/:id',
+              element: (
+                <Suspense fallback={<UserPageSkeleton />}>
+                  <UserPage />
                 </Suspense>
               ),
             },

@@ -59,6 +59,7 @@ describe('useUserDirectory', () => {
   it('shows the alias when one is set', async () => {
     const result = await renderDirectory()
     expect(result.current('Sarah')).toEqual({
+      id: 1,
       name: 'Mom',
       avatar: 'https://plex.tv/Sarah.png',
     })
@@ -67,6 +68,7 @@ describe('useUserDirectory', () => {
   it('falls back to the username when the alias is null', async () => {
     const result = await renderDirectory()
     expect(result.current('jamie')).toEqual({
+      id: 2,
       name: 'jamie',
       avatar: 'https://plex.tv/jamie.png',
     })
@@ -80,7 +82,11 @@ describe('useUserDirectory', () => {
 
   it('returns an unknown user as itself with no avatar', async () => {
     const result = await renderDirectory()
-    expect(result.current('ghost')).toEqual({ name: 'ghost', avatar: null })
+    expect(result.current('ghost')).toEqual({
+      id: null,
+      name: 'ghost',
+      avatar: null,
+    })
   })
 
   it('lists every user by display name', async () => {

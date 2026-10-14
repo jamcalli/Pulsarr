@@ -15,9 +15,10 @@ export function quotaUsage(
   settings: QuotaSettings | null,
 ): QuotaUsage | null {
   if (!status) return null
+  const period = quotaWindowPhrase(status.quotaType, settings)
   const text =
     status.currentUsage === 0
-      ? 'Not used yet'
-      : `Used ${formatQuotaUsage(status.currentUsage, status.quotaLimit)} ${quotaWindowPhrase(status.quotaType, settings)}`
+      ? `None used ${period}`
+      : `Used ${formatQuotaUsage(status.currentUsage, status.quotaLimit)} ${period}`
   return { text, atLimit: status.exceeded }
 }

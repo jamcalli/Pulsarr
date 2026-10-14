@@ -1,11 +1,11 @@
 import { SettingsSectionSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
-import { StatusPill } from '@/components/status-pill'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   QuotaFields,
   QuotaFieldsSkeleton,
 } from '@/features/users/components/quota-fields'
+import { QuotaLimitPill } from '@/features/users/components/quota-limit-pill'
 import { QUOTA_FIELD_DEFAULTS } from '@/features/users/lib/quota-fields'
 import type { QuotaUsage } from '@/features/users/lib/quota-usage'
 import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
@@ -43,7 +43,7 @@ export const QuotaCard = withFieldGroup({
         {usage && (
           <div className={USAGE_ROW}>
             <span>{usage.text}</span>
-            {usage.atLimit && <StatusPill tone="pending" label="At limit" />}
+            {usage.atLimit && <QuotaLimitPill />}
           </div>
         )}
         <QuotaFields form={group} fields={QUOTA_FIELD_MAP} unit={type} />
