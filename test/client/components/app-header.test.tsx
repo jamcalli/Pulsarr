@@ -41,11 +41,11 @@ describe('AppHeader', () => {
 
     expect(trail.getByRole('link', { name: 'Users' })).toHaveAttribute(
       'href',
-      '/plex/users',
+      '/users',
     )
     expect(trail.getByRole('link', { name: 'Plex users' })).toHaveAttribute(
       'href',
-      '/plex/users',
+      '/users',
     )
     expect(trail.getByText('Maya R.')).toHaveAttribute('aria-current', 'page')
   })

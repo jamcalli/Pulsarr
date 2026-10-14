@@ -122,8 +122,8 @@ describe('breadcrumbFor', () => {
 
   it('links a user page back to Plex users', () => {
     expect(breadcrumbFor('/users/2')).toEqual([
-      { label: 'Users', to: '/plex/users' },
-      { label: 'Plex users', to: '/plex/users' },
+      { label: 'Users', to: '/users' },
+      { label: 'Plex users', to: '/users' },
     ])
   })
 

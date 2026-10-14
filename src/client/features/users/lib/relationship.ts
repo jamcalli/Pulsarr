@@ -1,7 +1,16 @@
+import { PlexFriendStatusSchema } from '@root/schemas/shared/plex-friend-status.schema'
 import type { StatusTone } from '@/components/status-pill'
 import type { components } from '@/types/api.js'
 
 type PlexFriendStatus = components['schemas']['PlexFriendStatus']
+
+export const TRACKED_STATUSES = [
+  'self',
+  'friend',
+  'friend_only',
+] as const satisfies ReadonlyArray<PlexFriendStatus>
+
+export type TrackedStatus = (typeof TRACKED_STATUSES)[number]
 
 export const RELATIONSHIP_LABELS: Record<PlexFriendStatus, string> = {
   self: 'Owner',
@@ -33,3 +42,15 @@ export const RELATIONSHIP_MEANING: Record<PlexFriendStatus, string> = {
     "A Plex friend without server access. Requests sync, but they can't watch.",
   managed: 'A Plex Home account without a watchlist.',
 }
+
+function isTracked(status: PlexFriendStatus): status is TrackedStatus {
+  return TRACKED_STATUSES.some((tracked) => tracked === status)
+}
+
+export const RELATIONSHIP_FILTER_OPTIONS: ReadonlyArray<{
+  value: TrackedStatus
+  label: string
+}> = PlexFriendStatusSchema.options.filter(isTracked).map((value) => ({
+  value,
+  label: RELATIONSHIP_LABELS[value],
+}))
