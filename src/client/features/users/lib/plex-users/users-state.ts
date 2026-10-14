@@ -1,3 +1,4 @@
+import { pageSizePref } from '@/components/data-table/page-size'
 import {
   RELATIONSHIP_FILTER_OPTIONS,
   type TrackedStatus,
@@ -22,6 +23,8 @@ export interface UsersState {
   /** One-based. */
   page: number
 }
+
+export const plexUsersPageSizePref = pageSizePref('users')
 
 export const USERS_SORTABLE: readonly UsersSortKey[] = ['user', 'watchlist']
 

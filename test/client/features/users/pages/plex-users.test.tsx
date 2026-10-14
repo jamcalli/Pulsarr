@@ -134,12 +134,20 @@ const untracked = [
   },
 ]
 
+function manyUsers(count: number) {
+  return Array.from({ length: count }, (_, index) =>
+    plexUser({ id: index + 1, name: `user${index + 1}` }),
+  )
+}
+
 function mockUsers({
   plexTokens = ['token'],
   failedIds = [],
+  list = users,
 }: {
   plexTokens?: string[]
   failedIds?: number[]
+  list?: PlexUser[]
 } = {}) {
   const bodies = {
     bulk: [] as BulkUsersPayload[],
@@ -151,7 +159,7 @@ function mockUsers({
       HttpResponse.json({ success: true, config: { plexTokens } }),
     ),
     http.get('/v1/users/list/with-counts', () =>
-      HttpResponse.json({ success: true, message: 'ok', users }),
+      HttpResponse.json({ success: true, message: 'ok', users: list }),
     ),
     http.post<never, { contentType: 'movie' | 'show' }>(
       '/v1/quota/users/status/bulk',
@@ -552,5 +560,33 @@ describe('PlexUsersPage', () => {
       bypassApproval: true,
       watchlistCap: null,
     })
+  })
+
+  it('pages by the picked size and remembers it', async () => {
+    const user = userEvent.setup()
+    mockUsers({ list: manyUsers(25) })
+    const router = renderPage('/?page=2')
+    const table = await findTable()
+    expect(bodyRows(table)).toHaveLength(5)
+
+    await user.click(screen.getByRole('combobox', { name: 'Rows per page' }))
+    await user.click(await screen.findByRole('option', { name: '10 per page' }))
+
+    await waitFor(() => expect(bodyRows(table)).toHaveLength(10))
+    expect(router.state.location.search).toBe('')
+    expect(screen.getByText('1 to 10 of 25')).toBeInTheDocument()
+    expect(localStorage.getItem('pulsarr-table-users-pageSize')).toBe('10')
+  })
+
+  it('opens with the saved page size', async () => {
+    localStorage.setItem('pulsarr-table-users-pageSize', '30')
+    mockUsers({ list: manyUsers(35) })
+    renderPage()
+
+    const table = await findTable()
+    expect(bodyRows(table)).toHaveLength(30)
+    expect(
+      screen.getByRole('combobox', { name: 'Rows per page' }),
+    ).toHaveTextContent('30 per page')
   })
 })

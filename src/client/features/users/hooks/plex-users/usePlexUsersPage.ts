@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
+import type { PageSize } from '@/components/data-table/page-size'
 import { usePlexUsersList } from '@/features/users/hooks/plex-users/usePlexUsersList'
 import {
   BULK_ERROR_FALLBACK,
@@ -12,6 +12,7 @@ import {
   filterCount,
   hasFilters,
   parseUsersState,
+  plexUsersPageSizePref,
   selectionScope,
   serializeUsersState,
   USERS_SORTABLE,
@@ -23,6 +24,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useScopedSelection } from '@/hooks/useScopedSelection'
 import { useUrlState } from '@/hooks/useUrlState'
+import { usePref } from '@/lib/prefs'
 import {
   apiFetch,
   mutationErrorMessage,
@@ -59,6 +61,7 @@ export function usePlexUsersPage() {
     parseUsersState,
     serializeUsersState,
   )
+  const [pageSize, savePageSize] = usePref(plexUsersPageSizePref)
   const list = usePlexUsersList()
   const config = useConfig()
   const selection = useScopedSelection(selectionScope(state))
@@ -67,11 +70,9 @@ export function usePlexUsersPage() {
 
   const matching = list.rows === null ? null : visibleRows(list.rows, state)
   const total = matching?.length ?? 0
-  const lastPage = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE))
+  const lastPage = Math.max(1, Math.ceil(total / pageSize))
   const page = Math.min(state.page, lastPage)
-  const rows =
-    matching?.slice((page - 1) * DEFAULT_PAGE_SIZE, page * DEFAULT_PAGE_SIZE) ??
-    null
+  const rows = matching?.slice((page - 1) * pageSize, page * pageSize) ?? null
   const selected = (list.rows ?? []).filter(
     (row) => selection.rows[String(row.user.id)],
   )
@@ -109,6 +110,11 @@ export function usePlexUsersPage() {
       setState({ ...state, page: 1, ...patch }),
     clearFilters: () => setState(withoutFilters(state)),
     setPage: (next: number) => setState({ ...state, page: next }),
+    pageSize,
+    setPageSize: (size: PageSize) => {
+      savePageSize(size)
+      setState({ ...state, page: 1 })
+    },
     selection: selection.rows,
     selected,
     failure: selection.failure,

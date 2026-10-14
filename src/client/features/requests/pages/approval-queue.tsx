@@ -1,6 +1,5 @@
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
 import { DataTableFooter } from '@/components/data-table/data-table-footer'
-import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
 import { Page, PageHeader } from '@/components/page-header'
 import { RetryAlert } from '@/components/retry-alert'
 import { StatusFilter } from '@/components/status-filter'
@@ -62,7 +61,8 @@ function QueueBody({ page }: { page: QueuePage }) {
       )}
       <DataTableFooter
         page={page.state.page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={page.pageSize}
+        onPageSizeChange={page.setPageSize}
         total={empty ? 0 : page.total}
         pageHref={page.pageHref}
         onPageChange={page.setPage}

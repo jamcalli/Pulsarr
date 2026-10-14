@@ -1,5 +1,4 @@
 import { DataTableFooter } from '@/components/data-table/data-table-footer'
-import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
 import { Page, PageHeader } from '@/components/page-header'
 import { RetryAlert } from '@/components/retry-alert'
 import { BulkQuotaCredenza } from '@/features/users/components/plex-users/bulk-quota-credenza'
@@ -43,7 +42,8 @@ function UsersBody({ page }: { page: UsersPage }) {
       )}
       <DataTableFooter
         page={page.page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={page.pageSize}
+        onPageSizeChange={page.setPageSize}
         total={page.total}
         pageHref={page.pageHref}
         onPageChange={page.setPage}
