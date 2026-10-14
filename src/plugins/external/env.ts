@@ -6,6 +6,7 @@ import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema.js'
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
 import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
@@ -19,17 +20,6 @@ const generateSecret = () => crypto.randomBytes(32).toString('hex')
 // Resolve data directory deterministically from platform (Windows/macOS)
 // or fall back to project-relative paths (Linux/Docker)
 const dataDir = resolveDataDir()
-
-const DEFAULT_PLEX_SESSION_MONITORING = {
-  enabled: false,
-  pollingIntervalMinutes: 15,
-  remainingEpisodes: 2,
-  filterUsers: [],
-  enableAutoReset: true,
-  inactivityResetDays: 7,
-  autoResetIntervalHours: 24,
-  enableProgressiveCleanup: false,
-}
 
 const DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS = {
   enabled: false,
@@ -446,7 +436,7 @@ const schema = {
     },
     plexSessionMonitoring: {
       type: 'string',
-      default: JSON.stringify(DEFAULT_PLEX_SESSION_MONITORING),
+      default: JSON.stringify(PLEX_SESSION_MONITORING_DEFAULTS),
     },
     newUserDefaultCanSync: {
       type: 'boolean',
@@ -559,7 +549,7 @@ export default fp(
       plexSessionMonitoring: rawConfig.plexSessionMonitoring
         ? safeJsonParse(
             rawConfig.plexSessionMonitoring as string,
-            DEFAULT_PLEX_SESSION_MONITORING,
+            PLEX_SESSION_MONITORING_DEFAULTS,
             'plexSessionMonitoring',
           )
         : undefined,

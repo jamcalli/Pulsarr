@@ -1,3 +1,4 @@
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import {
   bulkManageRollingMonitoredSchema,
@@ -193,7 +194,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const inactivityDays = request.query.inactivityDays ?? 7
+        const inactivityDays =
+          request.query.inactivityDays ??
+          PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
         const shows =
           await fastify.db.getInactiveRollingMonitoredShows(inactivityDays)
@@ -206,7 +209,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
       } catch (error) {
         logRouteError(request.log, request, error, {
           message: 'Failed to fetch inactive rolling monitored shows',
-          inactivityDays: request.query.inactivityDays ?? 7,
+          inactivityDays:
+            request.query.inactivityDays ??
+            PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays,
         })
         return reply.internalServerError(
           'Failed to fetch inactive rolling monitored shows',
@@ -223,7 +228,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const inactivityDays = request.body.inactivityDays ?? 7
+        const inactivityDays =
+          request.body.inactivityDays ??
+          PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
         const inactiveShows =
           await fastify.db.getInactiveRollingMonitoredShows(inactivityDays)
@@ -244,7 +251,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
       } catch (error) {
         logRouteError(request.log, request, error, {
           message: 'Failed to reset inactive rolling monitored shows',
-          inactivityDays: request.body.inactivityDays ?? 7,
+          inactivityDays:
+            request.body.inactivityDays ??
+            PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays,
         })
         return reply.internalServerError(
           'Failed to reset inactive rolling monitored shows',

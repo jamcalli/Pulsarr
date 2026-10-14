@@ -6,6 +6,10 @@ import {
   PlexLabelSyncConfigSchema,
 } from '@root/schemas/plex/label-sync-config.schema.js'
 import {
+  PlexSessionMonitoringConfigPayloadSchema,
+  PlexSessionMonitoringConfigSchema,
+} from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
@@ -425,18 +429,7 @@ export const ConfigFullSchema = z
     // Tag Migration Configuration
     tagMigration: TagMigrationSchema,
     // Plex Session Monitoring
-    plexSessionMonitoring: z
-      .object({
-        enabled: z.boolean(),
-        pollingIntervalMinutes: z.number(),
-        remainingEpisodes: z.number(),
-        filterUsers: z.array(z.string()).optional(),
-        enableAutoReset: z.boolean().optional(),
-        inactivityResetDays: z.number().optional(),
-        autoResetIntervalHours: z.number().optional(),
-        enableProgressiveCleanup: z.boolean().optional(),
-      })
-      .optional(),
+    plexSessionMonitoring: PlexSessionMonitoringConfigSchema.optional(),
     // New User Defaults - getConfig() applies defaults with Boolean() and || operators
     newUserDefaultCanSync: z.boolean(),
     newUserDefaultRequiresApproval: z.boolean(),
@@ -581,20 +574,7 @@ export const ConfigUpdateSchema = z
     friendsRss: z.string().optional(),
     _isReady: z.boolean().optional(),
     // Plex Session Monitoring
-    plexSessionMonitoring: z
-      .object({
-        enabled: z.boolean(),
-        pollingIntervalMinutes: z.number().min(1),
-        remainingEpisodes: z.number().min(1),
-        filterUsers: z.array(z.string()).optional(),
-        // Rolling monitoring reset settings
-        enableAutoReset: z.boolean().optional(),
-        inactivityResetDays: z.number().min(1).max(365).optional(),
-        autoResetIntervalHours: z.number().min(1).max(168).optional(),
-        // Progressive cleanup mode - cleans up previous seasons as user progresses
-        enableProgressiveCleanup: z.boolean().optional(),
-      })
-      .optional(),
+    plexSessionMonitoring: PlexSessionMonitoringConfigPayloadSchema.optional(),
     // New User Defaults
     newUserDefaultCanSync: z.boolean().optional(),
     newUserDefaultRequiresApproval: z.boolean().optional(),

@@ -3576,16 +3576,7 @@ export interface components {
             removedTagMode: components["schemas"]["RemovedTagMode"];
             removedTagPrefix: string;
             tagMigration?: components["schemas"]["TagMigrationOutput"];
-            plexSessionMonitoring?: {
-                enabled: boolean;
-                pollingIntervalMinutes: number;
-                remainingEpisodes: number;
-                filterUsers?: string[];
-                enableAutoReset?: boolean;
-                inactivityResetDays?: number;
-                autoResetIntervalHours?: number;
-                enableProgressiveCleanup?: boolean;
-            };
+            plexSessionMonitoring?: components["schemas"]["PlexSessionMonitoringConfig"];
             newUserDefaultCanSync: boolean;
             newUserDefaultRequiresApproval: boolean;
             newUserDefaultMovieQuotaEnabled: boolean;
@@ -3936,6 +3927,17 @@ export interface components {
             rtCritic?: number;
             rtAudience?: number;
             tmdb?: number;
+        };
+        /** @description How Plex viewing sessions drive rolling Sonarr monitoring and its automatic resets */
+        PlexSessionMonitoringConfig: {
+            enabled: boolean;
+            pollingIntervalMinutes: number;
+            remainingEpisodes: number;
+            filterUsers?: string[];
+            enableAutoReset?: boolean;
+            inactivityResetDays?: number;
+            autoResetIntervalHours?: number;
+            enableProgressiveCleanup?: boolean;
         };
         /**
          * @description How a monthly quota resets when its reset day is past the end of a short month
@@ -4387,6 +4389,24 @@ export interface components {
         /** @description Turns a router rule on or off */
         RouterRuleTogglePayload: {
             enabled: boolean;
+        };
+        /** @description Days without viewing activity before a rolling show is reset */
+        SessionMonitoringResetInactivePayload: {
+            inactivityDays?: number;
+        };
+        /** @description Outcome of one session monitoring run */
+        SessionMonitoringResult: {
+            processedSessions: number;
+            triggeredSearches: number;
+            errors: string[];
+            rollingUpdates: components["schemas"]["SessionMonitoringRollingUpdate"][];
+        };
+        /** @description A monitoring change made to one rolling show during a run */
+        SessionMonitoringRollingUpdate: {
+            showTitle: string;
+            /** @enum {string} */
+            action: "expanded_to_season" | "expanded_to_next_season" | "switched_to_all";
+            details: string;
         };
         /** @description A configured Sonarr instance */
         SonarrInstance: {
@@ -10133,11 +10153,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Days without viewing activity before a rolling show is reset */
         requestBody: {
             content: {
-                "application/json": {
-                    inactivityDays?: number;
-                };
+                "application/json": components["schemas"]["SessionMonitoringResetInactivePayload"];
             };
         };
         responses: {
@@ -10297,17 +10316,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        result: {
-                            processedSessions: number;
-                            triggeredSearches: number;
-                            errors: string[];
-                            rollingUpdates: {
-                                showTitle: string;
-                                /** @enum {string} */
-                                action: "expanded_to_season" | "expanded_to_next_season" | "switched_to_all";
-                                details: string;
-                            }[];
-                        };
+                        result: components["schemas"]["SessionMonitoringResult"];
                     };
                 };
             };
