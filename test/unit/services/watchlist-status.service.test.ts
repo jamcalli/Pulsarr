@@ -132,4 +132,27 @@ describe('StatusService.syncAllStatuses', () => {
       }),
     )
   })
+
+  it('emits the Sonarr main-row users when the junction step fails, then rejects', async () => {
+    vi.mocked(processJunctionUpdates).mockImplementation(
+      async (_deps, _config, _arrItems, items) => {
+        if (items.some((item) => item.user_id === 5)) {
+          throw new Error('junction failed')
+        }
+        return { updated: 0, userIds: [] }
+      },
+    )
+    const { service, emit } = createService([5], [])
+
+    await expect(
+      service.syncAllStatuses({ existingSeries: [], existingMovies: [] }),
+    ).rejects.toThrow('junction failed')
+
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { action: 'status', userIds: [5] },
+      }),
+    )
+  })
 })

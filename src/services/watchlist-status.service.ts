@@ -21,7 +21,9 @@ import {
 import {
   createRadarrStatusConfig,
   createSonarrStatusConfig,
+  type MovieStatusUpdate,
   processStatusUpdates,
+  type ShowStatusUpdate,
 } from './watchlist-status/status-sync/status-processor.js'
 
 export class StatusService {
@@ -84,17 +86,9 @@ export class StatusService {
         existingSeries,
         dbWatchlistItems,
       )
-      let updateCount = 0
-      if (mainUpdates.length > 0) {
-        updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
-      }
-
-      // Process junction updates for Sonarr items
-      const junctionUpdates = await this.processShowJunctionUpdates(
-        existingSeries,
-        dbWatchlistItems,
+      const result = await this.commitMainThenJunction(mainUpdates, () =>
+        this.processShowJunctionUpdates(existingSeries, dbWatchlistItems),
       )
-      updateCount += junctionUpdates.updated
 
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInSonarr) {
@@ -113,13 +107,7 @@ export class StatusService {
         }
       }
 
-      return {
-        updated: updateCount,
-        userIds: [
-          ...mainUpdates.map((update) => update.userId),
-          ...junctionUpdates.userIds,
-        ],
-      }
+      return result
     } catch (error) {
       this.log.error({ error }, 'Error syncing Sonarr statuses:')
       throw error
@@ -142,17 +130,9 @@ export class StatusService {
         existingMovies,
         dbWatchlistItems,
       )
-      let updateCount = 0
-      if (mainUpdates.length > 0) {
-        updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
-      }
-
-      // Process junction updates for Radarr items
-      const junctionUpdates = await this.processMovieJunctionUpdates(
-        existingMovies,
-        dbWatchlistItems,
+      const result = await this.commitMainThenJunction(mainUpdates, () =>
+        this.processMovieJunctionUpdates(existingMovies, dbWatchlistItems),
       )
-      updateCount += junctionUpdates.updated
 
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInRadarr) {
@@ -171,15 +151,30 @@ export class StatusService {
         }
       }
 
-      return {
-        updated: updateCount,
-        userIds: [
-          ...mainUpdates.map((update) => update.userId),
-          ...junctionUpdates.userIds,
-        ],
-      }
+      return result
     } catch (error) {
       this.log.error({ error }, 'Error syncing Radarr statuses:')
+      throw error
+    }
+  }
+
+  private async commitMainThenJunction(
+    mainUpdates: (ShowStatusUpdate | MovieStatusUpdate)[],
+    junctionStep: () => Promise<StatusUpdateResult>,
+  ): Promise<StatusUpdateResult> {
+    const updated =
+      mainUpdates.length > 0
+        ? await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
+        : 0
+    const committed = mainUpdates.map((update) => update.userId)
+    try {
+      const junction = await junctionStep()
+      return {
+        updated: updated + junction.updated,
+        userIds: [...committed, ...junction.userIds],
+      }
+    } catch (error) {
+      emitWatchlistChange(this.fastify.progress, 'status', committed)
       throw error
     }
   }
