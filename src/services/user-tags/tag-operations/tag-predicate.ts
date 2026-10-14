@@ -1,3 +1,4 @@
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import type { Config, User } from '@root/types/config.types.js'
 import {
   type NamingSource,
@@ -50,10 +51,11 @@ export function isTaggingEnabled(config: Config, type: ArrType): boolean {
 
 export function getTagSettings(config: Config): TagSettings {
   return {
-    tagPrefix: config.tagPrefix || 'pulsarr-user',
+    tagPrefix: config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
     tagNamingSource: config.tagNamingSource,
     removedTagMode: config.removedTagMode || 'remove',
-    removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
+    removedTagPrefix:
+      config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
   }
 }
 

@@ -3,6 +3,7 @@ import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema.js'
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -207,10 +208,11 @@ export async function getConfig(
     cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
     // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
     // persistHistoricalTags: Boolean(config.persistHistoricalTags),
-    tagPrefix: config.tagPrefix || 'pulsarr-user',
+    tagPrefix: config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
     tagNamingSource: config.tagNamingSource || 'username',
     removedTagMode: config.removedTagMode || 'remove',
-    removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
+    removedTagPrefix:
+      config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
     deletionMode: config.deletionMode || 'watchlist',
     // Tag Migration Configuration
     tagMigration: config.tagMigration
@@ -327,10 +329,11 @@ export async function createConfig(
       tagUsersInSonarr: config.tagUsersInSonarr ?? false,
       tagUsersInRadarr: config.tagUsersInRadarr ?? false,
       cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
-      tagPrefix: config.tagPrefix || 'pulsarr-user',
+      tagPrefix: config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       tagNamingSource: config.tagNamingSource || 'username',
       removedTagMode: config.removedTagMode || 'remove',
-      removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
+      removedTagPrefix:
+        config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
       deletionMode: config.deletionMode || 'watchlist',
       // Tag Migration Configuration
       tagMigration: config.tagMigration

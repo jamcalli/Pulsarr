@@ -9,3 +9,8 @@ export const TagPrefixSchema = z
   })
 
 export const RemovedTagPrefixSchema = TagPrefixSchema
+
+export const TAG_PREFIX_DEFAULTS = {
+  tagPrefix: 'pulsarr-user',
+  removedTagPrefix: 'pulsarr-removed',
+} as const
