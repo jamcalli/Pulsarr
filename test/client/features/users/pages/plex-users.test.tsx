@@ -691,4 +691,76 @@ describe('PlexUsersPage', () => {
       ).toBeInTheDocument(),
     )
   })
+
+  it('says a resend cancelled the old request when the new one fails', async () => {
+    const user = userEvent.setup()
+    mockUsers()
+    let cancelled = false
+    server.use(
+      http.post('/v1/plex/cancel-friend-request', () => {
+        cancelled = true
+        return HttpResponse.json({ success: true, message: 'ok' })
+      }),
+      http.post('/v1/plex/send-friend-request', () =>
+        HttpResponse.json(
+          {
+            statusCode: 500,
+            error: 'Internal Server Error',
+            message: 'Unable to send friend request',
+          },
+          { status: 500 },
+        ),
+      ),
+      http.get('/v1/plex/user-status', () =>
+        HttpResponse.json({
+          success: true,
+          users: [],
+          untracked: cancelled
+            ? untracked.map((account) =>
+                account.uuid === 'uuid-sam'
+                  ? { ...account, status: 'server_only', pendingSince: null }
+                  : account,
+              )
+            : untracked,
+        }),
+      ),
+    )
+    renderPage()
+    await findTable()
+
+    const card = screen.getByRole('list', { name: 'Not yet friends' })
+    await user.click(
+      within(card).getByRole('button', { name: 'Resend request' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The old request was cancelled, but the new one was not sent. Send it again.',
+    )
+    await waitFor(() =>
+      expect(
+        within(card).getAllByRole('button', { name: 'Send friend request' }),
+      ).toHaveLength(2),
+    )
+  })
+
+  it('says a failed cancel was not cancelled', async () => {
+    const user = userEvent.setup()
+    mockUsers()
+    server.use(
+      http.post('/v1/plex/cancel-friend-request', () =>
+        HttpResponse.json({}, { status: 500 }),
+      ),
+    )
+    renderPage()
+    await findTable()
+
+    const card = screen.getByRole('list', { name: 'Not yet friends' })
+    await user.click(
+      within(card).getByRole('button', { name: 'Cancel request' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The friend request was not cancelled. Try again.',
+    )
+  })
 })

@@ -32,9 +32,32 @@ async function cancel(uuid: string) {
   requireSuccess(data)
 }
 
+/** A resend whose cancel went through but whose new request failed. */
+class ResendNotSent {}
+
+const ERROR_FALLBACKS: Record<FriendAction, string> = {
+  send: 'The friend request was not sent. Try again.',
+  cancel: 'The friend request was not cancelled. Try again.',
+  resend: 'The friend request was not sent. Try again.',
+}
+
+const RESEND_NOT_SENT =
+  'The old request was cancelled, but the new one was not sent. Send it again.'
+
 async function run({ action, uuid }: FriendRequest) {
-  if (action !== 'send') await cancel(uuid)
-  if (action !== 'cancel') await send(uuid)
+  if (action === 'send') return send(uuid)
+  await cancel(uuid)
+  if (action === 'cancel') return
+  try {
+    await send(uuid)
+  } catch {
+    throw new ResendNotSent()
+  }
+}
+
+function errorMessage(error: unknown, action: FriendAction): string {
+  if (error instanceof ResendNotSent) return RESEND_NOT_SENT
+  return mutationErrorMessage(error, ERROR_FALLBACKS[action])
 }
 
 export function useFriendRequests() {
@@ -51,11 +74,9 @@ export function useFriendRequests() {
       mutation.mutate({ action, uuid }),
     /** The request in flight, held at least the minimum loading time. */
     running: mutation.isPending ? (mutation.variables ?? null) : null,
-    errorMessage: mutation.isError
-      ? mutationErrorMessage(
-          mutation.error,
-          'The friend request was not sent. Try again.',
-        )
-      : null,
+    errorMessage:
+      mutation.isError && mutation.variables
+        ? errorMessage(mutation.error, mutation.variables.action)
+        : null,
   }
 }
