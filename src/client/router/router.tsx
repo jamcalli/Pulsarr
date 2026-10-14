@@ -8,6 +8,7 @@ import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-q
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
+import { PlexUsersSkeleton } from '@/features/users/components/plex-users/plex-users-skeleton'
 import { UserPageSkeleton } from '@/features/users/components/user/user-page-skeleton'
 import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
 import { USER_TAGS_SKELETON } from '@/features/users/lib/user-tags-skeleton'
@@ -24,6 +25,7 @@ const NewUserDefaultsPage = lazy(
   () => import('@/features/users/pages/new-user-defaults'),
 )
 const PlexLabelsPage = lazy(() => import('@/features/users/pages/plex-labels'))
+const PlexUsersPage = lazy(() => import('@/features/users/pages/plex-users'))
 const UserPage = lazy(() => import('@/features/users/pages/user'))
 const ApprovalQueuePage = lazy(
   () => import('@/features/requests/pages/approval-queue'),
@@ -43,9 +45,6 @@ const ArrInstancesPage = lazy(
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),
-)
-const PlexUsersPage = lazy(
-  () => import('@/legacy/features/users/pages/plex-users'),
 )
 const ApprovalsPage = lazy(() => import('@/legacy/features/requests'))
 const NotificationsConfigPage = lazy(
@@ -128,6 +127,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<HomeSkeleton />}>
                   <HomePage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'users',
+              element: (
+                <Suspense fallback={<PlexUsersSkeleton />}>
+                  <PlexUsersPage />
                 </Suspense>
               ),
             },
@@ -262,13 +269,7 @@ export const router = createBrowserRouter(
             },
             {
               path: 'users',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <PlexUsersPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
+              element: <Navigate to={pageHref(NAV_PAGES.plexUsers)} replace />,
             },
           ],
         },

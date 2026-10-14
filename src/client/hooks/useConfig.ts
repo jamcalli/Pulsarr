@@ -75,6 +75,7 @@ export function useConfig() {
     config: query.data?.config ?? null,
     loading: query.isLoading,
     error: apiErrorMessage(query.error),
+    isError: query.isError,
     isInitialized: query.data !== undefined,
     isReady: isSettled(query),
     initialize,

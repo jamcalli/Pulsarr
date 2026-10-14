@@ -1,4 +1,5 @@
 import { keepPreviousData } from '@tanstack/react-query'
+import type { PageSize } from '@/components/data-table/page-size'
 import {
   type QueueState,
   requestQuery,
@@ -18,13 +19,13 @@ export function invalidateApprovalQueue() {
   ])
 }
 
-export function useApprovalQueueList(state: QueueState) {
+export function useApprovalQueueList(state: QueueState, pageSize: PageSize) {
   const q = useDebouncedValue(state.q, SEARCH_DEBOUNCE_DELAY)
   const list = useMinLoading(
     $api.useQuery(
       'get',
       '/v1/approval/requests',
-      { params: { query: requestQuery({ ...state, q }) } },
+      { params: { query: requestQuery({ ...state, q }, pageSize) } },
       { placeholderData: keepPreviousData },
     ),
   )

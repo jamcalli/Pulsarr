@@ -57,7 +57,10 @@ export const NAV_PAGES = {
     ...page('Quotas', '/requests/quotas', ['/approvals/quota-settings']),
     rebuilt: true,
   },
-  plexUsers: page('Plex users', '/users', ['/plex/users']),
+  plexUsers: {
+    ...page('Plex users', '/users', ['/plex/users']),
+    rebuilt: true,
+  },
   newUserDefaults: {
     ...page('New user defaults', '/users/new-user-defaults', [
       '/utilities/new-user-defaults',

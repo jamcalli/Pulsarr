@@ -239,7 +239,7 @@ function renderPage() {
   const router = createMemoryRouter(
     [
       { path: '/users/:id', element: <UserPage /> },
-      { path: '/plex/users', element: <p>Plex users list</p> },
+      { path: '/users', element: <p>Plex users list</p> },
     ],
     { initialEntries: ['/users/2'] },
   )
@@ -291,7 +291,7 @@ describe('UserPage', () => {
 
     expect(
       await screen.findByRole('link', { name: 'Plex users' }),
-    ).toHaveAttribute('href', '/plex/users')
+    ).toHaveAttribute('href', '/users')
   })
 
   it('names the user by alias with the username under it', async () => {
@@ -447,9 +447,7 @@ describe('UserPage', () => {
       within(dialog).getByRole('button', { name: 'Remove friend' }),
     )
 
-    await waitFor(() =>
-      expect(router.state.location.pathname).toBe('/plex/users'),
-    )
+    await waitFor(() => expect(router.state.location.pathname).toBe('/users'))
     expect(bodies.cancel).toEqual([{ uuid: 'uuid-maya' }])
   })
 

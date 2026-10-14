@@ -261,6 +261,20 @@ describe('ApprovalQueuePage', () => {
     ).toHaveTextContent('Shows')
   })
 
+  it('asks for the picked page size from the first page', async () => {
+    const user = userEvent.setup()
+    const { queries } = mockQueue({ total: 45 })
+    renderPage('/?page=2')
+    await screen.findByRole('table', { name: 'Pending requests' })
+
+    await user.click(screen.getByRole('combobox', { name: 'Rows per page' }))
+    await user.click(await screen.findByRole('option', { name: '50 per page' }))
+
+    await waitFor(() => expect(queries.at(-1)?.get('limit')).toBe('50'))
+    expect(queries.at(-1)?.get('offset')).toBe('0')
+    expect(localStorage.getItem('pulsarr-table-approvals-pageSize')).toBe('50')
+  })
+
   it('approves the selection in bulk with notes', async () => {
     const user = userEvent.setup()
     const { bodies } = mockQueue()

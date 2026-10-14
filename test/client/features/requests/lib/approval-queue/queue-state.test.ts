@@ -101,13 +101,13 @@ describe('selectionScope', () => {
   ]
 
   it.each(changes)('changes with the %s', (_, next) => {
-    expect(selectionScope(next)).not.toBe(selectionScope(base))
+    expect(selectionScope(next, 20)).not.toBe(selectionScope(base, 20))
   })
 
   it('changes with the history status', () => {
     const history = withTab(base, 'history')
-    expect(selectionScope({ ...history, status: 'approved' })).not.toBe(
-      selectionScope(history),
+    expect(selectionScope({ ...history, status: 'approved' }, 20)).not.toBe(
+      selectionScope(history, 20),
     )
   })
 })
@@ -144,7 +144,7 @@ describe('withTab and withoutFilters', () => {
 
 describe('requestQuery', () => {
   it('asks for pending requests on Pending', () => {
-    expect(requestQuery(parse(''))).toEqual({
+    expect(requestQuery(parse(''), 20)).toEqual({
       status: 'pending',
       userId: undefined,
       contentType: undefined,
@@ -158,7 +158,7 @@ describe('requestQuery', () => {
   })
 
   it('asks for every decided status on History', () => {
-    expect(requestQuery(parse('tab=history')).status).toBe(
+    expect(requestQuery(parse('tab=history'), 20).status).toBe(
       'approved,rejected,expired,auto_approved',
     )
   })
@@ -169,6 +169,7 @@ describe('requestQuery', () => {
         parse(
           'tab=history&status=rejected&user=4&type=show&trigger=router_rule&q=%20dune%20&sort=requester&dir=desc&page=3',
         ),
+        30,
       ),
     ).toEqual({
       status: 'rejected',
@@ -178,8 +179,8 @@ describe('requestQuery', () => {
       search: 'dune',
       sortBy: 'userName',
       sortOrder: 'desc',
-      limit: 20,
-      offset: 40,
+      limit: 30,
+      offset: 60,
     })
   })
 })

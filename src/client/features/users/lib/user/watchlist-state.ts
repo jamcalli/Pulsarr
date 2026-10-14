@@ -1,4 +1,5 @@
 import { RecentRequestStatusSchema } from '@root/schemas/shared/recent-request.schema'
+import { pageSizePref } from '@/components/data-table/page-size'
 import type { RecentRequest } from '@/lib/media-item'
 import { type PrefDef, parseOneOf } from '@/lib/prefs'
 import { MEDIA_VIEWS, type MediaView } from '@/lib/request-list-prefs'
@@ -19,6 +20,8 @@ export const watchlistViewPref: PrefDef<MediaView> = {
   parse: parseOneOf(MEDIA_VIEWS),
   serialize: (value) => value,
 }
+
+export const watchlistPageSizePref = pageSizePref('user-watchlist')
 
 /** Unknown values fall back to the defaults. */
 export function parseWatchlistState(params: URLSearchParams): WatchlistState {

@@ -2,7 +2,6 @@ import { ListVideo } from 'lucide-react'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CardTitleCount } from '@/components/card-title-count'
 import { DataTableFooter } from '@/components/data-table/data-table-footer'
-import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
 import { EmptyState } from '@/components/empty-state'
 import { NoMatchesEmpty } from '@/components/no-matches-empty'
 import {
@@ -19,8 +18,10 @@ import { StatusFilter, StatusFilterSkeleton } from '@/components/status-filter'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useUserWatchlist } from '@/features/users/hooks/user/useUserWatchlist'
 import { useWatchlistView } from '@/features/users/hooks/user/useWatchlistView'
+import { watchlistPageSizePref } from '@/features/users/lib/user/watchlist-state'
 import { useRequestBrowser } from '@/hooks/useRequestBrowser'
 import type { RecentRequest } from '@/lib/media-item'
+import { usePref } from '@/lib/prefs'
 import { REQUEST_STATUS_OPTIONS } from '@/lib/request-labels'
 
 const CONTROLS_ROW = 'flex flex-wrap items-center gap-2'
@@ -56,7 +57,8 @@ export function UserWatchlistSection({ items }: UserWatchlistSectionProps) {
       {view === 'list' && (
         <DataTableFooter
           page={watchlist.page}
-          pageSize={DEFAULT_PAGE_SIZE}
+          pageSize={watchlist.pageSize}
+          onPageSizeChange={watchlist.setPageSize}
           total={watchlist.total}
           pageHref={watchlist.pageHref}
           onPageChange={watchlist.setPage}
@@ -102,6 +104,7 @@ export function UserWatchlistSection({ items }: UserWatchlistSectionProps) {
 
 export function UserWatchlistSectionSkeleton() {
   const [view] = useWatchlistView()
+  const [pageSize] = usePref(watchlistPageSizePref)
   return (
     <Card>
       <CardHeaderSkeleton badge />
@@ -111,7 +114,7 @@ export function UserWatchlistSectionSkeleton() {
           <StatusFilterSkeleton className={STATUS_SKELETON_CLASS} />
           <ViewToggleSkeleton className={VIEW_TOGGLE_CLASS} />
         </div>
-        <RequestListSkeleton view={view} limit={DEFAULT_PAGE_SIZE} />
+        <RequestListSkeleton view={view} limit={pageSize} />
       </CardContent>
     </Card>
   )

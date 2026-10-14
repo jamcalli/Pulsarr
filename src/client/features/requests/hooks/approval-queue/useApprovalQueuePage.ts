@@ -1,7 +1,7 @@
 import { canTransitionApproval } from '@root/schemas/approval/approval.schema'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
+import type { PageSize } from '@/components/data-table/page-size'
 import {
   invalidateApprovalQueue,
   useApprovalQueueList,
@@ -15,6 +15,7 @@ import {
   hasFilters,
   parseQueueState,
   type QueueState,
+  queuePageSizePref,
   SORTABLE,
   selectionScope,
   serializeQueueState,
@@ -24,6 +25,7 @@ import {
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useScopedSelection } from '@/hooks/useScopedSelection'
 import { useUrlState } from '@/hooks/useUrlState'
+import { usePref } from '@/lib/prefs'
 import { apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
@@ -56,8 +58,9 @@ export function useApprovalQueuePage() {
     parseQueueState,
     serializeQueueState,
   )
-  const list = useApprovalQueueList(state)
-  const selection = useScopedSelection(selectionScope(state))
+  const [pageSize, savePageSize] = usePref(queuePageSizePref)
+  const list = useApprovalQueueList(state, pageSize)
+  const selection = useScopedSelection(selectionScope(state, pageSize))
   const [confirm, setConfirm] = useState<{
     action: BulkAction
     count: number
@@ -69,7 +72,7 @@ export function useApprovalQueuePage() {
 
   const rows = list.rows ?? []
   const selected = rows.filter((row) => selection.rows[String(row.id)])
-  const lastPage = Math.max(1, Math.ceil(list.total / DEFAULT_PAGE_SIZE))
+  const lastPage = Math.max(1, Math.ceil(list.total / pageSize))
 
   useEffect(() => {
     if (list.rows?.length === 0 && state.page > lastPage) {
@@ -107,6 +110,11 @@ export function useApprovalQueuePage() {
     },
     clearFilters: () => setState(withoutFilters(state)),
     setPage: (page: number) => setState({ ...state, page }),
+    pageSize,
+    setPageSize: (size: PageSize) => {
+      savePageSize(size)
+      setState({ ...state, page: 1 })
+    },
     selection: selection.rows,
     selected,
     failure: selection.failure,
