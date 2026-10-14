@@ -89,13 +89,13 @@ describe('useUserDirectory', () => {
     })
   })
 
-  it('lists every user by display name', async () => {
+  it('lists every user by display name with their username', async () => {
     mockUsers()
     const { result } = renderHook(() => useUserDirectory().users, { wrapper })
     await waitFor(() =>
       expect(result.current).toEqual([
-        { id: 1, name: 'Mom' },
-        { id: 2, name: 'jamie' },
+        { id: 1, name: 'Mom', username: 'Sarah' },
+        { id: 2, name: 'jamie', username: 'jamie' },
       ]),
     )
   })

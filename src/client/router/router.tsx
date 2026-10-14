@@ -4,6 +4,7 @@ import { SettingsPageSkeleton } from '@/components/settings/settings-page-skelet
 import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
+import { SessionMonitoringSkeleton } from '@/features/library/components/session-monitoring/session-monitoring-skeleton'
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
@@ -43,6 +44,9 @@ const ContentRouterPage = lazy(
 const ArrInstancesPage = lazy(
   () => import('@/features/library/pages/arr-instances'),
 )
+const SessionMonitoringPage = lazy(
+  () => import('@/features/library/pages/session-monitoring'),
+)
 const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
@@ -62,7 +66,7 @@ const PlexNotificationsPage = lazy(
 const LegacyNewUserDefaultsPage = lazy(
   () => import('@/legacy/features/users/pages/new-user-defaults'),
 )
-const PlexSessionMonitoringPage = lazy(
+const LegacySessionMonitoringPage = lazy(
   () => import('@/legacy/features/library/pages/plex-session-monitoring'),
 )
 const LegacyUserTagsPage = lazy(
@@ -229,6 +233,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<ContentRouterSkeleton />}>
                   <ContentRouterPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'library/session-monitoring',
+              element: (
+                <Suspense fallback={<SessionMonitoringSkeleton />}>
+                  <SessionMonitoringPage />
                 </Suspense>
               ),
             },
@@ -401,7 +413,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <PlexSessionMonitoringPage />
+                    <LegacySessionMonitoringPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

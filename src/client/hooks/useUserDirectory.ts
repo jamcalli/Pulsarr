@@ -32,6 +32,7 @@ export function useUserDirectory() {
       (data?.users ?? []).map((user) => ({
         id: user.id,
         name: displayName(user),
+        username: user.name,
       })),
     [data],
   )
