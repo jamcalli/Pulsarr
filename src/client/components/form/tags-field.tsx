@@ -1,5 +1,5 @@
 import { cn } from 'cn'
-import { Loader2, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import type { z } from 'zod'
 import { FieldRow } from '@/components/form/field-row'
@@ -16,6 +16,7 @@ import {
   ComboboxValue,
 } from '@/components/ui/combobox'
 import { FieldDescription, FieldError } from '@/components/ui/field'
+import { Spinner } from '@/components/ui/spinner'
 import { useComboboxAnchor } from '@/hooks/useComboboxAnchor'
 import {
   CREATE_VALUE,
@@ -161,7 +162,7 @@ export function TagsField({
         </Combobox>
         {creatable.creating && (
           <FieldDescription role="status" className="flex items-center gap-2">
-            <Loader2 className="size-4 animate-spin" aria-hidden />
+            <Spinner aria-hidden />
             Creating tag...
           </FieldDescription>
         )}

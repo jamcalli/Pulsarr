@@ -1,6 +1,8 @@
+import { cn } from 'cn'
 import { GalleryHorizontal, List } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { SegmentedControl } from '@/components/segmented-control'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { MediaView } from '@/lib/request-list-prefs'
 
 const VIEW_OPTIONS = [
@@ -19,11 +21,16 @@ const VIEW_OPTIONS = [
 interface ViewToggleProps {
   value: MediaView
   onValueChange: (view: MediaView) => void
+  className?: string
 }
 
-export function ViewToggle({ value, onValueChange }: ViewToggleProps) {
+export function ViewToggle({
+  value,
+  onValueChange,
+  className,
+}: ViewToggleProps) {
   return (
-    <div className="ml-auto">
+    <div className={cn('ml-auto', className)}>
       <SegmentedControl
         aria-label="View"
         value={value}
@@ -32,4 +39,8 @@ export function ViewToggle({ value, onValueChange }: ViewToggleProps) {
       />
     </div>
   )
+}
+
+export function ViewToggleSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={cn('ml-auto h-8 w-18', className)} />
 }

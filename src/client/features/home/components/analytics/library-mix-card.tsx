@@ -1,6 +1,6 @@
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ColorSwatch } from '@/components/color-swatch'
-import { StackedBar } from '@/components/stacked-bar'
+import { StackedBar, StackedBarSkeleton } from '@/components/stacked-bar'
 import {
   Card,
   CardAction,
@@ -103,7 +103,7 @@ export function LibraryMixCardSkeleton() {
             </div>
           ))}
         </div>
-        <Skeleton className="h-5 w-full" />
+        <StackedBarSkeleton />
       </CardContent>
     </Card>
   )

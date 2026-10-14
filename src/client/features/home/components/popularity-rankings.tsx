@@ -8,7 +8,10 @@ import { PosterCard } from '@/components/poster-card'
 import { PosterFrame, PosterFrameSkeleton } from '@/components/poster-frame'
 import { PosterRow, PosterRowSkeleton } from '@/components/poster-row'
 import { RankedList } from '@/components/ranked-list'
-import { ViewToggle } from '@/components/request-list/view-toggle'
+import {
+  ViewToggle,
+  ViewToggleSkeleton,
+} from '@/components/request-list/view-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -210,7 +213,7 @@ export function PopularityRankingsCardSkeleton() {
       <CardContent className="gap-6">
         <div className="flex flex-wrap items-center gap-2">
           <Skeleton className="h-8 w-24" />
-          <Skeleton className="ml-auto h-8 w-18" />
+          <ViewToggleSkeleton />
         </div>
         {SHELVES.map((shelf) => (
           <ShelfSkeleton key={shelf.key} view={view} limit={limit} />

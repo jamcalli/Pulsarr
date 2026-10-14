@@ -1,8 +1,7 @@
 import { Webhook } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
+import { InlineLink } from '@/components/inline-link'
 import { StatBar, StatBarList, StatBarSkeleton } from '@/components/stat-bar'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardAction,
@@ -30,14 +29,9 @@ function WebhookSetupLine() {
     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
       <Webhook className="size-4 shrink-0" />
       Only recorded when a native webhook is set up.
-      <Button
-        variant="link"
-        size="sm"
-        nativeButton={false}
-        render={<Link to={pageHref(NAV_PAGES.webhooks)} />}
-      >
+      <InlineLink to={pageHref(NAV_PAGES.webhooks)}>
         Set up native webhook
-      </Button>
+      </InlineLink>
     </p>
   )
 }

@@ -100,7 +100,7 @@ describe('NotificationsCard', () => {
     expect(
       screen.getAllByText('Only recorded when a native webhook is set up.'),
     ).toHaveLength(2)
-    for (const link of screen.getAllByRole('button', {
+    for (const link of screen.getAllByRole('link', {
       name: 'Set up native webhook',
     })) {
       expect(link).toHaveAttribute('href', pageHref(NAV_PAGES.webhooks))

@@ -6,7 +6,7 @@ import {
   recentStatusPref,
   recentViewPref,
 } from '@/lib/request-list-prefs'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
 
 export type RecentRequestsState = ReturnType<typeof useRecentRequests>
 
@@ -39,7 +39,7 @@ export function useRecentRequests() {
     setStatus,
     items: query.data?.items,
     isLoading: query.isLoading,
-    isReady: query.data !== undefined || query.isError,
+    isReady: isSettled(query),
     errorMessage: query.isError
       ? (apiErrorMessage(query.error) ?? 'Recent requests failed to load.')
       : null,

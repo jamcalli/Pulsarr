@@ -1,8 +1,8 @@
-import { Loader2, TriangleAlert } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { TriangleAlert } from 'lucide-react'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
+import { InlineLink } from '@/components/inline-link'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { formatCount } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
@@ -33,14 +33,9 @@ export function AliasReadinessCredenza({
     data.missingAliasCount === 0 &&
     data.duplicateAliasCount === 0
   const usersLink = (
-    <Button
-      variant="link"
-      size="sm"
-      nativeButton={false}
-      render={<Link to={pageHref(NAV_PAGES.plexUsers)} />}
-    >
+    <InlineLink to={pageHref(NAV_PAGES.plexUsers)}>
       {data?.missingAliasCount ? 'Set aliases' : 'Review users'}
-    </Button>
+    </InlineLink>
   )
 
   return (
@@ -56,8 +51,10 @@ export function AliasReadinessCredenza({
     >
       {readiness.isLoading && (
         <div className="flex justify-center py-4">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          <span className="sr-only">Checking aliases</span>
+          <Spinner
+            aria-label="Checking aliases"
+            className="size-5 text-muted-foreground"
+          />
         </div>
       )}
       {data && (

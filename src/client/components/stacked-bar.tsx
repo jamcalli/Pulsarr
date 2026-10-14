@@ -6,6 +6,7 @@ import {
   createChartTooltipHandle,
   SharedChartTooltip,
 } from '@/components/chart-tooltip'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CHART_FILL, type ChartColor } from '@/lib/chart-colors'
 import { formatNumber, formatPercent } from '@/lib/format'
 
@@ -76,6 +77,29 @@ export function StackedBar({
       </div>
       <SharedChartTooltip handle={handle} />
       {showLegend && segments.length >= 2 && <ChartLegend items={segments} />}
+    </div>
+  )
+}
+
+export function StackedBarSkeleton({
+  legendItems = 0,
+}: {
+  legendItems?: number
+}) {
+  const legend = Array.from(
+    { length: legendItems },
+    (_, item) => `legend-${item}`,
+  )
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-5 w-full" />
+      {legend.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {legend.map((key) => (
+            <Skeleton key={key} className="h-3 w-16" />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

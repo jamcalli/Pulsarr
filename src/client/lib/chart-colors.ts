@@ -15,7 +15,6 @@ export const CHART_FILL = {
   'chart-single': 'bg-chart-single',
   'chart-range': 'bg-chart-range',
   'chart-error': 'bg-chart-error',
-  'status-pending': 'bg-status-pending',
   'chart-1': 'bg-chart-1',
   'chart-2': 'bg-chart-2',
   'chart-3': 'bg-chart-3',
