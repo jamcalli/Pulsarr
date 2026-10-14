@@ -90,3 +90,15 @@ export const plexUserStatusKeys = {
 export const apiKeysKeys = {
   all: $api.queryOptions('get', '/v1/api-keys/').queryKey,
 }
+
+/** `inactive` matches every inactivity period. */
+export const sessionMonitoringKeys = {
+  rolling: $api.queryOptions('get', '/v1/session-monitoring/rolling-monitored')
+    .queryKey,
+  inactive: $api.queryOptions(
+    'get',
+    '/v1/session-monitoring/rolling-monitored/inactive',
+  ).queryKey,
+  enrollable: $api.queryOptions('get', '/v1/session-monitoring/sonarr-shows')
+    .queryKey,
+}

@@ -96,9 +96,12 @@ export const NAV_PAGES = {
   deleteSync: page('Delete sync', '/library/delete-sync', [
     '/utilities/delete-sync',
   ]),
-  sessionMonitoring: page('Session monitoring', '/library/session-monitoring', [
-    '/utilities/plex-session-monitoring',
-  ]),
+  sessionMonitoring: {
+    ...page('Session monitoring', '/library/session-monitoring', [
+      '/utilities/plex-session-monitoring',
+    ]),
+    rebuilt: true,
+  },
   discord: page('Discord', '/notifications/discord', [
     '/notifications#discord-notifications',
   ]),
