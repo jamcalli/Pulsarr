@@ -95,4 +95,11 @@ describe('Quota limit and watchlist cap bounds', () => {
 
     expect(res.statusCode).toBe(400)
   })
+
+  it('answers 200 with no quotas for a user without any', async () => {
+    const res = await app.inject({ method: 'GET', url: '/v1/quota/users/1' })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json().userQuotas).toEqual({ userId: 1 })
+  })
 })

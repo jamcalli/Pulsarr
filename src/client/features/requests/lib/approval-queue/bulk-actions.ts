@@ -1,3 +1,4 @@
+import type { BulkFailure } from '@/hooks/useScopedSelection'
 import { DELETE_REQUEST_NOTE } from '@/lib/approval'
 import { formatCount, formatNumber, pluralize } from '@/lib/format'
 import type { components } from '@/types/api.js'
@@ -5,11 +6,6 @@ import type { components } from '@/types/api.js'
 type BulkResult = components['schemas']['ApprovalBulkResult']
 
 export type BulkAction = 'approve' | 'deny' | 'delete'
-
-export interface BulkFailure {
-  message: string
-  detail: string | null
-}
 
 const PAST_TENSE: Record<BulkAction, string> = {
   approve: 'approved',

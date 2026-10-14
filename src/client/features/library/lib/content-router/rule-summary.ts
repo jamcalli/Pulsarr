@@ -17,6 +17,7 @@ import {
   formatList,
   formatNumber,
   formatUngrouped,
+  upperFirst,
 } from '@/lib/format'
 
 export type ValueLabel = (field: string, value: string) => string
@@ -171,5 +172,5 @@ export function tokensSentence(tokens: readonly SummaryToken[]): string {
       (tokens[index - 1].kind === 'paren' && tokens[index - 1].text === '(')
     return glued ? sentence + part : `${sentence} ${part}`
   }, '')
-  return text.charAt(0).toUpperCase() + text.slice(1)
+  return upperFirst(text)
 }

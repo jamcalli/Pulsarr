@@ -1,3 +1,4 @@
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -50,6 +51,7 @@ function mockEndpoints({
   schedule = makeSchedule(),
   saved = plexLabelSync,
   removeFailed = 0,
+  runGate = Promise.resolve(),
 } = {}) {
   const savedConfig = { plexLabelSync: saved }
   const configBodies: unknown[] = []
@@ -79,6 +81,16 @@ function mockEndpoints({
           : HttpResponse.json({}, { status: scheduleStatus })
       },
     ),
+    http.post('/v1/labels/sync', async () => {
+      actionCalls.push('sync')
+      await runGate
+      return HttpResponse.json({
+        success: true,
+        message: 'Synchronized labels for 37 of 48 items',
+        mode: 'sync',
+        results: { processed: 48, updated: 37, failed: 0, pending: 5 },
+      })
+    }),
     http.post('/v1/labels/cleanup', () => {
       actionCalls.push('cleanup')
       return HttpResponse.json({
@@ -99,6 +111,21 @@ function mockEndpoints({
     }),
   )
   return { configBodies, scheduleBodies, actionCalls }
+}
+
+function emitLabelSync(progress: number, message: string) {
+  const event: ProgressEvent = {
+    operationId: 'label-sync-1',
+    type: 'plex-label-sync',
+    phase: 'processing',
+    progress,
+    message,
+  }
+  for (const callback of useProgressStore
+    .getState()
+    .typeSubscribers.get('plex-label-sync') ?? []) {
+    callback(event)
+  }
 }
 
 function renderPage() {
@@ -312,6 +339,64 @@ describe('PlexLabelsPage', () => {
     expect(
       within(table).queryByRole('columnheader', { name: 'Queue failed' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows the full sync progress while a manual run is going, then its results', async () => {
+    const user = userEvent.setup()
+    let release: () => void = () => undefined
+    const runGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const { actionCalls } = mockEndpoints({ runGate })
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Run now' }))
+    expect(
+      await screen.findByRole('button', { name: 'Running...' }),
+    ).toBeDisabled()
+    emitLabelSync(42, 'Labeling 21 of 50 items')
+    expect(
+      await screen.findByRole('progressbar', { name: 'Plex progress' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('42%')).toBeInTheDocument()
+    expect(screen.getByText('Labeling 21 of 50 items')).toBeInTheDocument()
+
+    release()
+    expect(
+      await screen.findByRole('button', { name: 'Run now' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('progressbar', { name: 'Plex progress' }),
+    ).not.toBeInTheDocument()
+    expect(actionCalls).toEqual(['sync'])
+    const table = await screen.findByRole('table')
+    expect(
+      within(table).getByRole('columnheader', { name: 'Updated' }),
+    ).toBeInTheDocument()
+    expect(within(table).getByText('48')).toBeInTheDocument()
+    expect(within(table).getByText('37')).toBeInTheDocument()
+    expect(
+      within(table).queryByRole('columnheader', { name: 'Failed' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('runs a full sync while the schedule is off', async () => {
+    const user = userEvent.setup()
+    const { actionCalls } = mockEndpoints({
+      schedule: makeSchedule({ enabled: false }),
+    })
+    renderPage()
+
+    const runNow = await screen.findByRole('button', { name: 'Run now' })
+    expect(runNow).toBeEnabled()
+    expect(
+      screen.queryByText('Turn on the schedule to run it now.'),
+    ).not.toBeInTheDocument()
+
+    await user.click(runNow)
+
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+    expect(actionCalls).toEqual(['sync'])
   })
 
   it('removes labels only after confirming, then unlocks the format', async () => {

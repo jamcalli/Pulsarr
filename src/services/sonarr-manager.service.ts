@@ -31,6 +31,7 @@ import {
   isSameServerEndpoint,
   normalizeEndpointWithPath,
 } from '@utils/url.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -389,6 +390,7 @@ export class SonarrManagerService {
         syncing: syncing,
         status: 'requested',
       })
+      emitWatchlistChange(this.fastify.progress, 'status', [userId])
 
       this.log.debug(
         {

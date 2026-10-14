@@ -1,10 +1,11 @@
 import { BookOpen, Maximize2, Minimize2 } from 'lucide-react'
 import { Fragment } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ThemeToggle } from '@/components/theme-toggle'
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -26,7 +27,7 @@ export function AppHeader() {
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList className="text-base">
           {crumbs.map((crumb, index) => (
-            <Fragment key={crumb}>
+            <Fragment key={crumb.label}>
               {index > 0 && <BreadcrumbSeparator />}
               <BreadcrumbItem
                 className={
@@ -39,10 +40,14 @@ export function AppHeader() {
                       index === 0 ? 'font-medium' : 'text-muted-foreground'
                     }
                   >
-                    {crumb}
+                    {crumb.label}
                   </BreadcrumbPage>
+                ) : crumb.to ? (
+                  <BreadcrumbLink render={<Link to={crumb.to} />}>
+                    {crumb.label}
+                  </BreadcrumbLink>
                 ) : (
-                  crumb
+                  crumb.label
                 )}
               </BreadcrumbItem>
             </Fragment>

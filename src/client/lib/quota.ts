@@ -1,4 +1,5 @@
-import { formatCount, formatOrdinal } from '@/lib/format'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema'
+import { formatCount, formatOrdinal, upperFirst } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
 type QuotaType = components['schemas']['QuotaType']
@@ -9,6 +10,11 @@ export const QUOTA_TYPE_LABELS: Record<QuotaType, string> = {
   weekly_rolling: 'Weekly rolling',
   monthly: 'Monthly',
 }
+
+export const QUOTA_TYPE_OPTIONS = QuotaTypeSchema.options.map((value) => ({
+  value,
+  label: QUOTA_TYPE_LABELS[value],
+}))
 
 const SHORTEST_MONTH_DAYS = 28
 
@@ -29,4 +35,12 @@ export function quotaWindowPhrase(
   return resetDay <= SHORTEST_MONTH_DAYS
     ? `since the ${formatOrdinal(resetDay)}`
     : 'since the monthly reset'
+}
+
+/** The window phrase as a standalone line, such as "In the last 7 days". */
+export function quotaWindowLabel(
+  type: QuotaType,
+  settings: QuotaSettings | null,
+): string {
+  return upperFirst(quotaWindowPhrase(type, settings))
 }

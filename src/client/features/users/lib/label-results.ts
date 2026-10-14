@@ -37,3 +37,20 @@ export function removeLabelResultRows(
     },
   ]
 }
+
+export function syncLabelResultRows(
+  response: Schemas['SyncPlexLabelsResponse'],
+): ActionResultRow[] {
+  const { processed, updated, failed, pending } = response.results
+  return [
+    {
+      target: TARGET,
+      stats: [
+        { label: 'Items processed', value: processed },
+        { label: 'Updated', value: updated },
+        failedStat('Failed', failed),
+        { label: 'Pending', value: pending },
+      ],
+    },
+  ]
+}

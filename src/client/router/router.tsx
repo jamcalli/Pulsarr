@@ -7,7 +7,7 @@ import { ArrInstancesSkeleton } from '@/features/library/components/instances/ar
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
-import { NEW_USER_DEFAULTS_SKELETON } from '@/features/users/lib/new-user-defaults-skeleton'
+import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
 import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
@@ -139,11 +139,7 @@ export const router = createBrowserRouter(
             {
               path: 'users/new-user-defaults',
               element: (
-                <Suspense
-                  fallback={
-                    <SettingsPageSkeleton {...NEW_USER_DEFAULTS_SKELETON} />
-                  }
-                >
+                <Suspense fallback={<NewUserDefaultsSkeleton />}>
                   <NewUserDefaultsPage />
                 </Suspense>
               ),

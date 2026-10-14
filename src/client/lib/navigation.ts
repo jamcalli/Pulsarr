@@ -214,6 +214,16 @@ export function pageHref(navPage: NavPage): string {
   return navPage.rebuilt ? navPage.to : navPage.legacy[0]
 }
 
+/** The approval queue reads its requester filter from this search param. */
+export const APPROVAL_QUEUE_USER_PARAM = 'user'
+
+export function approvalQueueHref({ user }: { user: number }): string {
+  const params = new URLSearchParams({
+    [APPROVAL_QUEUE_USER_PARAM]: String(user),
+  })
+  return `${pageHref(NAV_PAGES.approvalQueue)}?${params}`
+}
+
 /** A section with one page renders as a plain link, not an expandable group. */
 export function isSingleLink(section: NavSection): boolean {
   return section.pages.length === 1
@@ -251,11 +261,23 @@ export function findActiveNav(pathname: string, hash = ''): ActiveNav | null {
   return best?.active ?? null
 }
 
-/** Header labels, section first, with only the section label for a single-page section. */
-export function breadcrumbFor(pathname: string, hash = ''): string[] {
+export interface Crumb {
+  label: string
+  to?: string
+}
+
+/** Header crumbs, section first, with only the section crumb for a single-page section. */
+export function breadcrumbFor(pathname: string, hash = ''): Crumb[] {
   const active = findActiveNav(pathname, hash)
   if (!active) return []
   const { section, page: activePage } = active
-  if (!activePage || isSingleLink(section)) return [section.label]
-  return [section.label, activePage.label]
+  if (isSingleLink(section)) {
+    const [onlyPage] = section.pages
+    return onlyPage === activePage
+      ? [{ label: section.label }]
+      : [{ label: section.label, to: pageHref(onlyPage) }]
+  }
+  const sectionCrumb = { label: section.label, to: pageHref(section.pages[0]) }
+  if (!activePage) return [sectionCrumb]
+  return [sectionCrumb, { label: activePage.label, to: pageHref(activePage) }]
 }

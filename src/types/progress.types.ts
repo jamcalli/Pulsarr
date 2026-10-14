@@ -24,10 +24,16 @@ export type UsersMetadata = {
   plexUuid: string | null
 }
 
+export type WatchlistMetadata = {
+  action: 'added' | 'status'
+  userIds: number[]
+}
+
 export type ProgressMetadata =
   | WorkflowMetadata
   | ApprovalMetadata
   | UsersMetadata
+  | WatchlistMetadata
   | SystemStatusMetadata
   | Record<string, never>
 
@@ -47,6 +53,7 @@ export interface ProgressEvent {
     | 'plex-label-removal'
     | 'approval'
     | 'users'
+    | 'watchlist'
   phase: string
   progress: number
   message: string

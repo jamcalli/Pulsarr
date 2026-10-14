@@ -16,3 +16,4 @@ export const SAVE_FEEDBACK_DELAY = 1500 // How long a save bar shows "saved" bef
 export const OPERATION_RESULT_TTL = 30 * 60 * 1000 // How long a finished action's result stays in the mutation cache after its page unmounts (ms)
 export const CONNECTION_CHECK_STALE_TIME = 5 * 60 * 1000 // How long a page-load connection check per instance is reused before it runs again (ms)
 export const SEARCH_DEBOUNCE_DELAY = 300 // How long a search box waits after the last keystroke before it queries (ms)
+export const WATCHLIST_EVENT_COALESCE_MS = 1000 // How long watchlist progress events collect before one refetch runs, so a routing burst refetches once (ms)

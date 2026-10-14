@@ -1,15 +1,21 @@
 import type { ReactNode } from 'react'
 import { FactList } from '@/components/fact-list'
-import { ActionRow } from '@/components/settings/action-row'
+import { ActionResults } from '@/components/settings/action-results'
+import {
+  type ActionProgress,
+  ActionRow,
+} from '@/components/settings/action-row'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { StatusPill, type StatusTone } from '@/components/status-pill'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
+import type { ActionState } from '@/lib/action-state'
 import { formatRelative } from '@/lib/format'
 
 interface ScheduledRun {
   running: boolean
   errorMessage: string | null
   run: () => void
+  progress?: ActionProgress[]
 }
 
 interface ScheduledJobPanelProps {
@@ -19,6 +25,9 @@ interface ScheduledJobPanelProps {
   schedule: ScheduleStatus
   dirty: boolean
   run: ScheduledRun
+  /** False when Run now bypasses the scheduler, so a disabled schedule does not lock it. */
+  requiresSchedule?: boolean
+  result?: ActionState['result']
   children: ReactNode
 }
 
@@ -34,11 +43,17 @@ function jobStatus(
   return { tone: 'on', label: 'Enabled' }
 }
 
-function lockReason(schedule: ScheduleStatus, dirty: boolean): string | null {
+function lockReason(
+  schedule: ScheduleStatus,
+  dirty: boolean,
+  requiresSchedule: boolean,
+): string | null {
   if (dirty) {
     return 'Save or discard your changes first. A run uses the saved settings.'
   }
-  if (!schedule.enabled) return 'Turn on the schedule to run it now.'
+  if (requiresSchedule && !schedule.enabled) {
+    return 'Turn on the schedule to run it now.'
+  }
   return null
 }
 
@@ -48,10 +63,12 @@ export function ScheduledJobPanel({
   schedule,
   dirty,
   run,
+  requiresSchedule = true,
+  result,
   children,
 }: ScheduledJobPanelProps) {
   const status = jobStatus(schedule, run.running)
-  const reason = lockReason(schedule, dirty)
+  const reason = lockReason(schedule, dirty, requiresSchedule)
   const lastRun = schedule.last_run
   const lastRunFailed = lastRun?.status === 'failed'
   const lastRunText = lastRun
@@ -79,13 +96,19 @@ export function ScheduledJobPanel({
         disabled={reason !== null}
         running={run.running}
         onRun={() => run.run()}
+        progress={run.progress}
         result={
-          <FactList
-            facts={[
-              { label: 'Last run', value: lastRunText },
-              { label: 'Next run', value: nextRunText },
-            ]}
-          />
+          <>
+            <FactList
+              facts={[
+                { label: 'Last run', value: lastRunText },
+                { label: 'Next run', value: nextRunText },
+              ]}
+            />
+            {result && (
+              <ActionResults ranAt={result.ranAt} rows={result.rows} />
+            )}
+          </>
         }
         errorMessage={errorMessage}
       />

@@ -14,6 +14,7 @@ import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -182,5 +183,13 @@ export function DataTable<TData>({
         </TableBody>
       </Table>
     </Card>
+  )
+}
+
+export function DataTableSelectSkeleton() {
+  return (
+    <TableCell className={cn('py-2', SELECT_CLASS)}>
+      <Skeleton className="size-5" />
+    </TableCell>
   )
 }

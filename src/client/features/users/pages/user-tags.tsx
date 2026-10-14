@@ -1,9 +1,9 @@
 import { useStore } from '@tanstack/react-form'
 import { useState } from 'react'
-import { ErrorAlert } from '@/components/error-alert'
 import { InlineCode } from '@/components/inline-code'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
+import { RetryAlert } from '@/components/retry-alert'
 import { ActionsSection } from '@/components/settings/actions-section'
 import { SaveBar } from '@/components/settings/save-bar'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
@@ -295,16 +295,7 @@ export default function UserTagsPage() {
     return (
       <Page>
         <PageHeader title={TITLE} description={DESCRIPTION} />
-        <ErrorAlert message={error} />
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          className="self-start"
-          onClick={() => initialize(true)}
-        >
-          Retry
-        </Button>
+        <RetryAlert message={error} onRetry={() => initialize(true)} />
       </Page>
     )
   }

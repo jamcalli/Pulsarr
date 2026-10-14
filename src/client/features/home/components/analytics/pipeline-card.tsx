@@ -2,6 +2,7 @@ import { Film, Tv } from 'lucide-react'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ColorSwatch } from '@/components/color-swatch'
 import { StackedBar } from '@/components/stacked-bar'
+import { StatTile, StatTileSkeleton } from '@/components/stat-tile'
 import {
   Card,
   CardAction,
@@ -90,23 +91,18 @@ export function PipelineCard({
       <>
         <div className={STAGE_GRID}>
           {segments.map((stage) => (
-            <div key={stage.status} className="flex flex-col gap-1">
-              <span className="flex items-center gap-2 font-medium">
-                <ColorSwatch color={stage.color} />
-                {stage.label}
-              </span>
-              <span className="flex items-baseline gap-2 tabular-nums">
-                <span className="font-heading text-2xl font-bold">
-                  {formatNumber(stage.value)}
-                </span>
-                <span className="text-muted-foreground">
-                  {formatPercent(stage.value / total)}
-                </span>
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {stage.description}
-              </span>
-            </div>
+            <StatTile
+              key={stage.status}
+              label={
+                <>
+                  <ColorSwatch color={stage.color} />
+                  {stage.label}
+                </>
+              }
+              value={formatNumber(stage.value)}
+              detail={formatPercent(stage.value / total)}
+              description={stage.description}
+            />
           ))}
         </div>
         <StackedBar segments={segments} showLegend={false} />
@@ -160,11 +156,7 @@ export function PipelineCardSkeleton() {
       <CardContent className="gap-5">
         <div className={STAGE_GRID}>
           {STAGES.map((stage) => (
-            <div key={stage.status} className="flex flex-col gap-1">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-8 w-20" />
-              <Skeleton className="h-3 w-40 max-w-full" />
-            </div>
+            <StatTileSkeleton key={stage.status} />
           ))}
         </div>
         <Skeleton className="h-5 w-full" />

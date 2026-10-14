@@ -1,14 +1,18 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
+import type {
+  DatabaseWatchlistItem,
+  StatusUpdateResult,
+} from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   createRadarrSyncConfig,
   createSonarrSyncConfig,
   syncInstance,
-} from './watchlist-status/instance-sync/index.js'
+} from './watchlist-status/instance-sync/instance-syncer.js'
 import {
   createRadarrJunctionConfig,
   createSonarrJunctionConfig,
@@ -48,14 +52,20 @@ export class StatusService {
     existingSeries?: SonarrItem[]
     existingMovies?: RadarrItem[]
   }): Promise<{ shows: number; movies: number }> {
-    const [showUpdates, movieUpdates] = await Promise.all([
+    const [shows, movies] = await Promise.all([
       this.syncSonarrStatuses(prefetchedData?.existingSeries),
       this.syncRadarrStatuses(prefetchedData?.existingMovies),
     ])
-    return { shows: showUpdates, movies: movieUpdates }
+    emitWatchlistChange(this.fastify.progress, 'status', [
+      ...shows.userIds,
+      ...movies.userIds,
+    ])
+    return { shows: shows.updated, movies: movies.updated }
   }
 
-  async syncSonarrStatuses(prefetchedSeries?: SonarrItem[]): Promise<number> {
+  async syncSonarrStatuses(
+    prefetchedSeries?: SonarrItem[],
+  ): Promise<StatusUpdateResult> {
     try {
       const existingSeries =
         prefetchedSeries ?? (await this.sonarrManager.fetchAllSeries(true))
@@ -79,7 +89,7 @@ export class StatusService {
         existingSeries,
         dbWatchlistItems,
       )
-      updateCount += junctionUpdates
+      updateCount += junctionUpdates.updated
 
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInSonarr) {
@@ -98,14 +108,22 @@ export class StatusService {
         }
       }
 
-      return updateCount
+      return {
+        updated: updateCount,
+        userIds: [
+          ...mainUpdates.map((update) => update.userId),
+          ...junctionUpdates.userIds,
+        ],
+      }
     } catch (error) {
       this.log.error({ error }, 'Error syncing Sonarr statuses:')
       throw error
     }
   }
 
-  async syncRadarrStatuses(prefetchedMovies?: RadarrItem[]): Promise<number> {
+  async syncRadarrStatuses(
+    prefetchedMovies?: RadarrItem[],
+  ): Promise<StatusUpdateResult> {
     try {
       const existingMovies =
         prefetchedMovies ?? (await this.radarrManager.fetchAllMovies(true))
@@ -129,7 +147,7 @@ export class StatusService {
         existingMovies,
         dbWatchlistItems,
       )
-      updateCount += junctionUpdates
+      updateCount += junctionUpdates.updated
 
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInRadarr) {
@@ -148,7 +166,13 @@ export class StatusService {
         }
       }
 
-      return updateCount
+      return {
+        updated: updateCount,
+        userIds: [
+          ...mainUpdates.map((update) => update.userId),
+          ...junctionUpdates.userIds,
+        ],
+      }
     } catch (error) {
       this.log.error({ error }, 'Error syncing Radarr statuses:')
       throw error
@@ -168,7 +192,7 @@ export class StatusService {
   async processShowJunctionUpdates(
     sonarrItems: SonarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-  ): Promise<number> {
+  ): Promise<StatusUpdateResult> {
     return processJunctionUpdates(
       { logger: this.log },
       createSonarrJunctionConfig(this.dbService),
@@ -181,7 +205,7 @@ export class StatusService {
   async processMovieJunctionUpdates(
     radarrItems: RadarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-  ): Promise<number> {
+  ): Promise<StatusUpdateResult> {
     return processJunctionUpdates(
       { logger: this.log },
       createRadarrJunctionConfig(this.dbService),

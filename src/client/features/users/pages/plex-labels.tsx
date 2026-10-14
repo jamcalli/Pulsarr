@@ -1,10 +1,10 @@
 import { useStore } from '@tanstack/react-form'
 import { useState } from 'react'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { ErrorAlert } from '@/components/error-alert'
 import { InlineCode } from '@/components/inline-code'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
+import { RetryAlert } from '@/components/retry-alert'
 import { ActionsSection } from '@/components/settings/actions-section'
 import { SaveBar } from '@/components/settings/save-bar'
 import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
@@ -84,11 +84,9 @@ const REMOVED_LABEL_OPTIONS = [
 function PlexLabelsSettings({
   config,
   schedule,
-  run,
 }: {
   config: components['schemas']['Config']
   schedule: ScheduleStatus
-  run: ReturnType<typeof useSchedule>['run']
 }) {
   const {
     configForm,
@@ -176,12 +174,24 @@ function PlexLabelsSettings({
                   : () => labels.run(id),
             }))}
           />
+          <SettingsSection title="Labeling">
+            <configForm.AppField name="plexLabelSync.enabled">
+              {(field) => (
+                <field.SwitchField
+                  label="Label content in Plex"
+                  description="Labels each item with the users who watchlist it, once it's in Plex."
+                />
+              )}
+            </configForm.AppField>
+          </SettingsSection>
           <ScheduledJobPanel
             title="Full sync"
             description="Rechecks every watchlisted item and fixes its labels. Skipped while labeling is off."
             schedule={schedule}
             dirty={dirty}
-            run={run}
+            run={labels.syncRun}
+            requiresSchedule={false}
+            result={labels.syncRun.result}
           >
             <scheduleForm.AppField name="enabled">
               {(field) => (
@@ -201,16 +211,6 @@ function PlexLabelsSettings({
               )}
             </scheduleForm.AppField>
           </ScheduledJobPanel>
-          <SettingsSection title="Labeling">
-            <configForm.AppField name="plexLabelSync.enabled">
-              {(field) => (
-                <field.SwitchField
-                  label="Label content in Plex"
-                  description="Labels each item with the users who watchlist it, once it's in Plex."
-                />
-              )}
-            </configForm.AppField>
-          </SettingsSection>
           <SettingsSection title="Label format" lock={formatLock}>
             <configForm.AppField name="plexLabelSync.labelPrefix">
               {(field) => (
@@ -369,25 +369,17 @@ export default function PlexLabelsPage() {
     return (
       <Page>
         <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <ErrorAlert message={loadError} />
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          className="self-start"
-          onClick={() => {
+        <RetryAlert
+          message={loadError}
+          onRetry={() => {
             if (!config) initialize(true)
             if (!job.schedule) job.retry()
           }}
-        >
-          Retry
-        </Button>
+        />
       </Page>
     )
   }
   if (showLoading) return <SettingsPageSkeleton {...PLEX_LABELS_SKELETON} />
   if (!config || !job.schedule) return null
-  return (
-    <PlexLabelsSettings config={config} schedule={job.schedule} run={job.run} />
-  )
+  return <PlexLabelsSettings config={config} schedule={job.schedule} />
 }

@@ -2,6 +2,13 @@ import { ApprovalTriggerSchema } from '@root/schemas/approval/approval.schema'
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema'
 import { APPROVAL_STATUS_LABELS, TRIGGER_LABELS } from '@/lib/approval'
 import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
+import { APPROVAL_QUEUE_USER_PARAM } from '@/lib/navigation'
+import {
+  oneOf,
+  positiveInt,
+  SORT_DIRECTIONS,
+  type SortDirection,
+} from '@/lib/url-state'
 import type { components, paths } from '@/types/api.js'
 
 type ApprovalTrigger = components['schemas']['ApprovalTrigger']
@@ -23,8 +30,6 @@ export type QueueSortKey =
   | 'trigger'
   | 'requested'
   | 'status'
-export type SortDirection = 'asc' | 'desc'
-
 export interface QueueState {
   tab: QueueTab
   status: HistoryStatus
@@ -100,19 +105,6 @@ const SORT_FIELDS: Record<QueueSortKey, RequestsQuery['sortBy']> = {
   status: 'status',
 }
 
-function oneOf<T extends string>(
-  value: string | null,
-  allowed: readonly T[],
-): T | null {
-  return allowed.find((option) => option === value) ?? null
-}
-
-function positiveInt(value: string | null): number | null {
-  if (value === null || !/^\d+$/.test(value)) return null
-  const parsed = Number(value)
-  return parsed >= 1 ? parsed : null
-}
-
 const TRIGGERS = TRIGGER_FILTER_OPTIONS.map(({ value }) => value)
 const CONTENT_TYPES = CONTENT_TYPE_FILTER_OPTIONS.map(({ value }) => value)
 const STATUSES = HISTORY_STATUS_OPTIONS.map(({ value }) => value)
@@ -122,7 +114,7 @@ export function parseQueueState(params: URLSearchParams): QueueState {
   const tab = params.get('tab') === 'history' ? 'history' : 'pending'
   const fallback = DEFAULT_SORT[tab]
   const sort = oneOf(params.get('sort'), SORTABLE[tab])
-  const dir = oneOf(params.get('dir'), ['asc', 'desc'] as const)
+  const dir = oneOf(params.get('dir'), SORT_DIRECTIONS)
 
   return {
     tab,
@@ -130,7 +122,7 @@ export function parseQueueState(params: URLSearchParams): QueueState {
       tab === 'history'
         ? (oneOf(params.get('status'), STATUSES) ?? 'all')
         : 'all',
-    user: positiveInt(params.get('user')),
+    user: positiveInt(params.get(APPROVAL_QUEUE_USER_PARAM)),
     type: oneOf(params.get('type'), CONTENT_TYPES),
     trigger: oneOf(params.get('trigger'), TRIGGERS),
     q: params.get('q') ?? '',
@@ -148,7 +140,9 @@ export function serializeQueueState(state: QueueState): URLSearchParams {
   if (state.tab === 'history' && state.status !== 'all') {
     params.set('status', state.status)
   }
-  if (state.user !== null) params.set('user', String(state.user))
+  if (state.user !== null) {
+    params.set(APPROVAL_QUEUE_USER_PARAM, String(state.user))
+  }
   if (state.type !== null) params.set('type', state.type)
   if (state.trigger !== null) params.set('trigger', state.trigger)
   if (state.q !== '') params.set('q', state.q)

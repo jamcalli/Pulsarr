@@ -101,6 +101,10 @@ export function formatRuntime(minutes: number): string {
   return `${unit(hours, 'hour')} ${unit(rest, 'minute')}`
 }
 
+export function upperFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 /** Pass `plural` when it is not `singular` plus "s". */
 export function pluralize(
   value: number,

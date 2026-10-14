@@ -1149,7 +1149,7 @@ export interface paths {
         };
         /**
          * Get user quotas
-         * @description Get quota configurations for a specific user
+         * @description Get quota configurations for a specific user. Each quota is absent when the user has none for that content type.
          */
         get: operations["getUserQuotas"];
         put?: never;
@@ -4907,6 +4907,30 @@ export interface components {
             notificationsSent: number;
             pendingApprovals: number;
         };
+        /** @description User with their Plex friend status and watchlist item count */
+        UserWithCount: {
+            id: number;
+            name: string;
+            apprise: string | null;
+            alias: string | null;
+            discord_id: string | null;
+            notify_apprise: boolean;
+            notify_discord: boolean;
+            notify_discord_mention: boolean;
+            notify_plex_mobile: boolean;
+            can_sync: boolean;
+            requires_approval: boolean;
+            is_primary_token: boolean;
+            plex_uuid?: string | null;
+            avatar?: string | null;
+            display_name?: string | null;
+            friend_created_at?: string | null;
+            created_at: string;
+            updated_at: string;
+            friendStatus: components["schemas"]["PlexFriendStatus"] | null;
+            pendingSince: string | null;
+            watchlist_count: number;
+        };
         /** @description User with their Plex friend status, null when Plex cannot classify them */
         UserWithFriendStatus: {
             id: number;
@@ -8527,8 +8551,8 @@ export interface operations {
                     };
                 };
             };
-            /** @description Default Response */
-            404: {
+            /** @description Rate limit exceeded */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8536,8 +8560,8 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limit exceeded */
-            429: {
+            /** @description Default Response */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12501,29 +12525,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        users: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            friendStatus: components["schemas"]["PlexFriendStatus"] | null;
-                            pendingSince: string | null;
-                            watchlist_count: number;
-                        }[];
+                        users: components["schemas"]["UserWithCount"][];
                     };
                 };
             };

@@ -1,5 +1,7 @@
+import { DataTableSelectSkeleton } from '@/components/data-table/data-table'
 import { Page, PageHeaderSkeleton } from '@/components/page-header'
 import { PosterFrameSkeleton } from '@/components/poster-frame'
+import { SearchFieldSkeleton } from '@/components/search-field'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -31,12 +33,12 @@ function ToolbarSkeleton({ tab }: { tab: QueueTab }) {
       )}
       {isMobile ? (
         <>
-          <Skeleton className="h-10 w-full" />
+          <SearchFieldSkeleton />
           <Skeleton className="h-10 w-24" />
         </>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-10 max-w-90 grow basis-60" />
+          <SearchFieldSkeleton />
           <Skeleton className="h-10 w-42" />
           <Skeleton className="h-10 w-38" />
           <Skeleton className="h-10 w-42" />
@@ -68,9 +70,7 @@ function TableSkeleton({ tab }: { tab: QueueTab }) {
         <TableBody>
           {TITLE_WIDTHS.map((width) => (
             <TableRow key={width} className="hover:bg-transparent">
-              <TableCell className="w-px py-2 pl-4">
-                <Skeleton className="size-5" />
-              </TableCell>
+              <DataTableSelectSkeleton />
               <TableCell className="py-2">
                 <div className="flex items-center gap-3">
                   <PosterFrameSkeleton size="thumb" />

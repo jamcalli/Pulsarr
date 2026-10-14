@@ -113,32 +113,35 @@ describe('findActiveNav', () => {
 })
 
 describe('breadcrumbFor', () => {
-  it('shows section and page', () => {
-    expect(breadcrumbFor('/approvals/settings')).toEqual([
-      'Requests',
-      'Approval settings',
+  it('links the section to its first page and the page to itself', () => {
+    expect(breadcrumbFor('/requests/settings')).toEqual([
+      { label: 'Requests', to: '/requests' },
+      { label: 'Approval settings', to: '/requests/settings' },
     ])
   })
 
-  it('shows only the section for a single-page section', () => {
-    expect(breadcrumbFor('/')).toEqual(['Home'])
+  it('shows only an unlinked section for a single-page section on its page', () => {
+    expect(breadcrumbFor('/')).toEqual([{ label: 'Home' }])
   })
 
-  it('shows only the section when no page matches', () => {
-    expect(breadcrumbFor('/notifications')).toEqual(['Notifications'])
+  it('links only the section when no page matches', () => {
+    expect(breadcrumbFor('/notifications')).toEqual([
+      { label: 'Notifications', to: pageHref(NAV_PAGES.discord) },
+    ])
   })
 
   it('names the general notifications anchor Delivery', () => {
-    expect(breadcrumbFor('/notifications', '#general-notifications')).toEqual([
-      'Notifications',
-      'Delivery',
-    ])
+    expect(
+      breadcrumbFor('/notifications', '#general-notifications').map(
+        (crumb) => crumb.label,
+      ),
+    ).toEqual(['Notifications', 'Delivery'])
   })
 
-  it('shows the anchored page when the hash matches', () => {
+  it('links the anchored page when the hash matches', () => {
     expect(breadcrumbFor('/notifications', '#native-webhooks')).toEqual([
-      'Notifications',
-      'Webhooks',
+      { label: 'Notifications', to: pageHref(NAV_PAGES.discord) },
+      { label: 'Webhooks', to: pageHref(NAV_PAGES.webhooks) },
     ])
   })
 

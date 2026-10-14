@@ -32,8 +32,11 @@ export const UserWithFriendStatusSchema = UserBaseSchema.extend({
     'User with their Plex friend status, null when Plex cannot classify them',
 })
 
-const UserWithCountSchema = UserWithFriendStatusSchema.extend({
+export const UserWithCountSchema = UserWithFriendStatusSchema.extend({
   watchlist_count: z.number(),
+}).meta({
+  id: 'UserWithCount',
+  description: 'User with their Plex friend status and watchlist item count',
 })
 
 export const UserListResponseSchema = z.object({

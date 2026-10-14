@@ -1,6 +1,7 @@
 import {
   cleanupLabelResultRows,
   removeLabelResultRows,
+  syncLabelResultRows,
 } from '@/features/users/lib/label-results'
 import { withMinDuration } from '@/hooks/useMinLoading'
 import { useOperation } from '@/hooks/useOperation'
@@ -26,6 +27,18 @@ function operation(label: string): OperationMeta {
 export function useLabelActions(
   saved: components['schemas']['PlexLabelSyncConfig'],
 ) {
+  const sync = useOperation({
+    key: ['labels', 'sync'],
+    mutationFn: async () => {
+      const { data, error } = await withMinDuration(
+        apiFetch.POST('/v1/labels/sync'),
+      )
+      if (error) throw error
+      return data
+    },
+    meta: operation('Label sync'),
+    errorFallback: 'Sync failed. Try again.',
+  })
   const cleanup = useOperation({
     key: ['labels', 'cleanup'],
     mutationFn: async () => {
@@ -52,6 +65,7 @@ export function useLabelActions(
   })
 
   const removalProgress = useProgress('plex-label-removal')
+  const syncProgress = useProgress('plex-label-sync')
 
   const labelingReason = saved.enabled
     ? null
@@ -80,10 +94,17 @@ export function useLabelActions(
 
   return {
     actions,
-    anyRunning: cleanup.running || remove.running,
+    anyRunning: sync.running || cleanup.running || remove.running,
     removedSinceSync:
       remove.result?.data.success && remove.result.data.results.failed === 0,
     run: (id: Exclude<LabelActionId, 'remove'>) => ({ cleanup })[id].run(),
     runRemove: () => remove.run(),
+    syncRun: {
+      run: sync.run,
+      running: sync.running,
+      errorMessage: sync.errorMessage,
+      progress: [toActionProgress(PROGRESS_TARGET, syncProgress)],
+      result: toActionResult(sync.result, syncLabelResultRows),
+    },
   }
 }

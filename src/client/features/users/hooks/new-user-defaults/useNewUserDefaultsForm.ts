@@ -1,6 +1,9 @@
 import { WATCHLIST_CAP_SUGGESTED } from '@root/schemas/shared/quota-limits'
-import type { MediaDefaultsValues } from '@/features/users/components/new-user-defaults/media-defaults-section'
 import { NewUserDefaultsFormSchema } from '@/features/users/lib/new-user-defaults-form.schema'
+import {
+  capPayload,
+  type QuotaFieldValues,
+} from '@/features/users/lib/quota-fields'
 import { useConfigForm } from '@/hooks/useConfigForm'
 import type { components } from '@/types/api.js'
 
@@ -10,16 +13,19 @@ type ConfigUpdate = components['schemas']['ConfigUpdatePayload']
 interface NewUserDefaultsValues {
   newUserDefaultCanSync: boolean
   newUserDefaultRequiresApproval: boolean
-  movie: MediaDefaultsValues
-  show: MediaDefaultsValues
+  movie: QuotaFieldValues
+  show: QuotaFieldValues
 }
 
-function toMediaValues(config: Config, media: 'Movie' | 'Show') {
+function toMediaValues(
+  config: Config,
+  media: 'Movie' | 'Show',
+): QuotaFieldValues {
   const cap = config[`newUserDefault${media}WatchlistCap`]
   return {
-    quotaOn: config[`newUserDefault${media}QuotaEnabled`],
+    on: config[`newUserDefault${media}QuotaEnabled`],
     quotaType: config[`newUserDefault${media}QuotaType`],
-    limit: config[`newUserDefault${media}QuotaLimit`],
+    quotaLimit: config[`newUserDefault${media}QuotaLimit`],
     bypassApproval: config[`newUserDefault${media}BypassApproval`],
     capOn: cap !== null,
     cap: cap ?? WATCHLIST_CAP_SUGGESTED,
@@ -35,10 +41,6 @@ function toFormValues(config: Config): NewUserDefaultsValues {
   }
 }
 
-function capPayload({ capOn, cap }: MediaDefaultsValues) {
-  return capOn && cap !== undefined ? cap : null
-}
-
 function toPayload({
   movie,
   show,
@@ -46,14 +48,14 @@ function toPayload({
 }: NewUserDefaultsValues): ConfigUpdate {
   return {
     ...access,
-    newUserDefaultMovieQuotaEnabled: movie.quotaOn,
+    newUserDefaultMovieQuotaEnabled: movie.on,
     newUserDefaultMovieQuotaType: movie.quotaType,
-    newUserDefaultMovieQuotaLimit: movie.limit,
+    newUserDefaultMovieQuotaLimit: movie.quotaLimit,
     newUserDefaultMovieBypassApproval: movie.bypassApproval,
     newUserDefaultMovieWatchlistCap: capPayload(movie),
-    newUserDefaultShowQuotaEnabled: show.quotaOn,
+    newUserDefaultShowQuotaEnabled: show.on,
     newUserDefaultShowQuotaType: show.quotaType,
-    newUserDefaultShowQuotaLimit: show.limit,
+    newUserDefaultShowQuotaLimit: show.quotaLimit,
     newUserDefaultShowBypassApproval: show.bypassApproval,
     newUserDefaultShowWatchlistCap: capPayload(show),
   }

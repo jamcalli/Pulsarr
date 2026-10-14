@@ -137,16 +137,16 @@ describe('ApprovalsCard', () => {
     await screen.findByRole('button', { name: 'Review Title 1' })
     expect(sortOrders).toEqual(['asc'])
 
-    await user.click(screen.getByLabelText('Sort order'))
+    await user.click(screen.getByRole('combobox', { name: 'Sort order' }))
     await user.click(
       await screen.findByRole('option', { name: 'Newest first' }),
     )
 
     await vi.waitFor(() => expect(sortOrders).toContain('desc'))
     expect(localStorage.getItem('pulsarr-approvals-sort')).toBe('newest')
-    expect(screen.getByLabelText('Sort order')).toHaveTextContent(
-      'Newest first',
-    )
+    expect(
+      screen.getByRole('combobox', { name: 'Sort order' }),
+    ).toHaveTextContent('Newest first')
   })
 
   it('caps the card at four rows and lists every request in View all', async () => {

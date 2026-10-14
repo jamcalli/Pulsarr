@@ -1,14 +1,9 @@
-import { Search } from 'lucide-react'
 import { useId } from 'react'
 import { FilterDrawer } from '@/components/filter-drawer'
 import { FilterSelect } from '@/components/filter-select'
+import { SearchField } from '@/components/search-field'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@/components/ui/input-group'
 import type { ApprovalQueuePage } from '@/features/requests/hooks/approval-queue/useApprovalQueuePage'
 import { useRequesterOptions } from '@/features/requests/hooks/approval-queue/useRequesterOptions'
 import {
@@ -20,23 +15,6 @@ import { formatCount } from '@/lib/format'
 
 interface FiltersProps {
   page: ApprovalQueuePage
-}
-
-function SearchField({ page }: FiltersProps) {
-  return (
-    <InputGroup className="md:max-w-90 md:grow md:basis-60">
-      <InputGroupAddon align="inline-start">
-        <Search />
-      </InputGroupAddon>
-      <InputGroupInput
-        type="search"
-        placeholder="Search titles"
-        aria-label="Search titles"
-        value={page.state.q}
-        onChange={(event) => page.update({ q: event.target.value })}
-      />
-    </InputGroup>
-  )
 }
 
 function ClearFilters({ page }: FiltersProps) {
@@ -54,7 +32,11 @@ export function ApprovalQueueFilters({ page }: FiltersProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <SearchField page={page} />
+      <SearchField
+        label="Search titles"
+        value={page.state.q}
+        onValueChange={(q) => page.update({ q })}
+      />
       <FilterSelect
         label="Requested by"
         value={state.user}
@@ -93,7 +75,11 @@ export function ApprovalQueuePhoneFilters({ page }: FiltersProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <SearchField page={page} />
+      <SearchField
+        label="Search titles"
+        value={page.state.q}
+        onValueChange={(q) => page.update({ q })}
+      />
       <div className="flex items-center justify-between gap-2">
         <FilterDrawer
           count={count}

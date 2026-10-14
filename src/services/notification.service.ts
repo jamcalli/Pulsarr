@@ -35,15 +35,21 @@ import {
 import {
   type ApprovalRequest as ApprovalRequestNotification,
   sendApprovalBatch,
-  sendDeleteSyncCompleted,
-  sendMediaAvailable,
+} from './notifications/orchestration/approval.js'
+import { sendDeleteSyncCompleted } from './notifications/orchestration/delete-sync.js'
+import { sendMediaAvailable } from './notifications/orchestration/media-available.js'
+import {
   sendUpdateAvailable,
-  sendWatchlistAdded,
-  sendWatchlistCapNotification,
   type UpdateAvailableRelease,
-  type WatchlistCapEvent,
+} from './notifications/orchestration/update-available.js'
+import {
+  sendWatchlistAdded,
   type WatchlistItemInfo,
-} from './notifications/orchestration/index.js'
+} from './notifications/orchestration/watchlist-added.js'
+import {
+  sendWatchlistCapNotification,
+  type WatchlistCapEvent,
+} from './notifications/orchestration/watchlist-cap.js'
 
 export class NotificationService {
   private readonly log: FastifyBaseLogger
@@ -281,6 +287,7 @@ export class NotificationService {
         discordWebhook: this._discordWebhook,
         plexMobile: this._plexMobile,
         apprise: this._apprise,
+        progress: this.fastify.progress,
       },
       mediaInfo,
       options,

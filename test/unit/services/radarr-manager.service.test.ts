@@ -140,8 +140,10 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
   let manager: RadarrManagerService
   let addToRadarr: Mock<RadarrService['addToRadarr']>
   let db: Partial<DatabaseService>
+  let emit: Mock<FastifyInstance['progress']['emit']>
 
   beforeEach(() => {
+    emit = vi.fn()
     db = {
       getRadarrInstance: vi.fn<DatabaseService['getRadarrInstance']>(
         async () => ({
@@ -158,7 +160,10 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
         async () => undefined,
       ),
     }
-    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    const fastify: Partial<FastifyInstance> = {
+      db: db as DatabaseService,
+      progress: { emit } as unknown as FastifyInstance['progress'],
+    }
     service = new RadarrService(
       createMockLogger(),
       'http://localhost',
@@ -172,6 +177,17 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     manager['radarrServices'].set(1, service)
+  })
+
+  it('emits a watchlist status event for the routed user', async () => {
+    await manager.routeItemToRadarr(item, 'key', 2, 1)
+
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'watchlist',
+        metadata: { action: 'status', userIds: [2] },
+      }),
+    )
   })
 
   it('sends the instance values when the settings inherit', async () => {
@@ -269,6 +285,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       'is not set up',
     )
     expect(addToRadarr).not.toHaveBeenCalled()
+    expect(emit).not.toHaveBeenCalled()
   })
 })
 

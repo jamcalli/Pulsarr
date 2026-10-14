@@ -1,16 +1,13 @@
-import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
+import { RetryAlert } from '@/components/retry-alert'
 import { SaveBar } from '@/components/settings/save-bar'
-import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
-import { Button } from '@/components/ui/button'
-import { MediaDefaultsSection } from '@/features/users/components/new-user-defaults/media-defaults-section'
+import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
+import { QuotaCard } from '@/features/users/components/quota-card'
 import { useNewUserDefaultsForm } from '@/features/users/hooks/new-user-defaults/useNewUserDefaultsForm'
-import { NEW_USER_DEFAULTS_SKELETON } from '@/features/users/lib/new-user-defaults-skeleton'
 import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
-import { useShowLoading } from '@/hooks/useMinLoading'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 
@@ -54,19 +51,17 @@ function NewUserDefaults({
               )}
             </form.AppField>
           </SettingsSection>
-          <MediaDefaultsSection
+          <QuotaCard
             form={form}
             fields="movie"
-            title="Movies"
+            type="movie"
             description="The movie quota new users start with."
-            unit="movie"
           />
-          <MediaDefaultsSection
+          <QuotaCard
             form={form}
             fields="show"
-            title="Shows"
+            type="show"
             description="The show quota new users start with."
-            unit="show"
           />
           <SaveBar
             dirty={dirty}
@@ -88,28 +83,15 @@ function NewUserDefaults({
 
 export default function NewUserDefaultsPage() {
   const { config, error, initialize } = useConfig()
-  const showLoading = useShowLoading(config === null)
 
   if (!config && error) {
     return (
       <Page>
         <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <ErrorAlert message={error} />
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          className="self-start"
-          onClick={() => initialize(true)}
-        >
-          Retry
-        </Button>
+        <RetryAlert message={error} onRetry={() => initialize(true)} />
       </Page>
     )
   }
-  if (showLoading) {
-    return <SettingsPageSkeleton {...NEW_USER_DEFAULTS_SKELETON} />
-  }
-  if (!config) return null
+  if (!config) return <NewUserDefaultsSkeleton />
   return <NewUserDefaults config={config} />
 }

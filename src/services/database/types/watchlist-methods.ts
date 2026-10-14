@@ -189,13 +189,13 @@ declare module '@services/database.service.js' {
      * Creates multiple watchlist items
      * @param items - Array of watchlist items to create
      * @param options - Configuration options for how to handle conflicts
-     * @returns Promise resolving to array of inserted IDs
+     * @returns Promise resolving to the id, user_id and key of each inserted row
      */
     createWatchlistItems(
       this: DatabaseService,
       items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
       options?: { onConflict?: 'ignore' | 'merge' },
-    ): Promise<{ id: number; key: string }[]>
+    ): Promise<{ id: number; user_id: number; key: string }[]>
 
     /**
      * Deletes watchlist items for a user
