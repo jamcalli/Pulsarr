@@ -18,7 +18,7 @@ import type { components } from '@/types/api.js'
 type InstanceBreakdown = components['schemas']['InstanceBreakdown']
 type StatusDistribution = components['schemas']['StatusDistribution']
 
-const STAGE_GRID = 'grid gap-4 sm:grid-cols-3'
+const STAGE_GRID = 'grid grid-cols-1 gap-4 sm:grid-cols-3'
 const INSTANCE_ROW =
   'grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3'
 
