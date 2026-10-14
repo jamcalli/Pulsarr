@@ -8,10 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApprovalQueueBar } from '@/features/requests/components/approval-queue/approval-queue-bar'
 import { ApprovalQueueEmpty } from '@/features/requests/components/approval-queue/approval-queue-empty'
-import {
-  ApprovalQueueFilters,
-  ApprovalQueuePhoneFilters,
-} from '@/features/requests/components/approval-queue/approval-queue-filters'
+import { ApprovalQueueFilters } from '@/features/requests/components/approval-queue/approval-queue-filters'
 import { ApprovalQueueBodySkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { ApprovalQueueTable } from '@/features/requests/components/approval-queue/approval-queue-table'
 import { BulkConfirm } from '@/features/requests/components/approval-queue/bulk-confirm'
@@ -24,7 +21,6 @@ import {
   DECIDED_STATUS_OPTIONS,
   QUEUE_TABS,
 } from '@/features/requests/lib/approval-queue/queue-state'
-import { useIsMobile } from '@/hooks/useIsMobile'
 import { formatNumber } from '@/lib/format'
 import { NAV_PAGES } from '@/lib/navigation'
 
@@ -33,7 +29,6 @@ const TITLE = NAV_PAGES.approvalQueue.label
 const DESCRIPTION = 'Decide on held requests and look back at past decisions.'
 
 function QueueBody({ page }: { page: QueuePage }) {
-  const isMobile = useIsMobile()
   const { rows } = page
 
   if (page.isLoading) return <ApprovalQueueBodySkeleton tab={page.state.tab} />
@@ -59,12 +54,7 @@ function QueueBody({ page }: { page: QueuePage }) {
           onValueChange={(status) => page.update({ status })}
         />
       )}
-      {showToolbar &&
-        (isMobile ? (
-          <ApprovalQueuePhoneFilters page={page} />
-        ) : (
-          <ApprovalQueueFilters page={page} />
-        ))}
+      {showToolbar && <ApprovalQueueFilters page={page} />}
       {empty ? (
         <ApprovalQueueEmpty page={page} />
       ) : (

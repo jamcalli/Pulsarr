@@ -82,6 +82,12 @@ export const TRIGGER_FILTER_OPTIONS: ReadonlyArray<{
   label: TRIGGER_LABELS[value],
 }))
 
+export const QUEUE_FILTER_WIDTHS = {
+  user: 'w-42',
+  type: 'w-38',
+  trigger: 'w-42',
+} as const
+
 export const SORTABLE: Record<QueueTab, readonly QueueSortKey[]> = {
   pending: ['requested', 'title', 'requester', 'trigger'],
   history: ['requested', 'title', 'requester', 'trigger', 'status'],
