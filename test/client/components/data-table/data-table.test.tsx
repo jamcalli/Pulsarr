@@ -154,3 +154,134 @@ describe('DataTable', () => {
     expect(onRowClick).not.toHaveBeenCalled()
   })
 })
+
+function ExpandHarness({ frozen }: { frozen?: boolean }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  return (
+    <DataTable
+      label="Things"
+      columns={columns}
+      data={rows}
+      getRowId={(row) => String(row.id)}
+      rowName={(row) => row.name}
+      sorting={[]}
+      onSortingChange={() => undefined}
+      rowSelection={{}}
+      onRowSelectionChange={() => undefined}
+      renderExpanded={(row) => `Detail of ${row.name}`}
+      expandedLabel={(row) => `${row.name} details`}
+      expandedId={expandedId}
+      onExpandedChange={setExpandedId}
+      frozen={frozen}
+    />
+  )
+}
+
+describe('DataTable row expansion', () => {
+  it('opens a row on click and closes it on a second click', async () => {
+    const user = userEvent.setup()
+    render(<ExpandHarness />)
+    const toggle = screen.getByRole('button', { name: 'Beta details' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(toggle).not.toHaveAttribute('aria-controls')
+
+    await user.click(screen.getByText('Beta'))
+    const region = screen.getByRole('region', { name: 'Beta details' })
+    expect(region).toHaveTextContent('Detail of Beta')
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(toggle).toHaveAttribute('aria-controls', region.id)
+
+    await user.click(screen.getByText('Beta'))
+    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('keeps one row open at a time', async () => {
+    const user = userEvent.setup()
+    render(<ExpandHarness />)
+
+    await user.click(screen.getByText('Alpha'))
+    await user.click(screen.getByText('Gamma'))
+    expect(screen.getAllByRole('region')).toHaveLength(1)
+    expect(
+      screen.getByRole('region', { name: 'Gamma details' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Alpha details' }),
+    ).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('toggles from the keyboard', async () => {
+    const user = userEvent.setup()
+    render(<ExpandHarness />)
+    const toggle = screen.getByRole('button', { name: 'Alpha details' })
+
+    toggle.focus()
+    await user.keyboard('{Enter}')
+    expect(
+      screen.getByRole('region', { name: 'Alpha details' }),
+    ).toBeInTheDocument()
+
+    await user.keyboard(' ')
+    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+  })
+
+  it('does not toggle from the selection checkbox or while frozen', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<ExpandHarness />)
+
+    await user.click(screen.getByRole('checkbox', { name: 'Select Alpha' }))
+    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+
+    rerender(<ExpandHarness frozen />)
+    await user.click(screen.getByText('Alpha'))
+    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+  })
+
+  it('renders no toggle column without renderExpanded', () => {
+    render(<Harness />)
+    expect(screen.getAllByRole('columnheader')).toHaveLength(4)
+    expect(
+      screen.queryByRole('button', { expanded: false }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('rejects a row click handler alongside expansion', () => {
+    render(
+      // @ts-expect-error onRowClick and renderExpanded are mutually exclusive
+      <DataTable
+        label="Things"
+        columns={columns}
+        data={rows}
+        getRowId={(row) => String(row.id)}
+        rowName={(row) => row.name}
+        sorting={[]}
+        onSortingChange={() => undefined}
+        rowSelection={{}}
+        onRowSelectionChange={() => undefined}
+        onRowClick={() => undefined}
+        renderExpanded={() => null}
+        expandedLabel={(row) => row.name}
+        expandedId={null}
+        onExpandedChange={() => undefined}
+      />,
+    )
+    expect(screen.getByRole('table', { name: 'Things' })).toBeInTheDocument()
+  })
+
+  it('renders no checkbox column without a selection', () => {
+    render(
+      <DataTable
+        label="Things"
+        columns={columns}
+        data={rows}
+        getRowId={(row) => String(row.id)}
+        sorting={[]}
+        onSortingChange={() => undefined}
+      />,
+    )
+
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
+    expect(screen.getAllByRole('columnheader')).toHaveLength(columns.length)
+  })
+})

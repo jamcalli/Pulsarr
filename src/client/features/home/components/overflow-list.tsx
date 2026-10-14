@@ -46,7 +46,7 @@ export function OverflowList<T>({
                 <CredenzaTitle>{title}</CredenzaTitle>
                 <CredenzaDescription>{description}</CredenzaDescription>
               </CredenzaHeader>
-              <CredenzaBody className="flex min-h-0 flex-col gap-4 overflow-y-auto">
+              <CredenzaBody className="flex flex-col gap-4">
                 {renderRows(rows)}
               </CredenzaBody>
             </CredenzaContent>

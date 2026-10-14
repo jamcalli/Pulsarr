@@ -3,18 +3,25 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 const EDGE_TOLERANCE = 2
 const PAGE_FRACTION = 0.8
 
-/** Tracks whether a horizontal scroller has more content to either side, and pages it by most of its width. */
+/** Tracks whether a scroller has more content past each edge, and pages it sideways by most of its width. Sets `--scroll-fade-width` on it to its visible width. */
 export function useScrollEdges<T extends HTMLElement>() {
   const ref = useRef<T>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [canScrollUp, setCanScrollUp] = useState(false)
+  const [canScrollDown, setCanScrollDown] = useState(false)
 
   const update = useCallback(() => {
     const el = ref.current
     if (!el) return
+    el.style.setProperty('--scroll-fade-width', `${el.clientWidth}px`)
     setCanScrollLeft(el.scrollLeft > EDGE_TOLERANCE)
     setCanScrollRight(
       el.scrollLeft + el.clientWidth < el.scrollWidth - EDGE_TOLERANCE,
+    )
+    setCanScrollUp(el.scrollTop > EDGE_TOLERANCE)
+    setCanScrollDown(
+      el.scrollTop + el.clientHeight < el.scrollHeight - EDGE_TOLERANCE,
     )
   }, [])
 
@@ -41,5 +48,13 @@ export function useScrollEdges<T extends HTMLElement>() {
     })
   }
 
-  return { ref, canScrollLeft, canScrollRight, onScroll: update, page }
+  return {
+    ref,
+    canScrollLeft,
+    canScrollRight,
+    canScrollUp,
+    canScrollDown,
+    onScroll: update,
+    page,
+  }
 }
