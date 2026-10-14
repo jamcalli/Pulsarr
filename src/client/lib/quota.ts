@@ -1,5 +1,10 @@
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema'
-import { formatCount, formatOrdinal, upperFirst } from '@/lib/format'
+import {
+  formatCount,
+  formatNumber,
+  formatOrdinal,
+  upperFirst,
+} from '@/lib/format'
 import type { components } from '@/types/api.js'
 
 type QuotaType = components['schemas']['QuotaType']
@@ -17,6 +22,10 @@ export const QUOTA_TYPE_OPTIONS = QuotaTypeSchema.options.map((value) => ({
 }))
 
 const SHORTEST_MONTH_DAYS = 28
+
+export function formatQuotaUsage(used: number, limit: number): string {
+  return `${formatNumber(used)} of ${formatNumber(limit)}`
+}
 
 /** The window a quota counts, worded to follow "has requested 3 movies". Null settings give a neutral phrase. */
 export function quotaWindowPhrase(

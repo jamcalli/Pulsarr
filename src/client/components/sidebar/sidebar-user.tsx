@@ -27,7 +27,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { UserAvatar } from '@/components/user-avatar'
+import { UserAvatar, UserAvatarSkeleton } from '@/components/user-avatar'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useSettings } from '@/hooks/useSettings'
 import { useTheme } from '@/hooks/useTheme'
@@ -35,7 +35,7 @@ import { useTheme } from '@/hooks/useTheme'
 function UserSkeleton() {
   return (
     <div className="flex items-center gap-2.5 px-1 py-1">
-      <Skeleton className="size-8 rounded-full" />
+      <UserAvatarSkeleton />
       <div className="flex flex-1 flex-col gap-1.5">
         <Skeleton className="h-3.5 w-24" />
         <Skeleton className="h-3 w-32" />

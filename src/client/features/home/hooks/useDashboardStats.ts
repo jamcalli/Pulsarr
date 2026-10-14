@@ -6,7 +6,7 @@ import {
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { refreshDashboardStats } from '@/lib/dashboard-invalidation'
 import { usePref } from '@/lib/prefs'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 export type DashboardStatsData = components['schemas']['DashboardStats']
@@ -33,7 +33,7 @@ export function useDashboardStats() {
     setLimit,
     data: query.data,
     isLoading: query.isLoading,
-    isReady: query.data !== undefined || query.isError,
+    isReady: isSettled(query),
     isFetching: query.isFetching,
     updatedAt: query.dataUpdatedAt,
     refresh: () => void refreshDashboardStats(),

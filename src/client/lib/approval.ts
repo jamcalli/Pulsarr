@@ -11,11 +11,14 @@ import {
   formatCount,
   formatDateTime,
   formatList,
-  formatNumber,
   formatRelative,
   pluralize,
 } from '@/lib/format'
-import { QUOTA_TYPE_LABELS, quotaWindowPhrase } from '@/lib/quota'
+import {
+  formatQuotaUsage,
+  QUOTA_TYPE_LABELS,
+  quotaWindowPhrase,
+} from '@/lib/quota'
 import type { components } from '@/types/api.js'
 
 export const NOT_SET = 'Not set'
@@ -177,7 +180,7 @@ export function triggerSummary(
       const used = data.quotaUsage - 1
       return {
         kind,
-        line: `${QUOTA_TYPE_LABELS[data.quotaType]} quota: ${formatNumber(used)} of ${formatNumber(data.quotaLimit)} ${pluralize(data.quotaLimit, noun)} used`,
+        line: `${QUOTA_TYPE_LABELS[data.quotaType]} quota: ${formatQuotaUsage(used, data.quotaLimit)} ${pluralize(data.quotaLimit, noun)} used`,
         reason: `${userName} has requested ${formatCount(used, noun)} ${quotaWindowPhrase(data.quotaType, quotaSettings)}.`,
       }
     }

@@ -42,3 +42,11 @@ export function requireSuccess<T extends { success: boolean }>(data: T): T {
   if (!data.success) throw data
   return data
 }
+
+/** True once a query has data or has failed, so a page gate stops waiting on it. */
+export function isSettled<T>(query: {
+  data: T | undefined
+  isError: boolean
+}): boolean {
+  return query.data !== undefined || query.isError
+}

@@ -1,5 +1,5 @@
 import { setFormatLocale } from '@/lib/format'
-import { quotaWindowPhrase } from '@/lib/quota'
+import { formatQuotaUsage, quotaWindowPhrase } from '@/lib/quota'
 import type { components } from '@/types/api.js'
 
 type QuotaSettings = components['schemas']['QuotaSettings']
@@ -80,5 +80,15 @@ describe('quotaWindowPhrase', () => {
       'in the current period',
     )
     expect(quotaWindowPhrase('monthly', null)).toBe('in the current period')
+  })
+})
+
+describe('formatQuotaUsage', () => {
+  beforeEach(() => setFormatLocale('en-US'))
+  afterEach(() => setFormatLocale(undefined))
+
+  it('reads usage against the limit with grouped numbers', () => {
+    expect(formatQuotaUsage(3, 10)).toBe('3 of 10')
+    expect(formatQuotaUsage(1200, 5000)).toBe('1,200 of 5,000')
   })
 })

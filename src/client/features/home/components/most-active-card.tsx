@@ -1,7 +1,7 @@
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ChartLegend } from '@/components/chart-legend'
 import { ErrorAlert } from '@/components/error-alert'
-import { StackedBar } from '@/components/stacked-bar'
+import { StackedBar, StackedBarSkeleton } from '@/components/stacked-bar'
 import { StatBarHeader } from '@/components/stat-bar'
 import {
   Card,
@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { UserAvatar } from '@/components/user-avatar'
+import { UserAvatar, UserAvatarSkeleton } from '@/components/user-avatar'
 import {
   OverflowList,
   OverflowSummarySkeleton,
@@ -41,12 +41,12 @@ function MostActiveSkeleton() {
           <div key={key} className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
-                <Skeleton className="size-6 rounded-full" />
+                <UserAvatarSkeleton size="sm" />
                 <Skeleton className="h-4 w-28" />
               </span>
               <Skeleton className="h-4 w-16" />
             </div>
-            <Skeleton className="h-5 w-full" />
+            <StackedBarSkeleton />
           </div>
         ))}
       </div>

@@ -1,7 +1,7 @@
 import { Film, Tv } from 'lucide-react'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ColorSwatch } from '@/components/color-swatch'
-import { StackedBar } from '@/components/stacked-bar'
+import { StackedBar, StackedBarSkeleton } from '@/components/stacked-bar'
 import { StatTile, StatTileSkeleton } from '@/components/stat-tile'
 import {
   Card,
@@ -11,8 +11,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { ChartColor } from '@/lib/chart-colors'
 import { formatCount, formatNumber, formatPercent } from '@/lib/format'
+import {
+  REQUEST_STATUS_COLORS,
+  REQUEST_STATUS_LABELS,
+  ROUTED_STATUSES,
+  type RoutedStatus,
+} from '@/lib/request-labels'
 import type { components } from '@/types/api.js'
 
 type InstanceBreakdown = components['schemas']['InstanceBreakdown']
@@ -24,31 +29,18 @@ const INSTANCE_ROW =
 
 const SKELETON_INSTANCES = ['a', 'b']
 
-const STAGES = [
-  {
-    status: 'requested',
-    label: 'Requested',
-    color: 'chart-requested',
-    description: 'In Radarr or Sonarr, no file yet',
-  },
-  {
-    status: 'grabbed',
-    label: 'Grabbed',
-    color: 'chart-grabbed',
-    description: 'Downloaded, no notification sent',
-  },
-  {
-    status: 'notified',
-    label: 'Notified',
-    color: 'chart-notified',
-    description: 'Ready, and the user was told',
-  },
-] as const satisfies ReadonlyArray<{
-  status: string
-  label: string
-  color: ChartColor
-  description: string
-}>
+const STAGE_DESCRIPTIONS: Record<RoutedStatus, string> = {
+  requested: 'In Radarr or Sonarr, no file yet',
+  grabbed: 'Downloaded, no notification sent',
+  notified: 'Ready, and the user was told',
+}
+
+const STAGES = ROUTED_STATUSES.map((status) => ({
+  status,
+  description: STAGE_DESCRIPTIONS[status],
+  label: REQUEST_STATUS_LABELS[status],
+  color: REQUEST_STATUS_COLORS[status],
+}))
 
 function itemSegments(statuses: StatusDistribution[]) {
   return STAGES.map((stage) => ({
@@ -159,13 +151,13 @@ export function PipelineCardSkeleton() {
             <StatTileSkeleton key={stage.status} />
           ))}
         </div>
-        <Skeleton className="h-5 w-full" />
+        <StackedBarSkeleton />
         <div className="flex flex-col gap-3">
           <Skeleton className="h-4 w-44" />
           {SKELETON_INSTANCES.map((key) => (
             <div key={key} className={INSTANCE_ROW}>
               <Skeleton className="h-4 w-28 max-w-full" />
-              <Skeleton className="h-5 w-full" />
+              <StackedBarSkeleton />
               <Skeleton className="h-4 w-8" />
             </div>
           ))}
