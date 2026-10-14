@@ -19,6 +19,7 @@
 
 import { readFile, unlink } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import type { CleanupOrphanedRefsResponse } from '@root/schemas/tags/user-tags.schema.js'
 import { projectRoot, resolveDataDir } from '@utils/data-dir.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -560,9 +561,11 @@ export class TagMigrationService {
    * Transforms existing prefixes rather than replacing with defaults
    */
   private async updateGlobalTagPrefixes(): Promise<void> {
-    const currentPrefix = this.fastify.config.tagPrefix || 'pulsarr-user'
+    const currentPrefix =
+      this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix
     const currentRemovedPrefix =
-      this.fastify.config.removedTagPrefix || 'pulsarr-removed'
+      this.fastify.config.removedTagPrefix ||
+      TAG_PREFIX_DEFAULTS.removedTagPrefix
 
     // Only update if they're still using colon format
     if (currentPrefix.includes(':') || currentRemovedPrefix.includes(':')) {

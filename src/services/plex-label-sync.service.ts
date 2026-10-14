@@ -5,6 +5,7 @@
  * decomposed label-sync modules (orchestration, cleanup, tracking).
  */
 
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import type {
   RadarrMovieWithTags,
   SonarrSeriesWithTags,
@@ -88,9 +89,10 @@ export class PlexLabelSyncService {
       labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
-      tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
+      tagPrefix: this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       removedTagPrefix:
-        this.fastify.config.removedTagPrefix || 'pulsarr-removed',
+        this.fastify.config.removedTagPrefix ||
+        TAG_PREFIX_DEFAULTS.removedTagPrefix,
       queuePendingLabelSyncByWatchlistId:
         this.queuePendingLabelSyncByWatchlistId.bind(this),
       extractContentGuidFromWebhook:
@@ -111,9 +113,10 @@ export class PlexLabelSyncService {
       fastify: this.fastify,
       removedLabelMode: this.removedLabelMode,
       removedLabelPrefix: this.removedLabelPrefix,
-      tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
+      tagPrefix: this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       removedTagPrefix:
-        this.fastify.config.removedTagPrefix || 'pulsarr-removed',
+        this.fastify.config.removedTagPrefix ||
+        TAG_PREFIX_DEFAULTS.removedTagPrefix,
       resetLabels: this.resetLabels.bind(this),
       cleanupOrphanedPlexLabels: this.cleanupOrphanedPlexLabels.bind(this),
     })
@@ -155,9 +158,10 @@ export class PlexLabelSyncService {
       fastify: this.fastify,
       removedLabelMode: this.removedLabelMode,
       removedLabelPrefix: this.removedLabelPrefix,
-      tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
+      tagPrefix: this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       removedTagPrefix:
-        this.fastify.config.removedTagPrefix || 'pulsarr-removed',
+        this.fastify.config.removedTagPrefix ||
+        TAG_PREFIX_DEFAULTS.removedTagPrefix,
       resetLabels: this.resetLabels.bind(this),
       cleanupOrphanedPlexLabels: this.cleanupOrphanedPlexLabels.bind(this),
     })
@@ -179,9 +183,10 @@ export class PlexLabelSyncService {
       labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
-      tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
+      tagPrefix: this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       removedTagPrefix:
-        this.fastify.config.removedTagPrefix || 'pulsarr-removed',
+        this.fastify.config.removedTagPrefix ||
+        TAG_PREFIX_DEFAULTS.removedTagPrefix,
       queuePendingLabelSyncByWatchlistId:
         this.queuePendingLabelSyncByWatchlistId.bind(this),
       extractContentGuidFromWebhook:
@@ -249,9 +254,10 @@ export class PlexLabelSyncService {
       config: this.config,
       removedLabelMode: this.removedLabelMode,
       removedLabelPrefix: this.removedLabelPrefix,
-      tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
+      tagPrefix: this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       removedTagPrefix:
-        this.fastify.config.removedTagPrefix || 'pulsarr-removed',
+        this.fastify.config.removedTagPrefix ||
+        TAG_PREFIX_DEFAULTS.removedTagPrefix,
     })
   }
 
@@ -276,9 +282,10 @@ export class PlexLabelSyncService {
       labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
-      tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
+      tagPrefix: this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       removedTagPrefix:
-        this.fastify.config.removedTagPrefix || 'pulsarr-removed',
+        this.fastify.config.removedTagPrefix ||
+        TAG_PREFIX_DEFAULTS.removedTagPrefix,
     })
   }
 
@@ -320,9 +327,11 @@ export class PlexLabelSyncService {
         labelPrefix: this.labelPrefix,
         removedLabelPrefix: this.removedLabelPrefix,
         removedLabelMode: this.removedLabelMode,
-        tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
+        tagPrefix:
+          this.fastify.config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
         removedTagPrefix:
-          this.fastify.config.removedTagPrefix || 'pulsarr-removed',
+          this.fastify.config.removedTagPrefix ||
+          TAG_PREFIX_DEFAULTS.removedTagPrefix,
       },
     )
   }

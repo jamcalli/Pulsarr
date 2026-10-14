@@ -5,6 +5,7 @@
  * Helps determine if labels are managed by Pulsarr and what type of label they are.
  */
 
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import {
   isAppUserTag,
   isRemovedTag,
@@ -97,14 +98,14 @@ export function isManagedLabel(
  * Checks if a tag is managed by the user tagging system or is a special removal tag
  *
  * @param tagName - The tag to check
- * @param tagPrefix - The configured tag prefix (default: 'pulsarr-user')
- * @param removedTagPrefix - The configured removed tag prefix (default: 'pulsarr-removed')
+ * @param tagPrefix - The configured tag prefix
+ * @param removedTagPrefix - The configured removed tag prefix
  * @returns True if this is a user tagging system tag or special removal tag
  */
 export function isUserTaggingSystemTag(
   tagName: string,
-  tagPrefix: string = 'pulsarr-user',
-  removedTagPrefix: string = 'pulsarr-removed',
+  tagPrefix: string = TAG_PREFIX_DEFAULTS.tagPrefix,
+  removedTagPrefix: string = TAG_PREFIX_DEFAULTS.removedTagPrefix,
 ): boolean {
   return (
     isAppUserTag(tagName, tagPrefix) || isRemovedTag(tagName, removedTagPrefix)

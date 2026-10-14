@@ -6,6 +6,7 @@ import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema.js'
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
@@ -419,7 +420,7 @@ const schema = {
     },
     tagPrefix: {
       type: 'string',
-      default: 'pulsarr-user',
+      default: TAG_PREFIX_DEFAULTS.tagPrefix,
     },
     tagNamingSource: {
       type: 'string',
@@ -433,7 +434,7 @@ const schema = {
     },
     removedTagPrefix: {
       type: 'string',
-      default: 'pulsarr-removed',
+      default: TAG_PREFIX_DEFAULTS.removedTagPrefix,
     },
     deletionMode: {
       type: 'string',

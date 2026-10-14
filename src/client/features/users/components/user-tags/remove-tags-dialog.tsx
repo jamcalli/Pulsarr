@@ -1,12 +1,7 @@
 import { useId, useState } from 'react'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-} from '@/components/ui/field'
+import { FieldRow } from '@/components/form/field-row'
+import { Switch } from '@/components/ui/switch'
 
 interface RemoveTagsDialogProps {
   open: boolean
@@ -21,7 +16,7 @@ export function RemoveTagsDialog({
   onConfirm,
   defaultDeleteDefinitions = false,
 }: RemoveTagsDialogProps) {
-  const checkboxId = useId()
+  const switchId = useId()
   const [deleteDefinitions, setDeleteDefinitions] = useState(
     defaultDeleteDefinitions,
   )
@@ -44,22 +39,17 @@ export function RemoveTagsDialog({
         handleOpenChange(false)
       }}
     >
-      <Field orientation="horizontal">
-        <Checkbox
-          id={checkboxId}
+      <FieldRow
+        label="Also delete the tag definitions"
+        description="Removes the tags themselves from Radarr and Sonarr, not just from content. Required before you can change the tag format."
+        htmlFor={switchId}
+      >
+        <Switch
+          id={switchId}
           checked={deleteDefinitions}
           onCheckedChange={setDeleteDefinitions}
         />
-        <FieldContent>
-          <FieldLabel htmlFor={checkboxId}>
-            Also delete the tag definitions
-          </FieldLabel>
-          <FieldDescription>
-            Removes the tags themselves from Radarr and Sonarr, not just from
-            content. Required before you can change the tag format.
-          </FieldDescription>
-        </FieldContent>
-      </Field>
+      </FieldRow>
     </ConfirmCredenza>
   )
 }

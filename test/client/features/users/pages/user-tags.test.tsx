@@ -104,4 +104,43 @@ describe('UserTagsPage', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     expect(screen.queryByText(/^Ran at/)).not.toBeInTheDocument()
   })
+
+  it('names tags from aliases only after the readiness check is confirmed', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    server.use(
+      http.get('/v1/users/alias-readiness', () =>
+        HttpResponse.json({
+          success: true,
+          message: 'Checked aliases',
+          missingAliasCount: 0,
+          duplicateAliasCount: 0,
+        }),
+      ),
+    )
+    renderPage()
+
+    expect(await screen.findByText('pulsarr-user-jamie')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Alias' }))
+    expect(screen.getByText('pulsarr-user-jamie')).toBeInTheDocument()
+
+    await screen.findByText('All sync-enabled users have unique aliases set.')
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    expect(await screen.findByText('pulsarr-user-jj')).toBeInTheDocument()
+  })
+
+  it('asks whether to delete tag definitions when removing all tags', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+
+    expect(
+      await screen.findByRole('switch', {
+        name: 'Also delete the tag definitions',
+      }),
+    ).not.toBeChecked()
+  })
 })

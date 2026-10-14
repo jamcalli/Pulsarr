@@ -1,7 +1,7 @@
+import { PLEX_LABEL_SYNC_DEFAULTS } from '@root/schemas/plex/label-sync-config.schema'
 import { useStore } from '@tanstack/react-form'
 import { useState } from 'react'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { InlineCode } from '@/components/inline-code'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
 import { RetryAlert } from '@/components/retry-alert'
@@ -10,24 +10,24 @@ import { SaveBar } from '@/components/settings/save-bar'
 import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
-import { StatusPill } from '@/components/status-pill'
 import { Button } from '@/components/ui/button'
-import { AliasReadinessCredenza } from '@/features/users/components/alias-readiness-credenza'
+import { EnabledPill } from '@/features/users/components/enabled-pill'
+import { NamingFormatSection } from '@/features/users/components/naming-format-section'
 import {
   type LabelActionId,
   useLabelActions,
 } from '@/features/users/hooks/plex-labels/useLabelActions'
 import { usePlexLabelsForm } from '@/features/users/hooks/plex-labels/usePlexLabelsForm'
 import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
+import {
+  type SyncActionCopy,
+  syncActionSpecs,
+} from '@/features/users/lib/sync-actions'
 import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useShowLoading } from '@/hooks/useMinLoading'
 import { type ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
 import { NAV_PAGES } from '@/lib/navigation'
-import {
-  SAMPLE_USER_NAMES,
-  USER_NAMING_SOURCE_OPTIONS,
-} from '@/lib/user-naming'
 import type { components } from '@/types/api.js'
 
 const SECTION = 'Users'
@@ -35,16 +35,13 @@ const TITLE = NAV_PAGES.plexLabels.label
 const DESCRIPTION =
   'Label movies and shows in Plex by who has them on their watchlist.'
 const SCHEDULE_NAME = 'plex-label-full-sync'
-const PREFIX_PLACEHOLDER = 'pulsarr'
-const REMOVED_PLACEHOLDER = 'pulsarr:removed'
 
-const ACTION_ROWS: Array<{
-  id: LabelActionId
-  title: string
-  description: string
-  buttonLabel: string
-  busyLabel: string
-}> = [
+const NAMING_FIELDS = {
+  prefix: 'plexLabelSync.labelPrefix',
+  namingSource: 'plexLabelSync.labelNamingSource',
+} as const
+
+const ACTION_ROWS: SyncActionCopy<LabelActionId>[] = [
   {
     id: 'cleanup',
     title: 'Clean up orphaned labels',
@@ -101,14 +98,9 @@ function PlexLabelsSettings({
   const labels = useLabelActions(config.plexLabelSync)
   const guard = useLeaveGuard(dirty)
   const [removeOpen, setRemoveOpen] = useState(false)
-  const [aliasOpen, setAliasOpen] = useState(false)
   const scheduleOn = useStore(
     scheduleForm.store,
     (state) => state.values.enabled,
-  )
-  const namingSource = useStore(
-    configForm.store,
-    (state) => state.values.plexLabelSync.labelNamingSource,
   )
   const removedLabelMode = useStore(
     configForm.store,
@@ -152,27 +144,18 @@ function PlexLabelsSettings({
         section={SECTION}
         title={TITLE}
         description={DESCRIPTION}
-        action={
-          <StatusPill
-            tone={labelingOn ? 'on' : 'off'}
-            label={labelingOn ? 'Enabled' : 'Disabled'}
-          />
-        }
+        action={<EnabledPill on={labelingOn} />}
       />
       <configForm.AppForm>
         <configForm.Form className="flex flex-col gap-5" submit={submit}>
           <ActionsSection
             dirty={dirty}
-            actions={ACTION_ROWS.map(({ id, ...row }) => ({
-              ...row,
-              id,
-              destructive: id === 'remove',
-              state: labels.actions[id],
-              onRun:
-                id === 'remove'
-                  ? () => setRemoveOpen(true)
-                  : () => labels.run(id),
-            }))}
+            actions={syncActionSpecs(
+              ACTION_ROWS,
+              labels.actions,
+              labels.run,
+              () => setRemoveOpen(true),
+            )}
           />
           <SettingsSection title="Labeling">
             <configForm.AppField name="plexLabelSync.enabled">
@@ -211,41 +194,16 @@ function PlexLabelsSettings({
               )}
             </scheduleForm.AppField>
           </ScheduledJobPanel>
-          <SettingsSection title="Label format" lock={formatLock}>
-            <configForm.AppField name="plexLabelSync.labelPrefix">
-              {(field) => (
-                <field.TextField
-                  label="Prefix"
-                  type="text"
-                  placeholder={PREFIX_PLACEHOLDER}
-                  disabled={lockReason !== null}
-                  preview={(prefix) => (
-                    <>
-                      Labels look like{' '}
-                      <InlineCode>
-                        {`${prefix || PREFIX_PLACEHOLDER}:${SAMPLE_USER_NAMES[namingSource]}`}
-                      </InlineCode>
-                    </>
-                  )}
-                />
-              )}
-            </configForm.AppField>
-            <configForm.AppField name="plexLabelSync.labelNamingSource">
-              {(field) => (
-                <field.SegmentedField
-                  label="Name from"
-                  description="Users without an alias fall back to their Plex username."
-                  options={USER_NAMING_SOURCE_OPTIONS}
-                  disabled={lockReason !== null}
-                  onBeforeChange={(next) => {
-                    if (next !== 'alias') return true
-                    setAliasOpen(true)
-                    return false
-                  }}
-                />
-              )}
-            </configForm.AppField>
-          </SettingsSection>
+          <NamingFormatSection
+            form={configForm}
+            fields={NAMING_FIELDS}
+            title="Label format"
+            noun="Labels"
+            separator=":"
+            placeholder={PLEX_LABEL_SYNC_DEFAULTS.labelPrefix}
+            disabled={lockReason !== null}
+            lock={formatLock}
+          />
           <SettingsSection
             title="When something leaves a watchlist"
             lock={removedLabelLock}
@@ -263,7 +221,7 @@ function PlexLabelsSettings({
                 <field.TextField
                   label="Removed label"
                   type="text"
-                  placeholder={REMOVED_PLACEHOLDER}
+                  placeholder={PLEX_LABEL_SYNC_DEFAULTS.removedLabelPrefix}
                   disabled={
                     lockReason !== null || removedLabelMode !== 'special-label'
                   }
@@ -340,14 +298,6 @@ function PlexLabelsSettings({
         onConfirm={() => {
           labels.runRemove()
           setRemoveOpen(false)
-        }}
-      />
-      <AliasReadinessCredenza
-        open={aliasOpen}
-        onOpenChange={setAliasOpen}
-        onConfirm={() => {
-          configForm.setFieldValue('plexLabelSync.labelNamingSource', 'alias')
-          setAliasOpen(false)
         }}
       />
     </Page>

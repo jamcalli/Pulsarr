@@ -9,6 +9,7 @@ import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-set
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
 import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
+import { USER_TAGS_SKELETON } from '@/features/users/lib/user-tags-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
@@ -131,7 +132,9 @@ export const router = createBrowserRouter(
             {
               path: 'users/tags',
               element: (
-                <Suspense fallback={<SettingsPageSkeleton sections={4} />}>
+                <Suspense
+                  fallback={<SettingsPageSkeleton {...USER_TAGS_SKELETON} />}
+                >
                   <UserTagsPage />
                 </Suspense>
               ),
