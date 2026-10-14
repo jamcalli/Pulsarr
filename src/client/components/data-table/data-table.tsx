@@ -9,8 +9,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { cn } from 'cn'
-import { ArrowDown, ArrowUp } from 'lucide-react'
-import { useMemo } from 'react'
+import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react'
+import { Fragment, type ReactNode, useId, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -26,25 +26,55 @@ import {
 
 const SELECT_ID = 'select'
 const SELECT_CLASS = 'w-px pl-4'
+const EXPAND_CLASS = 'w-px pr-4'
+const NO_SELECTION: RowSelectionState = {}
 
-interface DataTableProps<TData> {
-  label: string
-  /** Must be referentially stable, since a new cell renderer remounts its cells. */
-  columns: ColumnDef<TData>[]
-  /** Cell and header classes by column id, such as widths and wrapping. */
-  columnClasses?: Partial<Record<string, string>>
-  data: TData[]
-  getRowId: (row: TData) => string
-  /** Names a row in its checkbox label ("Select {name}"). */
-  rowName: (row: TData) => string
-  sorting: SortingState
-  onSortingChange: (next: SortingState) => void
-  rowSelection: RowSelectionState
-  onRowSelectionChange: (next: RowSelectionState) => void
-  onRowClick?: (row: TData) => void
-  /** Shows the rows without letting them be selected or opened, such as while the next page loads. */
-  frozen?: boolean
-}
+/** A row either opens elsewhere on click or expands its own detail below it, never both. */
+type RowActionProps<TData> =
+  | {
+      onRowClick?: (row: TData) => void
+      renderExpanded?: never
+      expandedLabel?: never
+      expandedId?: never
+      onExpandedChange?: never
+    }
+  | {
+      onRowClick?: never
+      renderExpanded: (row: TData) => ReactNode
+      /** Names the detail region and its toggle. */
+      expandedLabel: (row: TData) => string
+      expandedId: string | null
+      onExpandedChange: (id: string | null) => void
+    }
+
+/** Rows are selectable only when the caller owns a selection. */
+type SelectionProps<TData> =
+  | {
+      rowSelection: RowSelectionState
+      onRowSelectionChange: (next: RowSelectionState) => void
+      /** Names a row in its checkbox label ("Select {name}"). */
+      rowName: (row: TData) => string
+    }
+  | {
+      rowSelection?: never
+      onRowSelectionChange?: never
+      rowName?: never
+    }
+
+type DataTableProps<TData> = RowActionProps<TData> &
+  SelectionProps<TData> & {
+    label: string
+    /** Must be referentially stable, since a new cell renderer remounts its cells. */
+    columns: ColumnDef<TData>[]
+    /** Cell and header classes by column id, such as widths and wrapping. */
+    columnClasses?: Partial<Record<string, string>>
+    data: TData[]
+    getRowId: (row: TData) => string
+    sorting: SortingState
+    onSortingChange: (next: SortingState) => void
+    /** Shows the rows without letting them be selected or opened, such as while the next page loads. */
+    frozen?: boolean
+  }
 
 function SortHeader<TData>({ header }: { header: Header<TData, unknown> }) {
   const label = flexRender(header.column.columnDef.header, header.getContext())
@@ -73,24 +103,30 @@ function ariaSort(sorted: false | 'asc' | 'desc') {
 }
 
 /** Server-driven table: the caller owns sorting, selection and paging, and `data` is already the current page. */
-export function DataTable<TData>({
-  label,
-  columns,
-  columnClasses = {},
-  data,
-  getRowId,
-  rowName,
-  sorting,
-  onSortingChange,
-  rowSelection,
-  onRowSelectionChange,
-  onRowClick,
-  frozen = false,
-}: DataTableProps<TData>) {
+export function DataTable<TData>(props: DataTableProps<TData>) {
+  const {
+    label,
+    columns,
+    columnClasses = {},
+    data,
+    getRowId,
+    sorting,
+    onSortingChange,
+    onRowClick,
+    frozen = false,
+  } = props
+  const expansion = props.renderExpanded ? props : null
+  const selection = props.rowSelection ? props : null
+  const detailIdPrefix = useId()
+  const selectable = selection !== null
   const allColumns = useMemo<ColumnDef<TData>[]>(
-    () => [{ id: SELECT_ID, enableSorting: false }, ...columns],
-    [columns],
+    () =>
+      selectable
+        ? [{ id: SELECT_ID, enableSorting: false }, ...columns]
+        : columns,
+    [columns, selectable],
   )
+  const rowSelection = selection?.rowSelection ?? NO_SELECTION
 
   const table = useReactTable({
     data,
@@ -103,11 +139,12 @@ export function DataTable<TData>({
     enableMultiSort: false,
     enableSortingRemoval: false,
     sortDescFirst: false,
+    enableRowSelection: selectable,
     state: { sorting, rowSelection },
     onSortingChange: (updater) =>
       onSortingChange(functionalUpdate(updater, sorting)),
     onRowSelectionChange: (updater) =>
-      onRowSelectionChange(functionalUpdate(updater, rowSelection)),
+      selection?.onRowSelectionChange(functionalUpdate(updater, rowSelection)),
   })
   const classFor = (id: string) =>
     id === SELECT_ID ? SELECT_CLASS : columnClasses[id]
@@ -145,41 +182,90 @@ export function DataTable<TData>({
                   )}
                 </TableHead>
               ))}
+              {expansion && <TableHead className={EXPAND_CLASS} />}
             </TableRow>
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow
-              key={row.id}
-              data-state={row.getIsSelected() ? 'selected' : undefined}
-              className={cn(onRowClick && !frozen && 'cursor-pointer')}
-              onClick={
-                onRowClick && !frozen
-                  ? () => onRowClick(row.original)
-                  : undefined
-              }
-            >
-              {row.getVisibleCells().map((cell) => (
-                <TableCell
-                  key={cell.id}
-                  className={cn('py-2 last:pr-4', classFor(cell.column.id))}
+          {table.getRowModel().rows.map((row) => {
+            const open = expansion?.expandedId === row.id
+            const detailId = `${detailIdPrefix}-${row.id}`
+            const toggle =
+              expansion &&
+              (() => expansion.onExpandedChange(open ? null : row.id))
+            const click = onRowClick && (() => onRowClick(row.original))
+            const onActivate = frozen ? undefined : (toggle ?? click)
+
+            return (
+              <Fragment key={row.id}>
+                <TableRow
+                  data-state={row.getIsSelected() ? 'selected' : undefined}
+                  className={cn(onActivate && 'cursor-pointer')}
+                  onClick={onActivate}
                 >
-                  {cell.column.id === SELECT_ID ? (
-                    <Checkbox
-                      aria-label={`Select ${rowName(row.original)}`}
-                      disabled={frozen}
-                      checked={row.getIsSelected()}
-                      onClick={(event) => event.stopPropagation()}
-                      onCheckedChange={(checked) => row.toggleSelected(checked)}
-                    />
-                  ) : (
-                    flexRender(cell.column.columnDef.cell, cell.getContext())
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={cn('py-2 last:pr-4', classFor(cell.column.id))}
+                    >
+                      {cell.column.id === SELECT_ID && selection ? (
+                        <Checkbox
+                          aria-label={`Select ${selection.rowName(row.original)}`}
+                          disabled={frozen}
+                          checked={row.getIsSelected()}
+                          onClick={(event) => event.stopPropagation()}
+                          onCheckedChange={(checked) =>
+                            row.toggleSelected(checked)
+                          }
+                        />
+                      ) : (
+                        flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )
+                      )}
+                    </TableCell>
+                  ))}
+                  {expansion && (
+                    <TableCell className={cn('py-2', EXPAND_CLASS)}>
+                      <button
+                        type="button"
+                        aria-label={expansion.expandedLabel(row.original)}
+                        aria-expanded={open}
+                        aria-controls={open ? detailId : undefined}
+                        disabled={frozen}
+                        className="flex rounded-sm text-muted-foreground outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0"
+                      >
+                        <ChevronDown
+                          aria-hidden
+                          className={cn(
+                            'size-4 transition-transform',
+                            open && 'rotate-180',
+                          )}
+                        />
+                      </button>
+                    </TableCell>
                   )}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
+                </TableRow>
+                {expansion && open && (
+                  <TableRow className="bg-accent/50 hover:bg-accent/50">
+                    <TableCell
+                      colSpan={row.getVisibleCells().length + 1}
+                      className="p-0"
+                    >
+                      <section
+                        id={detailId}
+                        aria-label={expansion.expandedLabel(row.original)}
+                        className="sticky left-0 w-(--scroll-fade-width) p-4 whitespace-normal"
+                      >
+                        {expansion.renderExpanded(row.original)}
+                      </section>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            )
+          })}
         </TableBody>
       </Table>
     </Card>
@@ -190,6 +276,14 @@ export function DataTableSelectSkeleton() {
   return (
     <TableCell className={cn('py-2', SELECT_CLASS)}>
       <Skeleton className="size-5" />
+    </TableCell>
+  )
+}
+
+export function DataTableExpandSkeleton() {
+  return (
+    <TableCell className={cn('py-2', EXPAND_CLASS)}>
+      <Skeleton className="size-4" />
     </TableCell>
   )
 }

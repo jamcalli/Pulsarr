@@ -11,7 +11,7 @@ interface FieldRowProps {
   label: string
   description?: string
   disabled?: boolean
-  orientation?: 'responsive' | 'vertical'
+  orientation?: 'responsive' | 'vertical' | 'horizontal'
   /** Renders a FieldLabel for this control id, or a FieldTitle when omitted. */
   htmlFor?: string
   labelId?: string

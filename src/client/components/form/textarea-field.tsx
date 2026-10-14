@@ -40,7 +40,7 @@ export function TextareaField({
       <div
         className={cn(
           'flex flex-col gap-2',
-          orientation === 'responsive' && '@md/field-group:basis-72',
+          orientation === 'responsive' && '@lg/field-group:basis-72',
         )}
       >
         <Textarea

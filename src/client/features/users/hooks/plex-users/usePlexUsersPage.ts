@@ -24,6 +24,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useScopedSelection } from '@/hooks/useScopedSelection'
 import { useUrlState } from '@/hooks/useUrlState'
+import { paginate } from '@/lib/paginate'
 import { usePref } from '@/lib/prefs'
 import {
   apiFetch,
@@ -70,9 +71,9 @@ export function usePlexUsersPage() {
 
   const matching = list.rows === null ? null : visibleRows(list.rows, state)
   const total = matching?.length ?? 0
-  const lastPage = Math.max(1, Math.ceil(total / pageSize))
-  const page = Math.min(state.page, lastPage)
-  const rows = matching?.slice((page - 1) * pageSize, page * pageSize) ?? null
+  const paged = paginate(matching ?? [], state.page, pageSize)
+  const page = paged.page
+  const rows = matching === null ? null : paged.rows
   const selected = (rows ?? []).filter(
     (row) => selection.rows[String(row.user.id)],
   )

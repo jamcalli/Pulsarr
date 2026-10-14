@@ -6,7 +6,7 @@ import type {
 import { RELATIONSHIP_ORDER } from '@/features/users/lib/relationship'
 import { USER_SWITCH_LABELS } from '@/features/users/lib/user-switches'
 import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
-import { compareText, formatList } from '@/lib/format'
+import { compareSortValues, compareText, formatList } from '@/lib/format'
 import { formatQuotaUsage, QUOTA_TYPE_LABELS } from '@/lib/quota'
 import { displayName } from '@/lib/user-naming'
 import type { components } from '@/types/api.js'
@@ -99,15 +99,10 @@ function toggleMatches(filter: UsersState['sync'], value: boolean): boolean {
   return filter === null || (filter === 'on') === value
 }
 
-function compareValues(a: string | number, b: string | number): number {
-  if (typeof a === 'string' && typeof b === 'string') return compareText(a, b)
-  return Number(a) - Number(b)
-}
-
 function compareRows(sort: UsersSortKey) {
   const value = USER_SORT_VALUES[sort]
   return (a: PlexUserRow, b: PlexUserRow) =>
-    compareValues(value(a), value(b)) ||
+    compareSortValues(value(a), value(b)) ||
     compareText(displayName(a.user), displayName(b.user)) ||
     compareText(a.user.name, b.user.name)
 }

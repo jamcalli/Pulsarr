@@ -1,9 +1,7 @@
+import { SelectList } from '@/components/select-list'
 import {
   Select,
-  SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -41,16 +39,13 @@ export function CompactSelect<T extends string | number>({
       <SelectTrigger size="sm" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectLabel>{label}</SelectLabel>
-          {items.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
+      <SelectList label={label}>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectList>
     </Select>
   )
 }

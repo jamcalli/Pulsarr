@@ -1,4 +1,5 @@
 import {
+  compareSortValues,
   formatCount,
   formatCurrency,
   formatDateTime,
@@ -145,5 +146,12 @@ describe('format', () => {
     expect(formatRuntime(120)).toBe('2 hr')
     expect(formatRuntime(135)).toBe('2 hr 15 min')
     expect(formatRuntime(59.6)).toBe('1 hr')
+  })
+})
+
+describe('compareSortValues', () => {
+  it('orders numbers numerically and text by locale', () => {
+    expect([10, 2, 1].sort(compareSortValues)).toEqual([1, 2, 10])
+    expect(['beta', 'Alpha'].sort(compareSortValues)).toEqual(['Alpha', 'beta'])
   })
 })

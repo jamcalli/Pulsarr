@@ -22,6 +22,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useScrollEdges } from '@/hooks/useScrollEdges'
 
 const CredenzaMobileContext = createContext(false)
 
@@ -80,6 +81,7 @@ function CredenzaContent({
   return (
     <Content
       className={cn(
+        'flex flex-col',
         isMobile && fullHeight && '[--drawer-content-height:100dvh]',
         isMobile &&
           floatingHandle &&
@@ -109,9 +111,24 @@ function CredenzaDescription(props: CredenzaPartProps) {
   return <Description {...props} />
 }
 
-function CredenzaBody({ className, ...props }: CredenzaPartProps) {
+/** Scrolls on its own so the header and footer stay in view, with a divider on each edge that has more content past it. */
+function CredenzaBody({ className, children }: CredenzaPartProps) {
   const isMobile = useContext(CredenzaMobileContext)
-  return <div className={cn(isMobile && 'px-4 py-2', className)} {...props} />
+  const edges = useScrollEdges<HTMLDivElement>()
+  return (
+    <div
+      ref={edges.ref}
+      onScroll={edges.onScroll}
+      className={cn(
+        'min-h-0 overflow-y-auto border-y border-transparent',
+        isMobile ? 'px-4 py-2' : '-mx-6 -my-1 px-6 py-1',
+        edges.canScrollUp && 'border-t-divider',
+        edges.canScrollDown && 'border-b-divider',
+      )}
+    >
+      <div className={className}>{children}</div>
+    </div>
+  )
 }
 
 function CredenzaFooter({ className, ...props }: CredenzaPartProps) {

@@ -1,3 +1,4 @@
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
 import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 /**
  * Plex Session Monitor Service
@@ -434,7 +435,9 @@ export class PlexSessionMonitorService {
 
     const totalEpisodes = season.statistics.totalEpisodeCount
     const remainingEpisodes = totalEpisodes - currentEpisode
-    const threshold = this.config.plexSessionMonitoring?.remainingEpisodes || 2
+    const threshold =
+      this.config.plexSessionMonitoring?.remainingEpisodes ||
+      PLEX_SESSION_MONITORING_DEFAULTS.remainingEpisodes
 
     if (remainingEpisodes > threshold || remainingEpisodes < 0) {
       this.log.debug(
@@ -1064,7 +1067,9 @@ export class PlexSessionMonitorService {
    * Removes all user entries and resets master records to their type's baseline season
    * Should be called periodically to clean up shows that haven't been watched recently
    */
-  async resetInactiveRollingShows(inactivityDays = 7): Promise<void> {
+  async resetInactiveRollingShows(
+    inactivityDays = PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays,
+  ): Promise<void> {
     try {
       // Get all rolling monitored shows that haven't been updated recently
       const inactiveShows =
@@ -1155,7 +1160,8 @@ export class PlexSessionMonitorService {
 
       // Get the inactivity threshold from config
       const inactivityDays =
-        this.config.plexSessionMonitoring?.inactivityResetDays || 7
+        this.config.plexSessionMonitoring?.inactivityResetDays ||
+        PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
       // Find all rolling show entries for this same series (filtered users only)
       const cutoffDate = new Date()

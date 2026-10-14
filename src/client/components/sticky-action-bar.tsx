@@ -1,5 +1,6 @@
 import { cn } from 'cn'
 import type { ReactNode } from 'react'
+import { ActionGroup } from '@/components/action-group'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format'
@@ -45,9 +46,7 @@ export function StickyActionBar(props: StickyActionBarProps) {
               Clear selection
             </Button>
           </div>
-          <div className="flex gap-2 max-md:*:h-10 max-md:*:flex-1 max-md:*:text-sm">
-            {children}
-          </div>
+          <ActionGroup className="flex-nowrap">{children}</ActionGroup>
         </section>
       ) : (
         <div

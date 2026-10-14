@@ -1798,42 +1798,7 @@
             "$ref": "#/components/schemas/TagMigrationOutput"
           },
           "plexSessionMonitoring": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "pollingIntervalMinutes": {
-                "type": "number"
-              },
-              "remainingEpisodes": {
-                "type": "number"
-              },
-              "filterUsers": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "enableAutoReset": {
-                "type": "boolean"
-              },
-              "inactivityResetDays": {
-                "type": "number"
-              },
-              "autoResetIntervalHours": {
-                "type": "number"
-              },
-              "enableProgressiveCleanup": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "enabled",
-              "pollingIntervalMinutes",
-              "remainingEpisodes"
-            ],
-            "additionalProperties": false
+            "$ref": "#/components/schemas/PlexSessionMonitoringConfig"
           },
           "newUserDefaultCanSync": {
             "type": "boolean"
@@ -2306,11 +2271,13 @@
               },
               "pollingIntervalMinutes": {
                 "type": "number",
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 1440
               },
               "remainingEpisodes": {
                 "type": "number",
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 10
               },
               "filterUsers": {
                 "type": "array",
@@ -3224,6 +3191,45 @@
         },
         "additionalProperties": false,
         "description": "Ratings captured from stored Plex watchlist metadata."
+      },
+      "PlexSessionMonitoringConfig": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "pollingIntervalMinutes": {
+            "type": "number"
+          },
+          "remainingEpisodes": {
+            "type": "number"
+          },
+          "filterUsers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enableAutoReset": {
+            "type": "boolean"
+          },
+          "inactivityResetDays": {
+            "type": "number"
+          },
+          "autoResetIntervalHours": {
+            "type": "number"
+          },
+          "enableProgressiveCleanup": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "pollingIntervalMinutes",
+          "remainingEpisodes"
+        ],
+        "additionalProperties": false,
+        "description": "How Plex viewing sessions drive rolling Sonarr monitoring and its automatic resets"
       },
       "QuotaMonthEnd": {
         "type": "string",
@@ -5131,6 +5137,74 @@
           "enabled"
         ],
         "description": "Turns a router rule on or off"
+      },
+      "SessionMonitoringResetInactivePayload": {
+        "type": "object",
+        "properties": {
+          "inactivityDays": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 365
+          }
+        },
+        "description": "Days without viewing activity before a rolling show is reset"
+      },
+      "SessionMonitoringResult": {
+        "type": "object",
+        "properties": {
+          "processedSessions": {
+            "type": "number"
+          },
+          "triggeredSearches": {
+            "type": "number"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rollingUpdates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionMonitoringRollingUpdate"
+            }
+          }
+        },
+        "required": [
+          "processedSessions",
+          "triggeredSearches",
+          "errors",
+          "rollingUpdates"
+        ],
+        "additionalProperties": false,
+        "description": "Outcome of one session monitoring run"
+      },
+      "SessionMonitoringRollingUpdate": {
+        "type": "object",
+        "properties": {
+          "showTitle": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "expanded_to_season",
+              "expanded_to_next_season",
+              "switched_to_all"
+            ]
+          },
+          "details": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "showTitle",
+          "action",
+          "details"
+        ],
+        "additionalProperties": false,
+        "description": "A monitoring change made to one rolling show during a run"
       },
       "SonarrInstance": {
         "type": "object",
@@ -15941,17 +16015,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "inactivityDays": {
-                    "type": "number",
-                    "minimum": 1,
-                    "maximum": 365
-                  }
-                }
+                "$ref": "#/components/schemas/SessionMonitoringResetInactivePayload"
               }
             }
-          }
+          },
+          "description": "Days without viewing activity before a rolling show is reset"
         },
         "responses": {
           "200": {
@@ -16181,56 +16249,7 @@
                       "type": "boolean"
                     },
                     "result": {
-                      "type": "object",
-                      "properties": {
-                        "processedSessions": {
-                          "type": "number"
-                        },
-                        "triggeredSearches": {
-                          "type": "number"
-                        },
-                        "errors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "rollingUpdates": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "showTitle": {
-                                "type": "string"
-                              },
-                              "action": {
-                                "type": "string",
-                                "enum": [
-                                  "expanded_to_season",
-                                  "expanded_to_next_season",
-                                  "switched_to_all"
-                                ]
-                              },
-                              "details": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "showTitle",
-                              "action",
-                              "details"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "processedSessions",
-                        "triggeredSearches",
-                        "errors",
-                        "rollingUpdates"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/SessionMonitoringResult"
                     }
                   },
                   "required": [

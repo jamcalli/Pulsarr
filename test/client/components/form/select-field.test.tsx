@@ -83,10 +83,23 @@ describe('SelectField', () => {
       'true',
     )
     await user.click(screen.getByRole('option', { name: 'Movie' }))
-    expect(screen.getByLabelText('Mode')).toHaveTextContent('Movie')
+    expect(screen.getByRole('combobox', { name: 'Mode' })).toHaveTextContent(
+      'Movie',
+    )
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(onSubmit).toHaveBeenCalledWith('movie')
+  })
+
+  it('heads its dropdown with the field label', async () => {
+    const user = userEvent.setup()
+    render(<ModeForm onSubmit={vi.fn()} />)
+
+    await user.click(screen.getByLabelText('Mode'))
+
+    expect(await screen.findByRole('group', { name: 'Mode' })).toContainElement(
+      screen.getByRole('option', { name: 'Movie' }),
+    )
   })
 
   it('shows the error when the popup closes without a pick, not when it opens', async () => {

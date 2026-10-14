@@ -1,9 +1,9 @@
 import { useStore } from '@tanstack/react-form'
 import { useEffect, useState } from 'react'
+import { BulkFormCredenza } from '@/components/bulk-form-credenza'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
+import { FieldSection } from '@/components/field-section'
 import { SaveBar } from '@/components/settings/save-bar'
-import { FieldSection } from '@/features/users/components/field-section'
-import { BulkFormCredenza } from '@/features/users/components/plex-users/bulk-form-credenza'
 import { QuotaFields } from '@/features/users/components/quota-fields'
 import type { PlexUsersPage } from '@/features/users/hooks/plex-users/usePlexUsersPage'
 import {

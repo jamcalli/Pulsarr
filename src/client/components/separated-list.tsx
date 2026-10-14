@@ -1,4 +1,5 @@
 import { Children, Fragment, isValidElement, type ReactNode } from 'react'
+import { ActionGroup } from '@/components/action-group'
 import {
   Item,
   ItemActions,
@@ -38,8 +39,8 @@ export function SeparatedListRow({ children }: { children: ReactNode }) {
 /** Row buttons, which stretch to share the full width on phones. */
 export function SeparatedListActions({ children }: { children: ReactNode }) {
   return (
-    <ItemActions className="max-md:w-full max-md:*:h-10 max-md:*:flex-1">
-      {children}
+    <ItemActions className="max-md:w-full">
+      <ActionGroup>{children}</ActionGroup>
     </ItemActions>
   )
 }
