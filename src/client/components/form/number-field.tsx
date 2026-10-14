@@ -84,7 +84,7 @@ export function NumberField({
           'flex flex-col gap-2',
           !labelHidden &&
             orientation === 'responsive' &&
-            '@md/field-group:basis-72',
+            '@lg/field-group:basis-72',
         )}
       >
         <NumberFieldPrimitive.Root

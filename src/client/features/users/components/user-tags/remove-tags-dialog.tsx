@@ -1,7 +1,6 @@
 import { useId, useState } from 'react'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { FieldRow } from '@/components/form/field-row'
-import { Switch } from '@/components/ui/switch'
+import { SwitchRow } from '@/components/form/switch-row'
 
 interface RemoveTagsDialogProps {
   open: boolean
@@ -39,17 +38,13 @@ export function RemoveTagsDialog({
         handleOpenChange(false)
       }}
     >
-      <FieldRow
+      <SwitchRow
+        id={switchId}
         label="Also delete the tag definitions"
         description="Removes the tags themselves from Radarr and Sonarr, not just from content. Required before you can change the tag format."
-        htmlFor={switchId}
-      >
-        <Switch
-          id={switchId}
-          checked={deleteDefinitions}
-          onCheckedChange={setDeleteDefinitions}
-        />
-      </FieldRow>
+        checked={deleteDefinitions}
+        onCheckedChange={setDeleteDefinitions}
+      />
     </ConfirmCredenza>
   )
 }

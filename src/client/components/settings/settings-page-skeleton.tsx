@@ -1,3 +1,4 @@
+import { cn } from 'cn'
 import { Children, Fragment, type ReactNode } from 'react'
 import { Page, PageHeaderSkeleton } from '@/components/page-header'
 import { Card, CardAction, CardHeader } from '@/components/ui/card'
@@ -18,7 +19,7 @@ interface SectionShape {
 const CONTROL_CLASSES: Record<RowControl, string> = {
   field: 'h-8 w-20 shrink-0',
   switch: 'h-6 w-11 shrink-0',
-  input: 'h-10 w-full @md/field-group:w-auto @md/field-group:basis-72',
+  input: 'h-10 w-full @lg/field-group:w-auto @lg/field-group:basis-72',
   text: 'h-5 w-32 shrink-0',
 }
 
@@ -33,13 +34,20 @@ export function FieldRowSkeleton({
   action?: boolean
 }) {
   return (
-    <div className="flex flex-col gap-3 @md/field-group:flex-row @md/field-group:items-start">
+    <div
+      className={cn(
+        'flex gap-3',
+        control === 'switch'
+          ? 'flex-row items-start'
+          : 'flex-col @lg/field-group:flex-row @lg/field-group:items-start',
+      )}
+    >
       <div className="flex flex-1 flex-col gap-1">
         <Skeleton className="h-4 w-40" />
         {description && <Skeleton className="h-4 w-72 max-w-full" />}
       </div>
       {action ? (
-        <div className="flex w-full gap-2 @md/field-group:w-auto @md/field-group:basis-96">
+        <div className="flex w-full gap-2 @lg/field-group:w-auto @lg/field-group:basis-96">
           <Skeleton className="h-10 min-w-0 flex-1" />
           <Skeleton className="h-10 w-28 shrink-0" />
         </div>

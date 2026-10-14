@@ -1,5 +1,4 @@
-import { FieldRow } from '@/components/form/field-row'
-import { Switch } from '@/components/ui/switch'
+import { SwitchRow } from '@/components/form/switch-row'
 import { useFieldContext } from '@/lib/form-context'
 
 interface SwitchFieldProps {
@@ -16,19 +15,14 @@ export function SwitchField({
   const field = useFieldContext<boolean>()
 
   return (
-    <FieldRow
+    <SwitchRow
+      id={field.name}
       label={label}
       description={description}
+      checked={field.state.value}
       disabled={disabled}
-      htmlFor={field.name}
-    >
-      <Switch
-        id={field.name}
-        checked={field.state.value}
-        disabled={disabled}
-        onBlur={field.handleBlur}
-        onCheckedChange={(checked) => field.handleChange(checked)}
-      />
-    </FieldRow>
+      onBlur={field.handleBlur}
+      onCheckedChange={(checked) => field.handleChange(checked)}
+    />
   )
 }

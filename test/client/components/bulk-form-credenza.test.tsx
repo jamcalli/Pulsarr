@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { BulkFormCredenza } from '@/features/users/components/plex-users/bulk-form-credenza'
+import { BulkFormCredenza } from '@/components/bulk-form-credenza'
 import { useAppForm } from '@/lib/form'
 
 function Harness({ onSubmit }: { onSubmit: (alias: string) => void }) {

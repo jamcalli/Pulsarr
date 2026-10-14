@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { FieldRow } from '@/components/form/field-row'
+import { SwitchRow } from '@/components/form/switch-row'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
 import {
   QuotaCard,
   QuotaCardSkeleton,
@@ -58,17 +57,13 @@ function RemoveQuotas({
       onConfirm={() => removal.remove(held > 0 && approveHeld)}
     >
       {held > 0 && (
-        <FieldRow
+        <SwitchRow
+          id="approve-held"
           label={`Also approve the ${formatCount(held, 'request')} held by the quota`}
-          htmlFor="approve-held"
-        >
-          <Switch
-            id="approve-held"
-            checked={approveHeld}
-            disabled={removal.pending}
-            onCheckedChange={setApproveHeld}
-          />
-        </FieldRow>
+          checked={approveHeld}
+          disabled={removal.pending}
+          onCheckedChange={setApproveHeld}
+        />
       )}
     </GuardedRemoval>
   )

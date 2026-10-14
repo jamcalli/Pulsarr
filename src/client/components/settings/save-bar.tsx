@@ -1,4 +1,5 @@
 import { CircleCheck } from 'lucide-react'
+import { ActionGroup } from '@/components/action-group'
 import { BusyLabel } from '@/components/busy-label'
 import { StickyActionBar } from '@/components/sticky-action-bar'
 import { Button } from '@/components/ui/button'
@@ -42,7 +43,7 @@ export function SaveBar({
       ) : (
         <>
           <span className="font-bold">{message}</span>
-          <div className="flex gap-2">
+          <ActionGroup className="flex-nowrap">
             <Button
               type="button"
               variant="outline"
@@ -63,7 +64,7 @@ export function SaveBar({
                 busyLabel="Saving..."
               />
             </Button>
-          </div>
+          </ActionGroup>
         </>
       )}
     </StickyActionBar>

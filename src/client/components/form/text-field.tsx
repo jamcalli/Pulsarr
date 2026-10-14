@@ -64,7 +64,7 @@ export function TextField({
           'flex flex-col gap-2',
           !labelHidden &&
             orientation === 'responsive' &&
-            (action ? '@md/field-group:basis-96' : '@md/field-group:basis-72'),
+            (action ? '@lg/field-group:basis-96' : '@lg/field-group:basis-72'),
         )}
       >
         {action ? (

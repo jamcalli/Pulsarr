@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ActionGroup } from '@/components/action-group'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -61,16 +62,18 @@ export function ActionRow({
             </ItemDescription>
           )}
         </ItemContent>
-        <ItemActions>
-          <Button
-            type="button"
-            variant={variant === 'destructive' ? 'destructive' : 'outline'}
-            size="sm"
-            disabled={disabled || running}
-            onClick={onRun}
-          >
-            {running ? busyLabel : buttonLabel}
-          </Button>
+        <ItemActions className="max-md:w-full">
+          <ActionGroup>
+            <Button
+              type="button"
+              variant={variant === 'destructive' ? 'destructive' : 'outline'}
+              size="sm"
+              disabled={disabled || running}
+              onClick={onRun}
+            >
+              {running ? busyLabel : buttonLabel}
+            </Button>
+          </ActionGroup>
         </ItemActions>
       </Item>
       {visibleProgress.length > 0 && (

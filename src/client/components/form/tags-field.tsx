@@ -98,7 +98,7 @@ export function TagsField({
           'flex flex-col gap-2',
           !labelHidden &&
             orientation === 'responsive' &&
-            '@md/field-group:basis-72',
+            '@lg/field-group:basis-72',
         )}
       >
         <Combobox

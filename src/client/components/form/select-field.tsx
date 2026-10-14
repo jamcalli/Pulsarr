@@ -2,10 +2,10 @@ import { cn } from 'cn'
 import type { ComponentProps } from 'react'
 import { FieldRow } from '@/components/form/field-row'
 import { OptionLabel } from '@/components/form/option-label'
+import { SelectList } from '@/components/select-list'
 import { FieldError } from '@/components/ui/field'
 import {
   Select,
-  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -21,6 +21,8 @@ interface SelectFieldProps<T extends string | null> {
   orientation?: ComponentProps<typeof FieldRow>['orientation']
   labelHidden?: boolean
   placeholder?: string
+  /** Shown with the field's own errors, for a rule the form schema cannot see. */
+  error?: string | null
   /** A null-valued option is a real choice shown by its label, not the placeholder. */
   options: ReadonlyArray<{
     value: T
@@ -37,10 +39,12 @@ export function SelectField<T extends string | null>({
   orientation = 'responsive',
   labelHidden = false,
   placeholder,
+  error = null,
   options,
 }: SelectFieldProps<T>) {
   const field = useFieldContext<T>()
-  const errors = useFieldErrors()
+  const fieldErrors = useFieldErrors()
+  const errors = error ? [...fieldErrors, { message: error }] : fieldErrors
   const popup = usePopupBlur()
   const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
@@ -60,7 +64,7 @@ export function SelectField<T extends string | null>({
           'flex flex-col gap-2',
           !labelHidden &&
             orientation === 'responsive' &&
-            '@md/field-group:basis-72',
+            '@lg/field-group:basis-72',
         )}
       >
         <Select
@@ -82,7 +86,7 @@ export function SelectField<T extends string | null>({
           >
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectList label={label}>
             {options.map((option) => (
               <SelectItem
                 key={String(option.value)}
@@ -94,7 +98,7 @@ export function SelectField<T extends string | null>({
                 </OptionLabel>
               </SelectItem>
             ))}
-          </SelectContent>
+          </SelectList>
         </Select>
         <FieldError id={errorId} errors={errors} />
       </div>

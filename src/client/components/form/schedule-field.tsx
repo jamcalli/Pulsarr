@@ -1,9 +1,9 @@
 import { cn } from 'cn'
 import type { ComponentProps } from 'react'
 import { FieldRow } from '@/components/form/field-row'
+import { SelectList } from '@/components/select-list'
 import {
   Select,
-  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -92,7 +92,7 @@ export function ScheduleField({
         aria-labelledby={labelId}
         className={cn(
           'grid min-w-0 grid-cols-2 gap-2',
-          orientation === 'responsive' && '@md/field-group:basis-72',
+          orientation === 'responsive' && '@lg/field-group:basis-72',
         )}
       >
         {selects.map((select) => (
@@ -111,13 +111,13 @@ export function ScheduleField({
             >
               <SelectValue placeholder={select.placeholder} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectList label={select.ariaLabel}>
               {select.items.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
-            </SelectContent>
+            </SelectList>
           </Select>
         ))}
       </fieldset>

@@ -74,6 +74,15 @@ export function compareText(a: string, b: string): number {
   return new Intl.Collator(locale).compare(a, b)
 }
 
+/** Compares two sort values, text by locale and numbers numerically. */
+export function compareSortValues(
+  a: string | number,
+  b: string | number,
+): number {
+  if (typeof a === 'string' && typeof b === 'string') return compareText(a, b)
+  return Number(a) - Number(b)
+}
+
 /** A plain list of names or values, without "and" before the last one. */
 export function formatList(items: readonly string[]): string {
   return new Intl.ListFormat(locale, { style: 'short', type: 'unit' }).format(
