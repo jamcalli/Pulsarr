@@ -1,6 +1,7 @@
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ChartLegend } from '@/components/chart-legend'
 import { ErrorAlert } from '@/components/error-alert'
+import { InlineLink } from '@/components/inline-link'
 import { StackedBar, StackedBarSkeleton } from '@/components/stacked-bar'
 import { StatBarHeader } from '@/components/stat-bar'
 import {
@@ -21,6 +22,7 @@ import { rangeLabel } from '@/features/home/lib/range-label'
 import { VISIBLE_ROWS } from '@/features/home/lib/ranked-rows'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { formatCount } from '@/lib/format'
+import { userPageHref } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 
 type UserStat = components['schemas']['UserStat']
@@ -84,10 +86,18 @@ function UserRows({
       <div className="flex flex-col gap-4">
         {users.map((user) => {
           const person = lookup(user.name)
+          const label =
+            person.id === null ? (
+              person.name
+            ) : (
+              <InlineLink to={userPageHref(person.id)}>
+                {person.name}
+              </InlineLink>
+            )
           return (
             <div key={user.name} className="flex flex-col gap-1.5">
               <StatBarHeader
-                label={person.name}
+                label={label}
                 valueText={formatCount(user.count, 'item')}
                 icon={
                   <UserAvatar

@@ -1,5 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { ApprovalExpiry } from '@/components/approval-review/approval-expiry'
+import { InlineLink } from '@/components/inline-link'
 import { PosterFrame } from '@/components/poster-frame'
 import { StatusPill } from '@/components/status-pill'
 import { UserAvatar } from '@/components/user-avatar'
@@ -14,6 +15,7 @@ import {
 } from '@/lib/approval'
 import { CONTENT_TYPE_LABELS } from '@/lib/content-type'
 import { formatDate, formatRelative } from '@/lib/format'
+import { userPageHref } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
@@ -42,12 +44,18 @@ function TitleCell({ approval }: { approval: ApprovalRequest }) {
   )
 }
 
-function RequesterCell({ userName }: { userName: string }) {
-  const user = useUserDirectory().lookup(userName)
+function RequesterCell({ approval }: { approval: ApprovalRequest }) {
+  const user = useUserDirectory().lookup(approval.userName)
   return (
     <div className="flex min-w-0 items-center gap-2">
       <UserAvatar name={user.name} avatar={user.avatar} size="sm" />
-      <span className="truncate">{user.name}</span>
+      <InlineLink
+        to={userPageHref(approval.userId)}
+        onClick={(event) => event.stopPropagation()}
+        className="truncate"
+      >
+        {user.name}
+      </InlineLink>
     </div>
   )
 }
@@ -76,7 +84,7 @@ const requester: ColumnDef<ApprovalRequest> = {
   id: 'requester',
   header: 'Requested by',
   accessorFn: (row) => row.userName,
-  cell: ({ row }) => <RequesterCell userName={row.original.userName} />,
+  cell: ({ row }) => <RequesterCell approval={row.original} />,
 }
 
 const trigger: ColumnDef<ApprovalRequest> = {
