@@ -40,6 +40,20 @@ describe('useScopedSelection', () => {
     expect(result.current.failure).toBeNull()
   })
 
+  it('ignores a settle from an earlier visit to the same scope', () => {
+    const { result, rerender } = renderSelection('A')
+    const settleInFirstVisit = result.current.settle
+
+    rerender({ scope: 'B' })
+    rerender({ scope: 'A' })
+    act(() => result.current.select({ '7': true }))
+
+    act(() => settleInFirstVisit([1, 2], { message: 'Failed', detail: null }))
+
+    expect(result.current.rows).toEqual({ '7': true })
+    expect(result.current.failure).toBeNull()
+  })
+
   it('settles the current scope to the given ids', () => {
     const { result } = renderSelection('A')
     const failure = { message: 'Failed', detail: null }

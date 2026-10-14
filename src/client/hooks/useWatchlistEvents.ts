@@ -1,6 +1,6 @@
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useProgressEvents } from '@/hooks/useProgressEvents'
 import { WATCHLIST_EVENT_COALESCE_MS } from '@/lib/constants'
 import {
@@ -16,7 +16,10 @@ export function useWatchlistEvents(userId?: number): void {
   const pendingUserIds = useRef(new Set<number>())
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const currentUserId = useRef(userId)
-  currentUserId.current = userId
+
+  useLayoutEffect(() => {
+    currentUserId.current = userId
+  }, [userId])
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
