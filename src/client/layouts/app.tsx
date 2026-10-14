@@ -1,16 +1,20 @@
 import { cn } from 'cn'
+import { useRef } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AppHeader } from '@/components/app-header'
 import { AppSidebar } from '@/components/sidebar/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useApprovalToasts } from '@/hooks/useApprovalToasts'
 import { useProgressConnection } from '@/hooks/useProgressConnection'
+import { useScrollReset } from '@/hooks/useScrollReset'
 import { useSettings } from '@/hooks/useSettings'
 
 export default function AppLayout() {
   useProgressConnection()
   useApprovalToasts()
   const { fullscreenEnabled } = useSettings()
+  const inset = useRef<HTMLElement>(null)
+  useScrollReset(inset)
 
   return (
     <div
@@ -29,6 +33,7 @@ export default function AppLayout() {
       >
         <AppSidebar />
         <SidebarInset
+          ref={inset}
           className={cn(
             'min-w-0 overflow-x-clip bg-inset',
             !fullscreenEnabled && 'md:min-h-0 md:overflow-y-auto',
