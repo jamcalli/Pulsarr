@@ -16,7 +16,7 @@ import {
 import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { OperationMeta } from '@/lib/operation-toasts'
-import { apiFetch } from '@/lib/tanstackApi'
+import { apiFetch, requireSuccess } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 export type TagActionId = 'sync' | 'create' | 'cleanup' | 'remove'
@@ -38,7 +38,7 @@ export function useTagActions(saved: SavedTagging) {
         apiFetch.POST('/v1/tags/create'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     onSettled: invalidateTagStatus,
     meta: operation('Tag creation'),
@@ -51,7 +51,7 @@ export function useTagActions(saved: SavedTagging) {
         apiFetch.POST('/v1/tags/sync'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     onSettled: invalidateTagStatus,
     meta: operation('Tag sync'),
@@ -64,7 +64,7 @@ export function useTagActions(saved: SavedTagging) {
         apiFetch.POST('/v1/tags/cleanup'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     onSettled: invalidateTagStatus,
     meta: operation('Orphan cleanup'),
@@ -77,7 +77,7 @@ export function useTagActions(saved: SavedTagging) {
         apiFetch.POST('/v1/tags/remove', { body: { deleteTagDefinitions } }),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     onSettled: invalidateTagStatus,
     meta: operation('Tag removal'),

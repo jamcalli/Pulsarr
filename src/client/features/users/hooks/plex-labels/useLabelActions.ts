@@ -13,7 +13,7 @@ import {
 } from '@/lib/action-state'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { OperationMeta } from '@/lib/operation-toasts'
-import { apiFetch } from '@/lib/tanstackApi'
+import { apiFetch, requireSuccess } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 export type LabelActionId = 'cleanup' | 'remove'
@@ -22,11 +22,6 @@ const PROGRESS_TARGET = 'Plex'
 
 function operation(label: string): OperationMeta {
   return { label, page: NAV_PAGES.plexLabels }
-}
-
-function requireSuccess<T extends { success: boolean }>(data: T): T {
-  if (!data.success) throw data
-  return data
 }
 
 export function useLabelActions(
