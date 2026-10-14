@@ -1,6 +1,7 @@
 import {
   cleanupLabelResultRows,
   removeLabelResultRows,
+  syncLabelResultRows,
 } from '@/features/users/lib/label-results'
 import { withMinDuration } from '@/hooks/useMinLoading'
 import { useOperation } from '@/hooks/useOperation'
@@ -12,7 +13,7 @@ import {
 } from '@/lib/action-state'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { OperationMeta } from '@/lib/operation-toasts'
-import { apiFetch } from '@/lib/tanstackApi'
+import { apiFetch, requireSuccess } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 export type LabelActionId = 'cleanup' | 'remove'
@@ -26,6 +27,18 @@ function operation(label: string): OperationMeta {
 export function useLabelActions(
   saved: components['schemas']['PlexLabelSyncConfig'],
 ) {
+  const sync = useOperation({
+    key: ['labels', 'sync'],
+    mutationFn: async () => {
+      const { data, error } = await withMinDuration(
+        apiFetch.POST('/v1/labels/sync'),
+      )
+      if (error) throw error
+      return requireSuccess(data)
+    },
+    meta: operation('Label sync'),
+    errorFallback: 'Sync failed. Try again.',
+  })
   const cleanup = useOperation({
     key: ['labels', 'cleanup'],
     mutationFn: async () => {
@@ -33,7 +46,7 @@ export function useLabelActions(
         apiFetch.POST('/v1/labels/cleanup'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     meta: operation('Label cleanup'),
     errorFallback: 'Cleanup failed. Try again.',
@@ -45,27 +58,23 @@ export function useLabelActions(
         apiFetch.DELETE('/v1/labels/remove'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     meta: operation('Label removal'),
     errorFallback: 'Labels were not removed. Try again.',
   })
 
   const removalProgress = useProgress('plex-label-removal')
+  const syncProgress = useProgress('plex-label-sync')
 
   const labelingReason = saved.enabled
     ? null
     : 'Turn on Label content in Plex and save first.'
-  const cleanupReason =
-    labelingReason ??
-    (saved.cleanupOrphanedLabels
-      ? null
-      : 'Turn on Clean up orphaned labels on sync and save first.')
 
   const actions: Record<LabelActionId, ActionState> = {
     cleanup: {
       running: cleanup.running,
-      unavailableReason: cleanupReason,
+      unavailableReason: labelingReason,
       errorMessage: cleanup.errorMessage,
       result: toActionResult(cleanup.result, cleanupLabelResultRows),
     },
@@ -80,10 +89,20 @@ export function useLabelActions(
 
   return {
     actions,
-    anyRunning: cleanup.running || remove.running,
+    anyRunning: sync.running || cleanup.running || remove.running,
     removedSinceSync:
-      remove.result?.data.success && remove.result.data.results.failed === 0,
+      remove.result !== null &&
+      remove.result.data.results.failed === 0 &&
+      remove.result.ranAt > (sync.result?.ranAt ?? 0),
     run: (id: Exclude<LabelActionId, 'remove'>) => ({ cleanup })[id].run(),
     runRemove: () => remove.run(),
+    syncRun: {
+      run: sync.run,
+      running: sync.running,
+      unavailableReason: labelingReason,
+      errorMessage: sync.errorMessage,
+      progress: [toActionProgress(PROGRESS_TARGET, syncProgress)],
+      result: toActionResult(sync.result, syncLabelResultRows),
+    },
   }
 }

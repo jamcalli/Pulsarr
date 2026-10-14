@@ -5,8 +5,8 @@ export const PLEX_LABELS_SKELETON = {
   sectionLabel: true,
   sections: [
     { rows: 2 },
-    { rows: 3, pill: true },
     { rows: 1 },
+    { rows: 3, pill: true },
     { rows: 2 },
     { rows: [{ radio: 3 }, 'field', 'field'] },
     { rows: 3 },

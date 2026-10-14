@@ -7,15 +7,15 @@ function mediaDefaultsSchema(media: 'Movie' | 'Show') {
   const cap = shape[`newUserDefault${media}WatchlistCap`].unwrap().unwrap()
   return z
     .object({
-      quotaOn: shape[`newUserDefault${media}QuotaEnabled`].unwrap(),
+      on: shape[`newUserDefault${media}QuotaEnabled`].unwrap(),
       quotaType: shape[`newUserDefault${media}QuotaType`].unwrap(),
-      limit: shape[`newUserDefault${media}QuotaLimit`].unwrap(),
+      quotaLimit: shape[`newUserDefault${media}QuotaLimit`].unwrap(),
       bypassApproval: shape[`newUserDefault${media}BypassApproval`].unwrap(),
       capOn: z.boolean(),
       cap: z.number().optional(),
     })
     .superRefine((value, ctx) => {
-      if (!value.capOn) return
+      if (!value.capOn || value.bypassApproval) return
       const result = cap.safeParse(value.cap)
       for (const issue of result.error?.issues ?? []) {
         ctx.addIssue({ code: 'custom', message: issue.message, path: ['cap'] })

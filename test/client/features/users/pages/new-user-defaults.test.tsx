@@ -20,7 +20,7 @@ const savedConfig = {
   newUserDefaultShowQuotaEnabled: true,
   newUserDefaultShowQuotaType: 'monthly',
   newUserDefaultShowQuotaLimit: 10,
-  newUserDefaultShowBypassApproval: true,
+  newUserDefaultShowBypassApproval: false,
   newUserDefaultShowWatchlistCap: null,
 }
 
@@ -106,7 +106,7 @@ describe('NewUserDefaultsPage', () => {
     expect(shows.getByLabelText('Requests per period')).toHaveValue('10')
     expect(
       shows.getByRole('switch', { name: 'Bypass approval over the limit' }),
-    ).toBeChecked()
+    ).not.toBeChecked()
     expect(
       shows.getByRole('switch', { name: 'Cap the watchlist' }),
     ).not.toBeChecked()
@@ -184,6 +184,24 @@ describe('NewUserDefaultsPage', () => {
     expect(movies.getByLabelText('Watchlist cap')).toBeDisabled()
   })
 
+  it('disables the cap fields while bypass is on', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    renderPage()
+
+    const movies = await findSection('Movies')
+    expect(movies.getByLabelText('Watchlist cap')).toBeEnabled()
+
+    await user.click(
+      movies.getByRole('switch', { name: 'Bypass approval over the limit' }),
+    )
+    expect(
+      movies.getByRole('switch', { name: 'Cap the watchlist' }),
+    ).toHaveAttribute('aria-disabled', 'true')
+    expect(movies.getByLabelText('Watchlist cap')).toBeDisabled()
+    expect(movies.getByLabelText('Requests per period')).toBeEnabled()
+  })
+
   it('blocks saving an empty limit and shows the field message', async () => {
     const user = userEvent.setup()
     const { configBodies } = mockEndpoints()
@@ -213,5 +231,50 @@ describe('NewUserDefaultsPage', () => {
 
     expect(cap).toHaveAccessibleDescription('Enter a number of items.')
     expect(configBodies).toEqual([])
+  })
+
+  it('saves a blank switched-on cap while bypass is on and sends no cap', async () => {
+    const user = userEvent.setup()
+    const { configBodies } = mockEndpoints()
+    renderPage()
+
+    const movies = await findSection('Movies')
+    await user.clear(movies.getByLabelText('Watchlist cap'))
+    await user.click(
+      movies.getByRole('switch', { name: 'Bypass approval over the limit' }),
+    )
+    const save = screen.getByRole('button', { name: 'Save changes' })
+    expect(save).toBeEnabled()
+    await user.click(save)
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(configBodies).toEqual([
+      {
+        ...savedConfig,
+        newUserDefaultMovieBypassApproval: true,
+        newUserDefaultMovieWatchlistCap: null,
+      },
+    ])
+  })
+
+  it('keeps sending a saved cap while bypass is on', async () => {
+    const user = userEvent.setup()
+    const { configBodies } = mockEndpoints()
+    renderPage()
+
+    const movies = await findSection('Movies')
+    await user.click(
+      movies.getByRole('switch', { name: 'Bypass approval over the limit' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(configBodies).toEqual([
+      {
+        ...savedConfig,
+        newUserDefaultMovieBypassApproval: true,
+        newUserDefaultMovieWatchlistCap: 50,
+      },
+    ])
   })
 })

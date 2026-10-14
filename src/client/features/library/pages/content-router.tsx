@@ -1,7 +1,7 @@
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
+import { RetryAlert } from '@/components/retry-alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -26,16 +26,7 @@ export default function ContentRouterPage() {
     return (
       <Page>
         <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <ErrorAlert message={page.loadError} />
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          className="self-start"
-          onClick={page.retry}
-        >
-          Retry
-        </Button>
+        <RetryAlert message={page.loadError} onRetry={page.retry} />
       </Page>
     )
   }

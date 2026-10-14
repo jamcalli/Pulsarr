@@ -13,6 +13,7 @@ import {
   routeShow,
 } from '@services/watchlist-workflow/routing/content-router.js'
 import type { ContentRoutingDeps } from '@services/watchlist-workflow/types.js'
+import type { FastifyInstance } from 'fastify'
 import { describe, expect, it, vi } from 'vitest'
 import {
   echoAppliedRadarr,
@@ -87,6 +88,9 @@ function buildDeps(
   const existence = async (instanceId: number) => byInstance[instanceId - 1]
   const ids = byInstance.map((_, index) => index + 1)
   return createWorkflowDeps({
+    fastify: {
+      progress: { emit: vi.fn() } as unknown as FastifyInstance['progress'],
+    },
     db: {
       getApprovalRequestByContent: vi.fn().mockResolvedValue(record),
       updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
@@ -494,6 +498,12 @@ describe.each(ROUTERS)('$contentType existing copy status', (router) => {
         [router.instanceField]: 2,
       },
     )
+    expect(deps.fastify.progress.emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'watchlist',
+        metadata: { action: 'status', userIds: [1] },
+      }),
+    )
   })
 
   it('leaves an import list exclusion alone', async () => {
@@ -502,6 +512,7 @@ describe.each(ROUTERS)('$contentType existing copy status', (router) => {
     await router.route(deps, [], [1])
 
     expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+    expect(deps.fastify.progress.emit).not.toHaveBeenCalled()
   })
 
   it('still reports the skip when the status write fails', async () => {
@@ -514,5 +525,6 @@ describe.each(ROUTERS)('$contentType existing copy status', (router) => {
       routed: false,
       skippedReason: 'exists-in-target',
     })
+    expect(deps.fastify.progress.emit).not.toHaveBeenCalled()
   })
 })

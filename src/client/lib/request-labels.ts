@@ -1,3 +1,4 @@
+import { RecentRequestStatusSchema } from '@root/schemas/shared/recent-request.schema'
 import type { components } from '@/types/api.js'
 
 type RequestStatusValue = components['schemas']['RecentRequestStatus']
@@ -9,3 +10,7 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatusValue, string> = {
   grabbed: 'Grabbed',
   notified: 'Notified',
 }
+
+export const REQUEST_STATUS_OPTIONS = RecentRequestStatusSchema.options.map(
+  (value) => ({ value, label: REQUEST_STATUS_LABELS[value] }),
+)

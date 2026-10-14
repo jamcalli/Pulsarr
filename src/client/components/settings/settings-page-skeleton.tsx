@@ -1,25 +1,41 @@
-import { Fragment } from 'react'
+import { Children, Fragment, type ReactNode } from 'react'
 import { Page, PageHeaderSkeleton } from '@/components/page-header'
 import { Card, CardAction, CardHeader } from '@/components/ui/card'
 import { FieldGroup, FieldSeparator } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 
-/** `field` is a label row with its control, a radio draws its option cards below the label. */
-type RowShape = 'field' | { radio: number }
+type RowControl = 'field' | 'switch' | 'input' | 'text'
+
+/** A control kind is a label row with that control, a radio draws its option cards below the label. */
+type RowShape = RowControl | { radio: number }
 
 interface SectionShape {
   rows: number | readonly RowShape[]
   pill?: boolean
+  description?: boolean
 }
 
-function FieldRowSkeleton() {
+const CONTROL_CLASSES: Record<RowControl, string> = {
+  field: 'h-8 w-20 shrink-0',
+  switch: 'h-6 w-11 shrink-0',
+  input: 'h-10 w-full @md/field-group:w-auto @md/field-group:basis-72',
+  text: 'h-5 w-32 shrink-0',
+}
+
+export function FieldRowSkeleton({
+  control = 'field',
+  description = true,
+}: {
+  control?: RowControl
+  description?: boolean
+}) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex flex-1 flex-col gap-2">
+    <div className="flex flex-col gap-3 @md/field-group:flex-row @md/field-group:items-start">
+      <div className="flex flex-1 flex-col gap-1">
         <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-4 w-72 max-w-full" />
+        {description && <Skeleton className="h-4 w-72 max-w-full" />}
       </div>
-      <Skeleton className="h-8 w-20" />
+      <Skeleton className={CONTROL_CLASSES[control]} />
     </div>
   )
 }
@@ -38,17 +54,43 @@ function RadioRowSkeleton({ options }: { options: number }) {
   )
 }
 
-export function SettingsSectionSkeleton({ rows, pill = false }: SectionShape) {
-  const shapes: readonly RowShape[] =
-    typeof rows === 'number'
-      ? Array.from({ length: rows }, () => 'field')
-      : rows
+function rowShapes(rows: SectionShape['rows']): readonly RowShape[] {
+  return typeof rows === 'number'
+    ? Array.from({ length: rows }, () => 'field')
+    : rows
+}
+
+function shapeRow(shape: RowShape) {
+  return typeof shape === 'string' ? (
+    <FieldRowSkeleton control={shape} />
+  ) : (
+    <RadioRowSkeleton options={shape.radio} />
+  )
+}
+
+type SettingsSectionSkeletonProps = Omit<SectionShape, 'rows'> &
+  (
+    | { rows: SectionShape['rows']; children?: never }
+    | { rows?: never; children: ReactNode }
+  )
+
+/** Rows mirror SettingsSection, so each child is one row with a separator before it. */
+export function SettingsSectionSkeleton({
+  rows,
+  pill = false,
+  description = true,
+  children,
+}: SettingsSectionSkeletonProps) {
+  const rowNodes =
+    rows === undefined
+      ? Children.toArray(children)
+      : rowShapes(rows).map(shapeRow)
 
   return (
     <Card>
       <CardHeader>
         <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-4 w-64 max-w-full" />
+        {description && <Skeleton className="h-4 w-64 max-w-full" />}
         {pill && (
           <CardAction>
             <Skeleton className="h-6 w-20" />
@@ -56,14 +98,10 @@ export function SettingsSectionSkeleton({ rows, pill = false }: SectionShape) {
         )}
       </CardHeader>
       <FieldGroup className="gap-3.5 *:px-(--card-spacing)">
-        {shapes.map((shape, row) => (
-          <Fragment key={`row-${row}`}>
-            {row > 0 && <FieldSeparator />}
-            {shape === 'field' ? (
-              <FieldRowSkeleton />
-            ) : (
-              <RadioRowSkeleton options={shape.radio} />
-            )}
+        {rowNodes.map((row, index) => (
+          <Fragment key={`row-${index}`}>
+            {index > 0 && <FieldSeparator />}
+            {row}
           </Fragment>
         ))}
       </FieldGroup>
@@ -102,6 +140,7 @@ export function SettingsPageSkeleton({
           key={`section-${section}`}
           rows={shape.rows}
           pill={shape.pill}
+          description={shape.description}
         />
       ))}
     </Page>

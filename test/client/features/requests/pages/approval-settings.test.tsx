@@ -171,9 +171,7 @@ describe('ApprovalSettingsPage', () => {
 
     expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled()
     expect(
-      screen.getByText(
-        'Save or discard your changes first. A run uses the saved settings.',
-      ),
+      screen.getByText('Save or discard your changes first.'),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Expire after')).toBeDisabled()
   })

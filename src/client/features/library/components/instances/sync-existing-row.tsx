@@ -3,6 +3,7 @@ import { ActionRow } from '@/components/settings/action-row'
 import { useSyncExisting } from '@/features/library/hooks/instances/useSyncExisting'
 import { INSTANCE_COPY } from '@/features/library/lib/instances/instance-copy'
 import type { ArrType } from '@/features/library/lib/instances/instance-form'
+import { UNSAVED_CHANGES_REASON } from '@/lib/settings'
 
 interface SyncExistingRowProps {
   type: ArrType
@@ -31,7 +32,7 @@ export function SyncExistingRow({
       buttonLabel="Copy existing content"
       busyLabel="Copying..."
       disabled={dirty}
-      unavailableReason={dirty ? 'Save or discard your changes first.' : null}
+      unavailableReason={dirty ? UNSAVED_CHANGES_REASON : null}
       running={sync.running}
       onRun={sync.run}
       progress={sync.progress}

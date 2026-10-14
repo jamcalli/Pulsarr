@@ -1,3 +1,4 @@
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -50,6 +51,7 @@ function mockEndpoints({
   schedule = makeSchedule(),
   saved = plexLabelSync,
   removeFailed = 0,
+  runGate = Promise.resolve(),
 } = {}) {
   const savedConfig = { plexLabelSync: saved }
   const configBodies: unknown[] = []
@@ -79,6 +81,16 @@ function mockEndpoints({
           : HttpResponse.json({}, { status: scheduleStatus })
       },
     ),
+    http.post('/v1/labels/sync', async () => {
+      actionCalls.push('sync')
+      await runGate
+      return HttpResponse.json({
+        success: true,
+        message: 'Synchronized labels for 37 of 48 items',
+        mode: 'sync',
+        results: { processed: 48, updated: 37, failed: 0, pending: 5 },
+      })
+    }),
     http.post('/v1/labels/cleanup', () => {
       actionCalls.push('cleanup')
       return HttpResponse.json({
@@ -99,6 +111,21 @@ function mockEndpoints({
     }),
   )
   return { configBodies, scheduleBodies, actionCalls }
+}
+
+function emitLabelSync(progress: number, message: string) {
+  const event: ProgressEvent = {
+    operationId: 'label-sync-1',
+    type: 'plex-label-sync',
+    phase: 'processing',
+    progress,
+    message,
+  }
+  for (const callback of useProgressStore
+    .getState()
+    .typeSubscribers.get('plex-label-sync') ?? []) {
+    callback(event)
+  }
 }
 
 function renderPage() {
@@ -268,29 +295,33 @@ describe('PlexLabelsPage', () => {
     expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
     expect(
       screen.getAllByText('Turn on Label content in Plex and save first.'),
-    ).toHaveLength(2)
+    ).toHaveLength(3)
     expect(screen.getByLabelText('Prefix')).toBeEnabled()
 
     await user.click(
       screen.getByRole('switch', { name: 'Label content in Plex' }),
     )
     expect(
-      screen.getByText('Save or discard your changes before running these.'),
-    ).toBeInTheDocument()
+      screen.getAllByText('Save or discard your changes first.'),
+    ).toHaveLength(2)
   })
 
-  it('explains why clean-up is off when orphan clean-up is not saved', async () => {
+  it('disables Run now while labeling is off', async () => {
+    mockEndpoints({ saved: { ...plexLabelSync, enabled: false } })
+    renderPage()
+
+    expect(
+      await screen.findByRole('button', { name: 'Run now' }),
+    ).toBeDisabled()
+  })
+
+  it('keeps clean-up available when orphan clean-up is off', async () => {
     mockEndpoints({ saved: { ...plexLabelSync, cleanupOrphanedLabels: false } })
     renderPage()
 
     expect(
       await screen.findByRole('button', { name: 'Clean up' }),
-    ).toBeDisabled()
-    expect(
-      screen.getByText(
-        'Turn on Clean up orphaned labels on sync and save first.',
-      ),
-    ).toBeInTheDocument()
+    ).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Remove' })).toBeEnabled()
   })
 
@@ -312,6 +343,92 @@ describe('PlexLabelsPage', () => {
     expect(
       within(table).queryByRole('columnheader', { name: 'Queue failed' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows the full sync progress while a manual run is going, then its results', async () => {
+    const user = userEvent.setup()
+    let release: () => void = () => undefined
+    const runGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const { actionCalls } = mockEndpoints({ runGate })
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Run now' }))
+    expect(
+      await screen.findByRole('button', { name: 'Running...' }),
+    ).toBeDisabled()
+    emitLabelSync(42, 'Labeling 21 of 50 items')
+    expect(
+      await screen.findByRole('progressbar', { name: 'Plex progress' }),
+    ).toBeInTheDocument()
+    expect(await screen.findByText('42%')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Labeling 21 of 50 items'),
+    ).toBeInTheDocument()
+
+    release()
+    expect(
+      await screen.findByRole('button', { name: 'Run now' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('progressbar', { name: 'Plex progress' }),
+    ).not.toBeInTheDocument()
+    expect(actionCalls).toEqual(['sync'])
+    const table = await screen.findByRole('table')
+    expect(
+      within(table).getByRole('columnheader', { name: 'Updated' }),
+    ).toBeInTheDocument()
+    expect(within(table).getByText('48')).toBeInTheDocument()
+    expect(within(table).getByText('37')).toBeInTheDocument()
+    expect(
+      within(table).queryByRole('columnheader', { name: 'Failed' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('runs a full sync while the schedule is off', async () => {
+    const user = userEvent.setup()
+    const { actionCalls } = mockEndpoints({
+      schedule: makeSchedule({ enabled: false }),
+    })
+    renderPage()
+
+    const runNow = await screen.findByRole('button', { name: 'Run now' })
+    expect(runNow).toBeEnabled()
+    expect(
+      screen.queryByText('Turn on the schedule to run it now.'),
+    ).not.toBeInTheDocument()
+
+    await user.click(runNow)
+
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+    expect(actionCalls).toEqual(['sync'])
+  })
+
+  it('shows the reason a full sync was refused instead of results', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    server.use(
+      http.post('/v1/labels/sync', () =>
+        HttpResponse.json({
+          success: false,
+          message: 'Plex label synchronization is disabled in configuration',
+          mode: 'sync',
+          results: { processed: 0, updated: 0, failed: 0, pending: 0 },
+        }),
+      ),
+    )
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Run now' }))
+
+    expect(
+      await screen.findByText(
+        'Plex label synchronization is disabled in configuration',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Ran at/)).not.toBeInTheDocument()
   })
 
   it('removes labels only after confirming, then unlocks the format', async () => {
@@ -343,6 +460,35 @@ describe('PlexLabelsPage', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('shows the reason a removal was refused instead of results', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    server.use(
+      http.delete('/v1/labels/remove', () =>
+        HttpResponse.json({
+          success: false,
+          message: 'Plex label removal is already running',
+          mode: 'remove',
+          results: { processed: 0, removed: 0, failed: 0 },
+        }),
+      ),
+    )
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Remove labels',
+      }),
+    )
+
+    expect(
+      await screen.findByText('Plex label removal is already running'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Labels removed')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Prefix')).toBeDisabled()
+  })
+
   it('keeps the format locked when some labels failed to be removed', async () => {
     const user = userEvent.setup()
     mockEndpoints({ removeFailed: 2 })
@@ -357,6 +503,32 @@ describe('PlexLabelsPage', () => {
 
     expect(await screen.findByText('Labels removed')).toBeInTheDocument()
     expect(screen.getByLabelText('Prefix')).toBeDisabled()
+  })
+
+  it('locks the format again after a full sync recreates the removed labels', async () => {
+    const user = userEvent.setup()
+    const { actionCalls } = mockEndpoints()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Remove labels',
+      }),
+    )
+    expect(await screen.findByText('Labels removed')).toBeInTheDocument()
+    expect(screen.getByLabelText('Prefix')).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Run now' }))
+
+    expect(
+      await screen.findByRole('columnheader', { name: 'Updated' }),
+    ).toBeInTheDocument()
+    expect(actionCalls).toEqual(['remove', 'sync'])
+    expect(screen.getByLabelText('Prefix')).toBeDisabled()
+    expect(
+      screen.getByText('Remove all Pulsarr labels to change the format.'),
+    ).toBeInTheDocument()
   })
 
   it('leaves a custom schedule untouched when saving other changes', async () => {

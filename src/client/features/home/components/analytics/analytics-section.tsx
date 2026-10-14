@@ -24,7 +24,8 @@ import type { DashboardStats } from '@/features/home/hooks/useDashboardStats'
 import type { TopGenres } from '@/features/home/hooks/useTopGenres'
 import { rangeLabel } from '@/features/home/lib/range-label'
 
-const GRID = 'grid items-start gap-5 md:grid-cols-2 md:items-stretch'
+const GRID =
+  'grid grid-cols-1 items-start gap-5 md:grid-cols-2 md:items-stretch'
 const COLUMN = 'flex flex-col gap-5 md:*:last:flex-1'
 const SECTION = 'flex flex-col gap-4'
 const SECTION_HEADER = 'flex flex-wrap items-baseline justify-between gap-2'

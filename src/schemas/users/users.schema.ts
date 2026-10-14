@@ -8,7 +8,11 @@ import { z } from 'zod'
 export const CreateUserSchema = z.object({
   name: z.string().min(3).max(255),
   apprise: z.string().nullable(),
-  alias: z.string().min(3).max(255).nullable(),
+  alias: z
+    .string()
+    .min(3, { error: 'Use at least 3 characters.' })
+    .max(255)
+    .nullable(),
   discord_id: z.string().nullable(),
   notify_apprise: z.boolean(),
   notify_discord: z.boolean(),

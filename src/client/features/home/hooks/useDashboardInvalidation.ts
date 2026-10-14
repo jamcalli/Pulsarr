@@ -1,7 +1,9 @@
-import { useApprovalEvents } from '@/hooks/useApprovalEvents'
+import { useProgressEvents } from '@/hooks/useProgressEvents'
+import { useWatchlistEvents } from '@/hooks/useWatchlistEvents'
 import { invalidateDashboard } from '@/lib/dashboard-invalidation'
 
-/** Refetches the dashboard queries whenever an approval event arrives on the progress stream. */
+/** Refetches the dashboard queries whenever an approval or watchlist event arrives on the progress stream. */
 export function useDashboardInvalidation(): void {
-  useApprovalEvents(invalidateDashboard)
+  useProgressEvents('approval', invalidateDashboard)
+  useWatchlistEvents()
 }

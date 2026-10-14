@@ -1,4 +1,3 @@
-import { RecentRequestStatusSchema } from '@root/schemas/shared/recent-request.schema'
 import { Link } from 'react-router-dom'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CompactSelect } from '@/components/compact-select'
@@ -28,7 +27,7 @@ import { formatCount } from '@/lib/format'
 import { type RecentRequest, recentRequestItem } from '@/lib/media-item'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { usePref } from '@/lib/prefs'
-import { REQUEST_STATUS_LABELS } from '@/lib/request-labels'
+import { REQUEST_STATUS_OPTIONS } from '@/lib/request-labels'
 import {
   RECENT_LIMITS,
   type RecentStatus,
@@ -38,10 +37,7 @@ import {
 
 const STATUS_FILTERS: ReadonlyArray<{ value: RecentStatus; label: string }> = [
   { value: 'all', label: 'All' },
-  ...RecentRequestStatusSchema.options.map((value) => ({
-    value,
-    label: REQUEST_STATUS_LABELS[value],
-  })),
+  ...REQUEST_STATUS_OPTIONS,
 ]
 
 const LIMIT_OPTIONS = RECENT_LIMITS.map((limit) => ({

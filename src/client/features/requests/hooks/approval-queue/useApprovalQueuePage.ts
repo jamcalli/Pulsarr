@@ -1,38 +1,33 @@
 import { canTransitionApproval } from '@root/schemas/approval/approval.schema'
 import { useMutation } from '@tanstack/react-query'
-import type { RowSelectionState } from '@tanstack/react-table'
 import { useEffect, useState } from 'react'
 import {
   invalidateApprovalQueue,
   useApprovalQueueList,
 } from '@/features/requests/hooks/approval-queue/useApprovalQueueList'
-import { useApprovalQueueState } from '@/features/requests/hooks/approval-queue/useApprovalQueueState'
 import {
   type BulkAction,
-  type BulkFailure,
   bulkErrorFallback,
   bulkFailure,
 } from '@/features/requests/lib/approval-queue/bulk-actions'
 import {
   hasFilters,
+  parseQueueState,
   QUEUE_PAGE_SIZE,
   type QueueState,
   SORTABLE,
   selectionScope,
+  serializeQueueState,
   withoutFilters,
   withTab,
 } from '@/features/requests/lib/approval-queue/queue-state'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
+import { useScopedSelection } from '@/hooks/useScopedSelection'
+import { useUrlState } from '@/hooks/useUrlState'
 import { apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 type BulkResult = components['schemas']['ApprovalBulkResult']
-
-interface Selection {
-  scope: string
-  rows: RowSelectionState
-  failure: BulkFailure | null
-}
 
 async function runBulk(
   action: BulkAction,
@@ -56,21 +51,13 @@ async function runBulk(
   return data.result
 }
 
-function selectedIn(rows: RowSelectionState): boolean {
-  return Object.values(rows).some(Boolean)
-}
-
 export function useApprovalQueuePage() {
-  const { state, setState, pageHref } = useApprovalQueueState()
+  const { state, setState, pageHref } = useUrlState(
+    parseQueueState,
+    serializeQueueState,
+  )
   const list = useApprovalQueueList(state)
-  const scope = selectionScope(state)
-  const [selection, setSelection] = useState<Selection>({
-    scope,
-    rows: {},
-    failure: null,
-  })
-  const current =
-    selection.scope === scope ? selection : { scope, rows: {}, failure: null }
+  const selection = useScopedSelection(selectionScope(state))
   const [confirm, setConfirm] = useState<{
     action: BulkAction
     count: number
@@ -81,7 +68,7 @@ export function useApprovalQueuePage() {
   const [reviewOpen, setReviewOpen] = useState(false)
 
   const rows = list.rows ?? []
-  const selected = rows.filter((row) => current.rows[String(row.id)])
+  const selected = rows.filter((row) => selection.rows[String(row.id)])
   const lastPage = Math.max(1, Math.ceil(list.total / QUEUE_PAGE_SIZE))
 
   useEffect(() => {
@@ -94,25 +81,6 @@ export function useApprovalQueuePage() {
     useMutation({
       mutationFn: (vars: { action: BulkAction; ids: number[]; note: string }) =>
         withMinDuration(runBulk(vars.action, vars.ids, vars.note)),
-      onSuccess: (result, { action }) => {
-        const failure = bulkFailure(action, result)
-        setSelection({
-          scope,
-          rows: Object.fromEntries(
-            result.failed.map((id) => [String(id), true]),
-          ),
-          failure,
-        })
-      },
-      onError: (error, { action }) => {
-        setSelection({
-          ...current,
-          failure: {
-            message: mutationErrorMessage(error, bulkErrorFallback(action)),
-            detail: null,
-          },
-        })
-      },
       onSettled: () => {
         setConfirm((prev) => ({ ...prev, open: false }))
         return invalidateApprovalQueue()
@@ -139,16 +107,11 @@ export function useApprovalQueuePage() {
     },
     clearFilters: () => setState(withoutFilters(state)),
     setPage: (page: number) => setState({ ...state, page }),
-    selection: current.rows,
+    selection: selection.rows,
     selected,
-    failure: current.failure,
-    setSelection: (rows: RowSelectionState) =>
-      setSelection({
-        scope,
-        rows,
-        failure: selectedIn(rows) ? current.failure : null,
-      }),
-    clearSelection: () => setSelection({ scope, rows: {}, failure: null }),
+    failure: selection.failure,
+    setSelection: selection.select,
+    clearSelection: selection.clear,
     canApprove:
       selected.length > 0 &&
       selected.every((row) => canTransitionApproval(row.status, 'approved')),
@@ -161,18 +124,32 @@ export function useApprovalQueuePage() {
     openConfirm: (action: BulkAction) => {
       bulk.reset()
       setNote('')
-      setSelection({ ...current, failure: null })
+      selection.setFailure(null)
       setConfirm({ action, count: selected.length, open: true })
     },
     cancelConfirm: () => {
       if (!bulk.isPending) setConfirm((prev) => ({ ...prev, open: false }))
     },
     runConfirmed: () =>
-      bulk.mutate({
-        action: confirm.action,
-        ids: selected.map((row) => row.id),
-        note,
-      }),
+      bulk.mutate(
+        {
+          action: confirm.action,
+          ids: selected.map((row) => row.id),
+          note,
+        },
+        // per-call callbacks keep the selection scope from when the run started
+        {
+          onSuccess: (result, { action }) => {
+            selection.settle(result.failed, bulkFailure(action, result))
+          },
+          onError: (error, { action }) => {
+            selection.setFailure({
+              message: mutationErrorMessage(error, bulkErrorFallback(action)),
+              detail: null,
+            })
+          },
+        },
+      ),
     bulkPending: bulk.isPending,
     reviewId,
     reviewOpen,

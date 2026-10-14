@@ -11,6 +11,8 @@ interface SaveBarProps {
   onDiscard: () => void
   saveLabel?: string
   saveDisabled?: boolean
+  message?: string
+  discardLabel?: string
 }
 
 export function SaveBar({
@@ -21,6 +23,8 @@ export function SaveBar({
   onDiscard,
   saveLabel = 'Save changes',
   saveDisabled = false,
+  message = 'You have unsaved changes',
+  discardLabel = 'Discard',
 }: SaveBarProps) {
   const showSaved = saved && !dirty && !isSubmitting
   if (!dirty && !isSubmitting && !showSaved) return null
@@ -37,7 +41,7 @@ export function SaveBar({
         </span>
       ) : (
         <>
-          <span className="font-bold">You have unsaved changes</span>
+          <span className="font-bold">{message}</span>
           <div className="flex gap-2">
             <Button
               type="button"
@@ -46,7 +50,7 @@ export function SaveBar({
               disabled={isSubmitting}
               onClick={onDiscard}
             >
-              Discard
+              {discardLabel}
             </Button>
             <Button
               type="submit"

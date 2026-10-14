@@ -15,6 +15,7 @@ import type {
 import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import { buildPosterUrl } from '@root/utils/poster-url.js'
+import { emitWatchlistChange } from '@root/utils/watchlist-events.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -24,7 +25,7 @@ import {
 } from '@services/notifications/channels/native-webhook.js'
 import type { PlexMobileService } from '@services/notifications/channels/plex-mobile.service.js'
 import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
-import type { FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
 // ============================================================================
@@ -39,6 +40,7 @@ export interface MediaAvailableDeps {
   discordWebhook: DiscordWebhookService
   plexMobile: PlexMobileService
   apprise: AppriseService
+  progress: FastifyInstance['progress']
 }
 
 /**
@@ -391,8 +393,9 @@ async function recordAvailability(
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
   watchlistItems: TokenWatchlistItem[],
-): Promise<void> {
+): Promise<number[]> {
   const instanceUpdate = instanceUpdateFor(options)
+  const recordedUserIds: number[] = []
 
   for (const item of watchlistItems) {
     const userId = Number(item.user_id)
@@ -403,6 +406,7 @@ async function recordAvailability(
         status: 'grabbed',
         ...instanceUpdate,
       })
+      recordedUserIds.push(userId)
     } catch (error) {
       deps.logger.error(
         { error, userId, key: item.key, title: mediaInfo.title },
@@ -410,6 +414,7 @@ async function recordAvailability(
       )
     }
   }
+  return recordedUserIds
 }
 
 export async function buildUserNotifications(
@@ -662,7 +667,12 @@ async function buildNotificationResults(
     return { notifications: [], watchlistItems, hasNativeWebhooks, enrichment }
   }
 
-  await recordAvailability(deps, mediaInfo, options, watchlistItems)
+  const recordedUserIds = await recordAvailability(
+    deps,
+    mediaInfo,
+    options,
+    watchlistItems,
+  )
 
   // Skip per-user availability notifications when off (public + native webhook
   // are built independently below). Default on for upgrades and fresh boots.
@@ -678,6 +688,11 @@ async function buildNotificationResults(
           hasNativeWebhooks,
         )
       : []
+
+  emitWatchlistChange(deps.progress, 'status', [
+    ...recordedUserIds,
+    ...userNotifications.map((result) => result.user.id),
+  ])
 
   const publicNotification = await buildPublicNotification(
     deps,

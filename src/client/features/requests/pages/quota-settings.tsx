@@ -4,14 +4,13 @@ import {
   QUOTA_WEEKLY_ROLLING_DAYS,
 } from '@root/schemas/config/config.schema'
 import { useStore } from '@tanstack/react-form'
-import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
+import { RetryAlert } from '@/components/retry-alert'
 import { SaveBar } from '@/components/settings/save-bar'
 import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
-import { Button } from '@/components/ui/button'
 import { useQuotaSettingsForm } from '@/features/requests/hooks/quota-settings/useQuotaSettingsForm'
 import { NOTIFY_OPTIONS } from '@/features/requests/lib/notify-options'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
@@ -236,19 +235,13 @@ export default function QuotaSettingsPage() {
     return (
       <Page>
         <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <ErrorAlert message={loadError} />
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          className="self-start"
-          onClick={() => {
+        <RetryAlert
+          message={loadError}
+          onRetry={() => {
             if (!config) initialize(true)
             if (!job.schedule) job.retry()
           }}
-        >
-          Retry
-        </Button>
+        />
       </Page>
     )
   }

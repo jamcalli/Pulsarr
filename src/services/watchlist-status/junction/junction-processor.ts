@@ -9,6 +9,7 @@ import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type {
   DatabaseWatchlistItem,
+  StatusUpdateResult,
   WatchlistInstanceStatus,
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
@@ -124,8 +125,9 @@ export async function processJunctionUpdates<
   config: JunctionConfig<TItem, TEntry>,
   arrItems: TItem[],
   watchlistItems: DatabaseWatchlistItem[],
-): Promise<number> {
+): Promise<StatusUpdateResult> {
   let updateCount = 0
+  const userIds = new Set<number>()
 
   try {
     // 1. Extract all watchlist IDs we need to process
@@ -133,7 +135,7 @@ export async function processJunctionUpdates<
       .filter((item) => item.id !== undefined)
       .map((item) => item.id as number)
 
-    if (watchlistIds.length === 0) return 0
+    if (watchlistIds.length === 0) return { updated: 0, userIds: [] }
 
     // 2. Prefetch ALL current junction associations in a single query
     const allJunctionEntries = await config.fetchJunctions(watchlistIds)
@@ -197,6 +199,7 @@ export async function processJunctionUpdates<
     for (const item of watchlistItems) {
       if (item.id === undefined) continue
 
+      const countBeforeItem = updateCount
       const numericId = item.id as number
       const mainTableStatus = item.status
 
@@ -325,6 +328,8 @@ export async function processJunctionUpdates<
           }
         }
       }
+
+      if (updateCount > countBeforeItem) userIds.add(item.user_id)
     }
 
     // 7. Execute all batch operations
@@ -349,7 +354,7 @@ export async function processJunctionUpdates<
       )
     }
 
-    return updateCount
+    return { updated: updateCount, userIds: [...userIds] }
   } catch (error) {
     deps.logger.error(
       { error },

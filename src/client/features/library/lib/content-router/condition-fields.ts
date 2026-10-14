@@ -1,4 +1,4 @@
-import { compareText } from '@/lib/format'
+import { compareText, upperFirst } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
 type EvaluatorMetadata = components['schemas']['EvaluatorMetadata']
@@ -36,7 +36,7 @@ export function fieldLabel(name: string): string {
   const known = FIELD_LABELS[name]
   if (known) return known
   const words = name.replace(/([A-Z])/g, ' $1').toLowerCase()
-  return words.charAt(0).toUpperCase() + words.slice(1)
+  return upperFirst(words)
 }
 
 export const OPERATOR_LABELS: Record<ConditionOperator, string> = {

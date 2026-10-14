@@ -7197,6 +7197,126 @@
         "additionalProperties": false,
         "description": "Counts for one user across their watchlist, notifications and approvals"
       },
+      "UserWithCount": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "apprise": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "alias": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "discord_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notify_apprise": {
+            "type": "boolean"
+          },
+          "notify_discord": {
+            "type": "boolean"
+          },
+          "notify_discord_mention": {
+            "type": "boolean"
+          },
+          "notify_plex_mobile": {
+            "type": "boolean"
+          },
+          "can_sync": {
+            "type": "boolean"
+          },
+          "requires_approval": {
+            "type": "boolean"
+          },
+          "is_primary_token": {
+            "type": "boolean"
+          },
+          "plex_uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "friend_created_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "friendStatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlexFriendStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pendingSince": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "watchlist_count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "apprise",
+          "alias",
+          "discord_id",
+          "notify_apprise",
+          "notify_discord",
+          "notify_discord_mention",
+          "notify_plex_mobile",
+          "can_sync",
+          "requires_approval",
+          "is_primary_token",
+          "created_at",
+          "updated_at",
+          "friendStatus",
+          "pendingSince",
+          "watchlist_count"
+        ],
+        "additionalProperties": false,
+        "description": "User with their Plex friend status and watchlist item count"
+      },
       "UserWithFriendStatus": {
         "type": "object",
         "properties": {
@@ -13036,7 +13156,7 @@
         "tags": [
           "Quota"
         ],
-        "description": "Get quota configurations for a specific user",
+        "description": "Get quota configurations for a specific user. Each quota is absent when the user has none for that content type.",
         "parameters": [
           {
             "schema": {
@@ -13075,8 +13195,8 @@
               }
             }
           },
-          "404": {
-            "description": "Default Response",
+          "429": {
+            "description": "Rate limit exceeded",
             "content": {
               "application/json": {
                 "schema": {
@@ -13085,8 +13205,8 @@
               }
             }
           },
-          "429": {
-            "description": "Rate limit exceeded",
+          "500": {
+            "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -19437,123 +19557,7 @@
                     "users": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "apprise": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "alias": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "discord_id": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "notify_apprise": {
-                            "type": "boolean"
-                          },
-                          "notify_discord": {
-                            "type": "boolean"
-                          },
-                          "notify_discord_mention": {
-                            "type": "boolean"
-                          },
-                          "notify_plex_mobile": {
-                            "type": "boolean"
-                          },
-                          "can_sync": {
-                            "type": "boolean"
-                          },
-                          "requires_approval": {
-                            "type": "boolean"
-                          },
-                          "is_primary_token": {
-                            "type": "boolean"
-                          },
-                          "plex_uuid": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "avatar": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "display_name": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "friend_created_at": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "updated_at": {
-                            "type": "string"
-                          },
-                          "friendStatus": {
-                            "anyOf": [
-                              {
-                                "$ref": "#/components/schemas/PlexFriendStatus"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "pendingSince": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "watchlist_count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "apprise",
-                          "alias",
-                          "discord_id",
-                          "notify_apprise",
-                          "notify_discord",
-                          "notify_discord_mention",
-                          "notify_plex_mobile",
-                          "can_sync",
-                          "requires_approval",
-                          "is_primary_token",
-                          "created_at",
-                          "updated_at",
-                          "friendStatus",
-                          "pendingSince",
-                          "watchlist_count"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/UserWithCount"
                       }
                     }
                   },

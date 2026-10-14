@@ -6,7 +6,7 @@ import { CHART_FILL, type ChartColor } from '@/lib/chart-colors'
 import { formatNumber, formatPercent } from '@/lib/format'
 
 interface StatBarHeaderProps {
-  label: string
+  label: ReactNode
   valueText: string
   icon?: ReactNode
   percentText?: string

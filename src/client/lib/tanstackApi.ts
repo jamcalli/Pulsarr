@@ -36,3 +36,9 @@ export function mutationErrorMessage(error: unknown, fallback: string): string {
   }
   return apiErrorMessage(error) ?? fallback
 }
+
+/** Throws a `success: false` body so the mutation error shows the server's message instead of rendering results. */
+export function requireSuccess<T extends { success: boolean }>(data: T): T {
+  if (!data.success) throw data
+  return data
+}

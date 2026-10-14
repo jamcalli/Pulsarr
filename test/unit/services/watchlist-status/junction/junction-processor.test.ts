@@ -61,13 +61,13 @@ async function run(
     bulkUpdate: vi.fn(async () => {}),
     bulkRemove: vi.fn(async () => {}),
   }
-  await processJunctionUpdates(
+  const result = await processJunctionUpdates(
     { logger: createMockLogger() },
     config,
     [arr],
     [item],
   )
-  return config
+  return { ...config, result }
 }
 
 describe('processJunctionUpdates', () => {
@@ -78,6 +78,7 @@ describe('processJunctionUpdates', () => {
       [junction('grabbed')],
     )
     expect(config.bulkUpdate).not.toHaveBeenCalled()
+    expect(config.result).toEqual({ updated: 0, userIds: [] })
   })
 
   it('applies an upgrade on an existing junction', async () => {
@@ -89,6 +90,7 @@ describe('processJunctionUpdates', () => {
     expect(config.bulkUpdate).toHaveBeenCalledWith([
       { watchlist_id: 1, instance_id: 2, status: 'grabbed' },
     ])
+    expect(config.result).toEqual({ updated: 1, userIds: [7] })
   })
 
   it('forces notified when the watchlist item is notified', async () => {

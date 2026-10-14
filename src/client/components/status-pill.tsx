@@ -9,13 +9,12 @@ export type StatusTone =
   | 'on'
   | 'off'
 
-const TONE_FILL: Record<StatusTone, string> = {
+const TONE_FILL: Partial<Record<StatusTone, string>> = {
   pending: 'bg-status-pending text-primary-foreground',
   requested: 'bg-status-requested text-primary-foreground',
   available: 'bg-status-available text-primary-foreground',
   failed: 'bg-status-failed text-primary-foreground',
   on: 'bg-ok text-primary-foreground',
-  off: 'bg-inset',
 }
 
 interface StatusPillProps {
@@ -26,7 +25,12 @@ interface StatusPillProps {
 
 export function StatusPill({ tone, label, detail }: StatusPillProps) {
   const pill = (
-    <Badge className={cn('border-border', TONE_FILL[tone])}>{label}</Badge>
+    <Badge
+      variant={tone === 'off' ? 'outline' : 'default'}
+      className={cn('border-border', TONE_FILL[tone])}
+    >
+      {label}
+    </Badge>
   )
   if (!detail) return pill
   return (

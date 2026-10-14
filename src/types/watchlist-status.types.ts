@@ -23,6 +23,12 @@ export interface DatabaseWatchlistItem {
   updated_at?: string
 }
 
+/** Rows changed by a status pass and the users who own them. */
+export interface StatusUpdateResult {
+  updated: number
+  userIds: number[]
+}
+
 export interface WatchlistInstanceStatus {
   status: WatchlistStatus
   last_notified_at: string | null

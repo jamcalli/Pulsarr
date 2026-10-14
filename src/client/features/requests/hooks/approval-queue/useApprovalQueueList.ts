@@ -3,9 +3,9 @@ import {
   type QueueState,
   requestQuery,
 } from '@/features/requests/lib/approval-queue/queue-state'
-import { useApprovalEvents } from '@/hooks/useApprovalEvents'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useMinLoading } from '@/hooks/useMinLoading'
+import { useProgressEvents } from '@/hooks/useProgressEvents'
 import { SEARCH_DEBOUNCE_DELAY } from '@/lib/constants'
 import { approvalRequestsKeys, approvalStatsKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
@@ -29,7 +29,7 @@ export function useApprovalQueueList(state: QueueState) {
     ),
   )
   const stats = $api.useQuery('get', '/v1/approval/stats')
-  useApprovalEvents(invalidateApprovalQueue)
+  useProgressEvents('approval', invalidateApprovalQueue)
 
   const failed = list.isError ? list.error : stats.isError ? stats.error : null
 

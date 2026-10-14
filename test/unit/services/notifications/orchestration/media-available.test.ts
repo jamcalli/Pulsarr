@@ -18,6 +18,7 @@ import {
   determineNotificationType,
   extractUserDiscordIds,
   getPublicContentNotificationFlags,
+  sendMediaAvailable,
 } from '@services/notifications/orchestration/media-available.js'
 import { describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
@@ -84,8 +85,10 @@ function createTestItem(userId: number): TokenWatchlistItem {
 function createDeps(
   users: User[],
   publicContentNotifications: Config['publicContentNotifications'],
+  watchlistItems: TokenWatchlistItem[] = [],
 ) {
   const db = {
+    getWatchlistItemsByGuid: vi.fn().mockResolvedValue(watchlistItems),
     getUsersByIds: vi.fn().mockResolvedValue(users),
     hasActiveNotification: vi.fn().mockResolvedValue(false),
     updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
@@ -94,12 +97,14 @@ function createDeps(
       async (cb: (trx: unknown) => Promise<void>) => await cb({}),
     ),
   }
+  const progress = { emit: vi.fn() }
   const deps = {
     db,
     config: { publicContentNotifications },
     logger: createMockLogger(),
+    progress,
   } as unknown as MediaAvailableDeps
-  return { deps, db }
+  return { deps, db, progress }
 }
 
 describe('media-available helpers', () => {
@@ -591,6 +596,36 @@ describe('media-available helpers', () => {
         hasDiscordUrls: false,
         hasAppriseUrls: false,
       })
+    })
+  })
+
+  describe('sendMediaAvailable', () => {
+    const movie = { type: 'movie' as const, guid: 'tmdb:1', title: 'Test' }
+
+    it('emits one watchlist status event for every user it records', async () => {
+      const { deps, progress } = createDeps(
+        [createTestUser({ id: 1 }), createTestUser({ id: 2 })],
+        undefined,
+        [createTestItem(1), createTestItem(2)],
+      )
+
+      await sendMediaAvailable(deps, movie, { isBulkRelease: false })
+
+      expect(progress.emit).toHaveBeenCalledTimes(1)
+      expect(progress.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'watchlist',
+          metadata: { action: 'status', userIds: [1, 2] },
+        }),
+      )
+    })
+
+    it('emits nothing when no watchlist item matches', async () => {
+      const { deps, progress } = createDeps([], undefined, [])
+
+      await sendMediaAvailable(deps, movie, { isBulkRelease: false })
+
+      expect(progress.emit).not.toHaveBeenCalled()
     })
   })
 })

@@ -1,9 +1,8 @@
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
 import { DataTableFooter } from '@/components/data-table/data-table-footer'
-import { ErrorAlert } from '@/components/error-alert'
 import { Page, PageHeader } from '@/components/page-header'
+import { RetryAlert } from '@/components/retry-alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApprovalQueueBar } from '@/features/requests/components/approval-queue/approval-queue-bar'
 import { ApprovalQueueEmpty } from '@/features/requests/components/approval-queue/approval-queue-empty'
@@ -77,16 +76,7 @@ export default function ApprovalQueuePage() {
     return (
       <Page wide>
         <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <ErrorAlert message={page.errorMessage} />
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          className="self-start"
-          onClick={page.retry}
-        >
-          Retry
-        </Button>
+        <RetryAlert message={page.errorMessage} onRetry={page.retry} />
       </Page>
     )
   }

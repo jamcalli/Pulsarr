@@ -1,7 +1,9 @@
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -15,7 +17,7 @@ interface FilterSelectProps<T extends string | number> {
   className?: string
 }
 
-/** The first option, labelled like the placeholder, clears the filter. */
+/** The "All" item clears the filter to null, and the trigger then shows the label as its placeholder. */
 export function FilterSelect<T extends string | number>({
   label,
   value,
@@ -24,13 +26,10 @@ export function FilterSelect<T extends string | number>({
   id,
   className,
 }: FilterSelectProps<T>) {
-  const items = [
-    { value: null, label },
-    ...options.map((option) => ({
-      value: String(option.value),
-      label: option.label,
-    })),
-  ]
+  const items = options.map((option) => ({
+    value: String(option.value),
+    label: option.label,
+  }))
 
   return (
     <Select
@@ -47,11 +46,15 @@ export function FilterSelect<T extends string | number>({
         <SelectValue placeholder={label} />
       </SelectTrigger>
       <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value ?? ''} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          <SelectLabel>{label}</SelectLabel>
+          <SelectItem value={null}>All</SelectItem>
+          {items.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   )
