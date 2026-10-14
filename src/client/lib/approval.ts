@@ -291,12 +291,24 @@ export function decisionSummary(approval: ApprovalRequest): {
   }
 }
 
+/** The requested line around the requester's name, for callers that render the name as a link. */
+export function requestedLineParts(
+  approval: Pick<ApprovalRequest, 'contentType' | 'createdAt'>,
+  now?: number,
+): { before: string; after: string } {
+  return {
+    before: `${CONTENT_TYPE_LABELS[approval.contentType]}, requested by `,
+    after: `, ${formatRelative(new Date(approval.createdAt), now)}`,
+  }
+}
+
 export function requestedLine(
   approval: Pick<ApprovalRequest, 'contentType' | 'createdAt'>,
   userName: string,
   now?: number,
 ): string {
-  return `${CONTENT_TYPE_LABELS[approval.contentType]}, requested by ${userName}, ${formatRelative(new Date(approval.createdAt), now)}`
+  const { before, after } = requestedLineParts(approval, now)
+  return `${before}${userName}${after}`
 }
 
 export function routingHeading(status: ApprovalStatus): string {

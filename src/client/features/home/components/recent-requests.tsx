@@ -2,12 +2,10 @@ import { Link } from 'react-router-dom'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
-import { MediaDetail } from '@/components/media-detail/media-detail'
 import {
-  RequestList,
-  RequestPosters,
-  requestKey,
-} from '@/components/request-list/request-list'
+  RequestBrowserDetail,
+  RequestBrowserItems,
+} from '@/components/request-list/request-browser'
 import { RequestListSkeleton } from '@/components/request-list/request-list-skeleton'
 import {
   ViewToggle,
@@ -24,10 +22,8 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { RecentRequestsState } from '@/features/home/hooks/useRecentRequests'
-import { useMediaSelection } from '@/hooks/useMediaSelection'
-import { usePrefetchMediaDetail } from '@/hooks/usePrefetchMediaDetail'
+import { useRequestBrowser } from '@/hooks/useRequestBrowser'
 import { formatCount } from '@/lib/format'
-import { type RecentRequest, recentRequestItem } from '@/lib/media-item'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { usePref } from '@/lib/prefs'
 import { REQUEST_STATUS_OPTIONS } from '@/lib/request-labels'
@@ -62,15 +58,7 @@ export function RecentRequestsCardSkeleton() {
 
 export function RecentRequests({ recent }: { recent: RecentRequestsState }) {
   const { items, view, status } = recent
-  const { selection, select, setOpen } = useMediaSelection((key) => {
-    const request = items?.find((item) => requestKey(item) === key)
-    return request && recentRequestItem(request)
-  })
-  const selectRequest = (request: RecentRequest) =>
-    select(requestKey(request), recentRequestItem(request))
-  const prefetch = usePrefetchMediaDetail()
-  const prefetchRequest = (request: RecentRequest) =>
-    prefetch(recentRequestItem(request))
+  const browser = useRequestBrowser(items)
   const emptyMessage =
     status === 'all' ? 'No requests yet.' : 'No requests match this filter.'
 
@@ -80,18 +68,8 @@ export function RecentRequests({ recent }: { recent: RecentRequestsState }) {
     <RequestListSkeleton view={view} limit={recent.limit} />
   ) : items === undefined ? null : items.length === 0 ? (
     <p className="text-muted-foreground">{emptyMessage}</p>
-  ) : view === 'carousel' ? (
-    <RequestPosters
-      items={items}
-      onSelect={selectRequest}
-      onIntent={prefetchRequest}
-    />
   ) : (
-    <RequestList
-      items={items}
-      onSelect={selectRequest}
-      onIntent={prefetchRequest}
-    />
+    <RequestBrowserItems browser={browser} items={items} view={view} />
   )
 
   return (
@@ -126,13 +104,7 @@ export function RecentRequests({ recent }: { recent: RecentRequestsState }) {
         </div>
         {content}
       </CardContent>
-      {selection && (
-        <MediaDetail
-          open={selection.open}
-          onOpenChange={setOpen}
-          item={selection.item}
-        />
-      )}
+      <RequestBrowserDetail browser={browser} />
     </Card>
   )
 }

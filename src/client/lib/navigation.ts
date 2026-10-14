@@ -224,6 +224,10 @@ export function approvalQueueHref({ user }: { user: number }): string {
   return `${pageHref(NAV_PAGES.approvalQueue)}?${params}`
 }
 
+export function userPageHref(id: number): string {
+  return `${NAV_PAGES.plexUsers.to}/${id}`
+}
+
 /** A section with one page renders as a plain link, not an expandable group. */
 export function isSingleLink(section: NavSection): boolean {
   return section.pages.length === 1

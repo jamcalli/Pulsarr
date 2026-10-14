@@ -1,5 +1,6 @@
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
 import { DataTableFooter } from '@/components/data-table/data-table-footer'
+import { DEFAULT_PAGE_SIZE } from '@/components/data-table/page-size'
 import { Page, PageHeader } from '@/components/page-header'
 import { RetryAlert } from '@/components/retry-alert'
 import { StatusFilter } from '@/components/status-filter'
@@ -21,7 +22,6 @@ import {
 } from '@/features/requests/hooks/approval-queue/useApprovalQueuePage'
 import {
   DECIDED_STATUS_OPTIONS,
-  QUEUE_PAGE_SIZE,
   QUEUE_TABS,
 } from '@/features/requests/lib/approval-queue/queue-state'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -72,7 +72,7 @@ function QueueBody({ page }: { page: QueuePage }) {
       )}
       <DataTableFooter
         page={page.state.page}
-        pageSize={QUEUE_PAGE_SIZE}
+        pageSize={DEFAULT_PAGE_SIZE}
         total={empty ? 0 : page.total}
         pageHref={page.pageHref}
         onPageChange={page.setPage}

@@ -45,8 +45,33 @@ export function capPayload({ capOn, cap }: QuotaFieldValues): number | null {
   return capOn && cap !== undefined ? cap : null
 }
 
-export function hasBlankLimit(values: QuotaFieldValues): boolean {
-  return values.on && values.quotaLimit === undefined
+export const QUOTA_REMOVAL_DESCRIPTION =
+  'Their movie and show quotas and watchlist caps are deleted.'
+
+export type BlankQuotaField = 'limit' | 'cap'
+
+export const BLANK_QUOTA_MESSAGES: Record<BlankQuotaField, string> = {
+  limit: 'Set a limit to save',
+  cap: 'Set a cap to save',
+}
+
+function blankField(values: QuotaFieldValues): BlankQuotaField | null {
+  if (!values.on) return null
+  if (values.quotaLimit === undefined) return 'limit'
+  if (values.capOn && values.cap === undefined && !values.bypassApproval) {
+    return 'cap'
+  }
+  return null
+}
+
+/** The blank field that blocks saving these types, a limit before a cap, or null when they can save. */
+export function blankQuotaField(
+  types: readonly QuotaFieldValues[],
+): BlankQuotaField | null {
+  const blanks = types.map(blankField)
+  if (blanks.includes('limit')) return 'limit'
+  if (blanks.includes('cap')) return 'cap'
+  return null
 }
 
 /** A switched off type sends `enabled: false`, which deletes that quota. */

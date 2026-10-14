@@ -6,6 +6,7 @@ import { SettingsSection } from '@/components/settings/settings-section'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
 import { QuotaCard } from '@/features/users/components/quota-card'
 import { useNewUserDefaultsForm } from '@/features/users/hooks/new-user-defaults/useNewUserDefaultsForm'
+import { USER_SWITCH_LABELS } from '@/features/users/lib/user-switches'
 import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { NAV_PAGES } from '@/lib/navigation'
@@ -36,7 +37,7 @@ function NewUserDefaults({
             <form.AppField name="newUserDefaultCanSync">
               {(field) => (
                 <field.SwitchField
-                  label="Sync watchlists"
+                  label={USER_SWITCH_LABELS.can_sync}
                   description="Request what new users watchlist. Turn off to add them without syncing."
                 />
               )}
@@ -44,7 +45,7 @@ function NewUserDefaults({
             <form.AppField name="newUserDefaultRequiresApproval">
               {(field) => (
                 <field.SwitchField
-                  label="Require approval"
+                  label={USER_SWITCH_LABELS.requires_approval}
                   description="Every request waits for your approval, whatever their quota."
                 />
               )}

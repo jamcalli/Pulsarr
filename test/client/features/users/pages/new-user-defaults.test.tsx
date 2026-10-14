@@ -80,9 +80,7 @@ describe('NewUserDefaultsPage', () => {
     renderPage()
 
     const access = await findSection('Access')
-    expect(
-      access.getByRole('switch', { name: 'Sync watchlists' }),
-    ).toBeChecked()
+    expect(access.getByRole('switch', { name: 'Sync watchlist' })).toBeChecked()
     expect(
       access.getByRole('switch', { name: 'Require approval' }),
     ).not.toBeChecked()

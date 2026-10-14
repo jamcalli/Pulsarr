@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
+import { MemoryRouter } from 'react-router-dom'
 import { MostActiveCard } from '@/features/home/components/most-active-card'
 import type { TopUsers } from '@/features/home/hooks/useTopUsers'
 import { setFormatLocale } from '@/lib/format'
@@ -16,7 +17,9 @@ function topUsers(data: TopUsers['data'] = []): TopUsers {
 function renderCard(users: TopUsers) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <MostActiveCard topUsers={users} />
+      <MemoryRouter>
+        <MostActiveCard topUsers={users} />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -99,7 +102,9 @@ describe('MostActiveCard', () => {
     )
     renderCard(topUsers([{ name: 'jamie', count: 20, movies: 15, shows: 5 }]))
 
-    expect(await screen.findByText('Jamie Lee')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('link', { name: 'Jamie Lee' }),
+    ).toHaveAttribute('href', '/users/1')
     expect(screen.queryByText('jamie')).not.toBeInTheDocument()
   })
 
