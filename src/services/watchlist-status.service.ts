@@ -52,15 +52,20 @@ export class StatusService {
     existingSeries?: SonarrItem[]
     existingMovies?: RadarrItem[]
   }): Promise<{ shows: number; movies: number }> {
-    const [shows, movies] = await Promise.all([
+    const [shows, movies] = await Promise.allSettled([
       this.syncSonarrStatuses(prefetchedData?.existingSeries),
       this.syncRadarrStatuses(prefetchedData?.existingMovies),
     ])
-    emitWatchlistChange(this.fastify.progress, 'status', [
-      ...shows.userIds,
-      ...movies.userIds,
-    ])
-    return { shows: shows.updated, movies: movies.updated }
+    emitWatchlistChange(
+      this.fastify.progress,
+      'status',
+      [shows, movies].flatMap((outcome) =>
+        outcome.status === 'fulfilled' ? outcome.value.userIds : [],
+      ),
+    )
+    if (shows.status === 'rejected') throw shows.reason
+    if (movies.status === 'rejected') throw movies.reason
+    return { shows: shows.value.updated, movies: movies.value.updated }
   }
 
   async syncSonarrStatuses(

@@ -100,6 +100,10 @@ describe('Quota limit and watchlist cap bounds', () => {
     const res = await app.inject({ method: 'GET', url: '/v1/quota/users/1' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.json().userQuotas).toEqual({ userId: 1 })
+    expect(res.json()).toEqual({
+      success: true,
+      message: 'User quotas retrieved successfully',
+      userQuotas: { userId: 1 },
+    })
   })
 })

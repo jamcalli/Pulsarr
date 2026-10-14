@@ -19,10 +19,10 @@ export function FieldSection({
 }: FieldSectionProps) {
   return (
     <FieldSet className="gap-3">
-      <div className="flex flex-col gap-1">
-        <FieldLegend className="mb-0">{title}</FieldLegend>
-        {description && <FieldDescription>{description}</FieldDescription>}
-      </div>
+      <FieldLegend className={description ? 'mb-2.5' : undefined}>
+        {title}
+      </FieldLegend>
+      {description && <FieldDescription>{description}</FieldDescription>}
       <FieldGroup className="gap-4">{children}</FieldGroup>
     </FieldSet>
   )

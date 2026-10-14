@@ -16,34 +16,36 @@ function selectedIn(rows: RowSelectionState): boolean {
   return Object.values(rows).some(Boolean)
 }
 
+function emptySelection(scope: string): Selection {
+  return { scope, rows: {}, failure: null }
+}
+
 /** Selection and its bulk failure reset whenever `scope` changes, and clearing the rows clears the failure. */
 export function useScopedSelection(scope: string) {
-  const [selection, setSelection] = useState<Selection>({
-    scope,
-    rows: {},
-    failure: null,
-  })
-  const current =
-    selection.scope === scope ? selection : { scope, rows: {}, failure: null }
+  const [selection, setSelection] = useState(() => emptySelection(scope))
+  if (selection.scope !== scope) setSelection(emptySelection(scope))
+
+  const updateInScope = (update: (prev: Selection) => Selection) =>
+    setSelection((prev) => (prev.scope === scope ? update(prev) : prev))
 
   return {
-    rows: current.rows,
-    failure: current.failure,
+    rows: selection.rows,
+    failure: selection.failure,
     select: (rows: RowSelectionState) =>
-      setSelection({
+      updateInScope((prev) => ({
         scope,
         rows,
-        failure: selectedIn(rows) ? current.failure : null,
-      }),
-    clear: () => setSelection({ scope, rows: {}, failure: null }),
+        failure: selectedIn(rows) ? prev.failure : null,
+      })),
+    clear: () => updateInScope(() => emptySelection(scope)),
     /** Keeps exactly `ids` selected, such as the rows a bulk action failed on. */
     settle: (ids: ReadonlyArray<number>, failure: BulkFailure | null) =>
-      setSelection({
+      updateInScope(() => ({
         scope,
         rows: Object.fromEntries(ids.map((id) => [String(id), true])),
         failure,
-      }),
+      })),
     setFailure: (failure: BulkFailure | null) =>
-      setSelection({ ...current, failure }),
+      updateInScope((prev) => ({ ...prev, failure })),
   }
 }

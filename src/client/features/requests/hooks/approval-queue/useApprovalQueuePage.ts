@@ -81,15 +81,6 @@ export function useApprovalQueuePage() {
     useMutation({
       mutationFn: (vars: { action: BulkAction; ids: number[]; note: string }) =>
         withMinDuration(runBulk(vars.action, vars.ids, vars.note)),
-      onSuccess: (result, { action }) => {
-        selection.settle(result.failed, bulkFailure(action, result))
-      },
-      onError: (error, { action }) => {
-        selection.setFailure({
-          message: mutationErrorMessage(error, bulkErrorFallback(action)),
-          detail: null,
-        })
-      },
       onSettled: () => {
         setConfirm((prev) => ({ ...prev, open: false }))
         return invalidateApprovalQueue()
@@ -140,11 +131,25 @@ export function useApprovalQueuePage() {
       if (!bulk.isPending) setConfirm((prev) => ({ ...prev, open: false }))
     },
     runConfirmed: () =>
-      bulk.mutate({
-        action: confirm.action,
-        ids: selected.map((row) => row.id),
-        note,
-      }),
+      bulk.mutate(
+        {
+          action: confirm.action,
+          ids: selected.map((row) => row.id),
+          note,
+        },
+        // per-call callbacks keep the selection scope from when the run started
+        {
+          onSuccess: (result, { action }) => {
+            selection.settle(result.failed, bulkFailure(action, result))
+          },
+          onError: (error, { action }) => {
+            selection.setFailure({
+              message: mutationErrorMessage(error, bulkErrorFallback(action)),
+              detail: null,
+            })
+          },
+        },
+      ),
     bulkPending: bulk.isPending,
     reviewId,
     reviewOpen,

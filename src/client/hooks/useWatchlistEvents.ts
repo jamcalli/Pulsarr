@@ -15,24 +15,31 @@ export function useWatchlistEvents(userId?: number): void {
   const queryClient = useQueryClient()
   const pendingUserIds = useRef(new Set<number>())
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const currentUserId = useRef(userId)
+  currentUserId.current = userId
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
   const flush = useCallback(() => {
     timer.current = undefined
-    const affected = userId !== undefined && pendingUserIds.current.has(userId)
+    const viewedUserId = currentUserId.current
+    const affected =
+      viewedUserId !== undefined && pendingUserIds.current.has(viewedUserId)
     pendingUserIds.current.clear()
     const queryKeys = [
       recentRequestsKeys.all,
       dashboardStatsKeys.all,
       ...(affected
-        ? [userWatchlistKeys.byUser(userId), userStatsKeys.byId(userId)]
+        ? [
+            userWatchlistKeys.byUser(viewedUserId),
+            userStatsKeys.byId(viewedUserId),
+          ]
         : []),
     ]
     return Promise.all(
       queryKeys.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
     )
-  }, [queryClient, userId])
+  }, [queryClient])
 
   useProgressEvents(
     'watchlist',

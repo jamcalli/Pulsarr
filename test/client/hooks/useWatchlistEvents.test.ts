@@ -113,6 +113,26 @@ describe('useWatchlistEvents', () => {
     ])
   })
 
+  it('refetches the user named at flush time when the user changes inside the window', () => {
+    const invalidatedKeys = spyInvalidations()
+    const { rerender } = renderHook(
+      ({ userId }: { userId: number }) => useWatchlistEvents(userId),
+      { wrapper, initialProps: { userId: 1 } },
+    )
+
+    emitWatchlist([3])
+    rerender({ userId: 2 })
+    emitWatchlist([2])
+    closeWindow()
+
+    expect(invalidatedKeys()).toEqual([
+      recentRequestsKeys.all,
+      dashboardStatsKeys.all,
+      userWatchlistKeys.byUser(2),
+      userStatsKeys.byId(2),
+    ])
+  })
+
   it('drops the pending refetch on unmount', () => {
     const invalidatedKeys = spyInvalidations()
     const { unmount } = renderHook(() => useWatchlistEvents(5), { wrapper })

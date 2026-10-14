@@ -399,6 +399,32 @@ describe('PlexLabelsPage', () => {
     expect(actionCalls).toEqual(['sync'])
   })
 
+  it('shows the reason a full sync was refused instead of results', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    server.use(
+      http.post('/v1/labels/sync', () =>
+        HttpResponse.json({
+          success: false,
+          message: 'Plex label synchronization is disabled in configuration',
+          mode: 'sync',
+          results: { processed: 0, updated: 0, failed: 0, pending: 0 },
+        }),
+      ),
+    )
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Run now' }))
+
+    expect(
+      await screen.findByText(
+        'Plex label synchronization is disabled in configuration',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Ran at/)).not.toBeInTheDocument()
+  })
+
   it('removes labels only after confirming, then unlocks the format', async () => {
     const user = userEvent.setup()
     const { actionCalls } = mockEndpoints()
@@ -426,6 +452,35 @@ describe('PlexLabelsPage', () => {
     expect(
       screen.queryByText('Remove all Pulsarr labels to change the format.'),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows the reason a removal was refused instead of results', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    server.use(
+      http.delete('/v1/labels/remove', () =>
+        HttpResponse.json({
+          success: false,
+          message: 'Plex label removal is already running',
+          mode: 'remove',
+          results: { processed: 0, removed: 0, failed: 0 },
+        }),
+      ),
+    )
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Remove labels',
+      }),
+    )
+
+    expect(
+      await screen.findByText('Plex label removal is already running'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Labels removed')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Prefix')).toBeDisabled()
   })
 
   it('keeps the format locked when some labels failed to be removed', async () => {

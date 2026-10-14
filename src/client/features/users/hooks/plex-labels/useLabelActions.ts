@@ -24,6 +24,11 @@ function operation(label: string): OperationMeta {
   return { label, page: NAV_PAGES.plexLabels }
 }
 
+function requireSuccess<T extends { success: boolean }>(data: T): T {
+  if (!data.success) throw data
+  return data
+}
+
 export function useLabelActions(
   saved: components['schemas']['PlexLabelSyncConfig'],
 ) {
@@ -34,7 +39,7 @@ export function useLabelActions(
         apiFetch.POST('/v1/labels/sync'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     meta: operation('Label sync'),
     errorFallback: 'Sync failed. Try again.',
@@ -46,7 +51,7 @@ export function useLabelActions(
         apiFetch.POST('/v1/labels/cleanup'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     meta: operation('Label cleanup'),
     errorFallback: 'Cleanup failed. Try again.',
@@ -58,7 +63,7 @@ export function useLabelActions(
         apiFetch.DELETE('/v1/labels/remove'),
       )
       if (error) throw error
-      return data
+      return requireSuccess(data)
     },
     meta: operation('Label removal'),
     errorFallback: 'Labels were not removed. Try again.',

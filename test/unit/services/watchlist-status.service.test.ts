@@ -58,7 +58,7 @@ function createService(showUserIds: number[], movieUserIds: number[]) {
     {} as FastifyInstance['radarrManager'],
     fastify as unknown as FastifyInstance,
   )
-  return { service, emit }
+  return { service, emit, db }
 }
 
 describe('StatusService.syncAllStatuses', () => {
@@ -90,6 +90,22 @@ describe('StatusService.syncAllStatuses', () => {
     await service.syncAllStatuses({ existingSeries: [], existingMovies: [] })
 
     expect(emit).not.toHaveBeenCalled()
+  })
+
+  it('emits the users Sonarr updated before Radarr failed, then rejects', async () => {
+    const { service, emit, db } = createService([3], [])
+    db.getAllMovieWatchlistItems.mockRejectedValueOnce(new Error('radarr down'))
+
+    await expect(
+      service.syncAllStatuses({ existingSeries: [], existingMovies: [] }),
+    ).rejects.toThrow('radarr down')
+
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { action: 'status', userIds: [3] },
+      }),
+    )
   })
 
   it('emits the users whose only change was a junction row', async () => {
