@@ -101,13 +101,13 @@ describe('selectionScope', () => {
   ]
 
   it.each(changes)('changes with the %s', (_, next) => {
-    expect(selectionScope(next)).not.toBe(selectionScope(base))
+    expect(selectionScope(next, 20)).not.toBe(selectionScope(base, 20))
   })
 
   it('changes with the history status', () => {
     const history = withTab(base, 'history')
-    expect(selectionScope({ ...history, status: 'approved' })).not.toBe(
-      selectionScope(history),
+    expect(selectionScope({ ...history, status: 'approved' }, 20)).not.toBe(
+      selectionScope(history, 20),
     )
   })
 })

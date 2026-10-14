@@ -8,6 +8,7 @@ import {
   notificationChannels,
   type PlexUser,
   type PlexUserRow,
+  USER_SORT_VALUES,
 } from '@/features/users/lib/plex-users/user-rows'
 import {
   RELATIONSHIP_LABELS,
@@ -47,14 +48,15 @@ function OnOff({ on }: { on: boolean }) {
 
 const user: ColumnDef<PlexUserRow> = {
   id: 'user',
+  accessorFn: USER_SORT_VALUES.user,
   header: 'User',
   cell: ({ row }) => <UserCell user={row.original.user} />,
 }
 
 const relationship: ColumnDef<PlexUserRow> = {
   id: 'relationship',
+  accessorFn: USER_SORT_VALUES.relationship,
   header: 'Relationship',
-  enableSorting: false,
   cell: ({ row }) => {
     const status = row.original.user.friendStatus
     if (status === null) return null
@@ -69,6 +71,7 @@ const relationship: ColumnDef<PlexUserRow> = {
 
 const watchlist: ColumnDef<PlexUserRow> = {
   id: 'watchlist',
+  accessorFn: USER_SORT_VALUES.watchlist,
   header: 'Watchlist',
   sortDescFirst: true,
   cell: ({ row }) => (
@@ -80,22 +83,23 @@ const watchlist: ColumnDef<PlexUserRow> = {
 
 const sync: ColumnDef<PlexUserRow> = {
   id: 'sync',
+  accessorFn: USER_SORT_VALUES.sync,
   header: 'Sync',
-  enableSorting: false,
   cell: ({ row }) => <OnOff on={row.original.user.can_sync} />,
 }
 
 const approval: ColumnDef<PlexUserRow> = {
   id: 'approval',
+  accessorFn: USER_SORT_VALUES.approval,
   header: 'Approval',
-  enableSorting: false,
   cell: ({ row }) => <OnOff on={row.original.user.requires_approval} />,
 }
 
 const notifications: ColumnDef<PlexUserRow> = {
   id: 'notifications',
+  accessorFn: USER_SORT_VALUES.notifications,
+  sortDescFirst: true,
   header: 'Notifications',
-  enableSorting: false,
   cell: ({ row }) => {
     const channels = notificationChannels(row.original.user)
     return channels ?? <span className="text-muted-foreground">None</span>
@@ -104,12 +108,13 @@ const notifications: ColumnDef<PlexUserRow> = {
 
 const quotas: ColumnDef<PlexUserRow> = {
   id: 'quotas',
+  accessorFn: USER_SORT_VALUES.quotas,
+  sortDescFirst: true,
   header: 'Quotas',
-  enableSorting: false,
   cell: ({ row }) => <QuotaUsageLines quotas={row.original.quotas} />,
 }
 
-/** Column ids match the page's sort keys for the sortable columns. */
+/** Column ids match the page's sort keys. */
 export const USERS_COLUMNS: ColumnDef<PlexUserRow>[] = [
   user,
   relationship,

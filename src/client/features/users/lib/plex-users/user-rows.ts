@@ -1,5 +1,9 @@
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema'
-import type { UsersState } from '@/features/users/lib/plex-users/users-state'
+import type {
+  UsersSortKey,
+  UsersState,
+} from '@/features/users/lib/plex-users/users-state'
+import { RELATIONSHIP_ORDER } from '@/features/users/lib/relationship'
 import { USER_SWITCH_LABELS } from '@/features/users/lib/user-switches'
 import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
 import { compareText, formatList } from '@/lib/format'
@@ -24,15 +28,48 @@ export interface QuotaLine {
   atLimit: boolean
 }
 
-/** Null when no channel is on. */
-export function notificationChannels(user: PlexUser): string | null {
-  const channels = [
+function channelLabels(user: PlexUser): string[] {
+  return [
     user.notify_discord && USER_SWITCH_LABELS.notify_discord,
     user.notify_discord_mention && USER_SWITCH_LABELS.notify_discord_mention,
     user.notify_apprise && USER_SWITCH_LABELS.notify_apprise,
     user.notify_plex_mobile && USER_SWITCH_LABELS.notify_plex_mobile,
   ].filter((channel) => channel !== false)
+}
+
+/** Null when no channel is on. */
+export function notificationChannels(user: PlexUser): string | null {
+  const channels = channelLabels(user)
   return channels.length > 0 ? formatList(channels) : null
+}
+
+/** The highest share of any quota used, or -1 without quotas. */
+function quotaShare(quotas: PlexUserRow['quotas']): number {
+  return Math.max(
+    -1,
+    ...ContentTypeSchema.options.map((key) => {
+      const status = quotas[key]
+      if (!status) return -1
+      return status.quotaLimit > 0 ? status.currentUsage / status.quotaLimit : 0
+    }),
+  )
+}
+
+/** Each column's sort value, in ascending order. */
+export const USER_SORT_VALUES: Record<
+  UsersSortKey,
+  (row: PlexUserRow) => string | number
+> = {
+  user: (row) => displayName(row.user),
+  relationship: (row) =>
+    row.user.friendStatus === null
+      ? Object.keys(RELATIONSHIP_ORDER).length
+      : RELATIONSHIP_ORDER[row.user.friendStatus],
+  watchlist: (row) => row.user.watchlist_count,
+  sync: (row) => (row.user.can_sync ? 0 : 1),
+  approval: (row) => (row.user.requires_approval ? 0 : 1),
+  notifications: (row) => channelLabels(row.user).length,
+  quotas: (row) => quotaShare(row.quotas),
 }
 
 export function quotaLines(quotas: PlexUserRow['quotas']): QuotaLine[] {
@@ -62,12 +99,17 @@ function toggleMatches(filter: UsersState['sync'], value: boolean): boolean {
   return filter === null || (filter === 'on') === value
 }
 
-function compareRows(sort: UsersState['sort']) {
+function compareValues(a: string | number, b: string | number): number {
+  if (typeof a === 'string' && typeof b === 'string') return compareText(a, b)
+  return Number(a) - Number(b)
+}
+
+function compareRows(sort: UsersSortKey) {
+  const value = USER_SORT_VALUES[sort]
   return (a: PlexUserRow, b: PlexUserRow) =>
-    sort === 'watchlist'
-      ? a.user.watchlist_count - b.user.watchlist_count
-      : compareText(displayName(a.user), displayName(b.user)) ||
-        compareText(a.user.name, b.user.name)
+    compareValues(value(a), value(b)) ||
+    compareText(displayName(a.user), displayName(b.user)) ||
+    compareText(a.user.name, b.user.name)
 }
 
 export function visibleRows(

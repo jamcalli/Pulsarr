@@ -1,4 +1,4 @@
-import { pageSizePref } from '@/components/data-table/page-size'
+import { type PageSize, pageSizePref } from '@/components/data-table/page-size'
 import {
   RELATIONSHIP_FILTER_OPTIONS,
   type TrackedStatus,
@@ -10,7 +10,17 @@ import {
   type SortDirection,
 } from '@/lib/url-state'
 
-export type UsersSortKey = 'user' | 'watchlist'
+export const USERS_SORTABLE = [
+  'user',
+  'relationship',
+  'watchlist',
+  'sync',
+  'approval',
+  'notifications',
+  'quotas',
+] as const
+
+export type UsersSortKey = (typeof USERS_SORTABLE)[number]
 export type Toggle = 'on' | 'off'
 
 export interface UsersState {
@@ -25,8 +35,6 @@ export interface UsersState {
 }
 
 export const plexUsersPageSizePref = pageSizePref('users')
-
-export const USERS_SORTABLE: readonly UsersSortKey[] = ['user', 'watchlist']
 
 const DEFAULT_SORT = { sort: 'user', dir: 'asc' } as const satisfies {
   sort: UsersSortKey
@@ -90,8 +98,8 @@ export function serializeUsersState(state: UsersState): URLSearchParams {
 }
 
 /** Changes whenever the visible rows could change, which is when a selection stops applying. */
-export function selectionScope(state: UsersState): string {
-  return serializeUsersState(state).toString()
+export function selectionScope(state: UsersState, pageSize: PageSize): string {
+  return `${serializeUsersState(state).toString()}#${pageSize}`
 }
 
 export function withoutFilters(state: UsersState): UsersState {

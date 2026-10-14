@@ -64,7 +64,7 @@ export function usePlexUsersPage() {
   const [pageSize, savePageSize] = usePref(plexUsersPageSizePref)
   const list = usePlexUsersList()
   const config = useConfig()
-  const selection = useScopedSelection(selectionScope(state))
+  const selection = useScopedSelection(selectionScope(state, pageSize))
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [quotasOpen, setQuotasOpen] = useState(false)
 
@@ -73,7 +73,7 @@ export function usePlexUsersPage() {
   const lastPage = Math.max(1, Math.ceil(total / pageSize))
   const page = Math.min(state.page, lastPage)
   const rows = matching?.slice((page - 1) * pageSize, page * pageSize) ?? null
-  const selected = (list.rows ?? []).filter(
+  const selected = (rows ?? []).filter(
     (row) => selection.rows[String(row.user.id)],
   )
 

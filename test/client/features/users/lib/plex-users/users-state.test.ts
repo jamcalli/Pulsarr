@@ -102,10 +102,13 @@ describe('filters', () => {
 describe('selectionScope', () => {
   it('changes with the page and the filters', () => {
     const base = parse('')
-    expect(selectionScope(base)).not.toBe(selectionScope({ ...base, page: 2 }))
-    expect(selectionScope(base)).not.toBe(
-      selectionScope({ ...base, sync: 'on' }),
+    expect(selectionScope(base, 20)).not.toBe(
+      selectionScope({ ...base, page: 2 }, 20),
     )
-    expect(selectionScope(base)).toBe(selectionScope(parse('')))
+    expect(selectionScope(base, 20)).not.toBe(
+      selectionScope({ ...base, sync: 'on' }, 20),
+    )
+    expect(selectionScope(base, 20)).toBe(selectionScope(parse(''), 20))
+    expect(selectionScope(base, 20)).not.toBe(selectionScope(base, 10))
   })
 })

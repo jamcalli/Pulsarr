@@ -4,6 +4,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { invalidatePlexUsers } from '@/features/users/lib/users-queries'
 import PlexUsersPage from '@/features/users/pages/plex-users'
 import { setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
@@ -230,6 +231,10 @@ async function findTable() {
 
 function bodyRows(table: HTMLElement) {
   return within(table).getAllByRole('row').slice(1)
+}
+
+function rowNames(table: HTMLElement) {
+  return bodyRows(table).map((row) => within(row).getByRole('link').textContent)
 }
 
 function fieldSection(container: HTMLElement, title: string) {
@@ -588,5 +593,102 @@ describe('PlexUsersPage', () => {
     expect(
       screen.getByRole('combobox', { name: 'Rows per page' }),
     ).toHaveTextContent('30 per page')
+  })
+
+  it.each([
+    ['User', 'user'],
+    ['Relationship', 'relationship'],
+    ['Watchlist', 'watchlist'],
+    ['Sync', 'sync'],
+    ['Approval', 'approval'],
+    ['Notifications', 'notifications'],
+    ['Quotas', 'quotas'],
+  ])('sorts by the %s header', async (header, key) => {
+    const user = userEvent.setup()
+    mockUsers()
+    const router = renderPage()
+    const table = await findTable()
+
+    await user.click(within(table).getByRole('button', { name: header }))
+
+    await waitFor(() =>
+      expect(
+        new URLSearchParams(router.state.location.search).get('sort'),
+      ).toBe(key),
+    )
+    expect(
+      within(table).getByRole('columnheader', { name: header }),
+    ).toHaveAttribute('aria-sort')
+  })
+
+  it('orders rows by relationship, owner first', async () => {
+    const user = userEvent.setup()
+    mockUsers()
+    renderPage()
+    const table = await findTable()
+
+    await user.click(
+      within(table).getByRole('button', { name: 'Relationship' }),
+    )
+
+    await waitFor(() =>
+      expect(rowNames(table)).toEqual([
+        'Lukas',
+        'Maya R.',
+        'theo_watches',
+        'Dana',
+      ]),
+    )
+  })
+
+  it('clears the selection when the page size changes', async () => {
+    const user = userEvent.setup()
+    mockUsers({ list: manyUsers(25) })
+    renderPage()
+    await findTable()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Select user1' }))
+    expect(within(selectionBar()).getByText('1 selected')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('combobox', { name: 'Rows per page' }))
+    await user.click(await screen.findByRole('option', { name: '10 per page' }))
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', { name: 'Selection' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it('drops a selected user that a refetch moves out of the filter', async () => {
+    const user = userEvent.setup()
+    mockUsers()
+    renderPage('/?sync=on')
+    await findTable()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Select Maya R.' }))
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Select theo_watches' }),
+    )
+    expect(within(selectionBar()).getByText('2 selected')).toBeInTheDocument()
+
+    server.use(
+      http.get('/v1/users/list/with-counts', () =>
+        HttpResponse.json({
+          success: true,
+          message: 'ok',
+          users: users.map((entry) =>
+            entry.id === 2 ? { ...entry, can_sync: false } : entry,
+          ),
+        }),
+      ),
+    )
+    await invalidatePlexUsers()
+
+    await waitFor(() =>
+      expect(
+        within(selectionBar()).getByText('1 selected'),
+      ).toBeInTheDocument(),
+    )
   })
 })

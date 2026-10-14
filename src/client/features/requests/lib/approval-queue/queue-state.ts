@@ -161,8 +161,8 @@ export function serializeQueueState(state: QueueState): URLSearchParams {
 }
 
 /** Changes whenever the visible rows could change, which is when a selection stops applying. */
-export function selectionScope(state: QueueState): string {
-  return serializeQueueState(state).toString()
+export function selectionScope(state: QueueState, pageSize: PageSize): string {
+  return `${serializeQueueState(state).toString()}#${pageSize}`
 }
 
 export function withTab(state: QueueState, tab: QueueTab): QueueState {

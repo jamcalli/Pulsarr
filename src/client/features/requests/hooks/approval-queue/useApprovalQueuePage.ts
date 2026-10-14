@@ -60,7 +60,7 @@ export function useApprovalQueuePage() {
   )
   const [pageSize, savePageSize] = usePref(queuePageSizePref)
   const list = useApprovalQueueList(state, pageSize)
-  const selection = useScopedSelection(selectionScope(state))
+  const selection = useScopedSelection(selectionScope(state, pageSize))
   const [confirm, setConfirm] = useState<{
     action: BulkAction
     count: number

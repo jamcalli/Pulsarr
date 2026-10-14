@@ -22,6 +22,17 @@ export const RELATIONSHIP_LABELS: Record<PlexFriendStatus, string> = {
   managed: 'Managed',
 }
 
+/** Sort rank, lowest first. */
+export const RELATIONSHIP_ORDER: Record<PlexFriendStatus, number> = {
+  self: 0,
+  friend: 1,
+  friend_only: 2,
+  pending_sent: 3,
+  pending_received: 4,
+  server_only: 5,
+  managed: 6,
+}
+
 export const RELATIONSHIP_TONES: Record<PlexFriendStatus, StatusTone> = {
   self: 'requested',
   friend: 'on',
