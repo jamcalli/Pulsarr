@@ -2,6 +2,7 @@ import { DataTableSelectSkeleton } from '@/components/data-table/data-table'
 import { Page, PageHeaderSkeleton } from '@/components/page-header'
 import { PosterFrameSkeleton } from '@/components/poster-frame'
 import { SearchFieldSkeleton } from '@/components/search-field'
+import { StatusFilterSkeleton } from '@/components/status-filter'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -12,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { UserAvatarSkeleton } from '@/components/user-avatar'
 import { queueColumns } from '@/features/requests/components/approval-queue/approval-queue-columns'
 import type { QueueTab } from '@/features/requests/lib/approval-queue/queue-state'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -26,11 +28,7 @@ function ToolbarSkeleton({ tab }: { tab: QueueTab }) {
   const isMobile = useIsMobile()
   return (
     <>
-      {tab === 'history' && (
-        <Skeleton
-          className={isMobile ? 'h-10 w-full' : 'h-8 w-96 max-w-full'}
-        />
-      )}
+      {tab === 'history' && <StatusFilterSkeleton className="w-96" />}
       {isMobile ? (
         <>
           <SearchFieldSkeleton />
@@ -82,7 +80,7 @@ function TableSkeleton({ tab }: { tab: QueueTab }) {
               </TableCell>
               <TableCell className="py-2">
                 <div className="flex items-center gap-2">
-                  <Skeleton className="size-6 rounded-full" />
+                  <UserAvatarSkeleton size="sm" />
                   <Skeleton className={`h-4 ${requesterWidth}`} />
                 </div>
               </TableCell>

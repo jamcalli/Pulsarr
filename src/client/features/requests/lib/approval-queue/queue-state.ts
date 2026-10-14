@@ -57,16 +57,15 @@ export const DECIDED_STATUSES = [
   'auto_approved',
 ] as const satisfies ReadonlyArray<Exclude<HistoryStatus, 'all'>>
 
+export const DECIDED_STATUS_OPTIONS = DECIDED_STATUSES.map((value) => ({
+  value,
+  label: APPROVAL_STATUS_LABELS[value],
+}))
+
 export const HISTORY_STATUS_OPTIONS: ReadonlyArray<{
   value: HistoryStatus
   label: string
-}> = [
-  { value: 'all', label: 'All' },
-  ...DECIDED_STATUSES.map((value) => ({
-    value,
-    label: APPROVAL_STATUS_LABELS[value],
-  })),
-]
+}> = [{ value: 'all', label: 'All' }, ...DECIDED_STATUS_OPTIONS]
 
 export const CONTENT_TYPE_FILTER_OPTIONS: ReadonlyArray<{
   value: ContentType

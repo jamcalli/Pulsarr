@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 
 interface BusyLabelProps {
   busy: boolean
@@ -10,7 +10,7 @@ export function BusyLabel({ busy, label, busyLabel }: BusyLabelProps) {
   if (!busy) return label
   return (
     <>
-      <Loader2 className="animate-spin" data-icon="inline-start" />
+      <Spinner data-icon="inline-start" aria-hidden />
       {busyLabel ?? label}
     </>
   )

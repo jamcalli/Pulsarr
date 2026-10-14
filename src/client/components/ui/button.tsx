@@ -2,6 +2,9 @@ import { Button as ButtonPrimitive } from '@base-ui/react/button'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
 
+const linkUnderline =
+  'text-foreground underline underline-offset-4 decoration-1 hover:decoration-2'
+
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-md border-2 border-transparent bg-clip-padding text-sm font-bold whitespace-nowrap transition-all select-none outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
@@ -20,7 +23,7 @@ const buttonVariants = cva(
           'bg-surface text-foreground hover:bg-accent aria-expanded:bg-accent',
         destructive:
           'border-border bg-clip-border bg-destructive text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
-        link: 'text-foreground underline underline-offset-4 hover:no-underline',
+        link: linkUnderline,
       },
       size: {
         default:
@@ -56,4 +59,4 @@ function Button({
   )
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants, linkUnderline }

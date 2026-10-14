@@ -1,8 +1,7 @@
 import { CornerDownRight, Route } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/empty-state'
+import { InlineLink } from '@/components/inline-link'
 import { Accordion } from '@/components/ui/accordion'
-import { Button } from '@/components/ui/button'
 import {
   RouteCardItem,
   type RouteSwitch,
@@ -79,14 +78,7 @@ export function RouteList({
         title={empty.title}
         description={empty.description}
       >
-        <Button
-          variant="link"
-          size="sm"
-          nativeButton={false}
-          render={<Link to={pageHref(NAV_PAGES[type])} />}
-        >
-          {empty.action}
-        </Button>
+        <InlineLink to={pageHref(NAV_PAGES[type])}>{empty.action}</InlineLink>
       </EmptyState>
     )
   }

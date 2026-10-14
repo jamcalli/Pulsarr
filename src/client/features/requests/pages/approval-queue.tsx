@@ -2,6 +2,7 @@ import { ApprovalReviewCredenza } from '@/components/approval-review/approval-re
 import { DataTableFooter } from '@/components/data-table/data-table-footer'
 import { Page, PageHeader } from '@/components/page-header'
 import { RetryAlert } from '@/components/retry-alert'
+import { StatusFilter } from '@/components/status-filter'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApprovalQueueBar } from '@/features/requests/components/approval-queue/approval-queue-bar'
@@ -13,13 +14,13 @@ import {
 import { ApprovalQueueBodySkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { ApprovalQueueTable } from '@/features/requests/components/approval-queue/approval-queue-table'
 import { BulkConfirm } from '@/features/requests/components/approval-queue/bulk-confirm'
-import { HistoryStatusFilter } from '@/features/requests/components/approval-queue/history-status-filter'
 import { invalidateApprovalQueue } from '@/features/requests/hooks/approval-queue/useApprovalQueueList'
 import {
   type ApprovalQueuePage as QueuePage,
   useApprovalQueuePage,
 } from '@/features/requests/hooks/approval-queue/useApprovalQueuePage'
 import {
+  DECIDED_STATUS_OPTIONS,
   QUEUE_PAGE_SIZE,
   QUEUE_TABS,
 } from '@/features/requests/lib/approval-queue/queue-state'
@@ -42,10 +43,22 @@ function QueueBody({ page }: { page: QueuePage }) {
   const showToolbar = !empty || page.filtered
   const showStatus =
     page.state.tab === 'history' && (showToolbar || page.state.status !== 'all')
+  // counts come from unfiltered stats, so they hide while any filter or search is set
+  const counts = page.filtered ? null : page.stats
+  const statusOptions = DECIDED_STATUS_OPTIONS.map((option) => ({
+    ...option,
+    count: counts?.[option.value],
+  }))
 
   return (
     <div className="flex flex-col gap-5">
-      {showStatus && <HistoryStatusFilter page={page} />}
+      {showStatus && (
+        <StatusFilter
+          options={statusOptions}
+          value={page.state.status}
+          onValueChange={(status) => page.update({ status })}
+        />
+      )}
       {showToolbar &&
         (isMobile ? (
           <ApprovalQueuePhoneFilters page={page} />

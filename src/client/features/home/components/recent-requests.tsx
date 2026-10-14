@@ -9,8 +9,11 @@ import {
   requestKey,
 } from '@/components/request-list/request-list'
 import { RequestListSkeleton } from '@/components/request-list/request-list-skeleton'
-import { ViewToggle } from '@/components/request-list/view-toggle'
-import { SegmentedControl } from '@/components/segmented-control'
+import {
+  ViewToggle,
+  ViewToggleSkeleton,
+} from '@/components/request-list/view-toggle'
+import { StatusFilter, StatusFilterSkeleton } from '@/components/status-filter'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -30,15 +33,9 @@ import { usePref } from '@/lib/prefs'
 import { REQUEST_STATUS_OPTIONS } from '@/lib/request-labels'
 import {
   RECENT_LIMITS,
-  type RecentStatus,
   recentLimitPref,
   recentViewPref,
 } from '@/lib/request-list-prefs'
-
-const STATUS_FILTERS: ReadonlyArray<{ value: RecentStatus; label: string }> = [
-  { value: 'all', label: 'All' },
-  ...REQUEST_STATUS_OPTIONS,
-]
 
 const LIMIT_OPTIONS = RECENT_LIMITS.map((limit) => ({
   value: limit,
@@ -53,9 +50,9 @@ export function RecentRequestsCardSkeleton() {
       <CardHeaderSkeleton action={<Skeleton className="h-8 w-28" />} />
       <CardContent className="gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-8 w-80 max-w-full" />
+          <StatusFilterSkeleton className="w-80" />
           <Skeleton className="h-8 w-24" />
-          <Skeleton className="ml-auto h-8 w-18" />
+          <ViewToggleSkeleton />
         </div>
         <RequestListSkeleton view={view} limit={limit} />
       </CardContent>
@@ -114,10 +111,9 @@ export function RecentRequests({ recent }: { recent: RecentRequestsState }) {
       </CardHeader>
       <CardContent className="gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <SegmentedControl
-            aria-label="Status"
+          <StatusFilter
+            options={REQUEST_STATUS_OPTIONS}
             value={status}
-            options={STATUS_FILTERS}
             onValueChange={recent.setStatus}
           />
           <CompactSelect
