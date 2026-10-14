@@ -505,6 +505,32 @@ describe('PlexLabelsPage', () => {
     expect(screen.getByLabelText('Prefix')).toBeDisabled()
   })
 
+  it('locks the format again after a full sync recreates the removed labels', async () => {
+    const user = userEvent.setup()
+    const { actionCalls } = mockEndpoints()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Remove labels',
+      }),
+    )
+    expect(await screen.findByText('Labels removed')).toBeInTheDocument()
+    expect(screen.getByLabelText('Prefix')).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Run now' }))
+
+    expect(
+      await screen.findByRole('columnheader', { name: 'Updated' }),
+    ).toBeInTheDocument()
+    expect(actionCalls).toEqual(['remove', 'sync'])
+    expect(screen.getByLabelText('Prefix')).toBeDisabled()
+    expect(
+      screen.getByText('Remove all Pulsarr labels to change the format.'),
+    ).toBeInTheDocument()
+  })
+
   it('leaves a custom schedule untouched when saving other changes', async () => {
     const user = userEvent.setup()
     const { configBodies, scheduleBodies } = mockEndpoints({

@@ -232,4 +232,49 @@ describe('NewUserDefaultsPage', () => {
     expect(cap).toHaveAccessibleDescription('Enter a number of items.')
     expect(configBodies).toEqual([])
   })
+
+  it('saves a blank switched-on cap while bypass is on and sends no cap', async () => {
+    const user = userEvent.setup()
+    const { configBodies } = mockEndpoints()
+    renderPage()
+
+    const movies = await findSection('Movies')
+    await user.clear(movies.getByLabelText('Watchlist cap'))
+    await user.click(
+      movies.getByRole('switch', { name: 'Bypass approval over the limit' }),
+    )
+    const save = screen.getByRole('button', { name: 'Save changes' })
+    expect(save).toBeEnabled()
+    await user.click(save)
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(configBodies).toEqual([
+      {
+        ...savedConfig,
+        newUserDefaultMovieBypassApproval: true,
+        newUserDefaultMovieWatchlistCap: null,
+      },
+    ])
+  })
+
+  it('keeps sending a saved cap while bypass is on', async () => {
+    const user = userEvent.setup()
+    const { configBodies } = mockEndpoints()
+    renderPage()
+
+    const movies = await findSection('Movies')
+    await user.click(
+      movies.getByRole('switch', { name: 'Bypass approval over the limit' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(configBodies).toEqual([
+      {
+        ...savedConfig,
+        newUserDefaultMovieBypassApproval: true,
+        newUserDefaultMovieWatchlistCap: 50,
+      },
+    ])
+  })
 })

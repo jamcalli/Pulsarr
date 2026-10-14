@@ -15,7 +15,7 @@ function mediaDefaultsSchema(media: 'Movie' | 'Show') {
       cap: z.number().optional(),
     })
     .superRefine((value, ctx) => {
-      if (!value.capOn) return
+      if (!value.capOn || value.bypassApproval) return
       const result = cap.safeParse(value.cap)
       for (const issue of result.error?.issues ?? []) {
         ctx.addIssue({ code: 'custom', message: issue.message, path: ['cap'] })
