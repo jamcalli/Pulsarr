@@ -1,6 +1,7 @@
 import { PLEX_DEFAULT_PORT } from '@root/schemas/plex/configure-notifications.schema.js'
 
 const HTTPS_DEFAULT_PORT = 443
+const HTTP_DEFAULT_PORT = 80
 
 export interface PlexNotificationTarget {
   plexToken: string
@@ -41,7 +42,7 @@ export function resolveNotificationTarget(
     plexPort:
       body.plexPort ??
       urlPort ??
-      (useSsl ? HTTPS_DEFAULT_PORT : PLEX_DEFAULT_PORT),
+      (useSsl ? HTTPS_DEFAULT_PORT : HTTP_DEFAULT_PORT),
     useSsl,
   }
 }

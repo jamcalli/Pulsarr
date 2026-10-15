@@ -10,31 +10,42 @@ export interface DiscoveryOption {
   local: boolean
 }
 
-/** Each candidate as its own address and, unless the server requires https, its plain http address too. */
+const HTTPS_DEFAULT_PORT = 443
+const HTTP_DEFAULT_PORT = 80
+
+/** Each candidate's URI as Plex lists it and, unless the server requires https, its plain http address too. */
 export function discoveryOptions(
   servers: ServerCandidates[],
 ): DiscoveryOption[] {
   const options = new Map<string, DiscoveryOption>()
+  const add = (option: DiscoveryOption) => {
+    if (!options.has(option.uri)) options.set(option.uri, option)
+  }
   for (const { resource, connections } of servers) {
     for (const connection of connections) {
       const parsed = parseUri(connection.uri)
       if (!parsed) continue
-      const port = connection.port || Number(parsed.port) || PLEX_DEFAULT_PORT
-      const entries = [
-        { host: parsed.hostname, useSsl: parsed.protocol === 'https:' },
-      ]
+      const useSsl = parsed.protocol === 'https:'
+      add({
+        name: `${resource.name} (${parsed.hostname})`,
+        uri: parsed.origin,
+        host: parsed.hostname,
+        port: parsed.port
+          ? Number(parsed.port)
+          : useSsl
+            ? HTTPS_DEFAULT_PORT
+            : HTTP_DEFAULT_PORT,
+        useSsl,
+        local: connection.local,
+      })
       if (connection.address && !connection.IPv6 && !resource.httpsRequired) {
-        entries.push({ host: connection.address, useSsl: false })
-      }
-      for (const { host, useSsl } of entries) {
-        const uri = `${useSsl ? 'https' : 'http'}://${host}:${port}`
-        if (options.has(uri)) continue
-        options.set(uri, {
-          name: `${resource.name} (${host})`,
-          uri,
-          host,
+        const port = connection.port || PLEX_DEFAULT_PORT
+        add({
+          name: `${resource.name} (${connection.address})`,
+          uri: `http://${connection.address}:${port}`,
+          host: connection.address,
           port,
-          useSsl,
+          useSsl: false,
           local: connection.local,
         })
       }

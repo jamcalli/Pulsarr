@@ -46,4 +46,17 @@ describe('resolveNotificationTarget', () => {
       useSsl: false,
     })
   })
+
+  it('reads a saved http address without a port the way Pulsarr reaches it', () => {
+    for (const url of [
+      'http://plex.example.com',
+      'http://plex.example.com:80',
+    ]) {
+      expect(resolveNotificationTarget({}, url, 'linked')).toMatchObject({
+        plexHost: 'plex.example.com',
+        plexPort: 80,
+        useSsl: false,
+      })
+    }
+  })
 })

@@ -58,4 +58,27 @@ describe('discoveryOptions', () => {
       'https://2001-db8--1.abc.plex.direct:32400',
     ])
   })
+
+  it('keeps the port from the URI Plex lists, not the port field', () => {
+    const options = discoveryOptions(
+      serverCandidates([
+        plexResource({
+          connections: [
+            plexConnection({
+              uri: 'https://203-0-113-5.abc.plex.direct:41234',
+              address: '203.0.113.5',
+              port: 32400,
+              local: false,
+            }),
+          ],
+        }),
+      ]),
+    )
+
+    expect(uris(options)).toEqual([
+      'https://203-0-113-5.abc.plex.direct:41234',
+      'http://203.0.113.5:32400',
+    ])
+    expect(options[0]?.port).toBe(41234)
+  })
 })
