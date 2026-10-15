@@ -86,19 +86,13 @@ export const PLEX_PROBE_TIMEOUT_MS = 2000
 /** Probes each connection's /identity in parallel and keeps the input order. */
 export async function probeConnections<C extends { uri: string }>(
   connections: C[],
-  accessToken: string,
   logger: FastifyBaseLogger,
   timeoutMs = PLEX_PROBE_TIMEOUT_MS,
 ): Promise<ProbedConnection<C>[]> {
   return Promise.all(
     connections.map(async (connection) => ({
       connection,
-      outcome: await probeConnection(
-        connection.uri,
-        accessToken,
-        logger,
-        timeoutMs,
-      ),
+      outcome: await probeConnection(connection.uri, logger, timeoutMs),
     })),
   )
 }
@@ -106,7 +100,7 @@ export async function probeConnections<C extends { uri: string }>(
 async function probePath(
   uri: string,
   path: string,
-  accessToken: string,
+  accessToken: string | null,
   logger: FastifyBaseLogger,
   timeoutMs = PLEX_PROBE_TIMEOUT_MS,
 ): Promise<ProbeOutcome> {
@@ -116,8 +110,8 @@ async function probePath(
       headers: {
         'User-Agent': USER_AGENT,
         Accept: 'application/json',
-        'X-Plex-Token': accessToken,
         'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+        ...(accessToken ? { 'X-Plex-Token': accessToken } : {}),
       },
       signal: AbortSignal.timeout(timeoutMs),
     })
@@ -136,14 +130,13 @@ async function probePath(
   }
 }
 
-/** Reachability only, since `/identity` answers without checking the token. */
+/** Reachability only, sent without the token because `/identity` answers without one. */
 export function probeConnection(
   uri: string,
-  accessToken: string,
   logger: FastifyBaseLogger,
   timeoutMs = PLEX_PROBE_TIMEOUT_MS,
 ): Promise<ProbeOutcome> {
-  return probePath(uri, '/identity', accessToken, logger, timeoutMs)
+  return probePath(uri, '/identity', null, logger, timeoutMs)
 }
 
 /** Reachability plus whether the server accepts the token, which fails as `unauthorized` when it does not. */
@@ -158,16 +151,10 @@ export function probeServerAccess(
 /** The reachable connections only, in their original order. */
 export async function testConnectionReachability<C extends { uri: string }>(
   connections: C[],
-  accessToken: string,
   logger: FastifyBaseLogger,
   timeoutMs = PLEX_PROBE_TIMEOUT_MS,
 ): Promise<C[]> {
-  const probed = await probeConnections(
-    connections,
-    accessToken,
-    logger,
-    timeoutMs,
-  )
+  const probed = await probeConnections(connections, logger, timeoutMs)
   return probed
     .filter(({ outcome }) => outcome.reachable)
     .map(({ connection }) => connection)
@@ -178,20 +165,14 @@ export async function testConnectionReachability<C extends { uri: string }>(
  * Returns working connections sorted by preference (non-local, non-relay first).
  *
  * @param connections - Array of connections to test
- * @param accessToken - Token for authentication
  * @param logger - Logger instance
  * @returns Array of working connections sorted by preference
  */
 async function testConnections(
   connections: ConnectionCandidate[],
-  accessToken: string,
   logger: FastifyBaseLogger,
 ): Promise<ConnectionCandidate[]> {
-  const reachable = await testConnectionReachability(
-    connections,
-    accessToken,
-    logger,
-  )
+  const reachable = await testConnectionReachability(connections, logger)
 
   return reachable.sort((a, b) => {
     if (!a.local && b.local) return -1
@@ -248,11 +229,7 @@ export async function getBestServerConnection(
     `Testing ${connections.length} connections for server "${serverName}"`,
   )
 
-  const workingConnections = await testConnections(
-    connections,
-    accessToken,
-    logger,
-  )
+  const workingConnections = await testConnections(connections, logger)
 
   if (workingConnections.length === 0) {
     logger.warn(`No working connections found for server "${serverName}"`)

@@ -8,14 +8,15 @@ export type CandidateFallback = 'relay-only' | 'https-required'
 export interface ServerCandidates {
   resource: PlexResource
   connections: PlexResourceConnection[]
-  /** Set when filtering left nothing, so `connections` is the unfiltered list. */
+  /** Set when only relays are usable, or when https is required and none is listed. */
   fallback: CandidateFallback | null
 }
 
-const CANDIDATE_FALLBACK_REASONS: Record<CandidateFallback, string> = {
-  'relay-only': 'Plex lists only relay connections for this server',
+const CANDIDATE_FALLBACK_WARNINGS: Record<CandidateFallback, string> = {
+  'relay-only':
+    'Plex lists only relay connections for this server, so Pulsarr uses those',
   'https-required':
-    'the server requires https but Plex lists no https connection for it',
+    'This server requires https but Plex lists no https connection for it, so Pulsarr cannot use it',
 }
 
 /** Owned Plex Media Servers with their usable connections, in plex.tv order. */
@@ -33,19 +34,19 @@ export function serverCandidates(
 }
 
 function resourceCandidates(resource: PlexResource): ServerCandidates {
-  const all = resource.connections
-  const direct = all.filter((connection) => !connection.relay)
-  if (direct.length === 0) {
-    return { resource, connections: all, fallback: 'relay-only' }
-  }
-  if (!resource.httpsRequired) {
+  const usable = resource.httpsRequired
+    ? resource.connections.filter(
+        (connection) => connection.protocol === 'https',
+      )
+    : resource.connections
+  const direct = usable.filter((connection) => !connection.relay)
+  if (direct.length > 0) {
     return { resource, connections: direct, fallback: null }
   }
-  const secure = direct.filter((connection) => connection.protocol === 'https')
-  if (secure.length === 0) {
-    return { resource, connections: all, fallback: 'https-required' }
+  if (usable.length > 0) {
+    return { resource, connections: usable, fallback: 'relay-only' }
   }
-  return { resource, connections: secure, fallback: null }
+  return { resource, connections: [], fallback: 'https-required' }
 }
 
 export function warnCandidateFallback(
@@ -53,8 +54,5 @@ export function warnCandidateFallback(
   { resource, fallback }: ServerCandidates,
 ): void {
   if (!fallback) return
-  log.warn(
-    { server: resource.name },
-    `Keeping every connection for "${resource.name}" because ${CANDIDATE_FALLBACK_REASONS[fallback]}`,
-  )
+  log.warn({ server: resource.name }, CANDIDATE_FALLBACK_WARNINGS[fallback])
 }

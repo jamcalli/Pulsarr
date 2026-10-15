@@ -62,12 +62,21 @@ describe('serverCandidates', () => {
     expect(server?.fallback).toBe('relay-only')
   })
 
-  it('falls back to every connection when https is required but missing', () => {
+  it('uses an https relay when the server requires https and lists no direct https', () => {
     const [server] = serverCandidates([
       plexResource({ httpsRequired: true, connections: [REMOTE_HTTP, RELAY] }),
     ])
 
-    expect(server?.connections).toEqual([REMOTE_HTTP, RELAY])
+    expect(server?.connections).toEqual([RELAY])
+    expect(server?.fallback).toBe('relay-only')
+  })
+
+  it('never offers http when the server requires https', () => {
+    const [server] = serverCandidates([
+      plexResource({ httpsRequired: true, connections: [REMOTE_HTTP] }),
+    ])
+
+    expect(server?.connections).toEqual([])
     expect(server?.fallback).toBe('https-required')
   })
 })

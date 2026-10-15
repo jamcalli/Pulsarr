@@ -18,7 +18,6 @@ export async function discoverServerConnections(
 
   const probed = await probeConnections(
     discoveryOptions(servers),
-    plexToken,
     log,
     DISCOVERY_PROBE_TIMEOUT_MS,
   )

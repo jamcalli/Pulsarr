@@ -33,15 +33,15 @@ export function resolveNotificationTarget(
     }
   }
   const url = new URL(serverUrl)
-  const useSsl = url.protocol === 'https:'
+  const useSsl = body.useSsl ?? url.protocol === 'https:'
+  const urlPort = url.port ? Number(url.port) : null
   return {
     plexToken,
     plexHost: url.hostname,
-    plexPort: url.port
-      ? Number(url.port)
-      : useSsl
-        ? HTTPS_DEFAULT_PORT
-        : PLEX_DEFAULT_PORT,
+    plexPort:
+      body.plexPort ??
+      urlPort ??
+      (useSsl ? HTTPS_DEFAULT_PORT : PLEX_DEFAULT_PORT),
     useSsl,
   }
 }

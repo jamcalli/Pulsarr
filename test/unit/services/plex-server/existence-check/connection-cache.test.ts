@@ -1,5 +1,6 @@
 import {
   probeConnections,
+  probeServerAccess,
   testConnectionReachability,
 } from '@services/plex-server/existence-check/connection-cache.js'
 import { HttpResponse, http } from 'msw'
@@ -28,7 +29,6 @@ describe('probeConnections', () => {
 
     const probed = await probeConnections(
       [UP, BROKEN, GONE],
-      'token',
       createMockLogger(),
     )
 
@@ -57,11 +57,37 @@ describe('testConnectionReachability', () => {
     serveProbes()
 
     expect(
-      await testConnectionReachability(
-        [GONE, UP, BROKEN],
-        'token',
-        createMockLogger(),
-      ),
+      await testConnectionReachability([GONE, UP, BROKEN], createMockLogger()),
     ).toEqual([UP])
+  })
+})
+
+describe('probe token handling', () => {
+  it('probes reachability without sending the token', async () => {
+    let sent: string | null = 'unset'
+    server.use(
+      http.get(`${UP.uri}/identity`, ({ request }) => {
+        sent = request.headers.get('X-Plex-Token')
+        return HttpResponse.json({})
+      }),
+    )
+
+    await probeConnections([UP], createMockLogger())
+
+    expect(sent).toBeNull()
+  })
+
+  it('sends the token only when checking server access', async () => {
+    let sent: string | null = null
+    server.use(
+      http.get(`${UP.uri}/`, ({ request }) => {
+        sent = request.headers.get('X-Plex-Token')
+        return HttpResponse.json({})
+      }),
+    )
+
+    await probeServerAccess(UP.uri, 'token', createMockLogger())
+
+    expect(sent).toBe('token')
   })
 })

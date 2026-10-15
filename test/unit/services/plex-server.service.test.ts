@@ -94,6 +94,29 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(1)
   })
 
+  it('renegotiates a kept pick once the connection list expires', async () => {
+    const service = createService()
+    expect(await service.getPlexServerUrl()).toBe(LOCAL_HTTPS)
+
+    state.down = new Set([LOCAL_HTTPS])
+    vi.advanceTimersByTime(CONNECTION_LIST_TTL_MS)
+
+    expect(await service.getPlexServerUrl()).toBe(REMOTE_HTTPS)
+    expect(state.resourceCalls).toBe(2)
+  })
+
+  it('drops a negotiation that finishes after the caches were cleared', async () => {
+    const service = createService()
+
+    const pending = service.getPlexServerUrl()
+    service.clearCaches()
+    await pending
+
+    expect(service.getServerName()).toBeNull()
+    await service.getPlexServerUrl()
+    expect(state.resourceCalls).toBe(2)
+  })
+
   it('never caches the fallback when plex.tv cannot be reached', async () => {
     const service = createService()
     state.plexTv = 'down'

@@ -89,13 +89,23 @@ const PLEX_FALLBACK_URL = `http://localhost:${PLEX_DEFAULT_PORT}`
 export const CONNECTION_LIST_TTL_MS = 15 * 60 * 1000
 export const NEGOTIATION_RETRY_GAP_MS = 60 * 1000
 
+interface ServerIdentity {
+  machineId: string
+  name: string
+}
+
 type Negotiation =
   | {
       settled: true
       connections: PlexServerConnectionInfo[]
       best: string | null
+      identity: ServerIdentity
     }
-  | { settled: false; connections: PlexServerConnectionInfo[] }
+  | {
+      settled: false
+      connections: PlexServerConnectionInfo[]
+      identity: ServerIdentity | null
+    }
 
 function connectionInfo(
   url: string,
@@ -131,6 +141,7 @@ export class PlexServerService {
   private fallbackConnections: PlexServerConnectionInfo[] | null = null
   private negotiationFailedAt = 0
   private negotiationInFlight: Promise<Negotiation> | null = null
+  private cacheGeneration = 0
 
   private users: PlexUser[] | null = null
   private usersTimestamp = 0
@@ -259,22 +270,24 @@ export class PlexServerService {
 
   /** Connections to the owner's server, best first, refreshed every 15 minutes. */
   async getPlexServerConnectionInfo(): Promise<PlexServerConnectionInfo[]> {
-    const now = Date.now()
-    if (
-      this.serverConnections &&
-      now - this.connectionTimestamp < CONNECTION_LIST_TTL_MS
-    ) {
+    if (this.serverConnections && !this.connectionListExpired()) {
       this.log.debug('Using cached Plex server connection info')
       return this.serverConnections
     }
     if (
       this.fallbackConnections &&
-      now - this.negotiationFailedAt < NEGOTIATION_RETRY_GAP_MS
+      Date.now() - this.negotiationFailedAt < NEGOTIATION_RETRY_GAP_MS
     ) {
       return this.fallbackConnections
     }
 
+    const generation = this.cacheGeneration
     const negotiation = await this.negotiateOnce()
+    if (generation !== this.cacheGeneration) return negotiation.connections
+    if (negotiation.identity) {
+      this.serverMachineId = negotiation.identity.machineId
+      this.serverName = negotiation.identity.name
+    }
     if (!negotiation.settled) {
       this.fallbackConnections = negotiation.connections
       this.negotiationFailedAt = Date.now()
@@ -300,9 +313,14 @@ export class PlexServerService {
 
   /** Concurrent callers share one negotiation instead of each probing plex.tv and the server. */
   private negotiateOnce(): Promise<Negotiation> {
-    this.negotiationInFlight ??= this.negotiateConnections().finally(() => {
-      this.negotiationInFlight = null
-    })
+    if (!this.negotiationInFlight) {
+      const negotiation = this.negotiateConnections().finally(() => {
+        if (this.negotiationInFlight === negotiation) {
+          this.negotiationInFlight = null
+        }
+      })
+      this.negotiationInFlight = negotiation
+    }
     return this.negotiationInFlight
   }
 
@@ -310,7 +328,11 @@ export class PlexServerService {
     const token = this.adminToken
     if (!token) {
       this.log.warn('No Plex admin token available for connection discovery')
-      return { settled: false, connections: this.fallbackConnectionInfo() }
+      return {
+        settled: false,
+        connections: this.fallbackConnectionInfo(),
+        identity: null,
+      }
     }
 
     let resources: PlexResource[]
@@ -318,7 +340,11 @@ export class PlexServerService {
       resources = await getAllPlexResources(token, { ownedOnly: true })
     } catch (error) {
       this.log.error({ error }, 'Error getting Plex server connection info')
-      return { settled: false, connections: this.fallbackConnectionInfo() }
+      return {
+        settled: false,
+        connections: this.fallbackConnectionInfo(),
+        identity: null,
+      }
     }
 
     const servers = serverCandidates(resources)
@@ -338,7 +364,11 @@ export class PlexServerService {
     const server = matched ?? servers[0]
     if (!server) {
       this.log.warn('Plex lists no owned Plex Media Server for this account')
-      return { settled: false, connections: this.fallbackConnectionInfo() }
+      return {
+        settled: false,
+        connections: this.fallbackConnectionInfo(),
+        identity: null,
+      }
     }
     if (configured && !matched) {
       this.log.warn(
@@ -347,8 +377,10 @@ export class PlexServerService {
     }
     warnCandidateFallback(this.log, server)
 
-    this.serverMachineId = server.resource.clientIdentifier
-    this.serverName = server.resource.name
+    const identity = {
+      machineId: server.resource.clientIdentifier,
+      name: server.resource.name,
+    }
 
     if (configured) {
       const connections = [
@@ -360,11 +392,19 @@ export class PlexServerService {
       this.log.info(
         `Discovered ${connections.length} Plex server connections (manual config will be used)`,
       )
-      return { settled: true, connections, best: null }
+      return { settled: true, connections, best: null, identity }
+    }
+
+    if (server.connections.length === 0) {
+      return {
+        settled: false,
+        connections: this.fallbackConnectionInfo(),
+        identity,
+      }
     }
 
     const ranked = rankProbedConnections(
-      await probeConnections(server.connections, token, this.log),
+      await probeConnections(server.connections, this.log),
     )
     const connections = ranked.map(({ connection }) =>
       connectionInfo(connection.uri, connection),
@@ -375,13 +415,13 @@ export class PlexServerService {
         { server: server.resource.name },
         'Every Plex server connection failed its probe. Retrying on next use',
       )
-      return { settled: false, connections }
+      return { settled: false, connections, identity }
     }
 
     this.log.info(
       `Found ${connections.length} Plex server connections, ${ranked.filter(({ outcome }) => outcome.reachable).length} reachable`,
     )
-    return { settled: true, connections, best: best.connection.uri }
+    return { settled: true, connections, best: best.connection.uri, identity }
   }
 
   /** The last known connections, else the saved address, else the local fallback. */
@@ -394,12 +434,18 @@ export class PlexServerService {
   async getPlexServerUrl(): Promise<string> {
     const configured = this.configuredServerUrl
     if (configured) return configured
-    if (this.selectedConnectionUrl) return this.selectedConnectionUrl
+    if (this.selectedConnectionUrl && !this.connectionListExpired()) {
+      return this.selectedConnectionUrl
+    }
 
     const connections = await this.getPlexServerConnectionInfo()
     return (
       this.selectedConnectionUrl ?? connections[0]?.url ?? PLEX_FALLBACK_URL
     )
+  }
+
+  private connectionListExpired(): boolean {
+    return Date.now() - this.connectionTimestamp >= CONNECTION_LIST_TTL_MS
   }
 
   /** Drops the negotiated connection, unless it is reachable, so the next call negotiates again. */
@@ -1190,6 +1236,7 @@ export class PlexServerService {
     this.fallbackConnections = null
     this.negotiationFailedAt = 0
     this.negotiationInFlight = null
+    this.cacheGeneration += 1
     this.users = null
     this.usersTimestamp = 0
     this.userTokens = new Map()
@@ -1402,7 +1449,6 @@ export class PlexServerService {
 
       const reachable = await testConnectionReachability(
         ownerConnections.map((c) => ({ uri: c.url })),
-        this.adminToken,
         this.log,
       )
       this.releaseUnreachableSelection(reachable.map(({ uri }) => uri))
