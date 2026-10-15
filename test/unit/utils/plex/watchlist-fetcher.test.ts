@@ -5,9 +5,11 @@ import {
   fetchSelfWatchlist,
   getOthersWatchlist,
 } from '@services/plex-watchlist/fetching/watchlist-fetcher.js'
+import { createWatchlistSyncProgress } from '@services/plex-watchlist/progress/sync-progress.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
+import { createMockSyncProgress } from '../../../mocks/watchlist-sync-progress.js'
 import { server } from '../../../setup/msw-setup.js'
 
 describe('plex/watchlist-fetcher', () => {
@@ -168,6 +170,57 @@ describe('plex/watchlist-fetcher', () => {
       expect(callCount).toBe(2)
 
       vi.useRealTimers()
+    })
+
+    it('reports each page with the page total', async () => {
+      vi.useFakeTimers()
+
+      const page = (start: number, count: number) =>
+        Array.from({ length: count }, (_, i) => ({
+          title: `Movie ${start + i}`,
+          key: `/library/metadata/${start + i}`,
+          type: 'movie',
+        }))
+
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          ({ request }) => {
+            const start = Number(
+              new URL(request.url).searchParams.get('X-Plex-Container-Start'),
+            )
+            return HttpResponse.json({
+              MediaContainer: {
+                Metadata: start === 0 ? page(0, 100) : page(100, 50),
+                totalSize: 150,
+              },
+            } as PlexResponse)
+          },
+        ),
+      )
+
+      const config: Config = {
+        plexTokens: ['token'],
+      } as Config
+      const progress = createMockSyncProgress()
+
+      const resultPromise = fetchSelfWatchlist(
+        config,
+        mockLogger,
+        1,
+        undefined,
+        progress,
+      )
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
+      vi.useRealTimers()
+
+      expect(result.size).toBe(150)
+      expect(progress.readingPages.mock.calls).toEqual([
+        [],
+        [{ done: 1, total: 2 }],
+        [{ done: 2, total: 2 }],
+      ])
     })
 
     it('should filter out items without key', async () => {
@@ -548,6 +601,76 @@ describe('plex/watchlist-fetcher', () => {
       const result = await getOthersWatchlist(mockLogger, friends)
 
       expect(result.size).toBe(2)
+    })
+
+    it('reports friends in flight with their page and the done count', async () => {
+      vi.useFakeTimers()
+
+      server.use(
+        http.post('https://community.plex.tv/api', async ({ request }) => {
+          const body = (await request.json()) as {
+            variables: { user: { id: string }; after: string | null }
+          }
+          const hasNextPage =
+            body.variables.user.id === 'user-1' && body.variables.after === null
+          return HttpResponse.json({
+            data: {
+              userV2: {
+                watchlist: {
+                  nodes: [
+                    {
+                      id: `${body.variables.user.id}-${body.variables.after ?? 'first'}`,
+                      title: 'Movie',
+                      type: 'movie',
+                    },
+                  ],
+                  pageInfo: {
+                    hasNextPage,
+                    endCursor: hasNextPage ? 'cursor-1' : null,
+                  },
+                },
+              },
+            },
+          })
+        }),
+      )
+
+      const friends = new Set<[Friend & { userId: number }, string]>([
+        [{ watchlistId: 'user-1', username: 'Alice', userId: 2 }, 'token1'],
+        [{ watchlistId: 'user-2', username: 'Bob', userId: 3 }, 'token2'],
+      ])
+      const progressService = {
+        emit: vi.fn(),
+        hasActiveConnections: vi.fn(() => true),
+      }
+
+      const promise = getOthersWatchlist(
+        mockLogger,
+        friends,
+        undefined,
+        createWatchlistSyncProgress(progressService, 'others-watchlist'),
+      )
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
+
+      const events = progressService.emit.mock.calls.map(([event]) => event)
+
+      expect(result.size).toBe(2)
+      expect(
+        events.map(({ message, progress }) => [message, progress]),
+      ).toEqual([
+        ["Reading friends' watchlists", 0],
+        ['Alice page 1', 0],
+        ['Alice page 1, Bob page 1', 0],
+        ['Alice page 1', 25],
+        ['Alice page 2', 25],
+        ["Reading friends' watchlists", 50],
+      ])
+      expect(events.at(-1)?.metadata).toEqual({
+        stage: 'reading',
+        count: { done: 2, total: 2, unit: 'friends' },
+      })
     })
 
     it('should handle empty friends set', async () => {

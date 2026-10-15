@@ -1,4 +1,3 @@
-import type { ProgressService } from '@root/types/progress.types.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -99,13 +98,7 @@ export class PlexRateLimiter {
   // Wait for cooldown if currently rate limited
   public async waitIfLimited(
     log?: FastifyBaseLogger,
-    progress?: {
-      progress: ProgressService
-      operationId: string
-      type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
-      message?: string
-      currentProgress?: number
-    },
+    onWait?: (remainingMs: number) => void,
   ): Promise<boolean> {
     if (this.isLimited()) {
       const remaining = this.getRemainingCooldown()
@@ -120,21 +113,7 @@ export class PlexRateLimiter {
         this.hasLoggedWait = true
       }
 
-      if (progress) {
-        // Use current progress if provided, otherwise calculate based on remaining time
-        const progressValue =
-          progress.currentProgress !== undefined ? progress.currentProgress : 50 // Fallback to 50% if no current progress provided
-
-        progress.progress.emit({
-          operationId: progress.operationId,
-          type: progress.type,
-          phase: 'processing',
-          progress: progressValue,
-          message:
-            progress.message ||
-            `Rate limited by Plex API. Waiting ${Math.round(remaining / 1000)}s for cooldown...`,
-        })
-      }
+      onWait?.(remaining)
 
       await new Promise((resolve) => setTimeout(resolve, remaining))
       return true

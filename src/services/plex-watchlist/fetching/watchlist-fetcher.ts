@@ -7,8 +7,13 @@ import type {
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { getWatchlist, getWatchlistForUser } from '../api/graphql.js'
+import {
+  getWatchlist,
+  getWatchlistForUser,
+  WATCHLIST_PAGE_SIZE,
+} from '../api/graphql.js'
 import { isRateLimitError } from '../api/helpers.js'
+import type { WatchlistSyncProgress } from '../progress/sync-progress.js'
 
 /** Returns the full Plex watchlist, or the stored DB items when the fetch fails or is incomplete, and throws when neither is available. */
 export const fetchSelfWatchlist = async (
@@ -16,6 +21,7 @@ export const fetchSelfWatchlist = async (
   log: FastifyBaseLogger,
   userId: number,
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
+  progress?: WatchlistSyncProgress,
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
   const seenKeys = new Set<string>()
@@ -25,16 +31,25 @@ export const fetchSelfWatchlist = async (
     return allItems
   }
 
+  progress?.readingPages()
+
   for (const token of config.plexTokens) {
     if (!token) {
       continue
     }
     let currentStart = 0
+    let pagesDone = 0
 
     try {
       while (true) {
         log.debug(`Fetching watchlist for token with start: ${currentStart}`)
-        const response = await getWatchlist(token, log, currentStart)
+        const response = await getWatchlist(
+          token,
+          log,
+          currentStart,
+          0,
+          progress?.rateLimited,
+        )
 
         const metadata = response.MediaContainer.Metadata || []
         const totalSize = response.MediaContainer.totalSize || 0
@@ -48,6 +63,12 @@ export const fetchSelfWatchlist = async (
           log.info('User has no items in their watchlist')
           break
         }
+
+        pagesDone++
+        progress?.readingPages({
+          done: pagesDone,
+          total: Math.ceil(totalSize / WATCHLIST_PAGE_SIZE),
+        })
 
         const items = metadata
           .filter((metadata) => Boolean(metadata.key))
@@ -157,9 +178,16 @@ export const getOthersWatchlist = async (
   log: FastifyBaseLogger,
   friends: Set<[Friend & { userId: number }, string]>,
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
+  progress?: WatchlistSyncProgress,
 ): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
   log.info(`Starting fetch of watchlists for ${friends.size} friends`)
+
+  const pageByFriend = new Map<string, number>()
+  let friendsDone = 0
+  const reportFriends = () =>
+    progress?.readingFriends(friendsDone, friends.size, pageByFriend)
+  reportFriends()
 
   const MAX_CONCURRENT = 2
   const friendsArray = Array.from(friends)
@@ -184,6 +212,11 @@ export const getOthersWatchlist = async (
           user,
           userId: user.userId,
           getAllWatchlistItemsForUser,
+          onWait: progress?.rateLimited,
+          onPage: (page) => {
+            pageByFriend.set(user.username, page)
+            reportFriends()
+          },
         })
         return { user, watchlistItems, success: true }
       } catch (error) {
@@ -201,6 +234,10 @@ export const getOthersWatchlist = async (
           watchlistItems: new Set<TokenWatchlistItem>(),
           success: false,
         }
+      } finally {
+        pageByFriend.delete(user.username)
+        friendsDone++
+        reportFriends()
       }
     })
 

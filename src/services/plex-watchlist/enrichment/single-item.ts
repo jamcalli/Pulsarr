@@ -4,7 +4,6 @@ import type {
   PlexApiResponse,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import type { ProgressService } from '@root/types/progress.types.js'
 import { collectGuidsFromMetadata } from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
 import { USER_AGENT } from '@utils/version.js'
@@ -16,35 +15,16 @@ import {
   type RateLimitError,
 } from '../api/helpers.js'
 import { PlexRateLimiter } from '../api/rate-limiter.js'
+import type { WatchlistSyncProgress } from '../progress/sync-progress.js'
 import { parseRatings } from './rating-parser.js'
 
-/**
- * Handle a Plex API rate-limit for a single watchlist item: apply a global cooldown, optionally wait and retry, or fail when retries are exhausted.
- *
- * If a Retry-After value is provided the global rate limiter is set accordingly. When retryCount < maxRetries this function waits for the limiter to clear and retries processing the same item. When retries are exhausted it either throws a RateLimitError (for non-HTTP-429 conditions) or returns an empty set (when the path originated from an HTTP 429).
- *
- * @param item - The token-scoped watchlist item being retried.
- * @param retryCount - Current retry attempt (0-based).
- * @param maxRetries - Maximum allowed retry attempts before giving up.
- * @param progressInfo - Optional progress reporting context used while waiting for the cooldown.
- * @param retryAfterSec - Optional cooldown duration (seconds) supplied by the Plex API (HTTP Retry-After header).
- * @param fromHttp429 - Whether this rate limit originated from a direct HTTP 429 response (true) or a caught error (false).
- * @param notFoundCollector - Optional array to collect titles of items that returned HTTP 404 during processing.
- * @returns A set of processed Item objects, or an empty set when skipping the item after exhausting retries for an HTTP 429 condition.
- *
- * @throws {RateLimitError} When retries are exhausted for a non-HTTP-429 rate-limit condition; the thrown error has isRateLimitExhausted = true.
- */
 async function handleRateLimitAndRetry(
   config: Config,
   log: FastifyBaseLogger,
   item: TokenWatchlistItem,
   retryCount: number,
   maxRetries: number,
-  progressInfo?: {
-    progress: ProgressService
-    operationId: string
-    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
-  },
+  progress?: WatchlistSyncProgress,
   retryAfterSec?: number,
   fromHttp429?: boolean,
   notFoundCollector?: string[],
@@ -55,15 +35,7 @@ async function handleRateLimitAndRetry(
 
   if (retryCount < maxRetries) {
     // Wait for the cooldown period to expire
-    await rateLimiter.waitIfLimited(
-      log,
-      progressInfo
-        ? {
-            ...progressInfo,
-            message: `Rate limited by Plex API. Waiting before retrying "${item.title}"...`,
-          }
-        : undefined,
-    )
+    await rateLimiter.waitIfLimited(log, progress?.rateLimited)
 
     // Try again after waiting
     return toItemsSingle(
@@ -72,7 +44,7 @@ async function handleRateLimitAndRetry(
       item,
       retryCount + 1,
       maxRetries,
-      progressInfo,
+      progress,
       notFoundCollector,
     )
   }
@@ -95,44 +67,21 @@ async function handleRateLimitAndRetry(
   return new Set()
 }
 
-/**
- * Processes a single watchlist item, fetching its metadata from the Plex API.
- *
- * @param config - Application configuration
- * @param log - Fastify logger instance
- * @param item - The watchlist item to process
- * @param retryCount - Current retry attempt (default: 0)
- * @param maxRetries - Maximum number of retries (default: 3)
- * @param progressInfo - Optional progress tracking information
- * @param notFoundCollector - Optional array to collect 404 items instead of logging
- * @returns Promise resolving to a Set of processed Items
- */
+/** Resolves to an empty set when the item cannot be enriched, and may throw a RateLimitError once rate-limit retries are exhausted. */
 export const toItemsSingle = async (
   config: Config,
   log: FastifyBaseLogger,
   item: TokenWatchlistItem,
   retryCount = 0,
   maxRetries = 3,
-  progressInfo?: {
-    progress: ProgressService
-    operationId: string
-    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
-  },
+  progress?: WatchlistSyncProgress,
   notFoundCollector?: string[], // Optional array to collect 404 items instead of logging
 ): Promise<Set<Item>> => {
   // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
 
   // Wait if we're already rate limited before making any API call
-  await rateLimiter.waitIfLimited(
-    log,
-    progressInfo
-      ? {
-          ...progressInfo,
-          message: `Rate limited by Plex API. Waiting before processing "${item.title}"...`,
-        }
-      : undefined,
-  )
+  await rateLimiter.waitIfLimited(log, progress?.rateLimited)
 
   if (!hasValidPlexTokens(config)) {
     log.error('No valid Plex token configured; cannot fetch metadata')
@@ -178,7 +127,7 @@ export const toItemsSingle = async (
         item,
         retryCount,
         maxRetries,
-        progressInfo,
+        progress,
         retryAfterSec,
         true, // fromHttp429
         notFoundCollector,
@@ -255,7 +204,7 @@ export const toItemsSingle = async (
         item,
         retryCount + 1,
         maxRetries,
-        progressInfo,
+        progress,
         notFoundCollector,
       )
     }
@@ -287,7 +236,7 @@ export const toItemsSingle = async (
         item,
         retryCount,
         maxRetries,
-        progressInfo,
+        progress,
         undefined, // No retry-after header in this case
         false, // fromHttp429 - this is a caught error
         notFoundCollector,
@@ -322,7 +271,7 @@ export const toItemsSingle = async (
           item,
           retryCount + 1,
           maxRetries,
-          progressInfo,
+          progress,
           notFoundCollector,
         )
       }

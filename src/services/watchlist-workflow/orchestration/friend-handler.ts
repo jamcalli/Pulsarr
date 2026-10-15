@@ -253,7 +253,6 @@ export async function syncSingleFriend(
   const processedItems = await processAndSaveNewItems(
     brandNewItems,
     false,
-    false,
     deps.itemProcessorDeps,
   )
 

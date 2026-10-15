@@ -243,8 +243,6 @@ export async function routeNewItemsForUser(
     updated_at: new Date().toISOString(),
   }))
 
-  const isSelfWatchlist = change.isPrimary
-
   const { brandNewCount, linkedCount, processedItems, linkedItems } =
     await processItemsForUser(
       {
@@ -254,7 +252,6 @@ export async function routeNewItemsForUser(
           watchlistId: '',
         },
         items: tokenItems,
-        isSelfWatchlist,
       },
       deps.itemProcessorDeps,
     )

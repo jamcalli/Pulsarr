@@ -156,14 +156,16 @@ describe('plex/watchlist-api', () => {
         ),
       )
 
+      const onWait = vi.fn()
       vi.useFakeTimers()
-      const promise = getWatchlist('token', mockLogger)
+      const promise = getWatchlist('token', mockLogger, 0, 0, onWait)
       await vi.runAllTimersAsync()
       const result = await promise
       vi.useRealTimers()
 
       expect(result.MediaContainer).toBeDefined()
       expect(callCount).toBe(2)
+      expect(onWait).toHaveBeenCalled()
     })
 
     it('should throw RateLimitError when max retries exceeded for 429', async () => {
@@ -385,6 +387,60 @@ describe('plex/watchlist-api', () => {
       expect(result.size).toBe(2)
       expect(callCount).toBe(2)
       vi.useRealTimers()
+    })
+
+    it('reports each page once and not again for a retried page', async () => {
+      vi.useFakeTimers()
+      let callCount = 0
+      server.use(
+        http.post('https://community.plex.tv/api', () => {
+          callCount++
+          if (callCount === 2) {
+            return new HttpResponse(null, {
+              status: 429,
+              headers: { 'Retry-After': '1' },
+            })
+          }
+          return HttpResponse.json({
+            data: {
+              userV2: {
+                watchlist: {
+                  nodes: [
+                    {
+                      id: `item-${callCount}`,
+                      title: `Movie ${callCount}`,
+                      type: 'movie',
+                    },
+                  ],
+                  pageInfo:
+                    callCount === 1
+                      ? { hasNextPage: true, endCursor: 'cursor-1' }
+                      : { hasNextPage: false, endCursor: null },
+                },
+              },
+            },
+          } as unknown as PlexApiResponse)
+        }),
+      )
+
+      const onPage = vi.fn()
+      const onWait = vi.fn()
+      const resultPromise = getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
+        user,
+        userId: 1,
+        onPage,
+        onWait,
+      })
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
+      vi.useRealTimers()
+
+      expect(result.size).toBe(2)
+      expect(callCount).toBe(3)
+      expect(onPage.mock.calls).toEqual([[1], [2]])
+      expect(onWait).toHaveBeenCalled()
     })
 
     it('should throw error when user object is invalid', async () => {

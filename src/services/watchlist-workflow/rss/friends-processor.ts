@@ -98,7 +98,6 @@ export async function processRssFriendsItems(
           watchlistId: '',
         },
         items: tokenItems,
-        isSelfWatchlist: false,
       },
       deps.itemProcessorDeps,
     )

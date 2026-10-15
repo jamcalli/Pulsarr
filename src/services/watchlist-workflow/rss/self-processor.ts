@@ -66,7 +66,6 @@ export async function processRssSelfItems(
         watchlistId: '',
       },
       items: tokenItems,
-      isSelfWatchlist: true,
     },
     deps.itemProcessorDeps,
   )
