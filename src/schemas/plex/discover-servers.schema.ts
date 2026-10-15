@@ -1,5 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
-import { PlexProbeFailureSchema } from '@root/schemas/plex/connection-probe.schema.js'
+import { PlexConnectionFailureCodeSchema } from '@root/schemas/plex/connection-failure.schema.js'
 import { z } from 'zod'
 
 export const PlexTokenSchema = z
@@ -19,15 +19,12 @@ export const PlexServerSchema = z
     useSsl: z.boolean(),
     local: z.boolean(),
     description: z.string().optional(),
-    reachable: z.boolean(),
-    latencyMs: z.number().int().nullable(),
-    failure: PlexProbeFailureSchema.nullable(),
-    recommended: z.boolean(),
+    code: PlexConnectionFailureCodeSchema.nullable(),
   })
   .meta({
-    id: 'PlexServerConnection',
+    id: 'PlexServer',
     description:
-      'One connection to a Plex server the token owns, with how Pulsarr reached it',
+      'One connection to a Plex server the token owns, code is null when Pulsarr reached it',
   })
 
 export const PlexServerResponseSchema = z
@@ -39,7 +36,7 @@ export const PlexServerResponseSchema = z
   .meta({
     id: 'PlexServerDiscovery',
     description:
-      'Every connection Plex offers for the token, best first, with at most one recommended',
+      'Every connection Plex offers for the token, ordered best first',
   })
 
 // Type exports

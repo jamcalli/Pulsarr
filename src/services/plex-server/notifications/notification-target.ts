@@ -17,7 +17,7 @@ export interface NotificationTargetInput {
   useSsl?: boolean
 }
 
-/** Body fields win, a missing host takes host, port and SSL from the server's current connection, and a missing token takes the linked one. */
+/** Sent fields win, the rest come from the current server address and the linked token. */
 export function resolveNotificationTarget(
   body: NotificationTargetInput,
   serverUrl: string,

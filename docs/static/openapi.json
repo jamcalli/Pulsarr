@@ -2675,6 +2675,16 @@
         "additionalProperties": false,
         "description": "Orphaned tag reference cleanup result for one instance"
       },
+      "PlexConnectionFailureCode": {
+        "type": "string",
+        "enum": [
+          "unreachable",
+          "certificate",
+          "auth",
+          "invalid"
+        ],
+        "description": "Why a Plex server connection check failed"
+      },
       "PlexNotificationConfigPayload": {
         "type": "object",
         "properties": {
@@ -2837,20 +2847,6 @@
         "additionalProperties": false,
         "description": "Plex accepted every configured token"
       },
-      "PlexProbeFailure": {
-        "type": "string",
-        "enum": [
-          "dns",
-          "refused",
-          "unreachable",
-          "reset",
-          "tls",
-          "timeout",
-          "unauthorized",
-          "http"
-        ],
-        "description": "Why Pulsarr could not reach a Plex server connection"
-      },
       "PlexRatings": {
         "type": "object",
         "properties": {
@@ -2903,7 +2899,7 @@
         "additionalProperties": false,
         "description": "The saved watchlist feed URLs, empty when Plex gave none"
       },
-      "PlexServerConnection": {
+      "PlexServer": {
         "type": "object",
         "properties": {
           "name": {
@@ -2924,33 +2920,15 @@
           "description": {
             "type": "string"
           },
-          "reachable": {
-            "type": "boolean"
-          },
-          "latencyMs": {
+          "code": {
             "anyOf": [
               {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991
+                "$ref": "#/components/schemas/PlexConnectionFailureCode"
               },
               {
                 "type": "null"
               }
             ]
-          },
-          "failure": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlexProbeFailure"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "recommended": {
-            "type": "boolean"
           }
         },
         "required": [
@@ -2959,13 +2937,10 @@
           "port",
           "useSsl",
           "local",
-          "reachable",
-          "latencyMs",
-          "failure",
-          "recommended"
+          "code"
         ],
         "additionalProperties": false,
-        "description": "One connection to a Plex server the token owns, with how Pulsarr reached it"
+        "description": "One connection to a Plex server the token owns, code is null when Pulsarr reached it"
       },
       "PlexServerDiscovery": {
         "type": "object",
@@ -2979,7 +2954,7 @@
           "servers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PlexServerConnection"
+              "$ref": "#/components/schemas/PlexServer"
             }
           }
         },
@@ -2988,7 +2963,7 @@
           "servers"
         ],
         "additionalProperties": false,
-        "description": "Every connection Plex offers for the token, best first, with at most one recommended"
+        "description": "Every connection Plex offers for the token, ordered best first"
       },
       "PlexServerDiscoveryPayload": {
         "type": "object",
@@ -3003,57 +2978,41 @@
         ],
         "description": "The Plex token whose servers to list"
       },
-      "PlexServerStatus": {
+      "PlexTestConnectionResponse": {
         "type": "object",
         "properties": {
-          "reachable": {
+          "success": {
             "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlexConnectionFailureCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "url": {
             "type": "string"
           },
           "automatic": {
             "type": "boolean"
-          },
-          "latencyMs": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "failure": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlexProbeFailure"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "serverName": {
-            "type": [
-              "string",
-              "null"
-            ]
           }
         },
         "required": [
-          "reachable",
+          "success",
+          "message",
+          "code",
           "url",
-          "automatic",
-          "latencyMs",
-          "failure",
-          "serverName"
+          "automatic"
         ],
         "additionalProperties": false,
-        "description": "Whether Pulsarr reaches the Plex server address it currently uses"
+        "description": "Plex server connection test result for the address Pulsarr uses, code is null on success"
       },
       "PlexWatchlistSync": {
         "type": "object",
@@ -10953,21 +10912,21 @@
         }
       }
     },
-    "/v1/plex/server-status": {
+    "/v1/plex/test-connection": {
       "get": {
-        "operationId": "getPlexServerStatus",
-        "summary": "Test the Plex server connection",
+        "operationId": "testPlexConnection",
+        "summary": "Test Plex server connection",
         "tags": [
           "Plex"
         ],
-        "description": "Probes the Plex server address Pulsarr currently uses, saved or negotiated",
+        "description": "Test connectivity to the Plex server address Pulsarr uses, saved or automatic",
         "responses": {
           "200": {
             "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlexServerStatus"
+                  "$ref": "#/components/schemas/PlexTestConnectionResponse"
                 }
               }
             }

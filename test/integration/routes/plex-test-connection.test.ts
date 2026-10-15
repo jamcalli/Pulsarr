@@ -11,7 +11,7 @@ const LINKED_TOKEN = 'test_plex_token_1234567890'
 const NEGOTIATED = 'https://plex-a.status.test:32400'
 const SAVED = 'http://plex-b.status.test:32400'
 
-describe('GET /v1/plex/server-status', () => {
+describe('GET /v1/plex/test-connection', () => {
   let app: FastifyInstance
 
   beforeAll(async () => {
@@ -46,35 +46,34 @@ describe('GET /v1/plex/server-status', () => {
   })
 
   function get() {
-    return app.inject({ method: 'GET', url: '/v1/plex/server-status' })
+    return app.inject({ method: 'GET', url: '/v1/plex/test-connection' })
   }
 
-  it('probes the negotiated connection in automatic mode', async () => {
+  it('tests the negotiated connection in automatic mode', async () => {
     const res = await get()
 
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toMatchObject({
-      reachable: true,
+    expect(res.json()).toEqual({
+      success: true,
+      message: 'Connected to the Plex server.',
+      code: null,
       url: NEGOTIATED,
       automatic: true,
-      failure: null,
-      serverName: 'Basement',
     })
-    expect(res.json().latencyMs).toEqual(expect.any(Number))
   })
 
-  it('probes the saved address and reports why it failed', async () => {
+  it('tests the saved address and reports why it failed', async () => {
     app.config.plexServerUrl = SAVED
 
     const res = await get()
 
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toMatchObject({
-      reachable: false,
+    expect(res.json()).toEqual({
+      success: false,
+      message: "Couldn't reach the Plex server at this address.",
+      code: 'unreachable',
       url: SAVED,
       automatic: false,
-      latencyMs: null,
-      failure: 'unreachable',
     })
   })
 
@@ -87,9 +86,10 @@ describe('GET /v1/plex/server-status', () => {
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({
-      reachable: false,
+      success: false,
+      code: 'auth',
+      message: "The Plex server didn't accept the linked account's token.",
       url: NEGOTIATED,
-      failure: 'unauthorized',
     })
   })
 })

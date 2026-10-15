@@ -196,24 +196,25 @@ describe('PlexServerService connection negotiation', () => {
     expect(first?.url).toBe(saved)
   })
 
-  it('reports the status of the address in use', async () => {
+  it('tests the address in use', async () => {
     const service = createService()
     state.down = new Set([REMOTE_HTTPS])
 
-    expect(await service.getServerStatus()).toMatchObject({
+    expect(await service.testConnection()).toEqual({
+      success: true,
+      message: 'Connected to the Plex server.',
+      code: null,
       url: LOCAL_HTTPS,
       automatic: true,
-      reachable: true,
-      failure: null,
-      serverName: 'Basement',
     })
 
     state.down = new Set([LOCAL_HTTPS])
-    expect(await service.getServerStatus()).toMatchObject({
+    expect(await service.testConnection()).toEqual({
+      success: false,
+      message: "Couldn't reach the Plex server at this address.",
+      code: 'unreachable',
       url: LOCAL_HTTPS,
-      reachable: false,
-      latencyMs: null,
-      failure: 'unreachable',
+      automatic: true,
     })
     expect(state.resourceCalls).toBe(1)
   })

@@ -44,7 +44,7 @@ describe('POST /v1/plex/discover-servers', () => {
     })
   }
 
-  it('returns probe results with the best reachable one recommended', async () => {
+  it('returns every connection best first with a code on each failure', async () => {
     serveResources(() =>
       HttpResponse.json([
         plexResource({
@@ -69,10 +69,7 @@ describe('POST /v1/plex/discover-servers', () => {
         port: 32400,
         useSsl: true,
         local: false,
-        reachable: true,
-        latencyMs: expect.any(Number),
-        failure: null,
-        recommended: true,
+        code: null,
       },
       {
         name: 'Basement (plex-down.discover.test)',
@@ -80,10 +77,7 @@ describe('POST /v1/plex/discover-servers', () => {
         port: 32400,
         useSsl: true,
         local: true,
-        reachable: false,
-        latencyMs: null,
-        failure: 'unreachable',
-        recommended: false,
+        code: 'unreachable',
       },
     ])
   })

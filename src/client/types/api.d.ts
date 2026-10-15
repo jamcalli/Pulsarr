@@ -976,7 +976,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/plex/server-status": {
+    "/v1/plex/test-connection": {
         parameters: {
             query?: never;
             header?: never;
@@ -984,10 +984,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Test the Plex server connection
-         * @description Probes the Plex server address Pulsarr currently uses, saved or negotiated
+         * Test Plex server connection
+         * @description Test connectivity to the Plex server address Pulsarr uses, saved or automatic
          */
-        get: operations["getPlexServerStatus"];
+        get: operations["testPlexConnection"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3755,6 +3755,11 @@ export interface components {
             itemsUpdated: number;
             error?: string;
         };
+        /**
+         * @description Why a Plex server connection check failed
+         * @enum {string}
+         */
+        PlexConnectionFailureCode: "unreachable" | "certificate" | "auth" | "invalid";
         /** @description Plex Media Server connection to add to every Radarr and Sonarr instance, left out to use the saved Plex server and linked token */
         PlexNotificationConfigPayload: {
             plexToken?: string;
@@ -3799,11 +3804,6 @@ export interface components {
         PlexPing: {
             success: boolean;
         };
-        /**
-         * @description Why Pulsarr could not reach a Plex server connection
-         * @enum {string}
-         */
-        PlexProbeFailure: "dns" | "refused" | "unreachable" | "reset" | "tls" | "timeout" | "unauthorized" | "http";
         /** @description Ratings captured from stored Plex watchlist metadata. */
         PlexRatings: {
             imdb?: {
@@ -3819,37 +3819,33 @@ export interface components {
             self: string;
             friends: string;
         };
-        /** @description One connection to a Plex server the token owns, with how Pulsarr reached it */
-        PlexServerConnection: {
+        /** @description One connection to a Plex server the token owns, code is null when Pulsarr reached it */
+        PlexServer: {
             name: string;
             host: string;
             port: number;
             useSsl: boolean;
             local: boolean;
             description?: string;
-            reachable: boolean;
-            latencyMs: number | null;
-            failure: components["schemas"]["PlexProbeFailure"] | null;
-            recommended: boolean;
+            code: components["schemas"]["PlexConnectionFailureCode"] | null;
         };
-        /** @description Every connection Plex offers for the token, best first, with at most one recommended */
+        /** @description Every connection Plex offers for the token, ordered best first */
         PlexServerDiscovery: {
             success: boolean;
             message?: string;
-            servers: components["schemas"]["PlexServerConnection"][];
+            servers: components["schemas"]["PlexServer"][];
         };
         /** @description The Plex token whose servers to list */
         PlexServerDiscoveryPayload: {
             plexToken: string;
         };
-        /** @description Whether Pulsarr reaches the Plex server address it currently uses */
-        PlexServerStatus: {
-            reachable: boolean;
+        /** @description Plex server connection test result for the address Pulsarr uses, code is null on success */
+        PlexTestConnectionResponse: {
+            success: boolean;
+            message: string;
+            code: components["schemas"]["PlexConnectionFailureCode"] | null;
             url: string;
             automatic: boolean;
-            latencyMs: number | null;
-            failure: components["schemas"]["PlexProbeFailure"] | null;
-            serverName: string | null;
         };
         /** @description Watchlists read from Plex, with the total item count */
         PlexWatchlistSync: {
@@ -7686,7 +7682,7 @@ export interface operations {
             };
         };
     };
-    getPlexServerStatus: {
+    testPlexConnection: {
         parameters: {
             query?: never;
             header?: never;
@@ -7701,7 +7697,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlexServerStatus"];
+                    "application/json": components["schemas"]["PlexTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */

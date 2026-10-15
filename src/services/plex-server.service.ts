@@ -26,6 +26,7 @@ import {
   warnCandidateFallback,
 } from './plex-server/connection/candidates.js'
 import { discoverServerConnections } from './plex-server/connection/discover-servers.js'
+import { connectionTestResult } from './plex-server/connection/probe-result.js'
 import { rankProbedConnections } from './plex-server/connection/ranking.js'
 import {
   type CachedConnection,
@@ -410,7 +411,7 @@ export class PlexServerService {
       connectionInfo(connection.uri, connection),
     )
     const [best] = ranked
-    if (!best?.outcome.reachable) {
+    if (!best?.outcome.ok) {
       this.log.warn(
         { server: server.resource.name },
         'Every Plex server connection failed its probe. Retrying on next use',
@@ -419,7 +420,7 @@ export class PlexServerService {
     }
 
     this.log.info(
-      `Found ${connections.length} Plex server connections, ${ranked.filter(({ outcome }) => outcome.reachable).length} reachable`,
+      `Found ${connections.length} Plex server connections, ${ranked.filter(({ outcome }) => outcome.ok).length} reachable`,
     )
     return { settled: true, connections, best: best.connection.uri, identity }
   }
@@ -461,16 +462,13 @@ export class PlexServerService {
     this.connectionTimestamp = 0
   }
 
-  async getServerStatus() {
+  async testConnection() {
     const url = await this.getPlexServerUrl()
     const outcome = await probeServerAccess(url, this.adminToken, this.log)
     return {
+      ...connectionTestResult(outcome),
       url,
       automatic: this.configuredServerUrl === null,
-      reachable: outcome.reachable,
-      latencyMs: outcome.latencyMs,
-      failure: outcome.failure,
-      serverName: this.serverName,
     }
   }
 

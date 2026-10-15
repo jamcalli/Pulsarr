@@ -6,24 +6,14 @@ function probed(uri: string, local: boolean, outcome: ProbeOutcome) {
   return { connection: { uri, local }, outcome }
 }
 
-const up = (latencyMs: number): ProbeOutcome => ({
-  reachable: true,
-  latencyMs,
-  failure: null,
-  httpStatus: null,
-})
-const down: ProbeOutcome = {
-  reachable: false,
-  latencyMs: null,
-  failure: 'timeout',
-  httpStatus: null,
-}
+const up = (elapsedMs: number): ProbeOutcome => ({ ok: true, elapsedMs })
+const down: ProbeOutcome = { ok: false, code: 'unreachable', status: null }
 
 const order = (list: ReturnType<typeof probed>[]) =>
   rankProbedConnections(list).map(({ connection }) => connection.uri)
 
 describe('rankProbedConnections', () => {
-  it('puts reachable connections first', () => {
+  it('puts working connections first', () => {
     expect(
       order([
         probed('https://a', true, down),
@@ -32,7 +22,7 @@ describe('rankProbedConnections', () => {
     ).toEqual(['http://b', 'https://a'])
   })
 
-  it('prefers https, then local, then lowest latency', () => {
+  it('prefers local, then https, then fastest', () => {
     expect(
       order([
         probed('http://local', true, up(1)),
@@ -42,9 +32,9 @@ describe('rankProbedConnections', () => {
       ]),
     ).toEqual([
       'https://local',
+      'http://local',
       'https://remote-fast',
       'https://remote-slow',
-      'http://local',
     ])
   })
 
@@ -55,7 +45,7 @@ describe('rankProbedConnections', () => {
         probed('https://remote', false, down),
         probed('https://local', true, down),
       ]),
-    ).toEqual(['https://local', 'https://remote', 'http://local'])
+    ).toEqual(['https://local', 'http://local', 'https://remote'])
   })
 
   it('leaves its input untouched', () => {

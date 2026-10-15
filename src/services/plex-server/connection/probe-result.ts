@@ -1,13 +1,8 @@
-import type { PlexProbeFailure } from '@root/schemas/plex/connection-probe.schema.js'
+import type { PlexConnectionFailureCode } from '@root/schemas/plex/connection-failure.schema.js'
 
 export type ProbeOutcome =
-  | { reachable: true; latencyMs: number; failure: null; httpStatus: null }
-  | {
-      reachable: false
-      latencyMs: null
-      failure: PlexProbeFailure
-      httpStatus: number | null
-    }
+  | { ok: true; elapsedMs: number }
+  | { ok: false; code: PlexConnectionFailureCode; status: number | null }
 
 export interface ProbedConnection<C> {
   connection: C
@@ -15,72 +10,74 @@ export interface ProbedConnection<C> {
 }
 
 // Bun puts the system error code on the fetch error itself, Node puts it on error.cause
-const ERROR_CODE_FAILURES: Record<string, PlexProbeFailure> = {
-  ENOTFOUND: 'dns',
-  EAI_AGAIN: 'dns',
-  EAI_NONAME: 'dns',
-  EAI_FAIL: 'dns',
-  ECONNREFUSED: 'refused',
-  ConnectionRefused: 'refused',
+const ERROR_CODE_FAILURES: Record<string, PlexConnectionFailureCode> = {
+  ENOTFOUND: 'unreachable',
+  EAI_AGAIN: 'unreachable',
+  EAI_NONAME: 'unreachable',
+  EAI_FAIL: 'unreachable',
+  ECONNREFUSED: 'unreachable',
+  ConnectionRefused: 'unreachable',
   EHOSTUNREACH: 'unreachable',
   ENETUNREACH: 'unreachable',
   EHOSTDOWN: 'unreachable',
   ENETDOWN: 'unreachable',
   FailedToOpenSocket: 'unreachable',
-  ECONNRESET: 'reset',
-  EPIPE: 'reset',
-  ConnectionClosed: 'reset',
-  UND_ERR_SOCKET: 'reset',
-  CERT_HAS_EXPIRED: 'tls',
-  CERT_NOT_YET_VALID: 'tls',
-  DEPTH_ZERO_SELF_SIGNED_CERT: 'tls',
-  SELF_SIGNED_CERT_IN_CHAIN: 'tls',
-  UNABLE_TO_VERIFY_LEAF_SIGNATURE: 'tls',
-  UNABLE_TO_GET_ISSUER_CERT_LOCALLY: 'tls',
-  ERR_TLS_CERT_ALTNAME_INVALID: 'tls',
-  ERR_SSL_WRONG_VERSION_NUMBER: 'tls',
-  EPROTO: 'tls',
-  ETIMEDOUT: 'timeout',
-  UND_ERR_CONNECT_TIMEOUT: 'timeout',
-  UND_ERR_HEADERS_TIMEOUT: 'timeout',
+  ECONNRESET: 'unreachable',
+  EPIPE: 'unreachable',
+  ConnectionClosed: 'unreachable',
+  UND_ERR_SOCKET: 'unreachable',
+  ETIMEDOUT: 'unreachable',
+  UND_ERR_CONNECT_TIMEOUT: 'unreachable',
+  UND_ERR_HEADERS_TIMEOUT: 'unreachable',
+  CERT_HAS_EXPIRED: 'certificate',
+  CERT_NOT_YET_VALID: 'certificate',
+  DEPTH_ZERO_SELF_SIGNED_CERT: 'certificate',
+  SELF_SIGNED_CERT_IN_CHAIN: 'certificate',
+  UNABLE_TO_VERIFY_LEAF_SIGNATURE: 'certificate',
+  UNABLE_TO_GET_ISSUER_CERT_LOCALLY: 'certificate',
+  ERR_TLS_CERT_ALTNAME_INVALID: 'certificate',
+  ERR_SSL_WRONG_VERSION_NUMBER: 'certificate',
+  EPROTO: 'certificate',
 }
 
-export function reachableOutcome(latencyMs: number): ProbeOutcome {
-  return { reachable: true, latencyMs, failure: null, httpStatus: null }
+const AUTH_STATUSES = new Set([401, 403])
+
+const CONNECTED_MESSAGE = 'Connected to the Plex server.'
+
+const FAILURE_MESSAGES: Record<PlexConnectionFailureCode, string> = {
+  unreachable: "Couldn't reach the Plex server at this address.",
+  certificate: "The server's certificate doesn't match this address.",
+  auth: "The Plex server didn't accept the linked account's token.",
+  invalid: 'Something answered at this address, but not Plex.',
 }
 
-const UNAUTHORIZED_STATUSES = new Set([401, 403])
+export function okOutcome(elapsedMs: number): ProbeOutcome {
+  return { ok: true, elapsedMs }
+}
 
 export function httpFailureOutcome(status: number): ProbeOutcome {
   return {
-    reachable: false,
-    latencyMs: null,
-    failure: UNAUTHORIZED_STATUSES.has(status) ? 'unauthorized' : 'http',
-    httpStatus: status,
+    ok: false,
+    code: AUTH_STATUSES.has(status) ? 'auth' : 'invalid',
+    status,
   }
 }
 
-/** Maps a rejected fetch to a failure category, defaulting to unreachable for unknown errors. */
-export function classifyProbeError(error: unknown): PlexProbeFailure {
-  if (isTimeout(error)) return 'timeout'
+/** Maps a rejected fetch to a failure code, defaulting to unreachable for timeouts and unknown errors. */
+export function classifyProbeError(error: unknown): PlexConnectionFailureCode {
   const code = errorCode(error) ?? errorCode(errorCause(error))
   return (code && ERROR_CODE_FAILURES[code]) || 'unreachable'
 }
 
-export function failedOutcome(error: unknown): ProbeOutcome {
-  return {
-    reachable: false,
-    latencyMs: null,
-    failure: classifyProbeError(error),
-    httpStatus: null,
-  }
-}
-
-function isTimeout(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null || !('name' in error)) {
-    return false
-  }
-  return error.name === 'TimeoutError' || error.name === 'AbortError'
+/** The connection test verdict for an access check, with the message shown to the user. */
+export function connectionTestResult(outcome: ProbeOutcome) {
+  return outcome.ok
+    ? { success: true, message: CONNECTED_MESSAGE, code: null }
+    : {
+        success: false,
+        message: FAILURE_MESSAGES[outcome.code],
+        code: outcome.code,
+      }
 }
 
 function errorCode(error: unknown): string | null {

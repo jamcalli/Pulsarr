@@ -7,11 +7,11 @@
  */
 
 import {
-  failedOutcome,
+  classifyProbeError,
   httpFailureOutcome,
+  okOutcome,
   type ProbedConnection,
   type ProbeOutcome,
-  reachableOutcome,
 } from '@services/plex-server/connection/probe-result.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -115,17 +115,14 @@ async function probePath(
       signal: AbortSignal.timeout(timeoutMs),
     })
     if (response.ok) {
-      return reachableOutcome(Math.round(performance.now() - started))
+      return okOutcome(Math.round(performance.now() - started))
     }
     logger.debug(`Connection test failed for ${uri}: HTTP ${response.status}`)
     return httpFailureOutcome(response.status)
   } catch (error) {
-    const outcome = failedOutcome(error)
-    logger.debug(
-      { error, uri, failure: outcome.failure },
-      'Connection test failed',
-    )
-    return outcome
+    const code = classifyProbeError(error)
+    logger.debug({ error, uri, code }, 'Connection test failed')
+    return { ok: false, code, status: null }
   }
 }
 
@@ -138,7 +135,7 @@ export function probeConnection(
   return probePath(uri, '/identity', null, logger, timeoutMs)
 }
 
-/** Reachability plus whether the server accepts the token, which fails as `unauthorized` when it does not. */
+/** Reachability plus whether the server accepts the token, which fails as `auth` when it does not. */
 export function probeServerAccess(
   uri: string,
   accessToken: string,
@@ -155,7 +152,7 @@ export async function testConnectionReachability<C extends { uri: string }>(
 ): Promise<C[]> {
   const probed = await probeConnections(connections, logger, timeoutMs)
   return probed
-    .filter(({ outcome }) => outcome.reachable)
+    .filter(({ outcome }) => outcome.ok)
     .map(({ connection }) => connection)
 }
 

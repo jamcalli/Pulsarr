@@ -24,7 +24,7 @@ function serveProbes() {
 }
 
 describe('probeConnections', () => {
-  it('reports latency for a reachable connection and a category otherwise', async () => {
+  it('times a working connection and reports a failure code otherwise', async () => {
     serveProbes()
 
     const probed = await probeConnections(
@@ -37,17 +37,19 @@ describe('probeConnections', () => {
       BROKEN,
       GONE,
     ])
-    expect(probed[0]?.outcome).toMatchObject({ reachable: true, failure: null })
-    expect(probed[0]?.outcome.latencyMs).toBeGreaterThanOrEqual(0)
-    expect(probed[1]?.outcome).toEqual({
-      reachable: false,
-      latencyMs: null,
-      failure: 'http',
-      httpStatus: 503,
+    expect(probed[0]?.outcome).toEqual({
+      ok: true,
+      elapsedMs: expect.any(Number),
     })
-    expect(probed[2]?.outcome).toMatchObject({
-      reachable: false,
-      failure: 'unreachable',
+    expect(probed[1]?.outcome).toEqual({
+      ok: false,
+      code: 'invalid',
+      status: 503,
+    })
+    expect(probed[2]?.outcome).toEqual({
+      ok: false,
+      code: 'unreachable',
+      status: null,
     })
   })
 })

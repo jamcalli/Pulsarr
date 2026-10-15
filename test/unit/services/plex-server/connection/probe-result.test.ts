@@ -1,5 +1,6 @@
 import {
   classifyProbeError,
+  connectionTestResult,
   httpFailureOutcome,
 } from '@services/plex-server/connection/probe-result.js'
 import { describe, expect, it } from 'vitest'
@@ -16,27 +17,27 @@ function nodeError(code: string) {
 
 describe('classifyProbeError', () => {
   it.each([
-    ['ENOTFOUND', 'dns'],
-    ['EAI_AGAIN', 'dns'],
-    ['ECONNREFUSED', 'refused'],
+    ['ENOTFOUND', 'unreachable'],
+    ['EAI_AGAIN', 'unreachable'],
+    ['ECONNREFUSED', 'unreachable'],
     ['EHOSTUNREACH', 'unreachable'],
     ['ENETUNREACH', 'unreachable'],
-    ['ECONNRESET', 'reset'],
-    ['DEPTH_ZERO_SELF_SIGNED_CERT', 'tls'],
-    ['CERT_HAS_EXPIRED', 'tls'],
-    ['ERR_TLS_CERT_ALTNAME_INVALID', 'tls'],
-    ['ETIMEDOUT', 'timeout'],
+    ['ECONNRESET', 'unreachable'],
+    ['DEPTH_ZERO_SELF_SIGNED_CERT', 'certificate'],
+    ['CERT_HAS_EXPIRED', 'certificate'],
+    ['ERR_TLS_CERT_ALTNAME_INVALID', 'certificate'],
+    ['ETIMEDOUT', 'unreachable'],
   ])('maps %s to %s from either runtime', (code, failure) => {
     expect(classifyProbeError(bunError(code))).toBe(failure)
     expect(classifyProbeError(nodeError(code))).toBe(failure)
   })
 
-  it('reads an aborted or timed out request as a timeout', () => {
+  it('reads an aborted or timed out request as unreachable', () => {
     expect(
       classifyProbeError(new DOMException('timed out', 'TimeoutError')),
-    ).toBe('timeout')
+    ).toBe('unreachable')
     expect(classifyProbeError(new DOMException('aborted', 'AbortError'))).toBe(
-      'timeout',
+      'unreachable',
     )
   })
 
@@ -51,13 +52,38 @@ describe('classifyProbeError', () => {
 
 describe('httpFailureOutcome', () => {
   it.each([401, 403])('reads %i as a rejected token', (status) => {
-    expect(httpFailureOutcome(status).failure).toBe('unauthorized')
+    expect(httpFailureOutcome(status)).toEqual({
+      ok: false,
+      code: 'auth',
+      status,
+    })
   })
 
-  it('reads any other status as an http failure', () => {
-    expect(httpFailureOutcome(500)).toMatchObject({
-      failure: 'http',
-      httpStatus: 500,
+  it('reads any other status as something other than Plex', () => {
+    expect(httpFailureOutcome(500)).toEqual({
+      ok: false,
+      code: 'invalid',
+      status: 500,
+    })
+  })
+})
+
+describe('connectionTestResult', () => {
+  it('passes a working connection with no code', () => {
+    expect(connectionTestResult({ ok: true, elapsedMs: 12 })).toEqual({
+      success: true,
+      message: 'Connected to the Plex server.',
+      code: null,
+    })
+  })
+
+  it('explains a failure in its own words', () => {
+    expect(
+      connectionTestResult({ ok: false, code: 'certificate', status: null }),
+    ).toEqual({
+      success: false,
+      message: "The server's certificate doesn't match this address.",
+      code: 'certificate',
     })
   })
 })
