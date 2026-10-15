@@ -48,3 +48,8 @@ export function plexResource(
     ...overrides,
   }
 }
+
+/** The body a Plex server returns from `/identity` and, with a token, from `/`. */
+export const PLEX_IDENTITY = {
+  MediaContainer: { machineIdentifier: 'test-machine-id' },
+}

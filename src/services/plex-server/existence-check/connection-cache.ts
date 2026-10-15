@@ -9,6 +9,7 @@
 import {
   classifyProbeError,
   httpFailureOutcome,
+  isPlexIdentity,
   okOutcome,
   type ProbedConnection,
   type ProbeOutcome,
@@ -115,7 +116,10 @@ async function probePath(
       signal: AbortSignal.timeout(timeoutMs),
     })
     if (response.ok) {
-      return okOutcome(Math.round(performance.now() - started))
+      const elapsedMs = Math.round(performance.now() - started)
+      if (isPlexIdentity(await readJson(response))) return okOutcome(elapsedMs)
+      logger.debug(`Connection test failed for ${uri}: not a Plex response`)
+      return { ok: false, code: 'invalid', status: response.status }
     }
     logger.debug(`Connection test failed for ${uri}: HTTP ${response.status}`)
     return httpFailureOutcome(response.status)
@@ -123,6 +127,14 @@ async function probePath(
     const code = classifyProbeError(error)
     logger.debug({ error, uri, code }, 'Connection test failed')
     return { ok: false, code, status: null }
+  }
+}
+
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    return null
   }
 }
 

@@ -6,6 +6,7 @@ import {
 import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
+import { PLEX_IDENTITY } from '../../../../mocks/plex-resources.js'
 import { server } from '../../../../setup/msw-setup.js'
 
 const UP = { uri: 'http://up.test:32400', local: true, relay: false }
@@ -14,7 +15,7 @@ const GONE = { uri: 'http://gone.test:32400', local: false, relay: false }
 
 function serveProbes() {
   server.use(
-    http.get(`${UP.uri}/identity`, () => HttpResponse.json({})),
+    http.get(`${UP.uri}/identity`, () => HttpResponse.json(PLEX_IDENTITY)),
     http.get(
       `${BROKEN.uri}/identity`,
       () => new HttpResponse(null, { status: 503 }),
@@ -70,7 +71,7 @@ describe('probe token handling', () => {
     server.use(
       http.get(`${UP.uri}/identity`, ({ request }) => {
         sent = request.headers.get('X-Plex-Token')
-        return HttpResponse.json({})
+        return HttpResponse.json(PLEX_IDENTITY)
       }),
     )
 
@@ -84,12 +85,25 @@ describe('probe token handling', () => {
     server.use(
       http.get(`${UP.uri}/`, ({ request }) => {
         sent = request.headers.get('X-Plex-Token')
-        return HttpResponse.json({})
+        return HttpResponse.json(PLEX_IDENTITY)
       }),
     )
 
     await probeServerAccess(UP.uri, 'token', createMockLogger())
 
     expect(sent).toBe('token')
+  })
+})
+
+describe('probe response check', () => {
+  it.each([
+    ['JSON that is not a Plex identity', () => HttpResponse.json({ ok: true })],
+    ['an HTML page', () => HttpResponse.text('<html></html>')],
+  ])('fails a 200 with %s as invalid', async (_name, respond) => {
+    server.use(http.get(`${UP.uri}/identity`, respond))
+
+    const [probed] = await probeConnections([UP], createMockLogger())
+
+    expect(probed?.outcome).toEqual({ ok: false, code: 'invalid', status: 200 })
   })
 })

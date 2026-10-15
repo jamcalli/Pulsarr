@@ -7,7 +7,11 @@ import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
-import { plexConnection, plexResource } from '../../mocks/plex-resources.js'
+import {
+  PLEX_IDENTITY,
+  plexConnection,
+  plexResource,
+} from '../../mocks/plex-resources.js'
 import { server } from '../../setup/msw-setup.js'
 
 const LOCAL_HTTPS = 'https://192-168-1-10.abc.plex.direct:32400'
@@ -39,10 +43,14 @@ function servePlex(state: PlexState) {
     }),
     ...[LOCAL_HTTPS, REMOTE_HTTPS].flatMap((uri) => [
       http.get(`${uri}/identity`, () =>
-        state.down.has(uri) ? HttpResponse.error() : HttpResponse.json({}),
+        state.down.has(uri)
+          ? HttpResponse.error()
+          : HttpResponse.json(PLEX_IDENTITY),
       ),
       http.get(`${uri}/`, () =>
-        state.down.has(uri) ? HttpResponse.error() : HttpResponse.json({}),
+        state.down.has(uri)
+          ? HttpResponse.error()
+          : HttpResponse.json(PLEX_IDENTITY),
       ),
       http.get(`${uri}/library/sections`, () =>
         HttpResponse.json({ MediaContainer: { Directory: [{ key: '1' }] } }),

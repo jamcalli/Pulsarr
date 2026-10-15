@@ -4,7 +4,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedAll } from '../../helpers/seeds/index.js'
-import { plexConnection, plexResource } from '../../mocks/plex-resources.js'
+import {
+  PLEX_IDENTITY,
+  plexConnection,
+  plexResource,
+} from '../../mocks/plex-resources.js'
 import { server } from '../../setup/msw-setup.js'
 
 const LINKED_TOKEN = 'test_plex_token_1234567890'
@@ -39,8 +43,10 @@ describe('GET /v1/plex/test-connection', () => {
           }),
         ]),
       ),
-      http.get(`${NEGOTIATED}/identity`, () => HttpResponse.json({})),
-      http.get(`${NEGOTIATED}/`, () => HttpResponse.json({})),
+      http.get(`${NEGOTIATED}/identity`, () =>
+        HttpResponse.json(PLEX_IDENTITY),
+      ),
+      http.get(`${NEGOTIATED}/`, () => HttpResponse.json(PLEX_IDENTITY)),
       http.get(`${SAVED}/`, () => HttpResponse.error()),
     )
   })

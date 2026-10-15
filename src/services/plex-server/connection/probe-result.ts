@@ -63,6 +63,24 @@ export function httpFailureOutcome(status: number): ProbeOutcome {
   }
 }
 
+/** True when a body is a Plex MediaContainer naming its server, which both `/identity` and `/` return. */
+export function isPlexIdentity(body: unknown): boolean {
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    !('MediaContainer' in body)
+  ) {
+    return false
+  }
+  const container = body.MediaContainer
+  return (
+    typeof container === 'object' &&
+    container !== null &&
+    'machineIdentifier' in container &&
+    typeof container.machineIdentifier === 'string'
+  )
+}
+
 /** Maps a rejected fetch to a failure code, defaulting to unreachable for timeouts and unknown errors. */
 export function classifyProbeError(error: unknown): PlexConnectionFailureCode {
   const code = errorCode(error) ?? errorCode(errorCause(error))

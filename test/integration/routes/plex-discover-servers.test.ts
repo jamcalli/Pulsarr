@@ -4,7 +4,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedAll } from '../../helpers/seeds/index.js'
-import { plexConnection, plexResource } from '../../mocks/plex-resources.js'
+import {
+  PLEX_IDENTITY,
+  plexConnection,
+  plexResource,
+} from '../../mocks/plex-resources.js'
 import { server } from '../../setup/msw-setup.js'
 
 const UP = 'https://plex-up.discover.test:32400'
@@ -27,7 +31,7 @@ describe('POST /v1/plex/discover-servers', () => {
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'
     server.use(
-      http.get(`${UP}/identity`, () => HttpResponse.json({})),
+      http.get(`${UP}/identity`, () => HttpResponse.json(PLEX_IDENTITY)),
       http.get(`${DOWN}/identity`, () => HttpResponse.error()),
     )
   })

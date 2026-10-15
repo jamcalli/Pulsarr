@@ -2,6 +2,7 @@ import {
   classifyProbeError,
   connectionTestResult,
   httpFailureOutcome,
+  isPlexIdentity,
 } from '@services/plex-server/connection/probe-result.js'
 import { describe, expect, it } from 'vitest'
 
@@ -85,5 +86,22 @@ describe('connectionTestResult', () => {
       message: "The server's certificate doesn't match this address.",
       code: 'certificate',
     })
+  })
+})
+
+describe('isPlexIdentity', () => {
+  it('accepts a MediaContainer naming its server', () => {
+    expect(
+      isPlexIdentity({ MediaContainer: { machineIdentifier: 'abc' } }),
+    ).toBe(true)
+  })
+
+  it.each([
+    null,
+    {},
+    { MediaContainer: {} },
+    { MediaContainer: { machineIdentifier: 1 } },
+  ])('rejects %j', (body) => {
+    expect(isPlexIdentity(body)).toBe(false)
   })
 })

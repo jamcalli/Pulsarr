@@ -139,7 +139,9 @@ export default function PlexConfigurationPage() {
   const handleReauthSuccess = async (token: string) => {
     try {
       await updateConfig({ plexTokens: [token] })
-      await refreshRssFeeds()
+      await refreshRssFeeds().catch((error) =>
+        console.error('Failed to refresh RSS feeds:', error),
+      )
       form.setValue('plexToken', token)
       // Brief delay to show "Authorized!" state before closing
       await new Promise((resolve) => setTimeout(resolve, 1000))
