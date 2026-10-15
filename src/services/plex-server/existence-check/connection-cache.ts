@@ -13,7 +13,7 @@ import {
   type ProbeOutcome,
   reachableOutcome,
 } from '@services/plex-server/connection/probe-result.js'
-import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /** Cached connection entry with TTL tracking */
@@ -108,7 +108,6 @@ async function probePath(
   try {
     const response = await fetch(`${uri}${path}`, {
       headers: {
-        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         ...(accessToken ? { 'X-Plex-Token': accessToken } : {}),
