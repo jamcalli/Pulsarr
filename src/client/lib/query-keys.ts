@@ -102,3 +102,11 @@ export const sessionMonitoringKeys = {
   enrollable: $api.queryOptions('get', '/v1/session-monitoring/sonarr-shows')
     .queryKey,
 }
+
+/** `syncRun` is client state, the last watchlist sync kept so its steps survive leaving the page. */
+export const plexConnectionKeys = {
+  passStatus: $api.queryOptions('get', '/v1/plex/plex-pass-status').queryKey,
+  notificationStatus: $api.queryOptions('get', '/v1/plex/notification-status')
+    .queryKey,
+  syncRun: ['plex-connection', 'sync-run'] as const,
+}

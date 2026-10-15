@@ -120,10 +120,13 @@ export const NAV_PAGES = {
   delivery: page('Delivery', '/notifications/delivery', [
     '/notifications#general-notifications',
   ]),
-  plexConnection: page('Plex connection', '/system/plex', [
-    '/plex/configuration',
-    '/utilities/plex-notifications',
-  ]),
+  plexConnection: {
+    ...page('Plex connection', '/system/plex', [
+      '/plex/configuration',
+      '/utilities/plex-notifications',
+    ]),
+    rebuilt: true,
+  },
   apiKeys: {
     ...page('API keys', '/system/api-keys', ['/utilities/api-keys']),
     rebuilt: true,

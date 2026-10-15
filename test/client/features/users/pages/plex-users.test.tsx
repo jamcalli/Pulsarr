@@ -504,7 +504,7 @@ describe('PlexUsersPage', () => {
 
     expect(
       await screen.findByRole('link', { name: 'Open Plex connection' }),
-    ).toHaveAttribute('href', '/plex/configuration')
+    ).toHaveAttribute('href', '/system/plex')
     expect(
       screen.queryByRole('searchbox', { name: 'Search users' }),
     ).not.toBeInTheDocument()
