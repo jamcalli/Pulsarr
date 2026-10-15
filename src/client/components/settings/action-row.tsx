@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import { ActionGroup } from '@/components/action-group'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,7 @@ interface ActionRowButton {
 
 interface ActionRowActions {
   /** Buttons the caller draws itself, for a primary action or more than one. */
-  actions: ReactNode
+  actions: ReactElement
   buttonLabel?: never
   busyLabel?: never
   variant?: never
