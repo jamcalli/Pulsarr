@@ -44,7 +44,7 @@ describe('probeConnections', () => {
     })
     expect(probed[1]?.outcome).toEqual({
       ok: false,
-      reason: 'invalid',
+      reason: 'unavailable',
       status: 503,
     })
     expect(probed[2]?.outcome).toEqual({

@@ -60,11 +60,19 @@ describe('httpFailureOutcome', () => {
     })
   })
 
+  it.each([500, 503])('reads %i as a server error', (status) => {
+    expect(httpFailureOutcome(status)).toEqual({
+      ok: false,
+      reason: 'unavailable',
+      status,
+    })
+  })
+
   it('reads any other status as something other than Plex', () => {
-    expect(httpFailureOutcome(500)).toEqual({
+    expect(httpFailureOutcome(404)).toEqual({
       ok: false,
       reason: 'invalid',
-      status: 500,
+      status: 404,
     })
   })
 })

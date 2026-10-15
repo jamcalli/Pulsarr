@@ -1,5 +1,10 @@
 /** Why a probe failed, kept inside the server to pick the message shown to the admin. */
-export type ProbeFailure = 'unreachable' | 'certificate' | 'auth' | 'invalid'
+export type ProbeFailure =
+  | 'unreachable'
+  | 'certificate'
+  | 'auth'
+  | 'unavailable'
+  | 'invalid'
 
 export type ProbeOutcome =
   | { ok: true; elapsedMs: number }
@@ -49,6 +54,7 @@ const FAILURE_MESSAGES: Record<ProbeFailure, string> = {
   unreachable: "Couldn't reach the Plex server at this address.",
   certificate: "The server's certificate doesn't match this address.",
   auth: "The Plex server didn't accept the linked account's token.",
+  unavailable: 'The Plex server answered with an error. Try again shortly.',
   invalid: 'Something other than this Plex server answered at this address.',
 }
 
@@ -56,12 +62,15 @@ export function okOutcome(elapsedMs: number): ProbeOutcome {
   return { ok: true, elapsedMs }
 }
 
+const SERVER_ERROR_STATUS = 500
+
 export function httpFailureOutcome(status: number): ProbeOutcome {
-  return {
-    ok: false,
-    reason: AUTH_STATUSES.has(status) ? 'auth' : 'invalid',
-    status,
-  }
+  return { ok: false, reason: httpFailureReason(status), status }
+}
+
+function httpFailureReason(status: number): ProbeFailure {
+  if (AUTH_STATUSES.has(status)) return 'auth'
+  return status >= SERVER_ERROR_STATUS ? 'unavailable' : 'invalid'
 }
 
 /** The server id in a Plex MediaContainer body, which both `/identity` and `/` return, or null when the body is not one. */
