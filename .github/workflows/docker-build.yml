@@ -44,12 +44,12 @@ jobs:
         run: |
           TAG_COMMIT=$(git rev-parse "$GIT_REF")
           echo "Tag commit: $TAG_COMMIT"
-          BRANCH_CONTAINS=$(git branch -r --contains "$TAG_COMMIT" | grep -E "origin/(develop|feature/)" || true)
+          BRANCH_CONTAINS=$(git branch -r --contains "$TAG_COMMIT" | grep -E "origin/(develop|feature/|feat/)" || true)
           echo "Branch contains check: $BRANCH_CONTAINS"
           if [[ -n "$BRANCH_CONTAINS" ]]; then
             echo "Tag is on a valid branch for beta releases"
           else
-            echo "Beta releases should only be created from develop or feature branches"
+            echo "Beta releases should only be created from develop, feature/ or feat/ branches"
             exit 1
           fi
 
