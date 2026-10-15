@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import { ActionGroup } from '@/components/action-group'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
@@ -17,34 +17,47 @@ export interface ActionProgress {
   message?: string
 }
 
-interface ActionRowProps {
-  title: string
-  description: string
+interface ActionRowButton {
   buttonLabel: string
   busyLabel: string
   variant?: 'default' | 'destructive'
   disabled: boolean
-  running: boolean
   onRun: () => void
+  actions?: never
+}
+
+interface ActionRowActions {
+  /** Buttons the caller draws itself, for a primary action or more than one. */
+  actions: ReactElement
+  buttonLabel?: never
+  busyLabel?: never
+  variant?: never
+  disabled?: never
+  onRun?: never
+}
+
+type ActionRowProps = (ActionRowButton | ActionRowActions) & {
+  title: string
+  description: string
+  running: boolean
   unavailableReason?: string | null
   progress?: ActionProgress[]
   result?: ReactNode
+  /** Shown in place of `result` and kept while running, for a run that reports each step. */
+  live?: ReactNode
   errorMessage?: string | null
 }
 
 export function ActionRow({
   title,
   description,
-  buttonLabel,
-  busyLabel,
-  variant = 'default',
-  disabled,
   running,
-  onRun,
   unavailableReason = null,
   progress,
   result,
+  live,
   errorMessage = null,
+  ...action
 }: ActionRowProps) {
   const visibleProgress = running ? (progress ?? []) : []
 
@@ -64,15 +77,19 @@ export function ActionRow({
         </ItemContent>
         <ItemActions className="max-md:w-full">
           <ActionGroup>
-            <Button
-              type="button"
-              variant={variant === 'destructive' ? 'destructive' : 'outline'}
-              size="sm"
-              disabled={disabled || running}
-              onClick={onRun}
-            >
-              {running ? busyLabel : buttonLabel}
-            </Button>
+            {action.actions ?? (
+              <Button
+                type="button"
+                variant={
+                  action.variant === 'destructive' ? 'destructive' : 'outline'
+                }
+                size="sm"
+                disabled={action.disabled || running}
+                onClick={action.onRun}
+              >
+                {running ? action.busyLabel : action.buttonLabel}
+              </Button>
+            )}
           </ActionGroup>
         </ItemActions>
       </Item>
@@ -94,7 +111,7 @@ export function ActionRow({
           ))}
         </div>
       )}
-      {!running && result}
+      {live ?? (!running && result)}
       <ErrorAlert message={errorMessage} />
     </div>
   )

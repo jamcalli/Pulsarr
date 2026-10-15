@@ -16,6 +16,10 @@ interface ConnectionTestProps {
   failure: ConnectionTestFailure | null
   onTest: () => void
   disabled: boolean
+  /** Why the test can't run right now, shown under the button while disabled. */
+  disabledReason?: string | null
+  /** What the passed test reached, shown beside Connected. */
+  passedDetail?: string
   children?: ReactNode
 }
 
@@ -24,6 +28,8 @@ export function ConnectionTest({
   failure,
   onTest,
   disabled,
+  disabledReason = null,
+  passedDetail,
   children,
 }: ConnectionTestProps) {
   const testing = status === 'testing'
@@ -43,6 +49,9 @@ export function ConnectionTest({
           busyLabel="Testing..."
         />
       </Button>
+      {disabled && disabledReason && (
+        <p className="text-sm text-muted-foreground">{disabledReason}</p>
+      )}
       {testing && (
         <p role="status" className="text-sm text-muted-foreground">
           Testing the connection...
@@ -50,7 +59,7 @@ export function ConnectionTest({
       )}
       {status === 'passed' && (
         <div role="status">
-          <StatusPill tone="on" label="Connected" />
+          <StatusPill tone="on" label="Connected" detail={passedDetail} />
         </div>
       )}
       {status === 'failed' && failure && (

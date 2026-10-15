@@ -67,7 +67,7 @@ export function BulkSettingsCredenza({ page }: { page: PlexUsersPage }) {
           {(field) => (
             <field.SegmentedField
               label={USER_SWITCH_LABELS.notify_discord}
-              description="Users without a Discord id stay off."
+              description="Users without a Discord user ID stay off."
               options={BULK_CHOICE_OPTIONS}
               disabled={busy}
             />
@@ -77,7 +77,7 @@ export function BulkSettingsCredenza({ page }: { page: PlexUsersPage }) {
           {(field) => (
             <field.SegmentedField
               label={USER_SWITCH_LABELS.notify_discord_mention}
-              description="Only works for users with a Discord id."
+              description="Only works for users with a Discord user ID."
               options={BULK_CHOICE_OPTIONS}
               disabled={busy}
             />
@@ -139,7 +139,7 @@ export function BulkSettingsCredenza({ page }: { page: PlexUsersPage }) {
         <form.AppField name="clearDiscordId">
           {(field) => (
             <field.SwitchField
-              label="Clear Discord id"
+              label="Clear Discord user ID"
               description="Also turns Discord off for them."
               disabled={busy}
             />

@@ -367,7 +367,7 @@ describe('PlexUsersPage', () => {
       ).getByRole('button', { name: 'On' }),
     )
     await user.click(
-      within(dialog).getByRole('switch', { name: 'Clear Discord id' }),
+      within(dialog).getByRole('switch', { name: 'Clear Discord user ID' }),
     )
     await user.click(
       within(dialog).getByRole('button', { name: 'Apply to 2 users' }),
@@ -504,7 +504,7 @@ describe('PlexUsersPage', () => {
 
     expect(
       await screen.findByRole('link', { name: 'Open Plex connection' }),
-    ).toHaveAttribute('href', '/plex/configuration')
+    ).toHaveAttribute('href', '/system/plex')
     expect(
       screen.queryByRole('searchbox', { name: 'Search users' }),
     ).not.toBeInTheDocument()

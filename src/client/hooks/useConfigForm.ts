@@ -11,6 +11,7 @@ interface ConfigFormOptions<Values> {
   toValues: (config: Config) => Values
   schema: StandardSchemaV1<Values>
   saveErrorFallback?: string
+  onSaved?: () => void
 }
 
 interface ConfigPayloadOption<Values> {
@@ -32,6 +33,7 @@ export function useConfigForm<Values extends ConfigUpdate>({
   schema,
   toPayload = (values) => values,
   saveErrorFallback = 'Settings were not saved. Try again.',
+  onSaved,
 }: ConfigFormOptions<Values> &
   Partial<ConfigPayloadOption<Values>>): ConfigForm<Values> {
   return useSaveForm({
@@ -41,5 +43,6 @@ export function useConfigForm<Values extends ConfigUpdate>({
     latest: getConfigSnapshot,
     schema,
     saveErrorFallback,
+    onSaved,
   })
 }

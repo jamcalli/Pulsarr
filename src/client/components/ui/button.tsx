@@ -13,6 +13,7 @@ const buttonVariants = cva(
         default:
           'border-border bg-clip-border bg-primary text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
         warn: 'border-border bg-clip-border bg-gold text-primary-foreground',
+        plex: 'border-border bg-clip-border bg-plex text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
         neutral:
           'border-border bg-clip-border bg-inset text-foreground hover:bg-accent aria-expanded:bg-accent',
         ghost:

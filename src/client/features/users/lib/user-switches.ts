@@ -23,4 +23,4 @@ export const USER_SWITCH_LABELS: Record<UserSwitch, string> = {
   requires_approval: 'Require approval',
 }
 
-export const DISCORD_ID_REQUIRED = 'Add a Discord id to turn this on.'
+export const DISCORD_ID_REQUIRED = 'Needs a Discord user ID.'

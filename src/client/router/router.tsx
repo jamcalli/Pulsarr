@@ -9,6 +9,7 @@ import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-q
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { ApiKeysSkeleton } from '@/features/system/components/api-keys/api-keys-skeleton'
+import { PlexConnectionSkeleton } from '@/features/system/components/plex-connection/plex-connection-skeleton'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
 import { PlexUsersSkeleton } from '@/features/users/components/plex-users/plex-users-skeleton'
 import { UserPageSkeleton } from '@/features/users/components/user/user-page-skeleton'
@@ -48,8 +49,11 @@ const SessionMonitoringPage = lazy(
   () => import('@/features/library/pages/session-monitoring'),
 )
 const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
+const PlexConnectionPage = lazy(
+  () => import('@/features/system/pages/plex-connection'),
+)
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
-const PlexConfigurationPage = lazy(
+const LegacyPlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),
 )
 const ApprovalsPage = lazy(() => import('@/legacy/features/requests'))
@@ -60,7 +64,7 @@ const DashboardPage = lazy(() => import('@/legacy/features/home'))
 const DeleteSyncPage = lazy(
   () => import('@/legacy/features/library/pages/delete-sync'),
 )
-const PlexNotificationsPage = lazy(
+const LegacyPlexNotificationsPage = lazy(
   () => import('@/legacy/features/system/pages/plex-notifications'),
 )
 const LegacyNewUserDefaultsPage = lazy(
@@ -245,6 +249,14 @@ export const router = createBrowserRouter(
               ),
             },
             {
+              path: 'system/plex',
+              element: (
+                <Suspense fallback={<PlexConnectionSkeleton />}>
+                  <PlexConnectionPage />
+                </Suspense>
+              ),
+            },
+            {
               path: 'system/api-keys',
               element: (
                 <Suspense fallback={<ApiKeysSkeleton />}>
@@ -284,7 +296,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <PlexConfigurationPage />
+                    <LegacyPlexConfigurationPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),
@@ -393,7 +405,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <PlexNotificationsPage />
+                    <LegacyPlexNotificationsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),
