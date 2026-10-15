@@ -107,3 +107,22 @@ describe('probe response check', () => {
     expect(probed?.outcome).toEqual({ ok: false, code: 'invalid', status: 200 })
   })
 })
+
+describe('probe server match', () => {
+  it('accepts the server Plex listed and rejects a different one', async () => {
+    server.use(
+      http.get(`${UP.uri}/identity`, () => HttpResponse.json(PLEX_IDENTITY)),
+    )
+
+    const [listed, other] = await probeConnections(
+      [
+        { ...UP, machineId: PLEX_IDENTITY.MediaContainer.machineIdentifier },
+        { ...UP, machineId: 'another-server' },
+      ],
+      createMockLogger(),
+    )
+
+    expect(listed?.outcome.ok).toBe(true)
+    expect(other?.outcome).toEqual({ ok: false, code: 'invalid', status: 200 })
+  })
+})

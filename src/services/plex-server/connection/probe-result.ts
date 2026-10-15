@@ -48,7 +48,7 @@ const FAILURE_MESSAGES: Record<PlexConnectionFailureCode, string> = {
   unreachable: "Couldn't reach the Plex server at this address.",
   certificate: "The server's certificate doesn't match this address.",
   auth: "The Plex server didn't accept the linked account's token.",
-  invalid: 'Something answered at this address, but not Plex.',
+  invalid: 'Something other than this Plex server answered at this address.',
 }
 
 export function okOutcome(elapsedMs: number): ProbeOutcome {
@@ -63,22 +63,25 @@ export function httpFailureOutcome(status: number): ProbeOutcome {
   }
 }
 
-/** True when a body is a Plex MediaContainer naming its server, which both `/identity` and `/` return. */
-export function isPlexIdentity(body: unknown): boolean {
+/** The server id in a Plex MediaContainer body, which both `/identity` and `/` return, or null when the body is not one. */
+export function plexMachineId(body: unknown): string | null {
   if (
     typeof body !== 'object' ||
     body === null ||
     !('MediaContainer' in body)
   ) {
-    return false
+    return null
   }
   const container = body.MediaContainer
-  return (
-    typeof container === 'object' &&
-    container !== null &&
-    'machineIdentifier' in container &&
-    typeof container.machineIdentifier === 'string'
-  )
+  if (
+    typeof container !== 'object' ||
+    container === null ||
+    !('machineIdentifier' in container) ||
+    typeof container.machineIdentifier !== 'string'
+  ) {
+    return null
+  }
+  return container.machineIdentifier
 }
 
 /** Maps a rejected fetch to a failure code, defaulting to unreachable for timeouts and unknown errors. */

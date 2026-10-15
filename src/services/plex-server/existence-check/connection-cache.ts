@@ -9,10 +9,10 @@
 import {
   classifyProbeError,
   httpFailureOutcome,
-  isPlexIdentity,
   okOutcome,
   type ProbedConnection,
   type ProbeOutcome,
+  plexMachineId,
 } from '@services/plex-server/connection/probe-result.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -84,8 +84,10 @@ export function getCachedConnection(
 
 export const PLEX_PROBE_TIMEOUT_MS = 2000
 
-/** Probes each connection's /identity in parallel and keeps the input order. */
-export async function probeConnections<C extends { uri: string }>(
+/** Probes each connection's /identity in parallel and keeps the input order, requiring `machineId` to match when set. */
+export async function probeConnections<
+  C extends { uri: string; machineId?: string },
+>(
   connections: C[],
   logger: FastifyBaseLogger,
   timeoutMs = PLEX_PROBE_TIMEOUT_MS,
@@ -93,7 +95,12 @@ export async function probeConnections<C extends { uri: string }>(
   return Promise.all(
     connections.map(async (connection) => ({
       connection,
-      outcome: await probeConnection(connection.uri, logger, timeoutMs),
+      outcome: await probeConnection(
+        connection.uri,
+        logger,
+        timeoutMs,
+        connection.machineId ?? null,
+      ),
     })),
   )
 }
@@ -104,6 +111,7 @@ async function probePath(
   accessToken: string | null,
   logger: FastifyBaseLogger,
   timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+  expectedMachineId: string | null = null,
 ): Promise<ProbeOutcome> {
   const started = performance.now()
   try {
@@ -117,8 +125,16 @@ async function probePath(
     })
     if (response.ok) {
       const elapsedMs = Math.round(performance.now() - started)
-      if (isPlexIdentity(await readJson(response))) return okOutcome(elapsedMs)
-      logger.debug(`Connection test failed for ${uri}: not a Plex response`)
+      const machineId = plexMachineId(await readJson(response))
+      if (
+        machineId !== null &&
+        (expectedMachineId === null || machineId === expectedMachineId)
+      ) {
+        return okOutcome(elapsedMs)
+      }
+      logger.debug(
+        `Connection test failed for ${uri}: not the expected Plex server`,
+      )
       return { ok: false, code: 'invalid', status: response.status }
     }
     logger.debug(`Connection test failed for ${uri}: HTTP ${response.status}`)
@@ -143,8 +159,9 @@ export function probeConnection(
   uri: string,
   logger: FastifyBaseLogger,
   timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+  expectedMachineId: string | null = null,
 ): Promise<ProbeOutcome> {
-  return probePath(uri, '/identity', null, logger, timeoutMs)
+  return probePath(uri, '/identity', null, logger, timeoutMs, expectedMachineId)
 }
 
 /** Reachability plus whether the server accepts the token, which fails as `auth` when it does not. */

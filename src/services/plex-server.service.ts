@@ -405,7 +405,13 @@ export class PlexServerService {
     }
 
     const ranked = rankProbedConnections(
-      await probeConnections(server.connections, this.log),
+      await probeConnections(
+        server.connections.map((connection) => ({
+          ...connection,
+          machineId: server.resource.clientIdentifier,
+        })),
+        this.log,
+      ),
     )
     const connections = ranked.map(({ connection }) =>
       connectionInfo(connection.uri, connection),

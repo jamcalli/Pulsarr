@@ -2,7 +2,7 @@ import {
   classifyProbeError,
   connectionTestResult,
   httpFailureOutcome,
-  isPlexIdentity,
+  plexMachineId,
 } from '@services/plex-server/connection/probe-result.js'
 import { describe, expect, it } from 'vitest'
 
@@ -89,11 +89,11 @@ describe('connectionTestResult', () => {
   })
 })
 
-describe('isPlexIdentity', () => {
-  it('accepts a MediaContainer naming its server', () => {
+describe('plexMachineId', () => {
+  it('reads the server id from a MediaContainer', () => {
     expect(
-      isPlexIdentity({ MediaContainer: { machineIdentifier: 'abc' } }),
-    ).toBe(true)
+      plexMachineId({ MediaContainer: { machineIdentifier: 'abc' } }),
+    ).toBe('abc')
   })
 
   it.each([
@@ -102,6 +102,6 @@ describe('isPlexIdentity', () => {
     { MediaContainer: {} },
     { MediaContainer: { machineIdentifier: 1 } },
   ])('rejects %j', (body) => {
-    expect(isPlexIdentity(body)).toBe(false)
+    expect(plexMachineId(body)).toBeNull()
   })
 })

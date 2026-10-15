@@ -8,6 +8,7 @@ export interface DiscoveryOption {
   port: number
   useSsl: boolean
   local: boolean
+  machineId: string
 }
 
 const HTTPS_DEFAULT_PORT = 443
@@ -37,6 +38,7 @@ export function discoveryOptions(
             : HTTP_DEFAULT_PORT,
         useSsl,
         local: connection.local,
+        machineId: resource.clientIdentifier,
       })
       if (connection.address && !connection.IPv6 && !resource.httpsRequired) {
         const port = connection.port || PLEX_DEFAULT_PORT
@@ -47,6 +49,7 @@ export function discoveryOptions(
           port,
           useSsl: false,
           local: connection.local,
+          machineId: resource.clientIdentifier,
         })
       }
     }
