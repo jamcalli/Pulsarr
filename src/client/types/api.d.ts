@@ -727,7 +727,7 @@ export interface paths {
         put?: never;
         /**
          * Discover Plex servers
-         * @description Discover available Plex servers using a user token
+         * @description List and probe every connection to the Plex servers a token owns
          */
         post: operations["discoverPlexServers"];
         delete?: never;
@@ -970,6 +970,26 @@ export interface paths {
          * @description Sends a friend request to a Plex user by UUID
          */
         post: operations["sendPlexFriendRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/test-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Test Plex server connection
+         * @description Test connectivity to the Plex server address Pulsarr uses, saved or automatic
+         */
+        get: operations["testPlexConnection"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3735,6 +3755,50 @@ export interface components {
             itemsUpdated: number;
             error?: string;
         };
+        /** @description Plex Media Server connection to add to every Radarr and Sonarr instance, left out to use the saved Plex server and linked token */
+        PlexNotificationConfigPayload: {
+            plexToken?: string;
+            plexHost?: string;
+            plexPort?: number;
+            useSsl?: boolean;
+        };
+        /** @description Per-instance Plex Media Server connection results for every Radarr and Sonarr */
+        PlexNotificationResponse: {
+            success: boolean;
+            message: string;
+            results: {
+                radarr: components["schemas"]["PlexNotificationResult"][];
+                sonarr: components["schemas"]["PlexNotificationResult"][];
+            };
+        };
+        /** @description Whether one Radarr or Sonarr instance has the Plex Media Server connection, or the outcome of changing it */
+        PlexNotificationResult: {
+            id: number;
+            name: string;
+            success: boolean;
+            message: string;
+        };
+        /** @description Whether the linked Plex account has an active Plex Pass */
+        PlexPassStatus: {
+            hasPlexPass: boolean;
+        };
+        /** @description A PIN the admin approves at plex.tv/link to link a Plex account */
+        PlexPin: {
+            id: number;
+            code: string;
+            qr: string;
+            expiresAt: string;
+            clientId: string;
+        };
+        /** @description The token once the PIN is approved, null until then */
+        PlexPinPoll: {
+            authToken: string | null;
+            expiresIn: number;
+        };
+        /** @description Plex accepted every configured token */
+        PlexPing: {
+            success: boolean;
+        };
         /** @description Ratings captured from stored Plex watchlist metadata. */
         PlexRatings: {
             imdb?: {
@@ -3744,6 +3808,57 @@ export interface components {
             rtCritic?: number;
             rtAudience?: number;
             tmdb?: number;
+        };
+        /** @description The saved watchlist feed URLs, empty when Plex gave none */
+        PlexRssFeeds: {
+            self: string;
+            friends: string;
+        };
+        /** @description One connection to a Plex server the token owns, with whether Pulsarr reached it */
+        PlexServer: {
+            name: string;
+            host: string;
+            port: number;
+            useSsl: boolean;
+            local: boolean;
+            description?: string;
+            success: boolean;
+            message: string;
+        };
+        /** @description Every connection Plex offers for the token, ordered best first */
+        PlexServerDiscovery: {
+            success: boolean;
+            message?: string;
+            servers: components["schemas"]["PlexServer"][];
+        };
+        /** @description The Plex token whose servers to list */
+        PlexServerDiscoveryPayload: {
+            plexToken: string;
+        };
+        /** @description Plex server connection test result for the address Pulsarr uses */
+        PlexTestConnectionResponse: {
+            success: boolean;
+            message: string;
+            url: string;
+            automatic: boolean;
+        };
+        /** @description Watchlists read from Plex, with the total item count */
+        PlexWatchlistSync: {
+            total: number;
+            users: {
+                user: {
+                    watchlistId: string;
+                    username: string;
+                };
+                watchlist: {
+                    title: string;
+                    plexKey?: string;
+                    type: string;
+                    thumb?: string;
+                    guids: string[];
+                    genres: string[];
+                }[];
+            }[];
         };
         /**
          * @description Quota window, a calendar day, rolling 7 days, or calendar month
@@ -6844,16 +6959,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Plex Media Server connection to add to every Radarr and Sonarr instance, left out to use the saved Plex server and linked token */
         requestBody: {
             content: {
-                "application/json": {
-                    plexToken: string;
-                    plexHost: string;
-                    /** @default 32400 */
-                    plexPort?: number;
-                    /** @default false */
-                    useSsl?: boolean;
-                };
+                "application/json": components["schemas"]["PlexNotificationConfigPayload"];
             };
         };
         responses: {
@@ -6863,24 +6972,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            radarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                            sonarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                        };
-                    };
+                    "application/json": components["schemas"]["PlexNotificationResponse"];
                 };
             };
             /** @description Default Response */
@@ -6919,11 +7011,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description The Plex token whose servers to list */
         requestBody: {
             content: {
-                "application/json": {
-                    plexToken: string;
-                };
+                "application/json": components["schemas"]["PlexServerDiscoveryPayload"];
             };
         };
         responses: {
@@ -6933,18 +7024,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message?: string;
-                        servers: {
-                            name: string;
-                            host: string;
-                            port: number;
-                            useSsl: boolean;
-                            local: boolean;
-                            description?: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["PlexServerDiscovery"];
                 };
             };
             /** @description Default Response */
@@ -7027,10 +7107,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        self: string;
-                        friends: string;
-                    };
+                    "application/json": components["schemas"]["PlexRssFeeds"];
                 };
             };
             /** @description Default Response */
@@ -7118,24 +7195,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            radarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                            sonarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                        };
-                    };
+                    "application/json": components["schemas"]["PlexNotificationResponse"];
                 };
             };
             /** @description Default Response */
@@ -7182,23 +7242,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        total: number;
-                        users: {
-                            user: {
-                                watchlistId: string;
-                                username: string;
-                            };
-                            watchlist: {
-                                title: string;
-                                plexKey?: string;
-                                type: string;
-                                thumb?: string;
-                                guids: string[];
-                                genres: string[];
-                            }[];
-                        }[];
-                    };
+                    "application/json": components["schemas"]["PlexWatchlistSync"];
                 };
             };
             /** @description Default Response */
@@ -7245,13 +7289,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                        code: string;
-                        qr: string;
-                        expiresAt: string;
-                        clientId: string;
-                    };
+                    "application/json": components["schemas"]["PlexPin"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -7293,10 +7331,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        authToken: string | null;
-                        expiresIn: number;
-                    };
+                    "application/json": components["schemas"]["PlexPinPoll"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -7334,9 +7369,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                    };
+                    "application/json": components["schemas"]["PlexPing"];
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -7350,6 +7392,15 @@ export interface operations {
             };
             /** @description Default Response */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7374,9 +7425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        hasPlexPass: boolean;
-                    };
+                    "application/json": components["schemas"]["PlexPassStatus"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -7414,24 +7463,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            radarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                            sonarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                        };
-                    };
+                    "application/json": components["schemas"]["PlexNotificationResponse"];
                 };
             };
             /** @description Default Response */
@@ -7557,23 +7589,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        total: number;
-                        users: {
-                            user: {
-                                watchlistId: string;
-                                username: string;
-                            };
-                            watchlist: {
-                                title: string;
-                                plexKey?: string;
-                                type: string;
-                                thumb?: string;
-                                guids: string[];
-                                genres: string[];
-                            }[];
-                        }[];
-                    };
+                    "application/json": components["schemas"]["PlexWatchlistSync"];
                 };
             };
             /** @description Default Response */
@@ -7639,6 +7655,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    testPlexConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlexTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */

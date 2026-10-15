@@ -6,6 +6,14 @@
  * All functions are pure and receive cache state as parameters.
  */
 
+import {
+  classifyProbeError,
+  httpFailureOutcome,
+  okOutcome,
+  type ProbedConnection,
+  type ProbeOutcome,
+  plexMachineId,
+} from '@services/plex-server/connection/probe-result.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
@@ -74,53 +82,107 @@ export function getCachedConnection(
   return null
 }
 
-/**
- * Tests connections in parallel using lightweight /identity endpoint.
- * Returns only reachable connections in their original order.
- *
- * @param connections - Array of connections to test
- * @param accessToken - Token for authentication
- * @param logger - Logger instance
- * @param timeoutMs - Per-connection timeout in milliseconds (default 2000)
- * @returns Array of reachable connections
- */
-export async function testConnectionReachability(
-  connections: ConnectionCandidate[],
-  accessToken: string,
-  logger: FastifyBaseLogger,
-  timeoutMs = 2000,
-): Promise<ConnectionCandidate[]> {
-  const connectionTests = connections.map(async (conn) => {
-    try {
-      const response = await fetch(`${conn.uri}/identity`, {
-        headers: {
-          'X-Plex-Token': accessToken,
-          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-        },
-        signal: AbortSignal.timeout(timeoutMs),
-      })
+export const PLEX_PROBE_TIMEOUT_MS = 2000
 
-      if (response.ok) {
-        return conn
+/** Probes each connection's /identity in parallel and keeps the input order, requiring `machineId` to match when set. */
+export async function probeConnections<
+  C extends { uri: string; machineId?: string },
+>(
+  connections: C[],
+  logger: FastifyBaseLogger,
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+): Promise<ProbedConnection<C>[]> {
+  return Promise.all(
+    connections.map(async (connection) => ({
+      connection,
+      outcome: await probeConnection(
+        connection.uri,
+        logger,
+        timeoutMs,
+        connection.machineId ?? null,
+      ),
+    })),
+  )
+}
+
+async function probePath(
+  uri: string,
+  path: string,
+  accessToken: string | null,
+  logger: FastifyBaseLogger,
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+  expectedMachineId: string | null = null,
+): Promise<ProbeOutcome> {
+  const started = performance.now()
+  try {
+    const response = await fetch(`${uri}${path}`, {
+      headers: {
+        Accept: 'application/json',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+        ...(accessToken ? { 'X-Plex-Token': accessToken } : {}),
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (response.ok) {
+      const elapsedMs = Math.round(performance.now() - started)
+      const machineId = plexMachineId(await readJson(response))
+      if (
+        machineId !== null &&
+        (expectedMachineId === null || machineId === expectedMachineId)
+      ) {
+        return okOutcome(elapsedMs)
       }
       logger.debug(
-        `Connection test failed for ${conn.uri}: HTTP ${response.status}`,
+        `Connection test failed for ${uri}: not the expected Plex server`,
       )
-      return null
-    } catch (error) {
-      logger.debug({ error, uri: conn.uri }, 'Connection test failed')
-      return null
+      return { ok: false, reason: 'invalid', status: response.status }
     }
-  })
+    logger.debug(`Connection test failed for ${uri}: HTTP ${response.status}`)
+    return httpFailureOutcome(response.status)
+  } catch (error) {
+    const reason = classifyProbeError(error)
+    logger.debug({ error, uri, reason }, 'Connection test failed')
+    return { ok: false, reason, status: null }
+  }
+}
 
-  const results = await Promise.allSettled(connectionTests)
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
 
-  return results
-    .filter(
-      (r): r is PromiseFulfilledResult<ConnectionCandidate> =>
-        r.status === 'fulfilled' && r.value !== null,
-    )
-    .map((r) => r.value)
+/** Reachability only, sent without the token because `/identity` answers without one. */
+export function probeConnection(
+  uri: string,
+  logger: FastifyBaseLogger,
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+  expectedMachineId: string | null = null,
+): Promise<ProbeOutcome> {
+  return probePath(uri, '/identity', null, logger, timeoutMs, expectedMachineId)
+}
+
+/** Reachability plus whether the server accepts the token, which fails as `auth` when it does not. */
+export function probeServerAccess(
+  uri: string,
+  accessToken: string,
+  logger: FastifyBaseLogger,
+): Promise<ProbeOutcome> {
+  return probePath(uri, '/', accessToken, logger, PLEX_PROBE_TIMEOUT_MS)
+}
+
+/** The reachable connections only, in their original order. */
+export async function testConnectionReachability<C extends { uri: string }>(
+  connections: C[],
+  logger: FastifyBaseLogger,
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+): Promise<C[]> {
+  const probed = await probeConnections(connections, logger, timeoutMs)
+  return probed
+    .filter(({ outcome }) => outcome.ok)
+    .map(({ connection }) => connection)
 }
 
 /**
@@ -128,20 +190,14 @@ export async function testConnectionReachability(
  * Returns working connections sorted by preference (non-local, non-relay first).
  *
  * @param connections - Array of connections to test
- * @param accessToken - Token for authentication
  * @param logger - Logger instance
  * @returns Array of working connections sorted by preference
  */
 async function testConnections(
   connections: ConnectionCandidate[],
-  accessToken: string,
   logger: FastifyBaseLogger,
 ): Promise<ConnectionCandidate[]> {
-  const reachable = await testConnectionReachability(
-    connections,
-    accessToken,
-    logger,
-  )
+  const reachable = await testConnectionReachability(connections, logger)
 
   return reachable.sort((a, b) => {
     if (!a.local && b.local) return -1
@@ -198,11 +254,7 @@ export async function getBestServerConnection(
     `Testing ${connections.length} connections for server "${serverName}"`,
   )
 
-  const workingConnections = await testConnections(
-    connections,
-    accessToken,
-    logger,
-  )
+  const workingConnections = await testConnections(connections, logger)
 
   if (workingConnections.length === 0) {
     logger.warn(`No working connections found for server "${serverName}"`)

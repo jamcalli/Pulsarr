@@ -1,9 +1,14 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-export const PingSuccessSchema = z.object({
-  success: z.boolean(),
-})
+export const PingSuccessSchema = z
+  .object({
+    success: z.boolean(),
+  })
+  .meta({
+    id: 'PlexPing',
+    description: 'Plex accepted every configured token',
+  })
 
 export type PingSuccess = z.infer<typeof PingSuccessSchema>
 

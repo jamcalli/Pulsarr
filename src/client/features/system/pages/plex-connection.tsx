@@ -60,7 +60,7 @@ import { usePlexRssFeeds } from '@/features/system/hooks/plex-connection/usePlex
 import { usePlexServerDiscovery } from '@/features/system/hooks/plex-connection/usePlexServerDiscovery'
 import { usePlexSetup } from '@/features/system/hooks/plex-connection/usePlexSetup'
 import { usePlexWatchlist } from '@/features/system/hooks/plex-connection/usePlexWatchlist'
-import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { refreshRssFeeds, updateConfig, useConfig } from '@/hooks/useConfig'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useShowLoading } from '@/hooks/useMinLoading'
 import { useUserList } from '@/hooks/usePlexUsers'
@@ -139,6 +139,9 @@ export default function PlexConfigurationPage() {
   const handleReauthSuccess = async (token: string) => {
     try {
       await updateConfig({ plexTokens: [token] })
+      await refreshRssFeeds().catch((error) =>
+        console.error('Failed to refresh RSS feeds:', error),
+      )
       form.setValue('plexToken', token)
       // Brief delay to show "Authorized!" state before closing
       await new Promise((resolve) => setTimeout(resolve, 1000))

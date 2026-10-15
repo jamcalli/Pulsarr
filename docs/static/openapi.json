@@ -2675,6 +2675,168 @@
         "additionalProperties": false,
         "description": "Orphaned tag reference cleanup result for one instance"
       },
+      "PlexNotificationConfigPayload": {
+        "type": "object",
+        "properties": {
+          "plexToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plexHost": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plexPort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "useSsl": {
+            "type": "boolean"
+          }
+        },
+        "description": "Plex Media Server connection to add to every Radarr and Sonarr instance, left out to use the saved Plex server and linked token"
+      },
+      "PlexNotificationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "results": {
+            "type": "object",
+            "properties": {
+              "radarr": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlexNotificationResult"
+                }
+              },
+              "sonarr": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlexNotificationResult"
+                }
+              }
+            },
+            "required": [
+              "radarr",
+              "sonarr"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "results"
+        ],
+        "additionalProperties": false,
+        "description": "Per-instance Plex Media Server connection results for every Radarr and Sonarr"
+      },
+      "PlexNotificationResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "success",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Whether one Radarr or Sonarr instance has the Plex Media Server connection, or the outcome of changing it"
+      },
+      "PlexPassStatus": {
+        "type": "object",
+        "properties": {
+          "hasPlexPass": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hasPlexPass"
+        ],
+        "additionalProperties": false,
+        "description": "Whether the linked Plex account has an active Plex Pass"
+      },
+      "PlexPin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "code": {
+            "type": "string"
+          },
+          "qr": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "qr",
+          "expiresAt",
+          "clientId"
+        ],
+        "additionalProperties": false,
+        "description": "A PIN the admin approves at plex.tv/link to link a Plex account"
+      },
+      "PlexPinPoll": {
+        "type": "object",
+        "properties": {
+          "authToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresIn": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "authToken",
+          "expiresIn"
+        ],
+        "additionalProperties": false,
+        "description": "The token once the PIN is approved, null until then"
+      },
+      "PlexPing": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "additionalProperties": false,
+        "description": "Plex accepted every configured token"
+      },
       "PlexRatings": {
         "type": "object",
         "properties": {
@@ -2709,6 +2871,206 @@
         },
         "additionalProperties": false,
         "description": "Ratings captured from stored Plex watchlist metadata."
+      },
+      "PlexRssFeeds": {
+        "type": "object",
+        "properties": {
+          "self": {
+            "type": "string"
+          },
+          "friends": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "self",
+          "friends"
+        ],
+        "additionalProperties": false,
+        "description": "The saved watchlist feed URLs, empty when Plex gave none"
+      },
+      "PlexServer": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "number"
+          },
+          "useSsl": {
+            "type": "boolean"
+          },
+          "local": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "host",
+          "port",
+          "useSsl",
+          "local",
+          "success",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "One connection to a Plex server the token owns, with whether Pulsarr reached it"
+      },
+      "PlexServerDiscovery": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlexServer"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "servers"
+        ],
+        "additionalProperties": false,
+        "description": "Every connection Plex offers for the token, ordered best first"
+      },
+      "PlexServerDiscoveryPayload": {
+        "type": "object",
+        "properties": {
+          "plexToken": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "plexToken"
+        ],
+        "description": "The Plex token whose servers to list"
+      },
+      "PlexTestConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "automatic": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "url",
+          "automatic"
+        ],
+        "additionalProperties": false,
+        "description": "Plex server connection test result for the address Pulsarr uses"
+      },
+      "PlexWatchlistSync": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "watchlistId": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "watchlistId",
+                    "username"
+                  ],
+                  "additionalProperties": false
+                },
+                "watchlist": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "plexKey": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "thumb": {
+                        "type": "string"
+                      },
+                      "guids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "genres": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "type",
+                      "guids",
+                      "genres"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "user",
+                "watchlist"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "total",
+          "users"
+        ],
+        "additionalProperties": false,
+        "description": "Watchlists read from Plex, with the total item count"
       },
       "QuotaType": {
         "type": "string",
@@ -9532,34 +9894,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "plexToken": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "plexHost": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "plexPort": {
-                    "default": 32400,
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "useSsl": {
-                    "default": false,
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "plexToken",
-                  "plexHost"
-                ]
+                "$ref": "#/components/schemas/PlexNotificationConfigPayload"
               }
             }
-          }
+          },
+          "description": "Plex Media Server connection to add to every Radarr and Sonarr instance, left out to use the saved Plex server and linked token"
         },
         "responses": {
           "200": {
@@ -9567,85 +9906,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "radarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "sonarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "radarr",
-                        "sonarr"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexNotificationResponse"
                 }
               }
             }
@@ -9690,25 +9951,17 @@
         "tags": [
           "Plex"
         ],
-        "description": "Discover available Plex servers using a user token",
+        "description": "List and probe every connection to the Plex servers a token owns",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "plexToken": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "plexToken"
-                ]
+                "$ref": "#/components/schemas/PlexServerDiscoveryPayload"
               }
             }
-          }
+          },
+          "description": "The Plex token whose servers to list"
         },
         "responses": {
           "200": {
@@ -9716,54 +9969,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "servers": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "host": {
-                            "type": "string"
-                          },
-                          "port": {
-                            "type": "number"
-                          },
-                          "useSsl": {
-                            "type": "boolean"
-                          },
-                          "local": {
-                            "type": "boolean"
-                          },
-                          "description": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "host",
-                          "port",
-                          "useSsl",
-                          "local"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "servers"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexServerDiscovery"
                 }
               }
             }
@@ -9855,20 +10061,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "self": {
-                      "type": "string"
-                    },
-                    "friends": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "self",
-                    "friends"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexRssFeeds"
                 }
               }
             }
@@ -9978,85 +10171,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "radarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "sonarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "radarr",
-                        "sonarr"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexNotificationResponse"
                 }
               }
             }
@@ -10108,85 +10223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "total": {
-                      "type": "number"
-                    },
-                    "users": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "user": {
-                            "type": "object",
-                            "properties": {
-                              "watchlistId": {
-                                "type": "string"
-                              },
-                              "username": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "watchlistId",
-                              "username"
-                            ],
-                            "additionalProperties": false
-                          },
-                          "watchlist": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "title": {
-                                  "type": "string"
-                                },
-                                "plexKey": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string"
-                                },
-                                "thumb": {
-                                  "type": "string"
-                                },
-                                "guids": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                },
-                                "genres": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                }
-                              },
-                              "required": [
-                                "title",
-                                "type",
-                                "guids",
-                                "genres"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
-                        },
-                        "required": [
-                          "user",
-                          "watchlist"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "total",
-                    "users"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexWatchlistSync"
                 }
               }
             }
@@ -10238,32 +10275,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "qr": {
-                      "type": "string"
-                    },
-                    "expiresAt": {
-                      "type": "string"
-                    },
-                    "clientId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "code",
-                    "qr",
-                    "expiresAt",
-                    "clientId"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexPin"
                 }
               }
             }
@@ -10323,23 +10335,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "authToken": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "expiresIn": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "authToken",
-                    "expiresIn"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexPinPoll"
                 }
               }
             }
@@ -10381,16 +10377,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexPing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -10406,6 +10403,16 @@
             }
           },
           "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -10432,16 +10439,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "hasPlexPass": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "hasPlexPass"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexPassStatus"
                 }
               }
             }
@@ -10483,85 +10481,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "radarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "sonarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "radarr",
-                        "sonarr"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexNotificationResponse"
                 }
               }
             }
@@ -10846,85 +10766,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "total": {
-                      "type": "number"
-                    },
-                    "users": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "user": {
-                            "type": "object",
-                            "properties": {
-                              "watchlistId": {
-                                "type": "string"
-                              },
-                              "username": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "watchlistId",
-                              "username"
-                            ],
-                            "additionalProperties": false
-                          },
-                          "watchlist": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "title": {
-                                  "type": "string"
-                                },
-                                "plexKey": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string"
-                                },
-                                "thumb": {
-                                  "type": "string"
-                                },
-                                "guids": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                },
-                                "genres": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                }
-                              },
-                              "required": [
-                                "title",
-                                "type",
-                                "guids",
-                                "genres"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
-                        },
-                        "required": [
-                          "user",
-                          "watchlist"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "total",
-                    "users"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/PlexWatchlistSync"
                 }
               }
             }
@@ -11019,6 +10861,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/test-connection": {
+      "get": {
+        "operationId": "testPlexConnection",
+        "summary": "Test Plex server connection",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Test connectivity to the Plex server address Pulsarr uses, saved or automatic",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlexTestConnectionResponse"
                 }
               }
             }

@@ -2,17 +2,15 @@ import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from './helpers.js'
 
-/**
- * Validates a Plex token by pinging the Plex API.
- *
- * @param token - The Plex authentication token to validate
- * @param log - Fastify logger instance
- * @returns `true` if the token is valid; otherwise, `false`
- */
+const TRANSIENT_STATUSES = new Set([408, 429])
+
+/** Whether plex.tv accepted the token, rejected it, or could not be reached. */
+export type PlexPingResult = 'accepted' | 'rejected' | 'unreachable'
+
 export const pingPlex = async (
   token: string,
   log: FastifyBaseLogger,
-): Promise<boolean> => {
+): Promise<PlexPingResult> => {
   try {
     const url = new URL('https://plex.tv/api/v2/ping')
 
@@ -30,13 +28,15 @@ export const pingPlex = async (
       log.error(
         `Plex ping failed with status ${response.status}: ${response.statusText}`,
       )
-      return false
+      return TRANSIENT_STATUSES.has(response.status) || response.status >= 500
+        ? 'unreachable'
+        : 'rejected'
     }
 
     log.info('Successfully validated Plex token')
-    return true
+    return 'accepted'
   } catch (err) {
     log.error({ error: err }, 'Failed to validate Plex token')
-    return false
+    return 'unreachable'
   }
 }

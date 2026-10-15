@@ -21,7 +21,7 @@ describe('initializeWorkflow', () => {
     const stop = vi.fn()
     deps = createWorkflowDeps({
       plexService: {
-        pingPlex: vi.fn(async () => true),
+        pingPlex: vi.fn(async () => 'accepted' as const),
         generateAndSaveRssFeeds: vi.fn(async () => ({ self: '', friends: '' })),
       },
       state: { deferredRoutingQueue: { stop } },
@@ -37,7 +37,7 @@ describe('initializeWorkflow', () => {
   it('publishes no mode state when stop lands during RSS feed generation', async () => {
     deps = createWorkflowDeps({
       plexService: {
-        pingPlex: vi.fn(async () => true),
+        pingPlex: vi.fn(async () => 'accepted' as const),
         generateAndSaveRssFeeds: vi.fn(async () => {
           deps?.state.endRun()
           return { self: '', friends: '' }
@@ -52,4 +52,24 @@ describe('initializeWorkflow', () => {
     expect(deps.state.isEtagFallbackActive).toBe(false)
     expect(deps.state.deferredRoutingQueue).toBeNull()
   })
+
+  it.each(['rejected', 'unreachable'] as const)(
+    'keeps starting when the ping comes back %s',
+    async (ping) => {
+      const generateAndSaveRssFeeds = vi.fn(async () => ({
+        self: '',
+        friends: '',
+      }))
+      deps = createWorkflowDeps({
+        plexService: {
+          pingPlex: vi.fn(async () => ping),
+          generateAndSaveRssFeeds,
+        },
+      })
+
+      await initializeWorkflow(deps)
+
+      expect(generateAndSaveRssFeeds).toHaveBeenCalledTimes(1)
+    },
+  )
 })

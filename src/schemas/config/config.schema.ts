@@ -1,6 +1,7 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
+import { PORT_RANGE } from '@root/schemas/shared/port.js'
 import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
@@ -62,6 +63,9 @@ const LogLevelEnum = z.enum([
   'trace',
   'silent',
 ])
+
+/** Empty means Pulsarr negotiates the Plex server connection itself. */
+export const PLEX_SERVER_URL_DEFAULT = ''
 
 const NotifyOptionEnum = z.enum([
   'none', // No notifications
@@ -154,7 +158,7 @@ export const ConfigFullSchema = z
     updated_at: z.string(), // ISO timestamp from database
     // System Config (from database)
     baseUrl: z.string().optional(),
-    port: z.number().int().min(1).max(65535).optional(),
+    port: z.number().int().min(PORT_RANGE.min).max(PORT_RANGE.max).optional(),
     dbPath: z.string().optional(),
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean(),
@@ -328,7 +332,7 @@ export const ConfigFullSchema = z
 export const ConfigUpdateSchema = z
   .object({
     baseUrl: HttpUrlOptionalSchema,
-    port: z.number().int().min(1).max(65535).optional(),
+    port: z.number().int().min(PORT_RANGE.min).max(PORT_RANGE.max).optional(),
     dbPath: z.string().optional(),
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean().optional(),

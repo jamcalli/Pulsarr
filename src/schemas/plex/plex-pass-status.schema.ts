@@ -1,9 +1,14 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-export const PlexPassStatusResponseSchema = z.object({
-  hasPlexPass: z.boolean(),
-})
+export const PlexPassStatusResponseSchema = z
+  .object({
+    hasPlexPass: z.boolean(),
+  })
+  .meta({
+    id: 'PlexPassStatus',
+    description: 'Whether the linked Plex account has an active Plex Pass',
+  })
 
 export type PlexPassStatusResponse = z.infer<
   typeof PlexPassStatusResponseSchema

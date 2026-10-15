@@ -21,7 +21,7 @@ import { createServiceLogger } from '@utils/logger.js'
 import { extractUuidFromThumb } from '@utils/plex-avatar.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
-import { pingPlex } from './plex-watchlist/api/client.js'
+import { type PlexPingResult, pingPlex } from './plex-watchlist/api/client.js'
 import {
   cancelFriendRequest,
   getFriendRequests,
@@ -132,7 +132,8 @@ export class PlexWatchlistService {
     }
   }
 
-  async pingPlex(): Promise<boolean> {
+  /** Rejected when plex.tv refuses any configured token, unreachable when it could not answer. */
+  async pingPlex(): Promise<PlexPingResult> {
     const tokens = this.config.plexTokens
 
     if (tokens.length === 0) {
@@ -140,12 +141,12 @@ export class PlexWatchlistService {
     }
 
     const results = await Promise.all(
-      tokens.map((token, _index) => {
-        return pingPlex(token, this.log)
-      }),
+      tokens.map((token) => pingPlex(token, this.log)),
     )
 
-    return results.every((result) => result === true)
+    if (results.includes('rejected')) return 'rejected'
+    if (results.includes('unreachable')) return 'unreachable'
+    return 'accepted'
   }
 
   async getSelfWatchlist(forceRefresh = false) {
