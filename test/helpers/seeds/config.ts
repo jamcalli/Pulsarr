@@ -27,7 +27,7 @@ import type { Knex } from 'knex'
  * - plexMobileEnabled: boolean (default: false)
  * - plexTokens: jsonb
  * - skipFriendSync: boolean
- * - plexServerUrl: string (default: 'http://localhost:32400')
+ * - plexServerUrl: string (default: '')
  * - enablePlexPlaylistProtection: boolean (default: false)
  * - plexProtectionPlaylistName: string (default: 'Do Not Delete')
  * - plexSessionMonitoring: jsonb
@@ -102,7 +102,7 @@ export const SEED_CONFIGS = [
     // For SQLite compatibility: JSON must be stringified
     plexTokens: JSON.stringify(['test_plex_token_1234567890']),
     skipFriendSync: false,
-    plexServerUrl: 'http://localhost:32400',
+    plexServerUrl: '',
     enablePlexPlaylistProtection: false,
     plexProtectionPlaylistName: 'Do Not Delete',
     plexSessionMonitoring: JSON.stringify({

@@ -6,7 +6,14 @@
  * All functions are pure and receive cache state as parameters.
  */
 
-import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
+import {
+  failedOutcome,
+  httpFailureOutcome,
+  type ProbedConnection,
+  type ProbeOutcome,
+  reachableOutcome,
+} from '@services/plex-server/connection/probe-result.js'
+import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /** Cached connection entry with TTL tracking */
@@ -74,53 +81,96 @@ export function getCachedConnection(
   return null
 }
 
-/**
- * Tests connections in parallel using lightweight /identity endpoint.
- * Returns only reachable connections in their original order.
- *
- * @param connections - Array of connections to test
- * @param accessToken - Token for authentication
- * @param logger - Logger instance
- * @param timeoutMs - Per-connection timeout in milliseconds (default 2000)
- * @returns Array of reachable connections
- */
-export async function testConnectionReachability(
-  connections: ConnectionCandidate[],
+export const PLEX_PROBE_TIMEOUT_MS = 2000
+
+/** Probes each connection's /identity in parallel and keeps the input order. */
+export async function probeConnections<C extends { uri: string }>(
+  connections: C[],
   accessToken: string,
   logger: FastifyBaseLogger,
-  timeoutMs = 2000,
-): Promise<ConnectionCandidate[]> {
-  const connectionTests = connections.map(async (conn) => {
-    try {
-      const response = await fetch(`${conn.uri}/identity`, {
-        headers: {
-          'X-Plex-Token': accessToken,
-          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-        },
-        signal: AbortSignal.timeout(timeoutMs),
-      })
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+): Promise<ProbedConnection<C>[]> {
+  return Promise.all(
+    connections.map(async (connection) => ({
+      connection,
+      outcome: await probeConnection(
+        connection.uri,
+        accessToken,
+        logger,
+        timeoutMs,
+      ),
+    })),
+  )
+}
 
-      if (response.ok) {
-        return conn
-      }
-      logger.debug(
-        `Connection test failed for ${conn.uri}: HTTP ${response.status}`,
-      )
-      return null
-    } catch (error) {
-      logger.debug({ error, uri: conn.uri }, 'Connection test failed')
-      return null
+async function probePath(
+  uri: string,
+  path: string,
+  accessToken: string,
+  logger: FastifyBaseLogger,
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+): Promise<ProbeOutcome> {
+  const started = performance.now()
+  try {
+    const response = await fetch(`${uri}${path}`, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'application/json',
+        'X-Plex-Token': accessToken,
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (response.ok) {
+      return reachableOutcome(Math.round(performance.now() - started))
     }
-  })
-
-  const results = await Promise.allSettled(connectionTests)
-
-  return results
-    .filter(
-      (r): r is PromiseFulfilledResult<ConnectionCandidate> =>
-        r.status === 'fulfilled' && r.value !== null,
+    logger.debug(`Connection test failed for ${uri}: HTTP ${response.status}`)
+    return httpFailureOutcome(response.status)
+  } catch (error) {
+    const outcome = failedOutcome(error)
+    logger.debug(
+      { error, uri, failure: outcome.failure },
+      'Connection test failed',
     )
-    .map((r) => r.value)
+    return outcome
+  }
+}
+
+/** Reachability only, since `/identity` answers without checking the token. */
+export function probeConnection(
+  uri: string,
+  accessToken: string,
+  logger: FastifyBaseLogger,
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+): Promise<ProbeOutcome> {
+  return probePath(uri, '/identity', accessToken, logger, timeoutMs)
+}
+
+/** Reachability plus whether the server accepts the token, which fails as `unauthorized` when it does not. */
+export function probeServerAccess(
+  uri: string,
+  accessToken: string,
+  logger: FastifyBaseLogger,
+): Promise<ProbeOutcome> {
+  return probePath(uri, '/', accessToken, logger, PLEX_PROBE_TIMEOUT_MS)
+}
+
+/** The reachable connections only, in their original order. */
+export async function testConnectionReachability<C extends { uri: string }>(
+  connections: C[],
+  accessToken: string,
+  logger: FastifyBaseLogger,
+  timeoutMs = PLEX_PROBE_TIMEOUT_MS,
+): Promise<C[]> {
+  const probed = await probeConnections(
+    connections,
+    accessToken,
+    logger,
+    timeoutMs,
+  )
+  return probed
+    .filter(({ outcome }) => outcome.reachable)
+    .map(({ connection }) => connection)
 }
 
 /**

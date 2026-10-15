@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
+import { PLEX_SERVER_URL_DEFAULT } from '@root/schemas/config/config.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
 import { resolveDataDir } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
@@ -324,7 +325,7 @@ const schema = {
     },
     plexServerUrl: {
       type: 'string',
-      default: 'http://localhost:32400',
+      default: PLEX_SERVER_URL_DEFAULT,
     },
     skipIfExistsOnPlex: {
       type: 'boolean',

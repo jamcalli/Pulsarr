@@ -20,14 +20,22 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Verifies connectivity to the configured Plex server',
         response: {
           200: PingSuccessSchema,
+          401: PingErrorSchema,
           500: PingErrorSchema,
+          502: PingErrorSchema,
         },
         tags: ['Plex'],
       },
     },
     async (request, reply) => {
       try {
-        await fastify.plexWatchlist.pingPlex()
+        const result = await fastify.plexWatchlist.pingPlex()
+        if (result === 'rejected') {
+          return reply.unauthorized('Plex did not accept the token')
+        }
+        if (result === 'unreachable') {
+          return reply.badGateway('Plex could not be reached')
+        }
         return PING_SUCCESS_RESPONSE
       } catch (error) {
         logRouteError(fastify.log, request, error, {

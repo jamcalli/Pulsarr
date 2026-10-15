@@ -21,7 +21,7 @@ describe('initializeWorkflow', () => {
     const stop = vi.fn()
     deps = createWorkflowDeps({
       plexService: {
-        pingPlex: vi.fn(async () => true),
+        pingPlex: vi.fn(async () => 'accepted' as const),
         generateAndSaveRssFeeds: vi.fn(async () => ({ self: '', friends: '' })),
       },
       state: { deferredRoutingQueue: { stop } },
@@ -37,7 +37,7 @@ describe('initializeWorkflow', () => {
   it('publishes no mode state when stop lands during RSS feed generation', async () => {
     deps = createWorkflowDeps({
       plexService: {
-        pingPlex: vi.fn(async () => true),
+        pingPlex: vi.fn(async () => 'accepted' as const),
         generateAndSaveRssFeeds: vi.fn(async () => {
           deps?.state.endRun()
           return { self: '', friends: '' }

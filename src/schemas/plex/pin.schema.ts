@@ -1,14 +1,19 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-// Schema for PIN generation response
-export const PlexPinResponseSchema = z.object({
-  id: z.number(),
-  code: z.string(),
-  qr: z.string(),
-  expiresAt: z.string(),
-  clientId: z.string(),
-})
+export const PlexPinResponseSchema = z
+  .object({
+    id: z.number(),
+    code: z.string(),
+    qr: z.string(),
+    expiresAt: z.string(),
+    clientId: z.string(),
+  })
+  .meta({
+    id: 'PlexPin',
+    description:
+      'A PIN the admin approves at plex.tv/link to link a Plex account',
+  })
 
 // Schema for PIN poll path params
 export const PlexPinPollParamsSchema = z.object({
@@ -20,11 +25,15 @@ export const PlexPinPollQuerySchema = z.object({
   clientId: z.string(),
 })
 
-// Schema for PIN poll response
-export const PlexPinPollResponseSchema = z.object({
-  authToken: z.string().nullable(),
-  expiresIn: z.number(),
-})
+export const PlexPinPollResponseSchema = z
+  .object({
+    authToken: z.string().nullable(),
+    expiresIn: z.number(),
+  })
+  .meta({
+    id: 'PlexPinPoll',
+    description: 'The token once the PIN is approved, null until then',
+  })
 
 // Type exports
 export type PlexPinResponse = z.infer<typeof PlexPinResponseSchema>

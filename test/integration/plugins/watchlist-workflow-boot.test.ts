@@ -644,7 +644,7 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
       .spyOn(booted.plexWatchlist, 'pingPlex')
       .mockImplementationOnce(async () => {
         await gate.promise
-        return true
+        return 'accepted'
       })
     return { release: gate.resolve, spy }
   }

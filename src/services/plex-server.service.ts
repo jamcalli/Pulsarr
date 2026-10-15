@@ -1,3 +1,4 @@
+import { PLEX_DEFAULT_PORT } from '@root/schemas/plex/configure-notifications.schema.js'
 import type { Item } from '@root/types/plex.types.js'
 import type {
   PlexMetadata,
@@ -17,19 +18,28 @@ import { toItemsSingle } from '@services/plex-watchlist/enrichment/single-item.j
 import { buildPlexGuid, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { isSameServerEndpoint } from '@utils/url.js'
-import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
-  buildUniqueServerList,
+  serverCandidates,
+  warnCandidateFallback,
+} from './plex-server/connection/candidates.js'
+import { discoverServerConnections } from './plex-server/connection/discover-servers.js'
+import { rankProbedConnections } from './plex-server/connection/ranking.js'
+import {
   type CachedConnection,
+  getBestServerConnection,
+  probeConnections,
+  probeServerAccess,
+  testConnectionReachability,
+} from './plex-server/existence-check/connection-cache.js'
+import {
   type CachedContentAvailability,
-  type ConnectionCandidate,
   checkContentOnServer,
   clearContentCacheForReconciliation,
-  getBestServerConnection,
-  testConnectionReachability,
-} from './plex-server/existence-check/index.js'
+} from './plex-server/existence-check/content-cache.js'
+import { buildUniqueServerList } from './plex-server/existence-check/server-list-builder.js'
 import {
   getCurrentLabels,
   getMetadata,
@@ -45,6 +55,16 @@ import {
   lookupByGuid,
   searchByGuid,
 } from './plex-server/metadata/metadata-operations.js'
+import {
+  type NotificationTargetInput,
+  resolveNotificationTarget,
+} from './plex-server/notifications/notification-target.js'
+import {
+  configurePlexNotifications,
+  getPlexNotificationStatus,
+  type PlexNotificationOutcome,
+  removePlexNotifications,
+} from './plex-server/notifications/plex-notifications.js'
 import {
   createUserPlaylist,
   findUserPlaylistByTitle,
@@ -64,6 +84,32 @@ import {
 
 const PLEX_API_TIMEOUT = 30000
 
+/** Used only when nothing better is known, and never cached. */
+const PLEX_FALLBACK_URL = `http://localhost:${PLEX_DEFAULT_PORT}`
+export const CONNECTION_LIST_TTL_MS = 15 * 60 * 1000
+export const NEGOTIATION_RETRY_GAP_MS = 60 * 1000
+
+type Negotiation =
+  | {
+      settled: true
+      connections: PlexServerConnectionInfo[]
+      best: string | null
+    }
+  | { settled: false; connections: PlexServerConnectionInfo[] }
+
+function connectionInfo(
+  url: string,
+  connection?: { local: boolean; relay: boolean },
+): PlexServerConnectionInfo {
+  return {
+    url,
+    local:
+      connection?.local ??
+      (url.includes('localhost') || url.includes('127.0.0.1')),
+    relay: connection?.relay ?? false,
+  }
+}
+
 // Plex XML booleans arrive as "0"/"1" strings
 const xmlBool = (val: string | boolean | undefined): boolean | undefined => {
   if (val === undefined) return undefined
@@ -82,6 +128,9 @@ export class PlexServerService {
   private _adminPlexId: number | null = null
   private connectionTimestamp = 0
   private selectedConnectionUrl: string | null = null
+  private fallbackConnections: PlexServerConnectionInfo[] | null = null
+  private negotiationFailedAt = 0
+  private negotiationInFlight: Promise<Negotiation> | null = null
 
   private users: PlexUser[] | null = null
   private usersTimestamp = 0
@@ -199,280 +248,208 @@ export class PlexServerService {
     }
   }
 
+  private get adminToken(): string {
+    return this.config.plexTokens?.[0] || ''
+  }
+
+  /** The saved server address, or null in automatic mode. */
+  private get configuredServerUrl(): string | null {
+    return this.config.plexServerUrl || null
+  }
+
+  /** Connections to the owner's server, best first, refreshed every 15 minutes. */
   async getPlexServerConnectionInfo(): Promise<PlexServerConnectionInfo[]> {
-    try {
-      if (
-        this.serverConnections &&
-        Date.now() - this.connectionTimestamp < 15 * 60 * 1000
-      ) {
-        this.log.debug('Using cached Plex server connection info')
-        return this.serverConnections
-      }
+    const now = Date.now()
+    if (
+      this.serverConnections &&
+      now - this.connectionTimestamp < CONNECTION_LIST_TTL_MS
+    ) {
+      this.log.debug('Using cached Plex server connection info')
+      return this.serverConnections
+    }
+    if (
+      this.fallbackConnections &&
+      now - this.negotiationFailedAt < NEGOTIATION_RETRY_GAP_MS
+    ) {
+      return this.fallbackConnections
+    }
 
-      const plexTvUrl = 'https://plex.tv'
-      const adminToken = this.config.plexTokens?.[0] || ''
+    const negotiation = await this.negotiateOnce()
+    if (!negotiation.settled) {
+      this.fallbackConnections = negotiation.connections
+      this.negotiationFailedAt = Date.now()
+      return negotiation.connections
+    }
 
-      if (!adminToken) {
-        this.log.warn('No Plex admin token available for connection discovery')
-        return this.getDefaultConnectionInfo()
-      }
-
-      const resourcesUrl = new URL('/api/v2/resources', plexTvUrl)
-      resourcesUrl.searchParams.append('includeHttps', '1')
-      const resourcesResponse = await fetch(resourcesUrl.toString(), {
-        headers: {
-          'User-Agent': USER_AGENT,
-          Accept: 'application/json',
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!resourcesResponse.ok) {
-        throw new Error(
-          `Failed to fetch resources: ${resourcesResponse.status} ${resourcesResponse.statusText}`,
-        )
-      }
-
-      const resourcesData = (await resourcesResponse.json()) as PlexResource[]
-      const serverResources = resourcesData.filter(
-        (r) =>
-          r.product === 'Plex Media Server' &&
-          r.connections &&
-          r.connections.length > 0,
+    this.serverConnections = negotiation.connections
+    this.connectionTimestamp = Date.now()
+    this.fallbackConnections = null
+    this.negotiationFailedAt = 0
+    if (
+      !this.configuredServerUrl &&
+      negotiation.best !== this.selectedConnectionUrl
+    ) {
+      this.log.info(
+        { previous: this.selectedConnectionUrl, selected: negotiation.best },
+        'Selected Plex server connection',
       )
+      this.selectedConnectionUrl = negotiation.best
+    }
+    return negotiation.connections
+  }
 
-      if (serverResources.length === 0) {
-        this.log.warn('No Plex server connections found, using default')
-        return this.getDefaultConnectionInfo()
-      }
+  /** Concurrent callers share one negotiation instead of each probing plex.tv and the server. */
+  private negotiateOnce(): Promise<Negotiation> {
+    this.negotiationInFlight ??= this.negotiateConnections().finally(() => {
+      this.negotiationInFlight = null
+    })
+    return this.negotiationInFlight
+  }
 
-      const configUrl = this.config.plexServerUrl
-      const defaultUrl = 'http://localhost:32400'
+  private async negotiateConnections(): Promise<Negotiation> {
+    const token = this.adminToken
+    if (!token) {
+      this.log.warn('No Plex admin token available for connection discovery')
+      return { settled: false, connections: this.fallbackConnectionInfo() }
+    }
 
-      let server: PlexResource | undefined
-      if (configUrl && configUrl !== defaultUrl) {
-        for (const candidate of serverResources) {
-          const match = candidate.connections.some(
+    let resources: PlexResource[]
+    try {
+      resources = await getAllPlexResources(token, { ownedOnly: true })
+    } catch (error) {
+      this.log.error({ error }, 'Error getting Plex server connection info')
+      return { settled: false, connections: this.fallbackConnectionInfo() }
+    }
+
+    const servers = serverCandidates(resources)
+    const configured = this.configuredServerUrl
+    const matched = configured
+      ? servers.find(({ resource }) =>
+          resource.connections.some(
             (conn) =>
-              isSameServerEndpoint(conn.uri, configUrl) ||
+              isSameServerEndpoint(conn.uri, configured) ||
               isSameServerEndpoint(
                 `http://${conn.address}:${conn.port}`,
-                configUrl,
+                configured,
               ),
-          )
-          if (match) {
-            server = candidate
-            this.log.debug(
-              `Matched configured URL to server "${candidate.name}" (${candidate.clientIdentifier})`,
-            )
-            break
-          }
-        }
-
-        if (!server) {
-          server = serverResources[0]
-          this.log.warn(
-            `Configured URL "${configUrl}" does not match any discovered server connection - falling back to "${server.name}"`,
-          )
-        }
-      } else {
-        server = serverResources[0]
-        this.log.debug(
-          `Using auto-discovered server "${server.name}" (no manual override)`,
+          ),
         )
-      }
-
-      const connections: PlexServerConnectionInfo[] = []
-
-      for (const conn of server.connections) {
-        connections.push({
-          url: conn.uri,
-          local: conn.local,
-          relay: conn.relay,
-          isDefault: false,
-        })
-      }
-
-      connections.sort((a, b) => {
-        if (!a.relay && b.relay) return -1
-        if (a.relay && !b.relay) return 1
-        if (a.local && !b.local) return -1
-        if (!a.local && b.local) return 1
-        return 0
-      })
-
-      if (!(configUrl && configUrl !== defaultUrl) && connections.length > 0) {
-        const candidates: ConnectionCandidate[] = connections.map((c) => ({
-          uri: c.url,
-          local: c.local,
-          relay: c.relay,
-        }))
-
-        const reachable = await testConnectionReachability(
-          candidates,
-          adminToken,
-          this.log,
-        )
-
-        if (reachable.length > 0) {
-          const reachableUris = new Set(reachable.map((r) => r.uri))
-          const filtered = connections.filter((c) => reachableUris.has(c.url))
-          connections.splice(0, connections.length, ...filtered)
-          this.log.info(
-            `Filtered to ${connections.length} reachable connections (${candidates.length - connections.length} unreachable)`,
-          )
-        } else {
-          this.log.warn(
-            'All connection tests failed - keeping full list as fallback',
-          )
-        }
-      }
-
-      if (connections.length > 0) {
-        connections[0].isDefault = true
-      }
-
-      if (configUrl && configUrl !== defaultUrl) {
-        const configMatch = connections.find((c) =>
-          isSameServerEndpoint(c.url, configUrl),
-        )
-
-        if (configMatch) {
-          for (const c of connections) {
-            c.isDefault = false
-          }
-          configMatch.isDefault = true
-          this.log.debug(
-            'Manually configured URL matches a discovered connection - setting as default',
-          )
-        } else {
-          connections.push({
-            url: configUrl,
-            local: false,
-            relay: false,
-            isDefault: true,
-          })
-
-          for (let i = 0; i < connections.length - 1; i++) {
-            connections[i].isDefault = false
-          }
-
-          this.log.debug(
-            'Manually configured URL does not match any discovered connection - adding as override',
-          )
-        }
-      }
-
-      this.serverConnections = connections
-      this.connectionTimestamp = Date.now()
-      this.serverMachineId = server.clientIdentifier
-      this.serverName = server.name
-
-      const manualConfigUsed =
-        this.config.plexServerUrl &&
-        this.config.plexServerUrl !== 'http://localhost:32400'
-
-      if (manualConfigUsed) {
-        this.log.info(
-          `Discovered ${connections.length} Plex server connections (manual config will be used)`,
-        )
-      } else {
-        this.log.info(
-          `Found ${connections.length} Plex server connections (${connections.filter((c) => c.local).length} local, ${connections.filter((c) => c.relay).length} relay)`,
-        )
-      }
-
-      if (connections.length > 0) {
-        this.log.debug('Available Plex connections:')
-        for (const [index, conn] of connections.entries()) {
-          this.log.debug(
-            `Connection ${index + 1}: URL=${conn.url}, Local=${conn.local}, Relay=${conn.relay}, Default=${conn.isDefault}`,
-          )
-        }
-      }
-
-      return connections
-    } catch (error) {
-      this.log.error({ error }, 'Error getting Plex server connection info:')
-      return this.getDefaultConnectionInfo()
+      : undefined
+    const server = matched ?? servers[0]
+    if (!server) {
+      this.log.warn('Plex lists no owned Plex Media Server for this account')
+      return { settled: false, connections: this.fallbackConnectionInfo() }
     }
-  }
-
-  private getDefaultConnectionInfo(): PlexServerConnectionInfo[] {
-    const configUrl = this.config.plexServerUrl
-    const defaultUrl = 'http://localhost:32400'
-
-    if (configUrl && configUrl !== defaultUrl) {
-      this.log.debug(
-        `Using manually configured Plex URL as fallback: ${configUrl}`,
+    if (configured && !matched) {
+      this.log.warn(
+        `Configured URL "${configured}" matches no discovered connection. Using "${server.resource.name}" for the server identity`,
       )
-      return [
-        {
-          url: configUrl,
-          local:
-            configUrl.includes('localhost') || configUrl.includes('127.0.0.1'),
-          relay: false,
-          isDefault: true,
-        },
+    }
+    warnCandidateFallback(this.log, server)
+
+    this.serverMachineId = server.resource.clientIdentifier
+    this.serverName = server.resource.name
+
+    if (configured) {
+      const connections = [
+        connectionInfo(configured),
+        ...server.connections
+          .filter((conn) => !isSameServerEndpoint(conn.uri, configured))
+          .map((conn) => connectionInfo(conn.uri, conn)),
       ]
+      this.log.info(
+        `Discovered ${connections.length} Plex server connections (manual config will be used)`,
+      )
+      return { settled: true, connections, best: null }
     }
 
-    this.log.debug('Using localhost as default fallback Plex URL')
-    return [
-      {
-        url: defaultUrl,
-        local: true,
-        relay: false,
-        isDefault: true,
-      },
-    ]
+    const ranked = rankProbedConnections(
+      await probeConnections(server.connections, token, this.log),
+    )
+    const connections = ranked.map(({ connection }) =>
+      connectionInfo(connection.uri, connection),
+    )
+    const [best] = ranked
+    if (!best?.outcome.reachable) {
+      this.log.warn(
+        { server: server.resource.name },
+        'Every Plex server connection failed its probe. Retrying on next use',
+      )
+      return { settled: false, connections }
+    }
+
+    this.log.info(
+      `Found ${connections.length} Plex server connections, ${ranked.filter(({ outcome }) => outcome.reachable).length} reachable`,
+    )
+    return { settled: true, connections, best: best.connection.uri }
   }
 
-  async getPlexServerUrl(preferLocal = true): Promise<string> {
-    if (this.selectedConnectionUrl) {
-      return this.selectedConnectionUrl
-    }
+  /** The last known connections, else the saved address, else the local fallback. */
+  private fallbackConnectionInfo(): PlexServerConnectionInfo[] {
+    if (this.serverConnections) return this.serverConnections
+    return [connectionInfo(this.configuredServerUrl ?? PLEX_FALLBACK_URL)]
+  }
+
+  /** The saved address as is, or the negotiated connection in automatic mode. */
+  async getPlexServerUrl(): Promise<string> {
+    const configured = this.configuredServerUrl
+    if (configured) return configured
+    if (this.selectedConnectionUrl) return this.selectedConnectionUrl
 
     const connections = await this.getPlexServerConnectionInfo()
-
-    if (connections.length === 0) {
-      this.log.debug(
-        'No Plex connections found, using localhost fallback: http://localhost:32400',
-      )
-      this.selectedConnectionUrl = 'http://localhost:32400'
-      return this.selectedConnectionUrl
-    }
-
-    const defaultConn = connections.find((c) => c.isDefault)
-    if (defaultConn) {
-      this.log.debug(`Using default Plex connection: ${defaultConn.url}`)
-      this.selectedConnectionUrl = defaultConn.url
-      return this.selectedConnectionUrl
-    }
-
-    if (preferLocal) {
-      const localConn = connections.find((c) => c.local)
-      if (localConn) {
-        this.log.debug(`Using local Plex connection: ${localConn.url}`)
-        this.selectedConnectionUrl = localConn.url
-        return this.selectedConnectionUrl
-      }
-    }
-
-    const nonRelayConn = connections.find((c) => !c.relay)
-    if (nonRelayConn) {
-      this.log.debug(`Using non-relay Plex connection: ${nonRelayConn.url}`)
-      this.selectedConnectionUrl = nonRelayConn.url
-      return this.selectedConnectionUrl
-    }
-
-    this.log.debug(
-      `Using fallback Plex connection (relay): ${connections[0].url}`,
+    return (
+      this.selectedConnectionUrl ?? connections[0]?.url ?? PLEX_FALLBACK_URL
     )
-    this.selectedConnectionUrl = connections[0].url
-    return this.selectedConnectionUrl
+  }
+
+  /** Drops the negotiated connection, unless it is reachable, so the next call negotiates again. */
+  private releaseUnreachableSelection(reachableUrls: string[]): void {
+    const selected = this.selectedConnectionUrl
+    if (this.configuredServerUrl || !selected) return
+    if (reachableUrls.includes(selected)) return
+    this.log.warn(
+      { url: selected },
+      'Selected Plex server connection is unreachable. Negotiating again on next use',
+    )
+    this.selectedConnectionUrl = null
+    this.connectionTimestamp = 0
+  }
+
+  async getServerStatus() {
+    const url = await this.getPlexServerUrl()
+    const outcome = await probeServerAccess(url, this.adminToken, this.log)
+    return {
+      url,
+      automatic: this.configuredServerUrl === null,
+      reachable: outcome.reachable,
+      latencyMs: outcome.latencyMs,
+      failure: outcome.failure,
+      serverName: this.serverName,
+    }
+  }
+
+  discoverServers(plexToken: string) {
+    return discoverServerConnections(plexToken, this.log)
+  }
+
+  getArrPlexNotificationStatus(): Promise<PlexNotificationOutcome> {
+    return getPlexNotificationStatus(this.fastify)
+  }
+
+  async configureArrPlexNotifications(
+    body: NotificationTargetInput,
+  ): Promise<{ kind: 'no-token' } | PlexNotificationOutcome> {
+    const target = resolveNotificationTarget(
+      body,
+      await this.getPlexServerUrl(),
+      this.config.plexTokens[0],
+    )
+    if (!target) return { kind: 'no-token' }
+    return configurePlexNotifications(this.fastify, target)
+  }
+
+  removeArrPlexNotifications(): Promise<PlexNotificationOutcome> {
+    return removePlexNotifications(this.fastify)
   }
 
   async getPlexUsers(options?: { skipCache?: boolean }): Promise<PlexUser[]> {
@@ -1210,6 +1187,9 @@ export class PlexServerService {
     this._adminPlexId = null
     this.connectionTimestamp = 0
     this.selectedConnectionUrl = null
+    this.fallbackConnections = null
+    this.negotiationFailedAt = 0
+    this.negotiationInFlight = null
     this.users = null
     this.usersTimestamp = 0
     this.userTokens = new Map()
@@ -1420,17 +1400,12 @@ export class PlexServerService {
         return { reachable: false, serverName: this.serverName }
       }
 
-      const candidates: ConnectionCandidate[] = ownerConnections.map((c) => ({
-        uri: c.url,
-        local: c.local,
-        relay: c.relay,
-      }))
-
       const reachable = await testConnectionReachability(
-        candidates,
-        this.config.plexTokens?.[0] || '',
+        ownerConnections.map((c) => ({ uri: c.url })),
+        this.adminToken,
         this.log,
       )
+      this.releaseUnreachableSelection(reachable.map(({ uri }) => uri))
 
       if (reachable.length === 0) {
         this.log.warn(
@@ -1566,7 +1541,12 @@ export class PlexServerService {
       let allResources = this.plexResourcesCache
       if (!allResources) {
         this.log.debug('Server resources cache miss, fetching from plex.tv API')
-        allResources = await this.getAllPlexResources(adminToken)
+        try {
+          allResources = await getAllPlexResources(adminToken)
+        } catch (error) {
+          this.log.error({ error }, 'Error fetching Plex resources')
+          allResources = []
+        }
         this.plexResourcesCache = allResources
       } else {
         this.log.debug('Using cached server resources')
@@ -1668,10 +1648,6 @@ export class PlexServerService {
       // On error, return false to allow download (fail open)
       return false
     }
-  }
-
-  private async getAllPlexResources(token: string): Promise<PlexResource[]> {
-    return getAllPlexResources(token, this.log)
   }
 
   async getMetadata(ratingKey: string): Promise<PlexMetadata | null> {

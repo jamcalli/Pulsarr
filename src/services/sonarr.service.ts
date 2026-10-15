@@ -1298,11 +1298,7 @@ export class SonarrService {
   ): Promise<void> {
     try {
       // First, check if Plex server connection already exists
-      const existingNotifications =
-        await this.getFromSonarr<WebhookNotification[]>('notification')
-      const existingPlexNotification = existingNotifications.find(
-        (n) => n.implementation === 'PlexServer',
-      )
+      const existingPlexNotification = await this.findPlexNotification()
 
       if (existingPlexNotification) {
         // Update existing notification
@@ -1372,14 +1368,22 @@ export class SonarrService {
     }
   }
 
+  private async findPlexNotification(): Promise<
+    WebhookNotification | undefined
+  > {
+    const notifications =
+      await this.getFromSonarr<WebhookNotification[]>('notification')
+    return notifications.find((n) => n.implementation === 'PlexServer')
+  }
+
+  async hasPlexNotification(): Promise<boolean> {
+    return (await this.findPlexNotification()) !== undefined
+  }
+
   async removePlexNotification(): Promise<void> {
     try {
       // Find Plex server notification
-      const existingNotifications =
-        await this.getFromSonarr<WebhookNotification[]>('notification')
-      const existingPlexNotification = existingNotifications.find(
-        (n) => n.implementation === 'PlexServer',
-      )
+      const existingPlexNotification = await this.findPlexNotification()
 
       if (existingPlexNotification) {
         // Delete the notification
