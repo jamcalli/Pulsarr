@@ -9,6 +9,7 @@ export const othersWatchlistSchema = {
   response: {
     200: PlexWatchlistSyncSchema,
     400: ErrorSchema,
+    409: ErrorSchema,
     500: ErrorSchema,
   },
 }

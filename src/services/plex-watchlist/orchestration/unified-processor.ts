@@ -36,8 +36,6 @@ export interface ProcessItemsInput {
   user: Friend
   /** Items to process - must have key/id field */
   items: TokenWatchlistItem[]
-  /** Whether this is the self watchlist (primary user) vs friends */
-  isSelfWatchlist: boolean
 }
 
 /**
@@ -96,7 +94,7 @@ export async function processItemsForUser(
   input: ProcessItemsInput,
   deps: UnifiedProcessorDeps,
 ): Promise<ProcessItemsResult> {
-  const { user, items, isSelfWatchlist } = input
+  const { user, items } = input
   const { db, logger } = deps
 
   if (items.length === 0) {
@@ -157,7 +155,6 @@ export async function processItemsForUser(
 
     const processedMap = await processAndSaveNewItems(
       brandNewItems,
-      isSelfWatchlist,
       false, // isMetadataRefresh
       buildItemProcessorDeps(deps),
     )

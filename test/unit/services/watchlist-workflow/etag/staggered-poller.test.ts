@@ -203,7 +203,6 @@ describe('handleStaggeredPollResult', () => {
           status: 'pending',
         }),
       ],
-      isSelfWatchlist: true,
     })
     expect(routeEnrichedItemsForUser).toHaveBeenCalledWith(
       USER.id,

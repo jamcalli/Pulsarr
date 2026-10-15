@@ -152,11 +152,9 @@ describe('processRssFriendsItems', () => {
     expect(processItemsForUser).toHaveBeenCalledTimes(2)
     expect(vi.mocked(processItemsForUser).mock.calls[0][0]).toMatchObject({
       user: { userId: 10, username: 'friend-a', watchlistId: '' },
-      isSelfWatchlist: false,
     })
     expect(vi.mocked(processItemsForUser).mock.calls[1][0]).toMatchObject({
       user: { userId: 11, username: 'friend-b', watchlistId: '' },
-      isSelfWatchlist: false,
     })
     expect(routeEnrichedItemsForUser).toHaveBeenCalledTimes(2)
     expect(routeEnrichedItemsForUser).toHaveBeenNthCalledWith(

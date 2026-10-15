@@ -18,8 +18,25 @@ export type ApprovalMetadata = {
   status: 'pending' | 'approved' | 'rejected' | 'expired' | 'auto_approved'
 }
 
+export type WatchlistSyncMetadata = {
+  stage:
+    | 'finding-friends'
+    | 'reading'
+    | 'processing'
+    | 'rate-limited'
+    | 'saving'
+    | 'complete'
+    | 'failed'
+  count: {
+    done: number
+    total: number
+    unit: 'pages' | 'friends' | 'items'
+  } | null
+}
+
 export type ProgressMetadata =
   | WorkflowMetadata
+  | WatchlistSyncMetadata
   | ApprovalMetadata
   | SystemStatusMetadata
   | Record<string, never>
@@ -29,7 +46,6 @@ export interface ProgressEvent {
   type:
     | 'self-watchlist'
     | 'others-watchlist'
-    | 'rss-feed'
     | 'system'
     | 'sync'
     | 'sonarr-tagging'
@@ -56,3 +72,8 @@ export interface ProgressOptions {
   /** must match one of the ProgressEvent.type values */
   type: ProgressEvent['type']
 }
+
+export type WatchlistSyncType = Extract<
+  ProgressEvent['type'],
+  'self-watchlist' | 'others-watchlist'
+>

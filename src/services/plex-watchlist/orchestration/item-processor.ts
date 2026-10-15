@@ -12,6 +12,7 @@ import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from '../../plex-label-sync.service.js'
 import { resolveTmdbPosters } from '../enrichment/poster-resolver.js'
 import { processWatchlistItems } from '../enrichment/watchlist-processor.js'
+import type { WatchlistSyncProgress } from '../progress/sync-progress.js'
 
 export interface ItemProcessorDeps {
   db: DatabaseService
@@ -102,9 +103,9 @@ export async function prepareItemsForInsertion(
 /** Also inserts the items and triggers Plex label sync; the return includes rows the insert ignored. */
 export async function processAndSaveNewItems(
   brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
-  isSelfWatchlist: boolean,
   isMetadataRefresh: boolean,
   deps: ItemProcessorDeps,
+  progress?: WatchlistSyncProgress,
 ): Promise<Map<Friend, Set<WatchlistItem>>> {
   const { db, logger, config, fastify, plexLabelSyncService } = deps
 
@@ -114,32 +115,11 @@ export async function processAndSaveNewItems(
 
   logger.debug(`Processing ${brandNewItems.size} new items`)
 
-  const operationId = `process-${Date.now()}`
-  const emitProgress = fastify.progress.hasActiveConnections()
-
-  const type = isSelfWatchlist ? 'self-watchlist' : 'others-watchlist'
-
-  if (emitProgress) {
-    fastify.progress.emit({
-      operationId,
-      type,
-      phase: 'start',
-      progress: 0,
-      message: `Starting ${isSelfWatchlist ? 'self' : 'others'} watchlist processing`,
-    })
-  }
-
   const processedItems = await processWatchlistItems(
     config,
     logger,
     brandNewItems,
-    emitProgress
-      ? {
-          progress: fastify.progress,
-          operationId,
-          type,
-        }
-      : undefined,
+    progress,
   )
 
   if (processedItems instanceof Map) {
@@ -151,15 +131,7 @@ export async function processAndSaveNewItems(
     })
 
     if (itemsToInsert.length > 0) {
-      if (emitProgress) {
-        fastify.progress.emit({
-          operationId,
-          type,
-          phase: 'saving',
-          progress: 95,
-          message: `Saving ${itemsToInsert.length} items to database`,
-        })
-      }
+      progress?.saving(itemsToInsert.length)
 
       const insertedResults = await db.createWatchlistItems(
         itemsToInsert,
@@ -221,16 +193,6 @@ export async function processAndSaveNewItems(
       }
 
       logger.debug(`Processed ${itemsToInsert.length} new items`)
-
-      if (emitProgress) {
-        fastify.progress.emit({
-          operationId,
-          type,
-          phase: 'complete',
-          progress: 100,
-          message: 'All items processed and saved',
-        })
-      }
     }
 
     return processedItems

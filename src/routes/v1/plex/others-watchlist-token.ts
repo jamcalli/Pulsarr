@@ -1,4 +1,5 @@
 import { othersWatchlistSchema } from '@schemas/plex/others-watchlist-token.schema.js'
+import { WATCHLIST_SYNC_STARTING_MESSAGE } from '@schemas/plex/self-watchlist-token.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -8,6 +9,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
     url: '/others-watchlist-token',
     schema: othersWatchlistSchema,
     handler: async (request, reply) => {
+      if (fastify.watchlistWorkflow.getStatus() === 'starting') {
+        return reply.conflict(WATCHLIST_SYNC_STARTING_MESSAGE)
+      }
       try {
         const response = await fastify.plexWatchlist.getOthersWatchlists()
         return reply.send(response)
