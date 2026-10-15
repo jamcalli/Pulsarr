@@ -367,7 +367,7 @@ describe('PlexUsersPage', () => {
       ).getByRole('button', { name: 'On' }),
     )
     await user.click(
-      within(dialog).getByRole('switch', { name: 'Clear Discord id' }),
+      within(dialog).getByRole('switch', { name: 'Clear Discord user ID' }),
     )
     await user.click(
       within(dialog).getByRole('button', { name: 'Apply to 2 users' }),

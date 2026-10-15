@@ -53,8 +53,8 @@ export function UserSettingsSections({
         <form.AppField name="discord_id">
           {(field) => (
             <field.TextField
-              label="Discord id"
-              description="Their Discord user id, a long number."
+              label="Discord user ID"
+              description="Set by /notifications in Discord, or paste it here."
               type="text"
               autoComplete="off"
             />
@@ -67,7 +67,7 @@ export function UserSettingsSections({
               description={
                 discordIdBlank
                   ? DISCORD_ID_REQUIRED
-                  : 'Direct messages from the Pulsarr Discord bot.'
+                  : 'DMs from the Pulsarr bot, which must share a server with them.'
               }
               disabled={discordIdBlank}
             />
