@@ -135,14 +135,14 @@ async function probePath(
       logger.debug(
         `Connection test failed for ${uri}: not the expected Plex server`,
       )
-      return { ok: false, code: 'invalid', status: response.status }
+      return { ok: false, reason: 'invalid', status: response.status }
     }
     logger.debug(`Connection test failed for ${uri}: HTTP ${response.status}`)
     return httpFailureOutcome(response.status)
   } catch (error) {
-    const code = classifyProbeError(error)
-    logger.debug({ error, uri, code }, 'Connection test failed')
-    return { ok: false, code, status: null }
+    const reason = classifyProbeError(error)
+    logger.debug({ error, uri, reason }, 'Connection test failed')
+    return { ok: false, reason, status: null }
   }
 }
 

@@ -3755,11 +3755,6 @@ export interface components {
             itemsUpdated: number;
             error?: string;
         };
-        /**
-         * @description Why a Plex server connection check failed
-         * @enum {string}
-         */
-        PlexConnectionFailureCode: "unreachable" | "certificate" | "auth" | "invalid";
         /** @description Plex Media Server connection to add to every Radarr and Sonarr instance, left out to use the saved Plex server and linked token */
         PlexNotificationConfigPayload: {
             plexToken?: string;
@@ -3819,7 +3814,7 @@ export interface components {
             self: string;
             friends: string;
         };
-        /** @description One connection to a Plex server the token owns, code is null when Pulsarr reached it */
+        /** @description One connection to a Plex server the token owns, with whether Pulsarr reached it */
         PlexServer: {
             name: string;
             host: string;
@@ -3827,7 +3822,8 @@ export interface components {
             useSsl: boolean;
             local: boolean;
             description?: string;
-            code: components["schemas"]["PlexConnectionFailureCode"] | null;
+            success: boolean;
+            message: string;
         };
         /** @description Every connection Plex offers for the token, ordered best first */
         PlexServerDiscovery: {
@@ -3839,11 +3835,10 @@ export interface components {
         PlexServerDiscoveryPayload: {
             plexToken: string;
         };
-        /** @description Plex server connection test result for the address Pulsarr uses, code is null on success */
+        /** @description Plex server connection test result for the address Pulsarr uses */
         PlexTestConnectionResponse: {
             success: boolean;
             message: string;
-            code: components["schemas"]["PlexConnectionFailureCode"] | null;
             url: string;
             automatic: boolean;
         };

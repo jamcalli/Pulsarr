@@ -55,7 +55,7 @@ describe('httpFailureOutcome', () => {
   it.each([401, 403])('reads %i as a rejected token', (status) => {
     expect(httpFailureOutcome(status)).toEqual({
       ok: false,
-      code: 'auth',
+      reason: 'auth',
       status,
     })
   })
@@ -63,7 +63,7 @@ describe('httpFailureOutcome', () => {
   it('reads any other status as something other than Plex', () => {
     expect(httpFailureOutcome(500)).toEqual({
       ok: false,
-      code: 'invalid',
+      reason: 'invalid',
       status: 500,
     })
   })
@@ -74,17 +74,15 @@ describe('connectionTestResult', () => {
     expect(connectionTestResult({ ok: true, elapsedMs: 12 })).toEqual({
       success: true,
       message: 'Connected to the Plex server.',
-      code: null,
     })
   })
 
   it('explains a failure in its own words', () => {
     expect(
-      connectionTestResult({ ok: false, code: 'certificate', status: null }),
+      connectionTestResult({ ok: false, reason: 'certificate', status: null }),
     ).toEqual({
       success: false,
       message: "The server's certificate doesn't match this address.",
-      code: 'certificate',
     })
   })
 })

@@ -1,5 +1,4 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
-import { PlexConnectionFailureCodeSchema } from '@root/schemas/plex/connection-failure.schema.js'
 import { z } from 'zod'
 
 export const PlexTokenSchema = z
@@ -19,12 +18,13 @@ export const PlexServerSchema = z
     useSsl: z.boolean(),
     local: z.boolean(),
     description: z.string().optional(),
-    code: PlexConnectionFailureCodeSchema.nullable(),
+    success: z.boolean(),
+    message: z.string(),
   })
   .meta({
     id: 'PlexServer',
     description:
-      'One connection to a Plex server the token owns, code is null when Pulsarr reached it',
+      'One connection to a Plex server the token owns, with whether Pulsarr reached it',
   })
 
 export const PlexServerResponseSchema = z

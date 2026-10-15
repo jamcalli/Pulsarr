@@ -62,7 +62,6 @@ describe('GET /v1/plex/test-connection', () => {
     expect(res.json()).toEqual({
       success: true,
       message: 'Connected to the Plex server.',
-      code: null,
       url: NEGOTIATED,
       automatic: true,
     })
@@ -77,7 +76,6 @@ describe('GET /v1/plex/test-connection', () => {
     expect(res.json()).toEqual({
       success: false,
       message: "Couldn't reach the Plex server at this address.",
-      code: 'unreachable',
       url: SAVED,
       automatic: false,
     })
@@ -93,7 +91,6 @@ describe('GET /v1/plex/test-connection', () => {
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({
       success: false,
-      code: 'auth',
       message: "The Plex server didn't accept the linked account's token.",
       url: NEGOTIATED,
     })

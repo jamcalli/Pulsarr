@@ -44,12 +44,12 @@ describe('probeConnections', () => {
     })
     expect(probed[1]?.outcome).toEqual({
       ok: false,
-      code: 'invalid',
+      reason: 'invalid',
       status: 503,
     })
     expect(probed[2]?.outcome).toEqual({
       ok: false,
-      code: 'unreachable',
+      reason: 'unreachable',
       status: null,
     })
   })
@@ -104,7 +104,11 @@ describe('probe response check', () => {
 
     const [probed] = await probeConnections([UP], createMockLogger())
 
-    expect(probed?.outcome).toEqual({ ok: false, code: 'invalid', status: 200 })
+    expect(probed?.outcome).toEqual({
+      ok: false,
+      reason: 'invalid',
+      status: 200,
+    })
   })
 })
 
@@ -123,6 +127,10 @@ describe('probe server match', () => {
     )
 
     expect(listed?.outcome.ok).toBe(true)
-    expect(other?.outcome).toEqual({ ok: false, code: 'invalid', status: 200 })
+    expect(other?.outcome).toEqual({
+      ok: false,
+      reason: 'invalid',
+      status: 200,
+    })
   })
 })

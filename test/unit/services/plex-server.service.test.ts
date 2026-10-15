@@ -211,7 +211,6 @@ describe('PlexServerService connection negotiation', () => {
     expect(await service.testConnection()).toEqual({
       success: true,
       message: 'Connected to the Plex server.',
-      code: null,
       url: LOCAL_HTTPS,
       automatic: true,
     })
@@ -220,7 +219,6 @@ describe('PlexServerService connection negotiation', () => {
     expect(await service.testConnection()).toEqual({
       success: false,
       message: "Couldn't reach the Plex server at this address.",
-      code: 'unreachable',
       url: LOCAL_HTTPS,
       automatic: true,
     })

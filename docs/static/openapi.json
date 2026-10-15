@@ -2675,16 +2675,6 @@
         "additionalProperties": false,
         "description": "Orphaned tag reference cleanup result for one instance"
       },
-      "PlexConnectionFailureCode": {
-        "type": "string",
-        "enum": [
-          "unreachable",
-          "certificate",
-          "auth",
-          "invalid"
-        ],
-        "description": "Why a Plex server connection check failed"
-      },
       "PlexNotificationConfigPayload": {
         "type": "object",
         "properties": {
@@ -2920,15 +2910,11 @@
           "description": {
             "type": "string"
           },
-          "code": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlexConnectionFailureCode"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
           }
         },
         "required": [
@@ -2937,10 +2923,11 @@
           "port",
           "useSsl",
           "local",
-          "code"
+          "success",
+          "message"
         ],
         "additionalProperties": false,
-        "description": "One connection to a Plex server the token owns, code is null when Pulsarr reached it"
+        "description": "One connection to a Plex server the token owns, with whether Pulsarr reached it"
       },
       "PlexServerDiscovery": {
         "type": "object",
@@ -2987,16 +2974,6 @@
           "message": {
             "type": "string"
           },
-          "code": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlexConnectionFailureCode"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "url": {
             "type": "string"
           },
@@ -3007,12 +2984,11 @@
         "required": [
           "success",
           "message",
-          "code",
           "url",
           "automatic"
         ],
         "additionalProperties": false,
-        "description": "Plex server connection test result for the address Pulsarr uses, code is null on success"
+        "description": "Plex server connection test result for the address Pulsarr uses"
       },
       "PlexWatchlistSync": {
         "type": "object",

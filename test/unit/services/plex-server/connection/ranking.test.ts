@@ -7,7 +7,7 @@ function probed(uri: string, local: boolean, outcome: ProbeOutcome) {
 }
 
 const up = (elapsedMs: number): ProbeOutcome => ({ ok: true, elapsedMs })
-const down: ProbeOutcome = { ok: false, code: 'unreachable', status: null }
+const down: ProbeOutcome = { ok: false, reason: 'unreachable', status: null }
 
 const order = (list: ReturnType<typeof probed>[]) =>
   rankProbedConnections(list).map(({ connection }) => connection.uri)

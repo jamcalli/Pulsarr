@@ -1,8 +1,9 @@
-import type { PlexConnectionFailureCode } from '@root/schemas/plex/connection-failure.schema.js'
+/** Why a probe failed, kept inside the server to pick the message shown to the admin. */
+export type ProbeFailure = 'unreachable' | 'certificate' | 'auth' | 'invalid'
 
 export type ProbeOutcome =
   | { ok: true; elapsedMs: number }
-  | { ok: false; code: PlexConnectionFailureCode; status: number | null }
+  | { ok: false; reason: ProbeFailure; status: number | null }
 
 export interface ProbedConnection<C> {
   connection: C
@@ -10,7 +11,7 @@ export interface ProbedConnection<C> {
 }
 
 // Bun puts the system error code on the fetch error itself, Node puts it on error.cause
-const ERROR_CODE_FAILURES: Record<string, PlexConnectionFailureCode> = {
+const ERROR_CODE_FAILURES: Record<string, ProbeFailure> = {
   ENOTFOUND: 'unreachable',
   EAI_AGAIN: 'unreachable',
   EAI_NONAME: 'unreachable',
@@ -44,7 +45,7 @@ const AUTH_STATUSES = new Set([401, 403])
 
 const CONNECTED_MESSAGE = 'Connected to the Plex server.'
 
-const FAILURE_MESSAGES: Record<PlexConnectionFailureCode, string> = {
+const FAILURE_MESSAGES: Record<ProbeFailure, string> = {
   unreachable: "Couldn't reach the Plex server at this address.",
   certificate: "The server's certificate doesn't match this address.",
   auth: "The Plex server didn't accept the linked account's token.",
@@ -58,7 +59,7 @@ export function okOutcome(elapsedMs: number): ProbeOutcome {
 export function httpFailureOutcome(status: number): ProbeOutcome {
   return {
     ok: false,
-    code: AUTH_STATUSES.has(status) ? 'auth' : 'invalid',
+    reason: AUTH_STATUSES.has(status) ? 'auth' : 'invalid',
     status,
   }
 }
@@ -84,8 +85,8 @@ export function plexMachineId(body: unknown): string | null {
   return container.machineIdentifier
 }
 
-/** Maps a rejected fetch to a failure code, defaulting to unreachable for timeouts and unknown errors. */
-export function classifyProbeError(error: unknown): PlexConnectionFailureCode {
+/** Maps a rejected fetch to a failure reason, defaulting to unreachable for timeouts and unknown errors. */
+export function classifyProbeError(error: unknown): ProbeFailure {
   const code = errorCode(error) ?? errorCode(errorCause(error))
   return (code && ERROR_CODE_FAILURES[code]) || 'unreachable'
 }
@@ -93,12 +94,8 @@ export function classifyProbeError(error: unknown): PlexConnectionFailureCode {
 /** The connection test verdict for an access check, with the message shown to the user. */
 export function connectionTestResult(outcome: ProbeOutcome) {
   return outcome.ok
-    ? { success: true, message: CONNECTED_MESSAGE, code: null }
-    : {
-        success: false,
-        message: FAILURE_MESSAGES[outcome.code],
-        code: outcome.code,
-      }
+    ? { success: true, message: CONNECTED_MESSAGE }
+    : { success: false, message: FAILURE_MESSAGES[outcome.reason] }
 }
 
 function errorCode(error: unknown): string | null {

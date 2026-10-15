@@ -3,9 +3,10 @@ import { getAllPlexResources } from '@services/plex-server/resources/resource-op
 import type { FastifyBaseLogger } from 'fastify'
 import { serverCandidates, warnCandidateFallback } from './candidates.js'
 import { discoveryOptions } from './discovery-options.js'
+import { connectionTestResult } from './probe-result.js'
 import { rankProbedConnections } from './ranking.js'
 
-/** The token's owned server addresses, best first, with a code on each one that failed. */
+/** The token's owned server addresses, best first, with whether Pulsarr reached each one. */
 export async function discoverServerConnections(
   plexToken: string,
   log: FastifyBaseLogger,
@@ -21,6 +22,6 @@ export async function discoverServerConnections(
     port: connection.port,
     useSsl: connection.useSsl,
     local: connection.local,
-    code: outcome.ok ? null : outcome.code,
+    ...connectionTestResult(outcome),
   }))
 }

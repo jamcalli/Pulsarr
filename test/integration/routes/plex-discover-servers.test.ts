@@ -73,7 +73,8 @@ describe('POST /v1/plex/discover-servers', () => {
         port: 32400,
         useSsl: true,
         local: false,
-        code: null,
+        success: true,
+        message: 'Connected to the Plex server.',
       },
       {
         name: 'Basement (plex-down.discover.test)',
@@ -81,7 +82,8 @@ describe('POST /v1/plex/discover-servers', () => {
         port: 32400,
         useSsl: true,
         local: true,
-        code: 'unreachable',
+        success: false,
+        message: "Couldn't reach the Plex server at this address.",
       },
     ])
   })
