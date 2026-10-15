@@ -1,13 +1,11 @@
 import { PORT_RANGE } from '@root/schemas/shared/port'
 import { useStore } from '@tanstack/react-form'
 import { InlineCode } from '@/components/inline-code'
+import { ActionResults } from '@/components/settings/action-results'
 import {
-  ActionResults,
-  ResultsTableHeader,
-} from '@/components/settings/action-results'
-import { StatusPill } from '@/components/status-pill'
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
+  type ArrInstanceResultRow,
+  ArrInstanceResultsTable,
+} from '@/components/settings/arr-instance-results'
 import { withFieldGroup } from '@/lib/form'
 import {
   WEBHOOK_PRESET_OPTIONS,
@@ -89,6 +87,11 @@ export const WebhookAddressForm = withFieldGroup({
   },
 })
 
+const WEBHOOK_PILLS = {
+  updated: { tone: 'on', label: 'Updated' },
+  failed: { tone: 'failed', label: 'Failed' },
+} as const
+
 export function WebhookResults({
   ranAt,
   results,
@@ -96,48 +99,24 @@ export function WebhookResults({
   ranAt: number
   results: components['schemas']['ArrWebhookResults']
 }) {
-  const rows = [
-    ...results.radarr.map((row) => ({ ...row, type: 'radarr' as const })),
-    ...results.sonarr.map((row) => ({ ...row, type: 'sonarr' as const })),
-  ]
+  const rows: ArrInstanceResultRow[] = (['radarr', 'sonarr'] as const).flatMap(
+    (type) =>
+      results[type].map((row) => ({
+        key: `${type}-${row.instanceId}`,
+        type,
+        name: row.name,
+        pill: row.success ? WEBHOOK_PILLS.updated : WEBHOOK_PILLS.failed,
+        message: row.success ? null : row.message,
+      })),
+  )
 
   return (
     <ActionResults ranAt={ranAt}>
-      <Table className="text-xs">
-        <ResultsTableHeader
-          columns={[
-            { label: 'Instance' },
-            { label: 'Type', className: 'max-md:hidden' },
-            { label: 'Result', className: 'text-right' },
-          ]}
-        />
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={`${row.type}-${row.instanceId}`}>
-              <TableCell className="whitespace-normal">
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-medium">{row.name}</span>
-                  <span className="text-muted-foreground md:hidden">
-                    {ARR_TYPE_LABELS[row.type]}
-                  </span>
-                  {!row.success && (
-                    <span className="text-muted-foreground">{row.message}</span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="align-top max-md:hidden">
-                {ARR_TYPE_LABELS[row.type]}
-              </TableCell>
-              <TableCell className="text-right align-top">
-                <StatusPill
-                  tone={row.success ? 'on' : 'failed'}
-                  label={row.success ? 'Updated' : 'Failed'}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <ArrInstanceResultsTable
+        rows={rows}
+        caption="Webhook update by instance"
+        statusLabel="Result"
+      />
     </ActionResults>
   )
 }

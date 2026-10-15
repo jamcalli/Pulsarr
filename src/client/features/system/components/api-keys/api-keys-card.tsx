@@ -3,21 +3,15 @@ import { useState } from 'react'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CardTitleCount } from '@/components/card-title-count'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { CopyButton } from '@/components/copy-button'
 import { DeleteButton } from '@/components/delete-button'
 import { EmptyState } from '@/components/empty-state'
-import { SecretRevealButton } from '@/components/form/secret-reveal-button'
+import { SecretCopyInput } from '@/components/secret-copy-input'
 import {
   SeparatedList,
   SeparatedListActions,
   SeparatedListRow,
 } from '@/components/separated-list'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@/components/ui/input-group'
 import { ItemContent, ItemDescription, ItemTitle } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRevokeApiKey } from '@/features/system/hooks/api-keys/useApiKeys'
@@ -38,8 +32,6 @@ function KeyRow({
   apiKey: ApiKey
   onRevoke: () => void
 }) {
-  const [shown, setShown] = useState(false)
-
   return (
     <SeparatedListRow>
       <ItemContent className={CONTENT_CLASS}>
@@ -48,24 +40,13 @@ function KeyRow({
           Created {formatRelative(new Date(apiKey.created_at))}
         </ItemDescription>
       </ItemContent>
-      <InputGroup className={KEY_CLASS}>
-        <InputGroupInput
-          readOnly
-          type={shown ? 'text' : 'password'}
-          autoComplete="off"
-          value={apiKey.key}
-          aria-label={`Key for ${apiKey.name}`}
-          className="font-mono"
-        />
-        <InputGroupAddon align="inline-end">
-          <SecretRevealButton
-            shown={shown}
-            onToggle={() => setShown(!shown)}
-            revealLabel={REVEAL_LABEL}
-          />
-          <CopyButton value={apiKey.key} label="Copy key" />
-        </InputGroupAddon>
-      </InputGroup>
+      <SecretCopyInput
+        value={apiKey.key}
+        copyLabel="Copy key"
+        revealLabel={REVEAL_LABEL}
+        aria-label={`Key for ${apiKey.name}`}
+        className={KEY_CLASS}
+      />
       <SeparatedListActions>
         <DeleteButton size="sm" onClick={onRevoke}>
           Revoke

@@ -6,6 +6,10 @@ import {
   handleSseError,
   MAX_SSE_RECONNECT_ATTEMPTS,
 } from '@/lib/sse-retry'
+import {
+  nextWatchlistSyncCache,
+  type WatchlistSyncCache,
+} from '@/lib/watchlist-sync'
 
 interface ProgressState {
   eventSource: EventSource | null
@@ -18,6 +22,8 @@ interface ProgressState {
   typeSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
   // last event per stable operationId so late-mounting consumers see current state
   systemStatusCache: Record<string, ProgressEvent>
+  /** Last event per watchlist sync type, cleared on every connect so only the server's replay repopulates it. */
+  watchlistSyncCache: WatchlistSyncCache
 
   initialize: () => void
   cleanup: () => void
@@ -41,6 +47,7 @@ export const useProgressStore = create<ProgressState>()((set, get) => ({
   operationSubscribers: new Map(),
   typeSubscribers: new Map(),
   systemStatusCache: {},
+  watchlistSyncCache: {},
 
   initialize: () => {
     const state = get()
@@ -57,6 +64,7 @@ export const useProgressStore = create<ProgressState>()((set, get) => ({
         isConnecting: false,
         reconnectAttempts: 0,
         hasGivenUp: false,
+        watchlistSyncCache: {},
       })
     }
 
@@ -70,6 +78,17 @@ export const useProgressStore = create<ProgressState>()((set, get) => ({
             ...s.systemStatusCache,
             [data.operationId]: data,
           },
+        }))
+      }
+
+      if (data.type === 'self-watchlist' || data.type === 'others-watchlist') {
+        const type = data.type
+        set((s) => ({
+          watchlistSyncCache: nextWatchlistSyncCache(
+            s.watchlistSyncCache,
+            type,
+            data,
+          ),
         }))
       }
 

@@ -15,6 +15,8 @@ interface SaveFormOptions<Source, Values> {
   latest: () => Source | null
   schema?: StandardSchemaV1<Values>
   saveErrorFallback: string
+  /** Runs after a successful save, once the form holds the saved values. */
+  onSaved?: () => void
 }
 
 export function useSaveForm<Source, Values>({
@@ -24,6 +26,7 @@ export function useSaveForm<Source, Values>({
   latest,
   schema,
   saveErrorFallback,
+  onSaved,
 }: SaveFormOptions<Source, Values>) {
   const mutation = useMinLoadingMutation(
     useMutation({
@@ -39,7 +42,10 @@ export function useSaveForm<Source, Values>({
     onSubmit: ({ value }) =>
       mutation
         .mutateAsync(value)
-        .then(() => form.reset(toValues(latest() ?? source)))
+        .then(() => {
+          form.reset(toValues(latest() ?? source))
+          onSaved?.()
+        })
         .catch(() => undefined),
   })
 

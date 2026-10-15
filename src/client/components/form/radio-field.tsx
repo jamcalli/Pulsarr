@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { FieldRow } from '@/components/form/field-row'
 import {
   Field,
@@ -13,7 +14,7 @@ interface RadioFieldProps<T extends string> {
   label: string
   description?: string
   disabled?: boolean
-  options: Array<{ value: T; label: string; description?: string }>
+  options: Array<{ value: T; label: string; description?: ReactNode }>
 }
 
 export function RadioField<T extends string>({
