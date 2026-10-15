@@ -44,6 +44,7 @@ describe('plex/api-client', () => {
     })
 
     it.each([
+      [408, 'Request Timeout'],
       [429, 'Too Many Requests'],
       [500, 'Internal Server Error'],
     ])(

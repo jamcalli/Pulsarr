@@ -2,7 +2,7 @@ import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from './helpers.js'
 
-const RATE_LIMITED = 429
+const TRANSIENT_STATUSES = new Set([408, 429])
 
 /** Whether plex.tv accepted the token, rejected it, or could not be reached. */
 export type PlexPingResult = 'accepted' | 'rejected' | 'unreachable'
@@ -28,7 +28,7 @@ export const pingPlex = async (
       log.error(
         `Plex ping failed with status ${response.status}: ${response.statusText}`,
       )
-      return response.status === RATE_LIMITED || response.status >= 500
+      return TRANSIENT_STATUSES.has(response.status) || response.status >= 500
         ? 'unreachable'
         : 'rejected'
     }
