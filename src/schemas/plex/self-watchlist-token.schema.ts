@@ -15,15 +15,20 @@ const UserSchema = z.object({
   username: z.string(),
 })
 
-const UserWatchlistSchema = z.object({
-  user: UserSchema,
-  watchlist: z.array(WatchlistItemSchema),
-})
-
-const SelfWatchlistSuccessSchema = z.object({
-  total: z.number(),
-  users: z.array(UserWatchlistSchema),
-})
+export const PlexWatchlistSyncSchema = z
+  .object({
+    total: z.number(),
+    users: z.array(
+      z.object({
+        user: UserSchema,
+        watchlist: z.array(WatchlistItemSchema),
+      }),
+    ),
+  })
+  .meta({
+    id: 'PlexWatchlistSync',
+    description: 'Watchlists read from Plex, with the total item count',
+  })
 
 export const selfWatchlistSchema = {
   summary: 'Get self watchlist items',
@@ -31,17 +36,8 @@ export const selfWatchlistSchema = {
   description: 'Retrieve the current user watchlist items from Plex',
   tags: ['Plex'],
   response: {
-    200: SelfWatchlistSuccessSchema,
+    200: PlexWatchlistSyncSchema,
     400: ErrorSchema,
     500: ErrorSchema,
   },
 }
-
-export type SelfWatchlistSuccess = z.infer<typeof SelfWatchlistSuccessSchema>
-export type WatchlistItem = z.infer<typeof WatchlistItemSchema>
-export type User = z.infer<typeof UserSchema>
-export type UserWatchlist = z.infer<typeof UserWatchlistSchema>
-
-// Re-export ErrorSchema for domain-specific error type
-export { ErrorSchema as SelfWatchlistErrorSchema }
-export type SelfWatchlistError = z.infer<typeof ErrorSchema>

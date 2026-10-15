@@ -1,4 +1,4 @@
-import { PULSARR_PORT_RANGE } from '@root/schemas/config/config.schema'
+import { PORT_RANGE } from '@root/schemas/shared/port'
 import { useStore } from '@tanstack/react-form'
 import { InlineCode } from '@/components/inline-code'
 import {
@@ -76,8 +76,8 @@ export const WebhookAddressForm = withFieldGroup({
             {(field) => (
               <field.NumberField
                 label="Port"
-                min={PULSARR_PORT_RANGE.min}
-                max={PULSARR_PORT_RANGE.max}
+                min={PORT_RANGE.min}
+                max={PORT_RANGE.max}
                 grouping={false}
                 disabled={disabled}
               />

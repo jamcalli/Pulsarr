@@ -9,164 +9,22 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
     schema: plexConfigNotificationSchema,
     handler: async (request, reply) => {
       try {
-        const { plexToken, plexHost, plexPort, useSsl } = request.body
-
-        const radarrInstances = await fastify.radarrManager.getAllInstances()
-        const sonarrInstances = await fastify.sonarrManager.getAllInstances()
-
-        if (radarrInstances.length === 0 && sonarrInstances.length === 0) {
+        const outcome =
+          await fastify.plexServerService.configureArrPlexNotifications(
+            request.body,
+          )
+        if (outcome.kind === 'no-token') {
+          return reply.badRequest('Link a Plex account first')
+        }
+        if (outcome.kind === 'no-instances') {
           return reply.badRequest('No Radarr or Sonarr instances configured')
         }
-
-        const results = {
-          radarr: [] as Array<{
-            id: number
-            name: string
-            success: boolean
-            message: string
-          }>,
-          sonarr: [] as Array<{
-            id: number
-            name: string
-            success: boolean
-            message: string
-          }>,
-        }
-
-        for (const instance of radarrInstances) {
-          try {
-            const radarrService = fastify.radarrManager.getRadarrService(
-              instance.id,
-            )
-
-            if (!radarrService) {
-              results.radarr.push({
-                id: instance.id,
-                name: instance.name,
-                success: false,
-                message: 'Radarr service not initialized',
-              })
-              continue
-            }
-
-            // Configure Plex notification with timeout (ensure timer is cleared to avoid unhandled rejections)
-            let timeoutId: NodeJS.Timeout
-            const timeoutPromise = new Promise<never>((_, reject) => {
-              timeoutId = setTimeout(() => {
-                reject(
-                  new Error(
-                    'Timeout configuring Plex notification for Radarr instance',
-                  ),
-                )
-              }, 5000) // 5 second timeout
-            })
-
-            const configurePromise = radarrService.configurePlexNotification(
-              plexToken,
-              plexHost,
-              plexPort,
-              useSsl,
-            )
-
-            await Promise.race([
-              configurePromise.finally(() => clearTimeout(timeoutId)),
-              timeoutPromise,
-            ])
-
-            results.radarr.push({
-              id: instance.id,
-              name: instance.name,
-              success: true,
-              message: 'Plex notification configured successfully',
-            })
-          } catch (error) {
-            logRouteError(fastify.log, request, error, {
-              message: 'Failed to configure Plex notification for Radarr',
-              context: { instanceId: instance.id, instanceName: instance.name },
-            })
-            results.radarr.push({
-              id: instance.id,
-              name: instance.name,
-              success: false,
-              message: error instanceof Error ? error.message : 'Unknown error',
-            })
-          }
-        }
-
-        for (const instance of sonarrInstances) {
-          try {
-            const sonarrService = fastify.sonarrManager.getSonarrService(
-              instance.id,
-            )
-
-            if (!sonarrService) {
-              results.sonarr.push({
-                id: instance.id,
-                name: instance.name,
-                success: false,
-                message: 'Sonarr service not initialized',
-              })
-              continue
-            }
-
-            // Configure Plex notification with timeout (ensure timer is cleared to avoid unhandled rejections)
-            let timeoutId: NodeJS.Timeout
-            const timeoutPromise = new Promise<never>((_, reject) => {
-              timeoutId = setTimeout(() => {
-                reject(
-                  new Error(
-                    'Timeout configuring Plex notification for Sonarr instance',
-                  ),
-                )
-              }, 5000) // 5 second timeout
-            })
-
-            const configurePromise = sonarrService.configurePlexNotification(
-              plexToken,
-              plexHost,
-              plexPort,
-              useSsl,
-            )
-
-            await Promise.race([
-              configurePromise.finally(() => clearTimeout(timeoutId)),
-              timeoutPromise,
-            ])
-
-            results.sonarr.push({
-              id: instance.id,
-              name: instance.name,
-              success: true,
-              message: 'Plex notification configured successfully',
-            })
-          } catch (error) {
-            logRouteError(fastify.log, request, error, {
-              message: 'Failed to configure Plex notification for Sonarr',
-              context: { instanceId: instance.id, instanceName: instance.name },
-            })
-            results.sonarr.push({
-              id: instance.id,
-              name: instance.name,
-              success: false,
-              message: error instanceof Error ? error.message : 'Unknown error',
-            })
-          }
-        }
-
-        const radarrSuccessCount = results.radarr.filter(
-          (r) => r.success,
-        ).length
-        const sonarrSuccessCount = results.sonarr.filter(
-          (r) => r.success,
-        ).length
-        const totalSuccessCount = radarrSuccessCount + sonarrSuccessCount
-        const totalInstanceCount =
-          radarrInstances.length + sonarrInstances.length
+        const { run } = outcome
 
         return {
-          success: totalSuccessCount > 0,
-          message: `Configured Plex notifications for ${totalSuccessCount} of ${totalInstanceCount} instances (${radarrSuccessCount} Radarr, ${sonarrSuccessCount} Sonarr)`,
-          results,
+          success: run.successCount > 0,
+          message: `Configured Plex notifications for ${run.successCount} of ${run.instanceCount} instances (${run.radarrSuccessCount} Radarr, ${run.sonarrSuccessCount} Sonarr)`,
+          results: run.results,
         }
       } catch (error) {
         logRouteError(fastify.log, request, error, {

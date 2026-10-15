@@ -1,7 +1,10 @@
 import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
-import { DEFAULT_PULSARR_PORT } from '@root/schemas/config/config.schema.js'
+import {
+  DEFAULT_PULSARR_PORT,
+  PLEX_SERVER_URL_DEFAULT,
+} from '@root/schemas/config/config.schema.js'
 import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
@@ -304,7 +307,7 @@ const schema = {
     },
     plexServerUrl: {
       type: 'string',
-      default: 'http://localhost:32400',
+      default: PLEX_SERVER_URL_DEFAULT,
     },
     skipIfExistsOnPlex: {
       type: 'boolean',

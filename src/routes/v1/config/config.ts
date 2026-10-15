@@ -10,6 +10,7 @@ import {
   registerArrWebhooks,
   testArrWebhookAddress,
 } from '@services/arr-webhook-address.service.js'
+import { withFeedsResetOnTokenChange } from '@services/plex-watchlist/rss/token-feeds.js'
 import { TagNamingBlockedError } from '@services/user-tags/types.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -132,7 +133,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         try {
-          await fastify.updateConfigAndPersist(safeConfigUpdate)
+          await fastify.updateConfigAndPersist(
+            withFeedsResetOnTokenChange(
+              safeConfigUpdate,
+              currentConfig?.plexTokens ?? [],
+            ),
+          )
         } catch (configUpdateError) {
           logRouteError(fastify.log, request, configUpdateError, {
             message: 'Failed to update configuration',
