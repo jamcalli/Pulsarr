@@ -1,3 +1,4 @@
+import type { ConfigUpdate } from '@root/schemas/config/config.schema.js'
 import type {
   EtagUserInfo,
   Friend,
@@ -22,6 +23,7 @@ import { extractUuidFromThumb } from '@utils/plex-avatar.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import { type PlexPingResult, pingPlex } from './plex-watchlist/api/client.js'
+import { assertPlexTokensAccepted } from './plex-watchlist/api/token-check.js'
 import {
   cancelFriendRequest,
   getFriendRequests,
@@ -130,6 +132,14 @@ export class PlexWatchlistService {
       config: this.config,
       fastify: this.fastify,
     }
+  }
+
+  /** Throws `PlexTokenCheckError` before a save that would store a token plex.tv does not accept. */
+  assertTokensAccepted(
+    update: ConfigUpdate,
+    currentTokens: readonly string[],
+  ): Promise<void> {
+    return assertPlexTokensAccepted(update, currentTokens, this.log)
   }
 
   /** Rejected when plex.tv refuses any configured token, unreachable when it could not answer. */

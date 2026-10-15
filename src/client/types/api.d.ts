@@ -5670,6 +5670,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Default Response */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getRouterPlugins: {
