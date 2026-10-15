@@ -173,7 +173,6 @@ describe('processRssSelfItems', () => {
           status: 'pending',
         }),
       ],
-      isSelfWatchlist: true,
     })
     expect(routeEnrichedItemsForUser).toHaveBeenCalledWith(
       PRIMARY_USER.id,

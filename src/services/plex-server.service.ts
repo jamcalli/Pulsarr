@@ -1230,11 +1230,21 @@ export class PlexServerService {
 
   clearCaches(resetInitialized = false): void {
     this.log.debug('Clearing all PlexServerService caches')
+    this._hasPlexPass = null
+    this._adminPlexId = null
+    this.clearConnectionCaches()
+
+    if (resetInitialized) {
+      this.log.warn('Resetting Plex server initialization state')
+      this.initialized = false
+    }
+  }
+
+  /** Clears everything tied to the server address but keeps account facts such as Plex Pass, which only change with the token. */
+  clearConnectionCaches(): void {
     this.serverConnections = null
     this.serverMachineId = null
     this.serverName = null
-    this._hasPlexPass = null
-    this._adminPlexId = null
     this.connectionTimestamp = 0
     this.selectedConnectionUrl = null
     this.fallbackConnections = null
@@ -1253,11 +1263,6 @@ export class PlexServerService {
     this.serverConnectionCache.clear()
     this.contentAvailabilityCache.clear()
     this.deadServerCache.clear()
-
-    if (resetInitialized) {
-      this.log.warn('Resetting Plex server initialization state')
-      this.initialized = false
-    }
   }
 
   async connectSSE(): Promise<void> {

@@ -1,3 +1,4 @@
+import type { ConfigUpdate } from '@root/schemas/config/config.schema.js'
 import type {
   EtagUserInfo,
   Friend,
@@ -11,6 +12,10 @@ import type {
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { PlexUser } from '@root/types/plex-server.types.js'
+import type {
+  ProgressEvent,
+  WatchlistSyncType,
+} from '@root/types/progress.types.js'
 import type { RssFeedsSuccess } from '@schemas/plex/generate-rss-feeds.schema.js'
 import type {
   PlexClassifiedUser,
@@ -22,6 +27,7 @@ import { extractUuidFromThumb } from '@utils/plex-avatar.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import { type PlexPingResult, pingPlex } from './plex-watchlist/api/client.js'
+import { assertPlexTokensAccepted } from './plex-watchlist/api/token-check.js'
 import {
   cancelFriendRequest,
   getFriendRequests,
@@ -55,9 +61,14 @@ import {
   type WatchlistSyncDeps,
 } from './plex-watchlist/orchestration/watchlist-sync.js'
 import {
+  createWatchlistSyncProgress,
+  type WatchlistSyncProgress,
+} from './plex-watchlist/progress/sync-progress.js'
+import {
   categorizeItems,
   type ItemCategorizerDeps,
 } from './plex-watchlist/sync/item-categorizer.js'
+import { createSingleFlightQueue } from './plex-watchlist/sync/single-flight-queue.js'
 import {
   attachFriendStatus,
   type FriendStatusFields,
@@ -69,10 +80,20 @@ import {
 } from './plex-watchlist/users/friend-users.js'
 import { ensureTokenUsers } from './plex-watchlist/users/token-users.js'
 
+type WatchlistSyncResult = ReturnType<typeof buildResponse>
+
 export const USER_STATUS_CACHE_MS = 60_000
 
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger
+  private readonly syncQueues = {
+    'self-watchlist': createSingleFlightQueue<WatchlistSyncResult>(),
+    'others-watchlist': createSingleFlightQueue<WatchlistSyncResult>(),
+  }
+  private readonly activeSyncs = new Map<
+    WatchlistSyncType,
+    WatchlistSyncProgress
+  >()
   private classifiedUsersCache: {
     fetchedAt: number
     result: UserStatusResponse
@@ -142,6 +163,14 @@ export class PlexWatchlistService {
     }
   }
 
+  /** Throws `PlexTokenCheckError` before a save that would store a token plex.tv does not accept. */
+  assertTokensAccepted(
+    update: ConfigUpdate,
+    currentTokens: readonly string[],
+  ): Promise<void> {
+    return assertPlexTokensAccepted(update, currentTokens, this.log)
+  }
+
   /** Rejected when plex.tv refuses any configured token, unreachable when it could not answer. */
   async pingPlex(): Promise<PlexPingResult> {
     const tokens = this.config.plexTokens
@@ -159,11 +188,59 @@ export class PlexWatchlistService {
     return 'accepted'
   }
 
-  async getSelfWatchlist(forceRefresh = false) {
+  /** Joins a running sync with the same forceRefresh and token, otherwise waits for it to settle before starting. */
+  async getSelfWatchlist(forceRefresh = false): Promise<WatchlistSyncResult> {
+    return this.runSync('self-watchlist', forceRefresh, (progress) =>
+      this.syncSelfWatchlist(forceRefresh, progress),
+    )
+  }
+
+  /** Joins a running sync with the same forceRefresh and token, otherwise waits for it to settle before starting. */
+  async getOthersWatchlists(
+    forceRefresh = false,
+  ): Promise<WatchlistSyncResult> {
+    return this.runSync('others-watchlist', forceRefresh, (progress) =>
+      this.syncOthersWatchlists(forceRefresh, progress),
+    )
+  }
+
+  /** The latest progress event of each sync still running, for replay to late clients. */
+  syncSnapshots(): ProgressEvent[] {
+    return Array.from(this.activeSyncs.values(), (progress) =>
+      progress.lastEvent(),
+    )
+  }
+
+  private async runSync(
+    type: WatchlistSyncType,
+    forceRefresh: boolean,
+    sync: (progress: WatchlistSyncProgress) => Promise<WatchlistSyncResult>,
+  ): Promise<WatchlistSyncResult> {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
 
+    const key = `${forceRefresh}:${this.config.plexTokens[0]}`
+    return this.syncQueues[type].run(key, async () => {
+      const progress = createWatchlistSyncProgress(this.fastify.progress, type)
+      this.activeSyncs.set(type, progress)
+      try {
+        const result = await sync(progress)
+        progress.complete()
+        return result
+      } catch (error) {
+        progress.failed()
+        throw error
+      } finally {
+        this.activeSyncs.delete(type)
+      }
+    })
+  }
+
+  private async syncSelfWatchlist(
+    forceRefresh: boolean,
+    progress: WatchlistSyncProgress,
+  ): Promise<WatchlistSyncResult> {
     await this.ensureTokenUsers()
 
     const primaryUser = await this.dbService.getPrimaryUser()
@@ -184,6 +261,7 @@ export class PlexWatchlistService {
       this.log,
       primaryUser.id,
       (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
+      progress,
     )
 
     const tokenUser: Friend = {
@@ -211,9 +289,9 @@ export class PlexWatchlistService {
 
     const processedItems = await processAndSaveNewItems(
       brandNewItems,
-      true,
       forceRefresh,
       this.itemProcessorDeps,
+      progress,
     )
     await linkExistingItems(existingItemsToLink, {
       db: this.dbService,
@@ -270,10 +348,11 @@ export class PlexWatchlistService {
     return { added, removed, userMap }
   }
 
-  async getOthersWatchlists(forceRefresh = false) {
-    if (this.config.plexTokens.length === 0) {
-      throw new Error('No Plex token configured')
-    }
+  private async syncOthersWatchlists(
+    forceRefresh: boolean,
+    progress: WatchlistSyncProgress,
+  ): Promise<WatchlistSyncResult> {
+    progress.findingFriends()
 
     const friendsResult = await getFriends(this.config, this.log)
 
@@ -330,6 +409,7 @@ export class PlexWatchlistService {
       this.log,
       friendsWithIds,
       (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
+      progress,
     )
 
     if (userWatchlistMap.size === 0 && friendsWithIds.size > 0) {
@@ -360,9 +440,9 @@ export class PlexWatchlistService {
 
     const processedItems = await processAndSaveNewItems(
       brandNewItems,
-      false,
       forceRefresh,
       this.itemProcessorDeps,
+      progress,
     )
     await linkExistingItems(existingItemsToLink, {
       db: this.dbService,

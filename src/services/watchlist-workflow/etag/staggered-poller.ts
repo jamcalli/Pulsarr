@@ -81,7 +81,6 @@ export async function handleStaggeredPollResult(
           watchlistId: '',
         },
         items: tokenItems,
-        isSelfWatchlist: result.isPrimary,
       },
       deps.itemProcessorDeps,
     )
@@ -108,7 +107,6 @@ export async function handleStaggeredPollResult(
         watchlistId: '',
       },
       items: tokenItems,
-      isSelfWatchlist: result.isPrimary,
     },
     deps.itemProcessorDeps,
   )

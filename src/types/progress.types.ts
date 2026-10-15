@@ -29,8 +29,25 @@ export type WatchlistMetadata = {
   userIds: number[]
 }
 
+export type WatchlistSyncMetadata = {
+  stage:
+    | 'finding-friends'
+    | 'reading'
+    | 'processing'
+    | 'rate-limited'
+    | 'saving'
+    | 'complete'
+    | 'failed'
+  count: {
+    done: number
+    total: number
+    unit: 'pages' | 'friends' | 'items'
+  } | null
+}
+
 export type ProgressMetadata =
   | WorkflowMetadata
+  | WatchlistSyncMetadata
   | ApprovalMetadata
   | UsersMetadata
   | WatchlistMetadata
@@ -42,7 +59,6 @@ export interface ProgressEvent {
   type:
     | 'self-watchlist'
     | 'others-watchlist'
-    | 'rss-feed'
     | 'system'
     | 'sync'
     | 'sonarr-tagging'
@@ -59,6 +75,11 @@ export interface ProgressEvent {
   message: string
   metadata?: ProgressMetadata
 }
+
+export type WatchlistSyncType = Extract<
+  ProgressEvent['type'],
+  'self-watchlist' | 'others-watchlist'
+>
 
 export interface ProgressService {
   emit(event: ProgressEvent): void

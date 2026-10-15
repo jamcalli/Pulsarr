@@ -8,6 +8,7 @@ import { toItemsBatch } from '@services/plex-watchlist/enrichment/batch-processo
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockSyncProgress } from '../../../../mocks/watchlist-sync-progress.js'
 import { server } from '../../../../setup/msw-setup.js'
 
 describe('plex/processors/batch-processor', () => {
@@ -310,19 +311,8 @@ describe('plex/processors/batch-processor', () => {
         ),
       )
 
-      const mockProgress = {
-        emit: vi.fn(),
-        hasActiveConnections: vi.fn().mockReturnValue(true),
-      }
-
-      const progressTracker = {
-        progress: mockProgress,
-        operationId: 'test-op',
-        type: 'self-watchlist' as const,
-        completedItems: 0,
-        totalItems: 3,
-        username: 'testuser',
-      }
+      const reporter = createMockSyncProgress()
+      const progressTracker = { reporter, completedItems: 2, totalItems: 5 }
 
       const items = [
         createMockItem('1', 'Movie 1'),
@@ -339,7 +329,11 @@ describe('plex/processors/batch-processor', () => {
       )
 
       expect(result.size).toBe(3)
-      expect(mockProgress.emit).toHaveBeenCalled()
+      expect(reporter.processingItems.mock.calls).toEqual([
+        [3, 5],
+        [4, 5],
+        [5, 5],
+      ])
     })
 
     it('should handle rate limited progress updates', async () => {
@@ -365,19 +359,8 @@ describe('plex/processors/batch-processor', () => {
         ),
       )
 
-      const mockProgress = {
-        emit: vi.fn(),
-        hasActiveConnections: vi.fn().mockReturnValue(true),
-      }
-
-      const progressTracker = {
-        progress: mockProgress,
-        operationId: 'test-op',
-        type: 'self-watchlist' as const,
-        completedItems: 0,
-        totalItems: 1,
-        username: 'testuser',
-      }
+      const reporter = createMockSyncProgress()
+      const progressTracker = { reporter, completedItems: 0, totalItems: 1 }
 
       const items = [createMockItem('1', 'Movie 1')]
 
@@ -387,6 +370,8 @@ describe('plex/processors/batch-processor', () => {
 
       vi.useRealTimers()
       expect(result.size).toBe(1)
+      expect(reporter.rateLimited).toHaveBeenCalled()
+      expect(reporter.processingItems).toHaveBeenLastCalledWith(1, 1)
     })
 
     it('should maintain minimum concurrency of 1', async () => {

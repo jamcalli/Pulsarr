@@ -1,6 +1,9 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
+export const WATCHLIST_SYNC_STARTING_MESSAGE =
+  'Pulsarr is still starting up. Sync again once the startup sync finishes.'
+
 const WatchlistItemSchema = z.object({
   title: z.string(),
   plexKey: z.string().optional(),
@@ -38,6 +41,7 @@ export const selfWatchlistSchema = {
   response: {
     200: PlexWatchlistSyncSchema,
     400: ErrorSchema,
+    409: ErrorSchema,
     500: ErrorSchema,
   },
 }

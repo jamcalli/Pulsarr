@@ -165,79 +165,27 @@ describe('plex/rate-limiter', () => {
       expect(result).toBe(true)
     })
 
-    it('should emit progress updates when progress service provided', async () => {
-      const mockProgress = {
-        emit: vi.fn(),
-      }
+    it('calls onWait once with the remaining cooldown', async () => {
+      const onWait = vi.fn()
 
       rateLimiter.setRateLimited(2, mockLogger)
+      const remaining = rateLimiter.getRemainingCooldown()
 
-      const waitPromise = rateLimiter.waitIfLimited(mockLogger, {
-        progress: mockProgress as never,
-        operationId: 'test-op',
-        type: 'self-watchlist',
-      })
+      const waitPromise = rateLimiter.waitIfLimited(mockLogger, onWait)
 
       await vi.runAllTimersAsync()
       await waitPromise
 
-      expect(mockProgress.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operationId: 'test-op',
-          type: 'self-watchlist',
-          phase: 'processing',
-          progress: 50,
-          message: expect.stringContaining('Rate limited by Plex API'),
-        }),
-      )
+      expect(onWait).toHaveBeenCalledTimes(1)
+      expect(onWait).toHaveBeenCalledWith(remaining)
     })
 
-    it('should use custom progress value when provided', async () => {
-      const mockProgress = {
-        emit: vi.fn(),
-      }
+    it('does not call onWait when not rate limited', async () => {
+      const onWait = vi.fn()
 
-      rateLimiter.setRateLimited(2, mockLogger)
+      await rateLimiter.waitIfLimited(mockLogger, onWait)
 
-      const waitPromise = rateLimiter.waitIfLimited(mockLogger, {
-        progress: mockProgress as never,
-        operationId: 'test-op',
-        type: 'system',
-        currentProgress: 75,
-      })
-
-      await vi.runAllTimersAsync()
-      await waitPromise
-
-      expect(mockProgress.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          progress: 75,
-        }),
-      )
-    })
-
-    it('should use custom message when provided', async () => {
-      const mockProgress = {
-        emit: vi.fn(),
-      }
-
-      rateLimiter.setRateLimited(2, mockLogger)
-
-      const waitPromise = rateLimiter.waitIfLimited(mockLogger, {
-        progress: mockProgress as never,
-        operationId: 'test-op',
-        type: 'rss-feed',
-        message: 'Custom rate limit message',
-      })
-
-      await vi.runAllTimersAsync()
-      await waitPromise
-
-      expect(mockProgress.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Custom rate limit message',
-        }),
-      )
+      expect(onWait).not.toHaveBeenCalled()
     })
 
     it('should return false if remaining cooldown is 0 or negative', async () => {

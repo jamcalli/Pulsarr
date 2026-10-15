@@ -4,46 +4,23 @@ import type {
   Item,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import type { ProgressService } from '@root/types/progress.types.js'
 import type { FastifyBaseLogger } from 'fastify'
+import type { WatchlistSyncProgress } from '../progress/sync-progress.js'
 import { toItemsBatch } from './batch-processor.js'
 
-/**
- * Processes all watchlist items for multiple users, converting TokenWatchlistItems to Items.
- *
- * @param config - Application configuration
- * @param log - Fastify logger instance
- * @param userWatchlistMap - Map of Friends to their TokenWatchlistItems
- * @param progressInfo - Optional progress tracking information
- * @returns Promise resolving to a Map of Friends to their processed Items
- */
 export const processWatchlistItems = async (
   config: Config,
   log: FastifyBaseLogger,
   userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-  progressInfo?: {
-    progress: ProgressService
-    operationId: string
-    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
-  },
+  progress?: WatchlistSyncProgress,
 ): Promise<Map<Friend, Set<Item>>> => {
   const results = new Map<Friend, Set<Item>>()
 
-  // Calculate total items for progress tracking
   const totalItems = Array.from(userWatchlistMap.values()).reduce(
     (sum, items) => sum + items.size,
     0,
   )
-
-  if (progressInfo) {
-    progressInfo.progress.emit({
-      operationId: progressInfo.operationId,
-      type: progressInfo.type,
-      phase: 'setup',
-      progress: 5,
-      message: `Starting to process ${totalItems} items`,
-    })
-  }
+  progress?.processingItems(0, totalItems)
 
   // Track completed items across all users
   let completedItems = 0
@@ -60,16 +37,7 @@ export const processWatchlistItems = async (
       config,
       log,
       itemsArray,
-      progressInfo
-        ? {
-            progress: progressInfo.progress,
-            operationId: progressInfo.operationId,
-            type: progressInfo.type,
-            completedItems,
-            totalItems,
-            username: user.username,
-          }
-        : undefined,
+      progress ? { reporter: progress, completedItems, totalItems } : undefined,
       2, // Concurrency limit
     )
 
@@ -87,16 +55,6 @@ export const processWatchlistItems = async (
 
     // Update completed items count
     completedItems += watchlistItems.size
-  }
-
-  if (progressInfo) {
-    progressInfo.progress.emit({
-      operationId: progressInfo.operationId,
-      type: progressInfo.type,
-      phase: 'complete',
-      progress: 95,
-      message: `Processed all ${totalItems} items - finalizing`,
-    })
   }
 
   return results

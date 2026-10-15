@@ -62,7 +62,7 @@ describe('processAndSaveNewItems', () => {
   it('emits one watchlist added event for the users whose rows were inserted', async () => {
     const { deps, emit } = createDeps([{ id: 1, user_id: 3, key: 'a' }])
 
-    await processAndSaveNewItems(NEW_ITEMS, false, false, deps)
+    await processAndSaveNewItems(NEW_ITEMS, false, deps)
 
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit).toHaveBeenCalledWith(
@@ -76,7 +76,7 @@ describe('processAndSaveNewItems', () => {
   it('emits nothing when the insert ignored every row', async () => {
     const { deps, emit } = createDeps([])
 
-    await processAndSaveNewItems(NEW_ITEMS, false, false, deps)
+    await processAndSaveNewItems(NEW_ITEMS, false, deps)
 
     expect(emit).not.toHaveBeenCalled()
   })
@@ -88,7 +88,7 @@ describe('processAndSaveNewItems', () => {
       [friend(4), new Set([item(4, 'shared')])],
     ])
 
-    await processAndSaveNewItems(sharedKey, false, false, deps)
+    await processAndSaveNewItems(sharedKey, false, deps)
 
     expect(emit).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -20,6 +20,10 @@ export default fp(
     )
 
     fastify.decorate('plexWatchlist', service)
+
+    fastify.progress.registerSnapshotProvider('watchlist-sync', () =>
+      service.syncSnapshots(),
+    )
   },
   {
     name: 'plex-watchlist',

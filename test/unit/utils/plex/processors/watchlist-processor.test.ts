@@ -6,8 +6,9 @@ import type {
 } from '@root/types/plex.types.js'
 import { processWatchlistItems } from '@services/plex-watchlist/enrichment/watchlist-processor.js'
 import { HttpResponse, http } from 'msw'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockSyncProgress } from '../../../../mocks/watchlist-sync-progress.js'
 import { server } from '../../../../setup/msw-setup.js'
 
 describe('plex/processors/watchlist-processor', () => {
@@ -131,7 +132,7 @@ describe('plex/processors/watchlist-processor', () => {
       expect(result.size).toBe(0)
     })
 
-    it('should emit progress updates when progressInfo provided', async () => {
+    it('reports processed items to the progress reporter', async () => {
       server.use(
         http.get(
           'https://discover.provider.plex.tv/library/metadata/:id',
@@ -150,16 +151,7 @@ describe('plex/processors/watchlist-processor', () => {
         ),
       )
 
-      const mockProgress = {
-        emit: vi.fn(),
-        hasActiveConnections: vi.fn().mockReturnValue(true),
-      }
-
-      const progressInfo = {
-        progress: mockProgress,
-        operationId: 'test-op',
-        type: 'others-watchlist' as const,
-      }
+      const progress = createMockSyncProgress()
 
       const friend: Friend = {
         watchlistId: 'user-1',
@@ -191,24 +183,13 @@ describe('plex/processors/watchlist-processor', () => {
         config,
         mockLogger,
         userWatchlistMap,
-        progressInfo,
+        progress,
       )
 
-      expect(mockProgress.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          phase: 'setup',
-          progress: 5,
-          message: 'Starting to process 1 items',
-        }),
-      )
-
-      expect(mockProgress.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          phase: 'complete',
-          progress: 95,
-          message: 'Processed all 1 items - finalizing',
-        }),
-      )
+      expect(progress.processingItems.mock.calls).toEqual([
+        [0, 1],
+        [1, 1],
+      ])
     })
 
     it('should pass correct concurrency limit to toItemsBatch', async () => {
@@ -385,16 +366,7 @@ describe('plex/processors/watchlist-processor', () => {
         ),
       )
 
-      const mockProgress = {
-        emit: vi.fn(),
-        hasActiveConnections: vi.fn().mockReturnValue(true),
-      }
-
-      const progressInfo = {
-        progress: mockProgress,
-        operationId: 'test-op',
-        type: 'others-watchlist' as const,
-      }
+      const progress = createMockSyncProgress()
 
       const friend1: Friend = {
         watchlistId: 'user-1',
@@ -448,14 +420,14 @@ describe('plex/processors/watchlist-processor', () => {
         config,
         mockLogger,
         userWatchlistMap,
-        progressInfo,
+        progress,
       )
 
-      expect(mockProgress.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Starting to process 2 items',
-        }),
-      )
+      expect(progress.processingItems.mock.calls).toEqual([
+        [0, 2],
+        [1, 2],
+        [2, 2],
+      ])
     })
   })
 })
