@@ -7169,7 +7169,7 @@ export interface operations {
                         seasonNumber: number;
                         title: string;
                         overview?: string;
-                        airDateUtc: string;
+                        airDateUtc?: string;
                     }[];
                     episodeFile: {
                         id: number;
@@ -7193,7 +7193,7 @@ export interface operations {
                         seasonNumber: number;
                         title: string;
                         overview?: string;
-                        airDateUtc: string;
+                        airDateUtc?: string;
                     }[];
                     episodeFiles: {
                         id: number;

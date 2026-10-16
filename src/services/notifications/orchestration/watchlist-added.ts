@@ -1,6 +1,6 @@
 import type { Friend } from '@root/types/plex.types.js'
 import type { RoutingDetails } from '@root/types/router.types.js'
-import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import { getTmdbUrl, parseGuids } from '@root/utils/guid-handler.js'
 import { getUserCanSync } from '@services/plex-watchlist/users/permissions.js'
 import { toContentType } from '@utils/content-type.js'
 import { toItemId } from '@utils/item-id.js'
@@ -44,11 +44,7 @@ export async function sendWatchlistAdded(
   const username = user.username || 'Unknown User'
   const alias = (await db.getUser(user.userId))?.alias
   const mediaType = toContentType(item.type)
-  const guids = Array.isArray(item.guids)
-    ? item.guids
-    : item.guids
-      ? [item.guids]
-      : []
+  const guids = parseGuids(item.guids)
   const { posterUrl, ...content } = buildContentPayload({
     title: item.title,
     type: mediaType,
@@ -71,7 +67,7 @@ export async function sendWatchlistAdded(
         title: item.title,
         type: mediaType,
         posterUrl,
-        tmdbUrl: getTmdbUrl(item.guids, mediaType),
+        tmdbUrl: getTmdbUrl(guids, mediaType),
       },
       alias || username,
     ),

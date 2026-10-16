@@ -16,30 +16,36 @@ import {
   ensureShowQueue,
   isEpisodeAlreadyQueued,
   type QueueManagerDeps,
-} from './webhook-queue/batching/index.js'
+} from './webhook-queue/batching/queue-manager.js'
 import {
   type EpisodeCheckerDeps,
-  fetchExpectedEpisodeCount,
   isRecentEpisode,
+} from './webhook-queue/detection/episode-checker.js'
+import {
+  fetchExpectedEpisodeCount,
   isSeasonComplete,
   type SeasonCompletionDeps,
-} from './webhook-queue/detection/index.js'
+} from './webhook-queue/detection/season-completion.js'
 import {
-  cleanupExpiredWebhooks,
   type PendingStoreDeps,
   type PendingWebhookParams,
-  processPendingWebhooks,
   queuePendingWebhook,
+} from './webhook-queue/persistence/pending-store.js'
+import {
+  cleanupExpiredWebhooks,
+  processPendingWebhooks,
   type RetryProcessorDeps,
-} from './webhook-queue/persistence/index.js'
+} from './webhook-queue/persistence/retry-processor.js'
 import {
   type NotificationHandlerDeps,
   notifyOrQueueShow,
-  processQueuedWebhooks,
-  type QueueProcessorDeps,
   type SyncSuppressionDeps,
   shouldSuppressRadarrNotification,
-} from './webhook-queue/processing/index.js'
+} from './webhook-queue/processing/notification-handler.js'
+import {
+  processQueuedWebhooks,
+  type QueueProcessorDeps,
+} from './webhook-queue/processing/queue-processor.js'
 
 export interface WebhookQueueConfig {
   retryInterval: number
@@ -194,7 +200,7 @@ export class WebhookQueueService {
     )
   }
 
-  isRecentEpisode(airDateUtc: string): boolean {
+  isRecentEpisode(airDateUtc: string | undefined): boolean {
     return isRecentEpisode(airDateUtc, this.episodeCheckerDeps)
   }
 

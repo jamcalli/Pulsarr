@@ -310,5 +310,5 @@ export interface SonarrEpisodeSchema {
   seasonNumber: number
   title: string
   overview?: string
-  airDateUtc: string
+  airDateUtc?: string
 }

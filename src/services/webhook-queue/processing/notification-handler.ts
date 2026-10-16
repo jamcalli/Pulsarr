@@ -10,7 +10,7 @@ import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { WatchlistStatus } from '@root/types/watchlist-status.types.js'
 import type { FastifyBaseLogger } from 'fastify'
-import type { PendingWebhookParams } from '../persistence/index.js'
+import type { PendingWebhookParams } from '../persistence/pending-store.js'
 
 export interface NotificationHandlerDeps {
   logger: FastifyBaseLogger

@@ -9930,8 +9930,7 @@
                               "required": [
                                 "episodeNumber",
                                 "seasonNumber",
-                                "title",
-                                "airDateUtc"
+                                "title"
                               ]
                             }
                           },
@@ -10029,8 +10028,7 @@
                               "required": [
                                 "episodeNumber",
                                 "seasonNumber",
-                                "title",
-                                "airDateUtc"
+                                "title"
                               ]
                             }
                           },

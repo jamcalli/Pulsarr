@@ -126,5 +126,41 @@ describe('Webhook Routes', () => {
         delivery.resolve({ ok: true })
       })
     })
+
+    describe('with a Sonarr episode that has no air date', () => {
+      beforeEach(async () => {
+        await resetDatabase()
+        await seedAll(getTestDatabase())
+        clearWebhookCacheForTests()
+      })
+
+      it('accepts the download and queues the episode', async () => {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/notifications/webhook',
+          headers: {
+            'x-pulsarr-secret': app.config.webhookSecret,
+          },
+          payload: {
+            eventType: 'Download',
+            instanceName: 'Sonarr',
+            series: { title: 'Undated Show', tvdbId: 987654 },
+            episodes: [{ episodeNumber: 1, seasonNumber: 1, title: 'Pilot' }],
+            episodeFile: {
+              id: 1,
+              relativePath: 'Season 01/Undated Show - S01E01.mkv',
+              quality: 'WEBDL-1080p',
+              qualityVersion: 1,
+              size: 1000,
+            },
+          },
+        })
+
+        expect(res.statusCode).toBe(200)
+        expect(app.webhookQueue.queue['987654']?.seasons[1]?.episodes).toEqual([
+          { episodeNumber: 1, seasonNumber: 1, title: 'Pilot' },
+        ])
+      })
+    })
   })
 })

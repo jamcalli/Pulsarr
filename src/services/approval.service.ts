@@ -16,7 +16,6 @@ import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { errorMessage } from '@utils/error-message.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 function routingFor(decision: RouterDecision): RouterDecision['routing'] {
@@ -667,11 +666,11 @@ export class ApprovalService {
 
         try {
           // Check current quota status for this user/content type
-          const quotaStatus = await this.fastify.db.getQuotaStatus(
-            request.userId,
-            request.contentType as 'movie' | 'show',
-            resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
-          )
+          const quotaStatus =
+            await this.fastify.quotaService.getUserQuotaStatus(
+              request.userId,
+              request.contentType as 'movie' | 'show',
+            )
 
           // Edge case: If quota was removed entirely, auto-approve (no quota = no restriction)
           if (!quotaStatus) {
@@ -772,10 +771,9 @@ export class ApprovalService {
     content: ContentItem,
     routerDecision: RouterDecision,
   ): Promise<ApprovalContext> {
-    const quotaStatus = await this.fastify.db.getQuotaStatus(
+    const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(
       user.id,
       content.type,
-      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
     )
 
     return {
