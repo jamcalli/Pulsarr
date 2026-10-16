@@ -5,6 +5,9 @@ import {
   formatDateTime,
   formatLanguage,
   formatList,
+  formatLogDateTime,
+  formatLogExportTime,
+  formatLogTime,
   formatNumber,
   formatOrdinal,
   formatPercent,
@@ -133,6 +136,26 @@ describe('format', () => {
   it('falls back to the code for a language it cannot name', () => {
     setFormatLocale('en-US')
     expect(formatLanguage('not a code')).toBe('NOT A CODE')
+  })
+
+  it('writes log times on a 24-hour clock with optional milliseconds', () => {
+    setFormatLocale('en-US')
+    const evening = new Date(2026, 9, 15, 21, 5, 9, 42)
+    expect(formatLogTime(evening)).toBe('21:05:09.042')
+    expect(formatLogTime(evening, false)).toBe('21:05:09')
+  })
+
+  it('writes a log date and time to the millisecond with the zone offset', () => {
+    setFormatLocale('en-US')
+    expect(formatLogDateTime(new Date(2026, 9, 15, 6, 53, 12, 642))).toMatch(
+      /^Oct 15, 2026, 06:53:12\.642 (GMT|UTC)/,
+    )
+  })
+
+  it('writes a log export time in local time with the zone offset', () => {
+    expect(formatLogExportTime(new Date(2026, 9, 15, 6, 3, 2, 642))).toMatch(
+      /^2026-10-15 06:03:02 [+-]\d{4}$/,
+    )
   })
 
   it('formats years', () => {

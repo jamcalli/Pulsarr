@@ -42,22 +42,35 @@ export function FilterToolbar({
     />
   )
   const clear = <ClearFiltersButton filtered={filtered} onClear={onClear} />
+  const selects = filters.map((filter) => (
+    <FilterSelect
+      key={filter.label}
+      label={filter.label}
+      value={filter.value}
+      options={filter.options}
+      onValueChange={filter.onValueChange}
+      className={filter.width}
+    />
+  ))
 
   if (!isMobile) {
     return (
       <div className={DESKTOP_ROW}>
         {searchField}
-        {filters.map((filter) => (
-          <FilterSelect
-            key={filter.label}
-            label={filter.label}
-            value={filter.value}
-            options={filter.options}
-            onValueChange={filter.onValueChange}
-            className={filter.width}
-          />
-        ))}
+        {selects}
         {clear}
+      </div>
+    )
+  }
+
+  if (filters.length === 1) {
+    return (
+      <div className={PHONE_COLUMN}>
+        {searchField}
+        <div className={PHONE_ROW}>
+          {selects}
+          {clear}
+        </div>
       </div>
     )
   }
@@ -99,12 +112,16 @@ export function FilterToolbarSkeleton({
   widths: Readonly<Record<string, string>>
 }) {
   const isMobile = useIsMobile()
+  const entries = Object.entries(widths)
+  const selects = entries.map(([key, width]) => (
+    <Skeleton key={key} className={`h-10 ${width}`} />
+  ))
   if (isMobile) {
     return (
       <div className={PHONE_COLUMN}>
         <SearchFieldSkeleton />
         <div className={PHONE_ROW}>
-          <Skeleton className="h-10 w-24" />
+          {entries.length === 1 ? selects : <Skeleton className="h-10 w-24" />}
         </div>
       </div>
     )
@@ -112,9 +129,7 @@ export function FilterToolbarSkeleton({
   return (
     <div className={DESKTOP_ROW}>
       <SearchFieldSkeleton />
-      {Object.entries(widths).map(([key, width]) => (
-        <Skeleton key={key} className={`h-10 ${width}`} />
-      ))}
+      {selects}
     </div>
   )
 }

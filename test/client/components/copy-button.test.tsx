@@ -48,6 +48,28 @@ describe('CopyButton', () => {
     }
   })
 
+  it('shows Copied again on a later copy', async () => {
+    vi.useFakeTimers()
+    try {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      vi.stubGlobal('navigator', { clipboard: { writeText } })
+      render(<CopyButton value="secret-key" label="Copy key" />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Copy key' }))
+      })
+      act(() => vi.advanceTimersByTime(COPY_FEEDBACK_DELAY))
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Copy key' }))
+      })
+
+      expect(writeText).toHaveBeenCalledTimes(2)
+      expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('stays ready to copy when the clipboard write fails', async () => {
     const user = userEvent.setup()
     vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(

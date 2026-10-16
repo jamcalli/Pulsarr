@@ -4,7 +4,7 @@ export interface ToolbarFilter<T extends string | number = string | number> {
   options: ReadonlyArray<{ value: T; label: string }>
   /** Method syntax keeps a narrowed filter assignable to the widened list type. */
   onValueChange(next: T | null): void
-  /** The desktop select width, shared with the toolbar skeleton. */
+  /** The select width, also used on phones when it is the only filter, shared with the toolbar skeleton. */
   width: string
 }
 

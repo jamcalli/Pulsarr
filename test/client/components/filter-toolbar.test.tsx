@@ -9,9 +9,20 @@ import { toolbarFilter } from '@/lib/filter-toolbar'
 import { setFormatLocale } from '@/lib/format'
 import { stubViewport } from '../viewport.js'
 
-function renderToolbar(
-  props: Partial<ComponentProps<typeof FilterToolbar>> = {},
-) {
+const syncFilter = toolbarFilter({
+  label: 'Sync',
+  value: null,
+  options: [{ value: 'on', label: 'Syncing' }],
+  onValueChange: () => undefined,
+  width: 'w-36',
+})
+
+function renderToolbar({
+  withSync = false,
+  ...props
+}: Partial<ComponentProps<typeof FilterToolbar>> & {
+  withSync?: boolean
+} = {}) {
   const onType = vi.fn()
   const onSearch = vi.fn()
   const onClear = vi.fn()
@@ -29,6 +40,7 @@ function renderToolbar(
           onValueChange: onType,
           width: 'w-38',
         }),
+        ...(withSync ? [syncFilter] : []),
       ]}
       filterCount={0}
       filtered={false}
@@ -76,10 +88,23 @@ describe('FilterToolbar', () => {
     expect(onClear).toHaveBeenCalledOnce()
   })
 
-  it('moves the filters into a drawer on a phone, closed by the result count', async () => {
+  it('keeps a lone filter inline on a phone with no drawer', async () => {
     const user = userEvent.setup()
     stubViewport({ mobile: true })
-    renderToolbar({ filterCount: 1, filtered: true })
+    const { onType } = renderToolbar()
+
+    expect(
+      screen.queryByRole('button', { name: /Filters/ }),
+    ).not.toBeInTheDocument()
+    await user.click(screen.getByRole('combobox', { name: 'Content type' }))
+    await user.click(await screen.findByRole('option', { name: 'Shows' }))
+    expect(onType).toHaveBeenCalledWith('show')
+  })
+
+  it('moves two or more filters into a drawer on a phone, closed by the result count', async () => {
+    const user = userEvent.setup()
+    stubViewport({ mobile: true })
+    renderToolbar({ withSync: true, filterCount: 1, filtered: true })
 
     expect(
       screen.queryByRole('combobox', { name: 'Content type' }),
@@ -90,6 +115,9 @@ describe('FilterToolbar', () => {
       within(dialog).getByRole('combobox', { name: 'Content type' }),
     ).toBeInTheDocument()
     expect(
+      within(dialog).getByRole('combobox', { name: 'Sync' }),
+    ).toBeInTheDocument()
+    expect(
       within(dialog).getByRole('button', { name: 'Show 12 requests' }),
     ).toBeInTheDocument()
   })
@@ -97,7 +125,7 @@ describe('FilterToolbar', () => {
   it('reads Show results when nothing matches', async () => {
     const user = userEvent.setup()
     stubViewport({ mobile: true })
-    renderToolbar({ total: 0 })
+    renderToolbar({ withSync: true, total: 0 })
 
     await user.click(screen.getByRole('button', { name: 'Filters' }))
     expect(
@@ -124,10 +152,20 @@ describe('FilterToolbarSkeleton', () => {
   it('draws the search and the Filters button placeholder on a phone', () => {
     stubViewport({ mobile: true })
     const { container } = render(
-      <FilterToolbarSkeleton widths={{ type: 'w-38' }} />,
+      <FilterToolbarSkeleton widths={{ type: 'w-38', sync: 'w-36' }} />,
     )
 
     expect(container.querySelector('.w-38')).toBeNull()
     expect(container.querySelector('.w-24')).not.toBeNull()
+  })
+
+  it('draws a lone filter placeholder inline on a phone', () => {
+    stubViewport({ mobile: true })
+    const { container } = render(
+      <FilterToolbarSkeleton widths={{ type: 'w-38' }} />,
+    )
+
+    expect(container.querySelector('.w-38')).not.toBeNull()
+    expect(container.querySelector('.w-24')).toBeNull()
   })
 })

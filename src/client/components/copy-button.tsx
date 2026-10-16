@@ -1,8 +1,6 @@
 import { Check, Copy } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { InputGroupButton } from '@/components/ui/input-group'
-import { copyText } from '@/lib/clipboard'
-import { COPY_FEEDBACK_DELAY } from '@/lib/constants'
+import { COPIED_LABEL, useCopyFeedback } from '@/hooks/useCopyFeedback'
 
 interface CopyButtonProps {
   value: string
@@ -10,19 +8,13 @@ interface CopyButtonProps {
 }
 
 export function CopyButton({ value, label }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!copied) return
-    const timer = setTimeout(() => setCopied(false), COPY_FEEDBACK_DELAY)
-    return () => clearTimeout(timer)
-  }, [copied])
+  const { copied, copy } = useCopyFeedback()
 
   return (
     <InputGroupButton
       size="icon-xs"
-      aria-label={copied ? 'Copied' : label}
-      onClick={async () => setCopied(await copyText(value))}
+      aria-label={copied ? COPIED_LABEL : label}
+      onClick={() => copy(value)}
     >
       {copied ? <Check /> : <Copy />}
     </InputGroupButton>
