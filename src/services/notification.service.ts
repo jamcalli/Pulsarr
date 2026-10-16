@@ -160,6 +160,13 @@ export class NotificationService {
     }
   }
 
+  /** Resolves once every tracked delivery has finished, including deliveries started while waiting. */
+  async whenIdle(): Promise<void> {
+    while (this.inFlight.size > 0) {
+      await Promise.allSettled(this.inFlight)
+    }
+  }
+
   private async drainDeliveries(): Promise<void> {
     if (this.inFlight.size === 0) return
     let timer: ReturnType<typeof setTimeout> | undefined

@@ -1,3 +1,4 @@
+import type { AppriseDetailsResponse } from '@root/types/apprise.types.js'
 import { WEBHOOK_EVENT_TYPES } from '@root/types/webhook-endpoint.types.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
@@ -18,6 +19,40 @@ import { seedAll } from '../../../helpers/seeds/index.js'
 import { server } from '../../../setup/msw-setup.js'
 
 const APPRISE_BASE = 'http://apprise.test:8000'
+// Trimmed from Apprise 2.0.1 /details so the format cache never depends on a reachable server
+const APPRISE_DETAILS: AppriseDetailsResponse = {
+  schemas: [
+    {
+      service_name: 'E-Mail',
+      protocols: ['mailto'],
+      secure_protocols: ['mailtos'],
+      details: {
+        args: {
+          format: {
+            name: 'Notify Format',
+            type: 'choice:string',
+            values: ['text', 'markdown', 'html'],
+            default: 'html',
+          },
+        },
+      },
+    },
+    {
+      service_name: 'Telegram',
+      secure_protocols: ['tgram'],
+      details: {
+        args: {
+          format: {
+            name: 'Notify Format',
+            type: 'choice:string',
+            values: ['text', 'markdown', 'html'],
+            default: 'html',
+          },
+        },
+      },
+    },
+  ],
+}
 const SYSTEM_APPRISE = 'tgram://system/chat'
 const PUBLIC_APPRISE = 'tgram://public/chat'
 const ADMIN_WEBHOOK = 'https://discord.com/api/webhooks/100/admin'
@@ -212,6 +247,18 @@ describe('notification event routing', () => {
     app = await build()
     await app.ready()
     await app.notifications.apprise.whenReady()
+
+    app.config.appriseUrl = APPRISE_BASE
+    server.use(
+      http.get(
+        `${APPRISE_BASE}/`,
+        () => new HttpResponse(null, { status: 200 }),
+      ),
+      http.get(`${APPRISE_BASE}/details/`, () =>
+        HttpResponse.json(APPRISE_DETAILS),
+      ),
+    )
+    await app.notifications.apprise.initialize()
   })
 
   afterAll(async () => {
@@ -283,8 +330,9 @@ describe('notification event routing', () => {
     )
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     app.notifications.plexMobile.shutdown()
+    await app.notifications.whenIdle()
     vi.restoreAllMocks()
   })
 
