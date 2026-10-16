@@ -1,5 +1,5 @@
-import type { LogEntry } from '@root/schemas/logs/logs.schema.js'
-import type { LogLevel as ConfigLogLevel } from '@root/types/config.types.js'
+import type { ConfigLogLevel } from '@root/types/config.types.js'
+import type { LogEntry } from '@root/types/logs.types.js'
 import {
   AlertCircle,
   CheckCircle,

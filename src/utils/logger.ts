@@ -1,25 +1,15 @@
 import fs from 'node:fs'
 import { parseEnv } from 'node:util'
+import { DEFAULT_LOG_LEVEL } from '@root/schemas/config/config.schema.js'
+import type { LogLevel } from '@root/types/logs.types.js'
 import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
-import type { DestinationStream, LevelWithSilent, LoggerOptions } from 'pino'
+import type { DestinationStream, LoggerOptions } from 'pino'
 import pino from 'pino'
 import pretty from 'pino-pretty'
 import * as rfs from 'rotating-file-stream'
 
-export const validLogLevels: LevelWithSilent[] = [
-  'fatal',
-  'error',
-  'warn',
-  'info',
-  'debug',
-  'trace',
-  'silent',
-]
-
 export type LogDestination = 'terminal' | 'file' | 'both'
-
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
 
 const PINO_LEVEL_TO_NAME: Record<number, LogLevel> = {
   10: 'trace',
@@ -304,7 +294,7 @@ export function createLoggerConfig(): LoggerOptions & {
     // Graceful fallback: avoid double-logging if file stream fell back to stdout
     if (fileStream === process.stdout) {
       return {
-        level: 'info',
+        level: DEFAULT_LOG_LEVEL,
         stream: pretty({ ...PRETTY_OPTIONS, colorize: true }),
         serializers: SERIALIZERS,
       }
@@ -323,7 +313,7 @@ export function createLoggerConfig(): LoggerOptions & {
     ])
 
     return {
-      level: 'info',
+      level: DEFAULT_LOG_LEVEL,
       stream: multistream,
       serializers: SERIALIZERS,
     }
@@ -331,7 +321,7 @@ export function createLoggerConfig(): LoggerOptions & {
 
   // File logging only — raw ndjson
   return {
-    level: 'info',
+    level: DEFAULT_LOG_LEVEL,
     stream: fileStream,
     serializers: SERIALIZERS,
   }

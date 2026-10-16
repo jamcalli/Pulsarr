@@ -1,4 +1,4 @@
-import type { LogEntry } from '@root/schemas/logs/logs.schema.js'
+import type { LogEntry } from '@root/types/logs.types.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'

@@ -1516,16 +1516,7 @@
             "type": "boolean"
           },
           "logLevel": {
-            "type": "string",
-            "enum": [
-              "fatal",
-              "error",
-              "warn",
-              "info",
-              "debug",
-              "trace",
-              "silent"
-            ]
+            "$ref": "#/components/schemas/ConfigLogLevel"
           },
           "closeGraceDelay": {
             "type": "number",
@@ -1947,6 +1938,19 @@
         "additionalProperties": false,
         "description": "Conflict response, with per-instance webhook outcomes when an arr rejected the new address"
       },
+      "ConfigLogLevel": {
+        "type": "string",
+        "enum": [
+          "fatal",
+          "error",
+          "warn",
+          "info",
+          "debug",
+          "trace",
+          "silent"
+        ],
+        "description": "How much Pulsarr writes to its log"
+      },
       "ConfigResponse": {
         "type": "object",
         "properties": {
@@ -1994,16 +1998,7 @@
             "type": "boolean"
           },
           "logLevel": {
-            "type": "string",
-            "enum": [
-              "fatal",
-              "error",
-              "warn",
-              "info",
-              "debug",
-              "trace",
-              "silent"
-            ]
+            "$ref": "#/components/schemas/ConfigLogLevel"
           },
           "closeGraceDelay": {
             "type": "number"

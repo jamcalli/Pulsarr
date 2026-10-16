@@ -3517,8 +3517,7 @@ export interface components {
             port?: number;
             dbPath?: string;
             cookieSecured: boolean;
-            /** @enum {string} */
-            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            logLevel?: components["schemas"]["ConfigLogLevel"];
             /** @description Shutdown grace period in milliseconds */
             closeGraceDelay?: number;
             rateLimitMax?: number;
@@ -3624,6 +3623,11 @@ export interface components {
             message: string;
             webhooks?: components["schemas"]["ArrWebhookResults"];
         };
+        /**
+         * @description How much Pulsarr writes to its log
+         * @enum {string}
+         */
+        ConfigLogLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
         /** @description Configuration response envelope */
         ConfigResponse: {
             /** @constant */
@@ -3637,8 +3641,7 @@ export interface components {
             port?: number;
             dbPath?: string;
             cookieSecured?: boolean;
-            /** @enum {string} */
-            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            logLevel?: components["schemas"]["ConfigLogLevel"];
             closeGraceDelay?: number;
             rateLimitMax?: number;
             queueProcessDelaySeconds?: number;

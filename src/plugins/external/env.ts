@@ -2,6 +2,8 @@ import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
 import {
+  ConfigLogLevelSchema,
+  DEFAULT_LOG_LEVEL,
   DEFAULT_PULSARR_PORT,
   PLEX_SERVER_URL_DEFAULT,
 } from '@root/schemas/config/config.schema.js'
@@ -150,8 +152,8 @@ const schema = {
     },
     logLevel: {
       type: 'string',
-      enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
-      default: 'info',
+      enum: ConfigLogLevelSchema.options,
+      default: DEFAULT_LOG_LEVEL,
     },
     closeGraceDelay: {
       type: 'number',
