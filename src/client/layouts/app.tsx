@@ -7,11 +7,13 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useApprovalToasts } from '@/hooks/useApprovalToasts'
 import { useProgressConnection } from '@/hooks/useProgressConnection'
 import { useScrollReset } from '@/hooks/useScrollReset'
+import { useSessionExpiryRedirect } from '@/hooks/useSessionExpiryRedirect'
 import { useSettings } from '@/hooks/useSettings'
 
 export default function AppLayout() {
   useProgressConnection()
   useApprovalToasts()
+  useSessionExpiryRedirect()
   const { fullscreenEnabled } = useSettings()
   const inset = useRef<HTMLElement>(null)
   useScrollReset(inset)

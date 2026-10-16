@@ -1,70 +1,35 @@
 import { MAX_SSE_RECONNECT_ATTEMPTS } from '@/lib/sse-retry-policy'
 import { apiFetch } from '@/lib/tanstackApi'
-import { router } from '@/router/router'
 
-/**
- * Check if the current session is authenticated by making a lightweight request.
- * Returns true if authenticated, false only if 401.
- */
-export async function checkAuthStatus(): Promise<boolean> {
+const AUTH_CHECK_TIMEOUT_MS = 5000
+
+/** False only on a 401, which the session expiry middleware turns into a redirect to login. */
+async function isSessionValid(): Promise<boolean> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 5000)
+  const timeout = setTimeout(() => controller.abort(), AUTH_CHECK_TIMEOUT_MS)
 
   try {
     const { response } = await apiFetch.GET('/v1/users/check', {
       signal: controller.signal,
     })
-    if (response.status === 401) {
-      return false
-    }
-    // Treat 200 and any other status (e.g., 5xx) as "not an auth issue"
-    return true
+    return response.status !== 401
   } catch {
-    // Network error or timeout - assume auth is fine, let SSE retry handle it
     return true
   } finally {
     clearTimeout(timeout)
   }
 }
 
-/**
- * Redirect to login page
- */
-export function redirectToLogin(): void {
-  // Only redirect if not already on login page
-  if (!window.location.pathname.endsWith('/login')) {
-    router.navigate('/login')
-  }
-}
-
-/**
- * Handle SSE connection error with auth detection.
- * If auth has expired, redirects to login.
- * Otherwise, returns whether retry should continue.
- *
- * @param currentAttempts - Current retry attempt count
- * @returns Object with shouldRetry and newAttempts
- */
+/** Stops retrying once the session is gone or the attempts run out. */
 export async function handleSseError(
   currentAttempts: number,
 ): Promise<{ shouldRetry: boolean; newAttempts: number }> {
   const newAttempts = currentAttempts + 1
-
-  // Check if this is an auth failure
-  const isAuthenticated = await checkAuthStatus()
-  if (!isAuthenticated) {
-    console.warn(
-      'SSE connection failed due to authentication - redirecting to login',
-    )
-    redirectToLogin()
+  if (!(await isSessionValid())) {
     return { shouldRetry: false, newAttempts }
   }
-
-  // Not an auth issue - check if we should retry
-  if (newAttempts <= MAX_SSE_RECONNECT_ATTEMPTS) {
-    return { shouldRetry: true, newAttempts }
+  return {
+    shouldRetry: newAttempts <= MAX_SSE_RECONNECT_ATTEMPTS,
+    newAttempts,
   }
-
-  console.warn('SSE connection failed after max attempts, giving up')
-  return { shouldRetry: false, newAttempts }
 }
