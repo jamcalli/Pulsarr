@@ -10,8 +10,8 @@
 @theme {
   --breakpoint-xs: 490px;
 
-  --font-sans: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
-  --font-heading: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
