@@ -25,6 +25,7 @@ export class DiscordBotService {
   private readonly log: FastifyBaseLogger
   private botClient: Client | null = null
   private botStatus: BotStatus = 'stopped'
+  private startAttempt = 0
   private statusChangeCallback: (() => void) | null = null
   private readonly commands: Map<string, Command>
 
@@ -78,6 +79,8 @@ export class DiscordBotService {
     }
 
     this.setBotStatus('starting')
+    const attempt = ++this.startAttempt
+    const isStale = () => attempt !== this.startAttempt
     try {
       const commandsRegistered = await registerCommandsWithDiscord(
         this.commands,
@@ -87,6 +90,7 @@ export class DiscordBotService {
           config: this.botConfig,
         },
       )
+      if (isStale()) return false
 
       if (!commandsRegistered) {
         this.log.error('Failed to register commands during bot startup')
@@ -109,14 +113,16 @@ export class DiscordBotService {
         fastify: this.fastify,
         commands: this.commands,
         onBotReady: () => {
-          this.setBotStatus('running')
+          if (!isStale()) this.setBotStatus('running')
         },
       })
 
       await this.botClient.login(this.botConfig.discordBotToken)
+      if (isStale()) return false
       this.log.info('Discord bot started successfully')
       return true
     } catch (error) {
+      if (isStale()) return false
       this.log.error({ error }, 'Failed to start Discord bot')
       this.setBotStatus('stopped')
       this.botClient = null
@@ -130,6 +136,7 @@ export class DiscordBotService {
       return false
     }
 
+    this.startAttempt += 1
     try {
       this.log.info('Stopping Discord bot')
       this.setBotStatus('stopping')

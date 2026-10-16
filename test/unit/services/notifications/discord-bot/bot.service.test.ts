@@ -1,6 +1,6 @@
 import { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
 import type { FastifyInstance } from 'fastify'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 const discord = vi.hoisted(() => ({
@@ -44,6 +44,11 @@ function createService() {
 }
 
 describe('DiscordBotService.startBot', () => {
+  beforeEach(() => {
+    discord.clients = 0
+    discord.registrations.length = 0
+  })
+
   it('two concurrent starts construct one Discord client', async () => {
     const service = createService()
 
@@ -52,5 +57,18 @@ describe('DiscordBotService.startBot', () => {
     await Promise.all(starts)
 
     expect(discord.clients).toBe(1)
+  })
+
+  it('a stop during command registration cancels the pending start', async () => {
+    const service = createService()
+
+    const start = service.startBot()
+    await vi.waitFor(() => expect(discord.registrations).toHaveLength(1))
+    expect(await service.stopBot()).toBe(true)
+    for (const resolve of discord.registrations) resolve()
+
+    expect(await start).toBe(false)
+    expect(discord.clients).toBe(0)
+    expect(service.getBotStatus()).toBe('stopped')
   })
 })
