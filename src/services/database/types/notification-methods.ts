@@ -37,6 +37,8 @@ declare module '@services/database.service.js' {
       },
     ): Promise<void>
 
+    deleteNotificationRecord(id: number): Promise<void>
+
     /**
      * Checks whether an active notification already exists for the given criteria
      * @param options - Criteria to match against existing notifications

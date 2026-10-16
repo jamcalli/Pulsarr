@@ -10,15 +10,14 @@ import {
   type MediaAvailableOptions,
   type MediaInfo,
   type NotificationTypeInfo,
+  PUBLIC_USER_ID,
 } from './media-available-enrichment.js'
 
-/** A notification row inserted before delivery. The row is the dedupe key, so it exists even when every send fails. */
+/** A notification row inserted before delivery. The row is the dedupe key until `releaseClaim` drops a claim that notified nobody. */
 export interface ClaimedNotification extends NotificationResult {
   recordId: number
   watchlistItemKey: string
 }
-
-export const PUBLIC_USER_ID = -1
 
 function instanceUpdateFor(
   options: MediaAvailableOptions,
@@ -291,6 +290,21 @@ export async function updateDelivery(
     deps.logger.error(
       { error, recordId },
       'Failed to record notification delivery',
+    )
+  }
+}
+
+/** Never rejects. Deletes the claim row so the next event for this content notifies again. */
+export async function releaseClaim(
+  deps: Pick<NotificationDeps, 'db' | 'logger'>,
+  recordId: number,
+): Promise<void> {
+  try {
+    await deps.db.deleteNotificationRecord(recordId)
+  } catch (error) {
+    deps.logger.error(
+      { error, recordId },
+      'Failed to release undelivered notification claim',
     )
   }
 }

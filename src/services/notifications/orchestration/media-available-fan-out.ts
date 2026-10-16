@@ -25,10 +25,11 @@ import {
   extractUserDiscordIds,
   type MediaAvailableOptions,
   type MediaInfo,
+  PUBLIC_USER_ID,
 } from './media-available-enrichment.js'
 import {
   type ClaimedNotification,
-  PUBLIC_USER_ID,
+  releaseClaim,
   updateDelivery,
 } from './media-available-records.js'
 
@@ -197,13 +198,14 @@ async function deliverToUser(
   }
 }
 
-/** Logs the held Plex push once it settles and marks the row when it went out. */
+/** Logs the held Plex push once it settles and marks the row when it went out, or releases a claim nothing else delivered. */
 async function settleQueuedPlexMobile(
   deps: NotificationDeps,
   claim: ClaimedNotification,
   line: DeliveryLine,
   queued: Promise<DeliveryResult>,
   delivery: Required<DeliveryOutcome>,
+  delivered: boolean,
 ): Promise<boolean> {
   const sent = await sendAndLog(
     deps.logger,
@@ -217,6 +219,8 @@ async function settleQueuedPlexMobile(
       ...delivery,
       sent_to_plex_mobile: true,
     })
+  } else if (!delivered) {
+    await releaseClaim(deps, claim.recordId)
   }
   return sent
 }
@@ -253,7 +257,7 @@ function dispatchMediaWebhook(
   })
 }
 
-/** Never rejects. Sends every claim, fires `media.available`, then stores each claim's real outcome on its row. */
+/** Never rejects. Sends every claim, fires `media.available`, then stores each claim's outcome or releases a claim that notified nobody. */
 export async function deliverMediaAvailable(
   deps: NotificationDeps,
   fanOut: MediaFanOut,
@@ -299,12 +303,30 @@ export async function deliverMediaAvailable(
   }
 
   const nativeSent = await native
+  const mentionsSent = results.some(
+    ({ claim, sent }) =>
+      claim.user.id === PUBLIC_USER_ID && sent.sent_to_discord,
+  )
   for (const { claim, sent, plexQueued } of results) {
-    const delivery = { ...sent, sent_to_native_webhook: nativeSent }
+    const mentioned = mentionsSent && extractUserDiscordIds([claim]).length > 0
+    const channels = mentioned ? { ...sent, sent_to_discord: true } : sent
+    const delivery = { ...channels, sent_to_native_webhook: nativeSent }
+    const delivered = Object.values(channels).some(Boolean)
+    if (!delivered && !plexQueued) {
+      await releaseClaim(deps, claim.recordId)
+      continue
+    }
     await updateDelivery(deps, claim.recordId, delivery)
     if (plexQueued) {
       deps.detach(
-        settleQueuedPlexMobile(deps, claim, line, plexQueued, delivery),
+        settleQueuedPlexMobile(
+          deps,
+          claim,
+          line,
+          plexQueued,
+          delivery,
+          delivered,
+        ),
       )
     }
   }

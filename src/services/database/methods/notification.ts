@@ -83,6 +83,13 @@ export async function updateNotificationDelivery(
   await this.knex('notifications').where({ id }).update(delivery)
 }
 
+export async function deleteNotificationRecord(
+  this: DatabaseService,
+  id: number,
+): Promise<void> {
+  await this.knex('notifications').where({ id }).delete()
+}
+
 /**
  * Checks whether an active notification already exists for the given criteria.
  *

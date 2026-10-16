@@ -53,8 +53,9 @@ async function dispatchNotification(
   event: WatchlistCapNotification,
 ): Promise<boolean> {
   const key = `${event.userId}:${event.contentType}`
+  const counts = deps.state.watchlistCapCounts
 
-  const lastCount = deps.state.watchlistCapCounts.get(key)
+  const lastCount = counts.get(key)
   if (lastCount !== undefined && event.currentCount <= lastCount) {
     deps.logger.debug(
       { userId: event.userId, contentType: event.contentType },
@@ -63,8 +64,23 @@ async function dispatchNotification(
     return false
   }
 
-  deps.state.watchlistCapCounts.set(key, event.currentCount)
+  counts.set(key, event.currentCount)
+  let sent = false
+  try {
+    sent = await deliverCapNotification(deps, event)
+    return sent
+  } finally {
+    if (!sent && counts.get(key) === event.currentCount) {
+      if (lastCount === undefined) counts.delete(key)
+      else counts.set(key, lastCount)
+    }
+  }
+}
 
+async function deliverCapNotification(
+  deps: NotificationDeps,
+  event: WatchlistCapNotification,
+): Promise<boolean> {
   const contentLabel = mediaTypeLabel(event.contentType).label
   const user = await deps.db.getUser(event.userId)
   const who = user

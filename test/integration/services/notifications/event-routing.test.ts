@@ -761,6 +761,43 @@ describe('notification event routing', () => {
       expect(captured.native).toHaveLength(1)
     })
 
+    it('retries a cap notification that delivered nothing and suppresses the repeat after a success', async () => {
+      await getTestDatabase()('webhook_endpoints').delete()
+      app.config.watchlistCapNotify = 'all'
+      const sendDm = vi
+        .spyOn(app.notifications.discordBot, 'sendNotification')
+        .mockResolvedValue({ ok: false, reason: 'DMs closed' })
+      let attempts = 0
+      server.use(
+        http.post(ADMIN_WEBHOOK, () => {
+          attempts += 1
+          return new HttpResponse(null, { status: 404 })
+        }),
+        http.post(
+          `${APPRISE_BASE}/notify`,
+          () => new HttpResponse(null, { status: 404 }),
+        ),
+      )
+      const event = nextCapEvent()
+
+      fireCap(event)
+      await app.notifications.whenIdle()
+      fireCap(event)
+      await app.notifications.whenIdle()
+
+      expect(attempts).toBe(2)
+      expect(await notificationRows('watchlist_cap')).toEqual([])
+
+      sendDm.mockResolvedValue({ ok: true })
+      fireCap(event)
+      await app.notifications.whenIdle()
+      fireCap(event)
+      await app.notifications.whenIdle()
+
+      expect(attempts).toBe(3)
+      expect(sendDm).toHaveBeenCalledTimes(3)
+    })
+
     it('cap re-notifies a user who dropped to the cap and went over again at the same count', async () => {
       app.config.watchlistCapNotify = 'webhook-only'
       const event: CapEvent = {
@@ -879,6 +916,64 @@ describe('notification event routing', () => {
       await vi.waitFor(() => expect(captured.native).toHaveLength(1))
     })
 
+    it('releases a watchlister claim whose DM and Apprise both failed so the next event retries', async () => {
+      await seedAvailabilityItem(FRIEND_USER_ID)
+      await setUserFlags(FRIEND_USER_ID, {
+        notify_discord: true,
+        notify_apprise: true,
+      })
+      const sendDm = vi
+        .spyOn(app.notifications.discordBot, 'sendNotification')
+        .mockResolvedValue({ ok: false, reason: 'DMs closed' })
+      let appriseAttempts = 0
+      server.use(
+        http.post(`${APPRISE_BASE}/notify`, () => {
+          appriseAttempts += 1
+          return new HttpResponse(null, { status: 404 })
+        }),
+      )
+
+      await sendMediaAvailable()
+      await app.notifications.whenIdle()
+      expect(await notificationRows('movie')).toEqual([])
+
+      await sendMediaAvailable()
+      await app.notifications.whenIdle()
+
+      expect(sendDm).toHaveBeenCalledTimes(2)
+      expect(appriseAttempts).toBe(2)
+    })
+
+    it('keeps a watchlister claim with one delivered channel and suppresses the repeat', async () => {
+      await seedAvailabilityItem(FRIEND_USER_ID)
+      await setUserFlags(FRIEND_USER_ID, {
+        notify_discord: true,
+        notify_apprise: true,
+      })
+      server.use(
+        http.post(
+          `${APPRISE_BASE}/notify`,
+          () => new HttpResponse(null, { status: 404 }),
+        ),
+      )
+
+      await sendMediaAvailable()
+      await app.notifications.whenIdle()
+      await sendMediaAvailable()
+      await app.notifications.whenIdle()
+
+      expect(captured.dms).toHaveLength(1)
+      expect(await notificationRows('movie')).toEqual([
+        {
+          userId: FRIEND_USER_ID,
+          discord: true,
+          apprise: false,
+          plexMobile: false,
+          native: true,
+        },
+      ])
+    })
+
     it('media.available watchlistedBy lists every watchlister', async () => {
       await seedAvailabilityItem(FRIEND_USER_ID)
       await seedAvailabilityItem(4)
@@ -913,7 +1008,7 @@ describe('notification event routing', () => {
       expect(await notificationRows('movie')).toEqual([
         {
           userId: FRIEND_USER_ID,
-          discord: false,
+          discord: true,
           apprise: false,
           plexMobile: false,
           native: true,
@@ -922,6 +1017,50 @@ describe('notification event routing', () => {
           userId: null,
           discord: true,
           apprise: true,
+          plexMobile: false,
+          native: true,
+        },
+      ])
+    })
+
+    it('records a mention-only watchlister only once the public post mentioning them is delivered', async () => {
+      app.config.publicContentNotifications = {
+        enabled: true,
+        discordWebhookUrls: PUBLIC_WEBHOOK,
+      }
+      await seedAvailabilityItem(FRIEND_USER_ID)
+      await setUserFlags(FRIEND_USER_ID, { notify_discord_mention: true })
+      server.use(
+        http.post(
+          PUBLIC_WEBHOOK,
+          () => new HttpResponse(null, { status: 404 }),
+          { once: true },
+        ),
+      )
+
+      await sendMediaAvailable()
+      await app.notifications.whenIdle()
+
+      expect(await notificationRows('movie')).toEqual([])
+
+      await sendMediaAvailable()
+      await app.notifications.whenIdle()
+
+      expect(captured.discord[0].body.content).toBe(
+        `<@${FRIEND_DISCORD_ID}> 👋`,
+      )
+      expect(await notificationRows('movie')).toEqual([
+        {
+          userId: FRIEND_USER_ID,
+          discord: true,
+          apprise: false,
+          plexMobile: false,
+          native: true,
+        },
+        {
+          userId: null,
+          discord: true,
+          apprise: false,
           plexMobile: false,
           native: true,
         },

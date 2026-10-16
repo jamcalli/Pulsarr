@@ -81,6 +81,8 @@ export function getPublicContentNotificationFlags(
   }
 }
 
+export const PUBLIC_USER_ID = -1
+
 export function extractUserDiscordIds(
   notifications: NotificationResult[],
 ): string[] {
@@ -88,7 +90,7 @@ export function extractUserDiscordIds(
     new Set(
       notifications
         .map((r) =>
-          r.user.id !== -1 &&
+          r.user.id !== PUBLIC_USER_ID &&
           r.user.discord_id &&
           r.user.discord_id.trim() !== '' &&
           r.user.notify_discord_mention

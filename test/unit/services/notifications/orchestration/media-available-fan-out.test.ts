@@ -48,6 +48,7 @@ function createDeps(plexDelivery: Promise<DeliveryResult>) {
       [PLEX_USER, DM_USER].find((user) => user.id === id),
     ),
     updateNotificationDelivery: vi.fn().mockResolvedValue(undefined),
+    deleteNotificationRecord: vi.fn().mockResolvedValue(undefined),
   }
   const discordBot = {
     sendNotification: vi.fn().mockResolvedValue({ ok: true }),
@@ -69,7 +70,7 @@ function createDeps(plexDelivery: Promise<DeliveryResult>) {
 }
 
 describe('deliverMediaAvailable', () => {
-  it('reads user preferences at send time, not from the claim', async () => {
+  it('reads user preferences at send time and releases a claim with nothing to send', async () => {
     const { deps, db, discordBot } = createDeps(new Promise(() => {}))
     db.getUser.mockResolvedValue({ ...DM_USER, notify_discord: false })
 
@@ -82,6 +83,28 @@ describe('deliverMediaAvailable', () => {
     })
 
     expect(discordBot.sendNotification).not.toHaveBeenCalled()
+    expect(db.deleteNotificationRecord).toHaveBeenCalledWith(12)
+    expect(db.updateNotificationDelivery).not.toHaveBeenCalled()
+  })
+
+  it('holds a queued Plex claim until the push fails, then releases it', async () => {
+    const plexDelivery = createDeferred<DeliveryResult>()
+    const { deps, db, detached } = createDeps(plexDelivery.promise)
+
+    await deliverMediaAvailable(deps, {
+      mediaInfo: { type: 'movie', guid: 'tmdb:348', title: 'Alien' },
+      options: { isBulkRelease: false, sequential: true },
+      enrichment: ENRICHMENT,
+      claims: [claimFor(PLEX_USER, 11)],
+      watchlisters: [],
+    })
+
+    expect(db.deleteNotificationRecord).not.toHaveBeenCalled()
+
+    plexDelivery.resolve({ ok: false, reason: 'gave up' })
+
+    expect(await detached[0]).toBe(false)
+    expect(db.deleteNotificationRecord).toHaveBeenCalledWith(11)
   })
 
   it('a queued Plex push does not hold up later watchlisters in sequential mode', async () => {
@@ -115,5 +138,6 @@ describe('deliverMediaAvailable', () => {
       sent_to_plex_mobile: true,
       sent_to_native_webhook: false,
     })
+    expect(db.deleteNotificationRecord).not.toHaveBeenCalled()
   })
 })
