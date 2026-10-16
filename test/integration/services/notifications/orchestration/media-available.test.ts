@@ -31,10 +31,10 @@ describe('sendMediaAvailable Integration Tests', () => {
 
   describe('notification orchestration', () => {
     it('should process movie notifications end-to-end', async () => {
-      const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
+      const sendNotificationSpy = vi.fn().mockResolvedValue({ ok: true })
 
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
+        app.notifications.discordBot.sendNotification = sendNotificationSpy
       }
 
       const result = await app.notifications.sendMediaAvailable(
@@ -50,11 +50,11 @@ describe('sendMediaAvailable Integration Tests', () => {
 
       expect(result.matchedCount).toBeGreaterThan(0)
 
-      expect(sendDirectMessageSpy).toHaveBeenCalledWith(
-        '111111111111111111',
-        expect.objectContaining({
-          type: 'movie',
-          title: 'Night of the Living Dead',
+      await vi.waitFor(() =>
+        expect(sendNotificationSpy).toHaveBeenCalledWith('111111111111111111', {
+          embed: expect.objectContaining({
+            title: 'Night of the Living Dead',
+          }),
         }),
       )
     })
@@ -75,9 +75,9 @@ describe('sendMediaAvailable Integration Tests', () => {
     })
 
     it('should process TV show notifications with episodes', async () => {
-      const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
+      const sendNotificationSpy = vi.fn().mockResolvedValue({ ok: true })
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
+        app.notifications.discordBot.sendNotification = sendNotificationSpy
       }
 
       const result = await app.notifications.sendMediaAvailable(
@@ -100,14 +100,14 @@ describe('sendMediaAvailable Integration Tests', () => {
       )
 
       expect(result.matchedCount).toBeGreaterThan(0)
-      expect(sendDirectMessageSpy).toHaveBeenCalled()
+      await vi.waitFor(() => expect(sendNotificationSpy).toHaveBeenCalled())
     })
 
     it('should update watchlist item status to notified', async () => {
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = vi
+        app.notifications.discordBot.sendNotification = vi
           .fn()
-          .mockResolvedValue(undefined)
+          .mockResolvedValue({ ok: true })
       }
 
       await app.notifications.sendMediaAvailable(
@@ -130,9 +130,9 @@ describe('sendMediaAvailable Integration Tests', () => {
 
     it('should create notification record in database', async () => {
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = vi
+        app.notifications.discordBot.sendNotification = vi
           .fn()
-          .mockResolvedValue(undefined)
+          .mockResolvedValue({ ok: true })
       }
 
       await app.notifications.sendMediaAvailable(
@@ -147,21 +147,23 @@ describe('sendMediaAvailable Integration Tests', () => {
       )
 
       const knex = getTestDatabase()
-      const notifications = await knex('notifications')
-        .where({
-          watchlist_item_id: 1,
-          type: 'movie',
-        })
-        .select('*')
+      await vi.waitFor(async () => {
+        const notifications = await knex('notifications')
+          .where({
+            watchlist_item_id: 1,
+            type: 'movie',
+          })
+          .select('*')
 
-      expect(notifications.length).toBeGreaterThan(0)
-      expect(Boolean(notifications[0].sent_to_discord)).toBe(true)
+        expect(notifications.length).toBeGreaterThan(0)
+        expect(Boolean(notifications[0].sent_to_discord)).toBe(true)
+      })
     })
 
     it('should handle bulk release for season notifications', async () => {
-      const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
+      const sendNotificationSpy = vi.fn().mockResolvedValue({ ok: true })
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
+        app.notifications.discordBot.sendNotification = sendNotificationSpy
       }
 
       const result = await app.notifications.sendMediaAvailable(
@@ -190,12 +192,15 @@ describe('sendMediaAvailable Integration Tests', () => {
       )
 
       expect(result.matchedCount).toBeGreaterThan(0)
-      expect(sendDirectMessageSpy).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          type: 'show',
-          episodeDetails: expect.objectContaining({
-            seasonNumber: 1,
+      await vi.waitFor(() =>
+        expect(sendNotificationSpy).toHaveBeenCalledWith(expect.any(String), {
+          embed: expect.objectContaining({
+            fields: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'Season Added',
+                value: 'Season 1',
+              }),
+            ]),
           }),
         }),
       )
@@ -203,9 +208,9 @@ describe('sendMediaAvailable Integration Tests', () => {
 
     it('should create radarr instance junction record when instanceId provided', async () => {
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = vi
+        app.notifications.discordBot.sendNotification = vi
           .fn()
-          .mockResolvedValue(undefined)
+          .mockResolvedValue({ ok: true })
       }
 
       await app.notifications.sendMediaAvailable(
@@ -268,9 +273,9 @@ describe('sendMediaAvailable Integration Tests', () => {
 
     it('records both grabbed and notified for a notified user', async () => {
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = vi
+        app.notifications.discordBot.sendNotification = vi
           .fn()
-          .mockResolvedValue(undefined)
+          .mockResolvedValue({ ok: true })
       }
       const knex = getTestDatabase()
       await knex('watchlist_items').where({ id: 1 }).update({
@@ -298,9 +303,9 @@ describe('sendMediaAvailable Integration Tests', () => {
     })
 
     it('skips per-user availability notifications when notifyOnAvailability is off', async () => {
-      const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
+      const sendNotificationSpy = vi.fn().mockResolvedValue({ ok: true })
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
+        app.notifications.discordBot.sendNotification = sendNotificationSpy
       }
 
       await app.updateConfig({ notifyOnAvailability: false })
@@ -316,7 +321,7 @@ describe('sendMediaAvailable Integration Tests', () => {
           },
         )
 
-        expect(sendDirectMessageSpy).not.toHaveBeenCalled()
+        expect(sendNotificationSpy).not.toHaveBeenCalled()
 
         const knex = getTestDatabase()
         const notifications = await knex('notifications')
@@ -332,14 +337,13 @@ describe('sendMediaAvailable Integration Tests', () => {
     })
 
     it('still sends public availability notifications when notifyOnAvailability is off', async () => {
-      const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
-      const sendPublicNotificationSpy = vi.fn().mockResolvedValue(undefined)
+      const sendNotificationSpy = vi.fn().mockResolvedValue({ ok: true })
+      const sendWebhookSpy = vi.fn().mockResolvedValue({ ok: true })
       if (app.notifications?.discordBot) {
-        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
+        app.notifications.discordBot.sendNotification = sendNotificationSpy
       }
       if (app.notifications?.discordWebhook) {
-        app.notifications.discordWebhook.sendPublicNotification =
-          sendPublicNotificationSpy
+        app.notifications.discordWebhook.sendNotification = sendWebhookSpy
       }
 
       await app.updateConfig({
@@ -364,8 +368,8 @@ describe('sendMediaAvailable Integration Tests', () => {
 
         // Per-user availability is suppressed, but the independent public path
         // still builds and dispatches its notification.
-        expect(sendDirectMessageSpy).not.toHaveBeenCalled()
-        expect(sendPublicNotificationSpy).toHaveBeenCalled()
+        await vi.waitFor(() => expect(sendWebhookSpy).toHaveBeenCalled())
+        expect(sendNotificationSpy).not.toHaveBeenCalled()
 
         const knex = getTestDatabase()
         const publicRecord = await knex('notifications')

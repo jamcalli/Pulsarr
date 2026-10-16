@@ -225,3 +225,48 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(1)
   })
 })
+
+describe('PlexServerService.resolveUserPlexId', () => {
+  const OWNER_ID = 1
+
+  function createResolver(adminPlexId: number | null = 1001) {
+    const fastify = {
+      config: { plexTokens: ['admin-token'], plexServerUrl: '' },
+      db: { getPrimaryUser: vi.fn(async () => ({ id: OWNER_ID })) },
+    } as unknown as FastifyInstance
+    const service = new PlexServerService(createMockLogger(), fastify)
+    if (adminPlexId !== null) service.setAdminPlexId(adminPlexId)
+    vi.spyOn(service, 'getPlexUsers').mockResolvedValue([
+      { id: '2002', username: 'friend', title: 'Friend Title' },
+      { id: 'not-a-number', username: 'odd', title: 'Odd' },
+      { id: '3003', username: 'owner', title: 'Owner' },
+    ])
+    return service
+  }
+
+  it('resolves the primary user to the admin Plex id', async () => {
+    expect(await createResolver().resolveUserPlexId('owner', OWNER_ID)).toBe(
+      1001,
+    )
+  })
+
+  it('falls back to the friends list when the admin id is unknown', async () => {
+    expect(
+      await createResolver(null).resolveUserPlexId('owner', OWNER_ID),
+    ).toBe(3003)
+  })
+
+  it.each([
+    ['username', 'FRIEND'],
+    ['title', 'friend title'],
+  ])('matches a friend by %s case-insensitively', async (_, name) => {
+    expect(await createResolver().resolveUserPlexId(name, 2)).toBe(2002)
+  })
+
+  it('returns null for an unmatched user or a non-numeric id', async () => {
+    const service = createResolver()
+
+    expect(await service.resolveUserPlexId('stranger', 9)).toBeNull()
+    expect(await service.resolveUserPlexId('odd', 9)).toBeNull()
+  })
+})

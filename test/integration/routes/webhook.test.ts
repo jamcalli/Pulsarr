@@ -1,6 +1,20 @@
+import type { DeliveryResult } from '@root/types/notification.types.js'
+import { clearWebhookCacheForTests } from '@utils/arr-webhook-validator.js'
 import type { FastifyInstance } from 'fastify'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { build } from '../../helpers/app.js'
+import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
+import { createDeferred } from '../../helpers/deferred.js'
+import { seedAll } from '../../helpers/seeds/index.js'
 
 describe('Webhook Routes', () => {
   let app: FastifyInstance
@@ -76,6 +90,41 @@ describe('Webhook Routes', () => {
       })
 
       expect(res.statusCode).toBe(400)
+    })
+
+    describe('with a watchlisted movie', () => {
+      beforeEach(async () => {
+        await resetDatabase()
+        await seedAll(getTestDatabase())
+        clearWebhookCacheForTests()
+      })
+
+      afterEach(() => {
+        vi.restoreAllMocks()
+      })
+
+      it('responds before notification deliveries finish', async () => {
+        const delivery = createDeferred<DeliveryResult>()
+        const sendDm = vi
+          .spyOn(app.notifications.discordBot, 'sendNotification')
+          .mockReturnValue(delivery.promise)
+
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/notifications/webhook',
+          headers: {
+            'x-pulsarr-secret': app.config.webhookSecret,
+          },
+          payload: {
+            instanceName: 'Radarr',
+            movie: { title: 'Night of the Living Dead', tmdbId: 10331 },
+          },
+        })
+
+        expect(res.statusCode).toBe(200)
+        await vi.waitFor(() => expect(sendDm).toHaveBeenCalledTimes(1))
+        delivery.resolve({ ok: true })
+      })
     })
   })
 })

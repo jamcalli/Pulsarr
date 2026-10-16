@@ -1,9 +1,3 @@
-/**
- * Approval Command Handlers
- *
- * Routes button interactions to appropriate handler modules.
- */
-
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { ButtonInteraction } from 'discord.js'
@@ -25,11 +19,6 @@ export interface HandlerDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Handle approval button interactions
- *
- * Routes based on customId prefix to appropriate handler functions.
- */
 export async function handleApprovalButtons(
   interaction: ButtonInteraction,
   deps: HandlerDeps,
@@ -42,16 +31,14 @@ export async function handleApprovalButtons(
 
   const parts = interaction.customId.split('_')
 
-  // Handle main menu buttons
   if (parts[1] === 'menu') {
     const menuAction = parts[2]
     await handleMenuAction(interaction, menuAction, deps)
     return
   }
 
-  // Handle navigation buttons
   if (parts[1] === 'nav') {
-    const direction = parts[2] // 'back' or 'next'
+    const direction = parts[2]
     const currentIndex = Number.parseInt(parts[3], 10)
 
     if (Number.isNaN(currentIndex)) {
@@ -66,25 +53,21 @@ export async function handleApprovalButtons(
     return
   }
 
-  // Handle history navigation buttons
   if (parts[1] === 'history') {
     await handleHistoryAction(interaction, parts, deps)
     return
   }
 
-  // Handle individual item clicks
   if (parts[1] === 'item') {
     await handleItemAction(interaction, parts, deps)
     return
   }
 
-  // Handle delete confirmation
   if (parts[1] === 'delete') {
     await handleDeleteAction(interaction, parts, deps)
     return
   }
 
-  // Handle approval action buttons
   const action = parts[1]
   const approvalIdStr = parts[2]
   const currentIndexStr = parts[3]

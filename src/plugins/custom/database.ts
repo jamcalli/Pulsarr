@@ -121,7 +121,12 @@ export default fp(
           }
           fastify.log.debug('Creating initial config in database')
           await dbService.createConfig(initialConfig)
-          await fastify.updateConfig({ _isReady: false })
+          const createdConfig = await dbService.getConfig()
+          await fastify.updateConfig({
+            ...createdConfig,
+            ...envConfig,
+            _isReady: false,
+          })
 
           if (initialConfig.sonarrBaseUrl) {
             fastify.log.info('Creating default Sonarr instance from .env')

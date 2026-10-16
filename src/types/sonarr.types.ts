@@ -233,7 +233,6 @@ export interface WebhookNotification {
   }>
 }
 
-import type { NotificationUser } from '@root/types/config.types.js'
 import type { ContentItem } from '@root/types/router.types.js'
 
 export interface Item extends ContentItem {
@@ -312,24 +311,4 @@ export interface SonarrEpisodeSchema {
   title: string
   overview?: string
   airDateUtc: string
-}
-
-export interface MediaNotification {
-  type: 'movie' | 'show'
-  title: string
-  username: string
-  posterUrl?: string
-  tmdbUrl?: string
-  episodeDetails?: {
-    title?: string
-    overview?: string
-    seasonNumber?: number
-    episodeNumber?: number
-    airDateUtc?: string
-  }
-}
-
-export interface NotificationResult {
-  user: NotificationUser
-  notification: MediaNotification
 }

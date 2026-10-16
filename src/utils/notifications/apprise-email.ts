@@ -1,3 +1,5 @@
+import { splitUrlList } from '@utils/url.js'
+
 /**
  * Apprise Email Resolution Utilities
  *
@@ -87,10 +89,7 @@ export function resolveAppriseUrls(
 ): string | null {
   if (!userValue) return null
 
-  const resolvedUrls = userValue
-    .split(',')
-    .map((url) => url.trim())
-    .filter(Boolean)
+  const resolvedUrls = splitUrlList(userValue)
     .map((url) => resolveAppriseUrl(url, adminEmailSender))
     .filter((url): url is string => url !== null)
 

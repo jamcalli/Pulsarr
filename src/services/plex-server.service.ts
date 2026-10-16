@@ -227,7 +227,7 @@ export class PlexServerService {
       const connections = await this.getPlexServerConnectionInfo()
       if (!connections || connections.length === 0) {
         this.log.error(
-          'Failed to initialize PlexServerService - no connections available',
+          'Failed to initialize PlexServerService because no connections are available',
         )
         this.initialized = false
         return false
@@ -649,6 +649,27 @@ export class PlexServerService {
     }
   }
 
+  /** Numeric Plex account id for a Pulsarr user, or null when no Plex account matches. */
+  async resolveUserPlexId(
+    username: string,
+    userId: number,
+  ): Promise<number | null> {
+    const primaryUser = await this.fastify.db.getPrimaryUser()
+    if (primaryUser?.id === userId && this._adminPlexId !== null) {
+      return this._adminPlexId
+    }
+
+    const name = username.toLowerCase()
+    const match = (await this.getPlexUsers()).find(
+      (pu) =>
+        pu.username.toLowerCase() === name || pu.title.toLowerCase() === name,
+    )
+    if (!match) return null
+
+    const numericId = Number(match.id)
+    return Number.isNaN(numericId) ? null : numericId
+  }
+
   async getSharedServerInfo(): Promise<Map<string, PlexSharedServerInfo>> {
     try {
       if (
@@ -1007,7 +1028,7 @@ export class PlexServerService {
       )
       if (sharedUserCount > 0 && nonOwnerPlaylists.length === 0) {
         throw new Error(
-          'Plex has removed shared user access tokens - playlist protection cannot function. Delete sync aborted to prevent content loss. Disable playlist protection to resume delete sync.',
+          'Plex has removed shared user access tokens, so playlist protection cannot function. Delete sync aborted to prevent content loss. Disable playlist protection to resume delete sync.',
         )
       }
 
@@ -1051,7 +1072,7 @@ export class PlexServerService {
                 )
               } else {
                 this.log.warn(
-                  `Failed to retrieve standardized GUIDs for protected item "${item.title}" - item may not be properly protected`,
+                  `Failed to retrieve standardized GUIDs for protected item "${item.title}", so the item may not be properly protected`,
                 )
               }
             } catch (itemError) {
@@ -1181,7 +1202,7 @@ export class PlexServerService {
   ): Promise<boolean> {
     if (!this.config.enablePlexPlaylistProtection) {
       this.log.debug(
-        'Plex playlist protection is disabled - skipping protection check',
+        'Plex playlist protection is disabled, skipping protection check',
       )
       return false
     }
@@ -1288,12 +1309,12 @@ export class PlexServerService {
     })
 
     this.eventSource.on('connected', () => {
-      this.log.info('SSE connected - reconciling with live sessions')
+      this.log.info('SSE connected, reconciling with live sessions')
       void this.reconcileSessionsOnConnect()
     })
 
     this.eventSource.on('disconnected', () => {
-      this.log.warn('SSE disconnected - polling continues as fallback')
+      this.log.warn('SSE disconnected, polling continues as fallback')
     })
 
     this.staleSweepInterval = setInterval(() => {
@@ -1465,7 +1486,7 @@ export class PlexServerService {
       if (reachable.length === 0) {
         this.log.warn(
           { serverName: this.serverName },
-          'Plex server health check failed - no connections reachable',
+          'Plex server health check failed because no connections are reachable',
         )
         return { reachable: false, serverName: this.serverName }
       }
@@ -1676,7 +1697,7 @@ export class PlexServerService {
 
         if (found) {
           this.log.info(
-            `Content found on Plex server "${server.name}" - skipping download`,
+            `Content found on Plex server "${server.name}", skipping download`,
           )
           abortController.abort()
         }

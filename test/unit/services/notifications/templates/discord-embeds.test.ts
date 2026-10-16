@@ -1,12 +1,10 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { DiscordEmbed } from '@root/types/discord.types.js'
 import {
-  COLOR_GREEN,
-  COLOR_RED,
   createDeleteSyncEmbed,
   createMediaAddedEmbed,
   createMediaNotificationEmbed,
-  createSystemEmbed,
+  createSystemDm,
   createUpdateAvailableEmbed,
 } from '@services/notifications/templates/discord-embeds.js'
 import { describe, expect, it } from 'vitest'
@@ -185,7 +183,7 @@ describe('discord-embeds', () => {
       const embed = createDeleteSyncEmbed(deleteSyncResult(), false)
 
       expect(embed.title).toBe('🗑️ Delete Sync Results')
-      expect(embed.color).toBe(COLOR_GREEN)
+      expect(embed.color).toBe(0x00ff00)
     })
 
     it('should title a dry run', () => {
@@ -193,7 +191,7 @@ describe('discord-embeds', () => {
 
       expect(embed.title).toBe('🔍 Delete Sync Simulation Results')
       expect(embed.description).toBe(
-        'This was a dry run - no content was actually deleted.',
+        'This was a dry run, so nothing was deleted.',
       )
     })
 
@@ -207,7 +205,7 @@ describe('discord-embeds', () => {
       )
 
       expect(embed.title).toBe('⚠️ Delete Sync Safety Triggered')
-      expect(embed.color).toBe(COLOR_RED)
+      expect(embed.color).toBe(0xff0000)
       expect(fieldValue(embed, 'Safety Reason')).toBe('Too many deletions')
     })
 
@@ -348,47 +346,58 @@ describe('discord-embeds', () => {
     })
   })
 
-  describe('createSystemEmbed', () => {
-    it('should colour red when a safety reason field is present', () => {
-      const embed = createSystemEmbed('Delete Sync', [
-        { name: 'Safety Reason', value: 'Too many deletions' },
-      ])
-
-      expect(embed.color).toBe(COLOR_RED)
-    })
-
-    it('should colour red when the title mentions a safety trigger', () => {
-      const embed = createSystemEmbed('Delete Sync Safety Triggered', [])
-
-      expect(embed.color).toBe(COLOR_RED)
-    })
-
+  describe('createSystemDm', () => {
     it('should colour red when the safety flag is set', () => {
-      const embed = createSystemEmbed('Delete Sync', [], true)
+      const { embed } = createSystemDm({
+        title: 'Delete Sync',
+        fields: [],
+        safetyTriggered: true,
+      })
 
-      expect(embed.color).toBe(COLOR_RED)
+      expect(embed.color).toBe(0xff0000)
     })
 
     it('should colour green otherwise', () => {
-      const embed = createSystemEmbed('Delete Sync', [
-        { name: 'Summary', value: 'All good' },
-      ])
+      const { embed } = createSystemDm({
+        title: 'Delete Sync',
+        fields: [{ name: 'Summary', value: 'All good' }],
+      })
 
-      expect(embed.color).toBe(COLOR_GREEN)
+      expect(embed.color).toBe(0x00ff00)
     })
 
-    it('should append the TMDB field without counting it as a safety field', () => {
-      const embed = createSystemEmbed(
-        'Approval',
-        [],
-        false,
-        'https://www.themoviedb.org/movie/438631',
-      )
+    it('should append the TMDB field', () => {
+      const { embed } = createSystemDm({
+        title: 'Approval',
+        fields: [],
+        tmdbUrl: 'https://www.themoviedb.org/movie/438631',
+      })
 
       expect(fieldValue(embed, 'More Info')).toBe(
         '[View on TMDB](https://www.themoviedb.org/movie/438631)',
       )
-      expect(embed.color).toBe(COLOR_GREEN)
+    })
+
+    it('should add one button row only when a button is given', () => {
+      const plain = createSystemDm({ title: 'Approval', fields: [] })
+      const withButton = createSystemDm({
+        title: 'Approval',
+        fields: [],
+        button: { label: 'Review Approvals', customId: 'review_approvals_1' },
+      })
+
+      expect(plain.components).toBeUndefined()
+      expect(withButton.components?.[0].toJSON()).toEqual({
+        type: 1,
+        components: [
+          {
+            type: 2,
+            custom_id: 'review_approvals_1',
+            label: 'Review Approvals',
+            style: 1,
+          },
+        ],
+      })
     })
   })
 })

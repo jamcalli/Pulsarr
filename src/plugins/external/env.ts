@@ -1,7 +1,12 @@
 import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
-import { PLEX_SERVER_URL_DEFAULT } from '@root/schemas/config/config.schema.js'
+import {
+  DELETE_SYNC_NOTIFY_OPTIONS,
+  NOTIFY_DEFAULTS,
+  NOTIFY_OPTIONS,
+  PLEX_SERVER_URL_DEFAULT,
+} from '@root/schemas/config/config.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
 import { resolveDataDir } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
@@ -361,25 +366,12 @@ const schema = {
     },
     deleteSyncNotify: {
       type: 'string',
-      enum: [
-        'none',
-        'message',
-        'webhook',
-        'both',
-        'all',
-        'discord-only',
-        'apprise-only',
-        'webhook-only',
-        'dm-only',
-        'discord-webhook',
-        'discord-message',
-        'discord-both',
-      ],
-      default: 'none',
+      enum: DELETE_SYNC_NOTIFY_OPTIONS,
+      default: NOTIFY_DEFAULTS.deleteSyncNotify,
     },
     deleteSyncNotifyOnlyOnDeletion: {
       type: 'boolean',
-      default: false,
+      default: NOTIFY_DEFAULTS.deleteSyncNotifyOnlyOnDeletion,
     },
     deleteSyncTrackedOnly: {
       type: 'boolean',
@@ -394,18 +386,8 @@ const schema = {
     },
     approvalNotify: {
       type: 'string',
-      enum: [
-        'none',
-        'all',
-        'discord-only',
-        'apprise-only',
-        'webhook-only',
-        'dm-only',
-        'discord-webhook',
-        'discord-message',
-        'discord-both',
-      ],
-      default: 'none',
+      enum: NOTIFY_OPTIONS,
+      default: NOTIFY_DEFAULTS.approvalNotify,
     },
     maxDeletionPrevention: {
       type: 'number',

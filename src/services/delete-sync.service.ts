@@ -187,7 +187,7 @@ export class DeleteSyncService {
     // Check if delete sync is already running
     if (this._running) {
       this.log.warn(
-        'Delete-sync already in progress – ignoring duplicate trigger',
+        'Delete-sync already in progress, ignoring duplicate trigger',
       )
       return this.handleEmptyResult('Duplicate delete-sync run skipped')
     }
@@ -214,7 +214,7 @@ export class DeleteSyncService {
         !this.fastify.plexServerService.isInitialized()
       ) {
         this.log.info(
-          'Plex playlist protection enabled but not initialized - initializing now',
+          'Plex playlist protection enabled but not initialized, initializing now',
         )
         const ok = await this.initialize()
         if (!ok) {
@@ -292,7 +292,7 @@ export class DeleteSyncService {
         // Step 6: Ensure we have at least some watchlist items (safety check)
         if (allWatchlistItems.size === 0) {
           return this.handleSafetyTriggered(
-            'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.',
+            'No watchlist items found, which could be an error condition. Aborting delete sync to prevent mass deletion.',
             dryRun,
             existingSeries.length,
             existingMovies.length,
@@ -414,12 +414,7 @@ export class DeleteSyncService {
       )
 
       // Step 12: Send notifications about results if enabled
-      if (this.fastify.notifications) {
-        await this.fastify.notifications.sendDeleteSyncNotification(
-          result,
-          dryRun,
-        )
-      }
+      void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
 
       return result
     } catch (error) {
@@ -464,13 +459,7 @@ export class DeleteSyncService {
     )
 
     // Send notification about the safety trigger if enabled
-    if (this.fastify.notifications) {
-      this.fastify.notifications
-        .sendDeleteSyncNotification(result, dryRun)
-        .catch((error) => {
-          this.logError('Error sending delete sync notification:', error)
-        })
-    }
+    void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
 
     return result
   }
@@ -585,7 +574,7 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      'Tracked-only deletion is enabled - only content from approval system will be deleted',
+      'Tracked-only deletion is enabled, so only content from the approval system will be deleted',
     )
 
     try {
@@ -644,7 +633,7 @@ export class DeleteSyncService {
         success: false,
         protectedGuids: null,
         result: this.handleSafetyTriggered(
-          'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
+          'Plex playlist protection is enabled but the Plex server is not properly initialized, so deletion cannot proceed safely',
           dryRun,
           seriesCount,
           moviesCount,

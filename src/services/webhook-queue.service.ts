@@ -261,7 +261,7 @@ export class WebhookQueueService {
       if (suppressed) return
     }
 
-    this.log.info(
+    this.log.debug(
       {
         title: body.movie.title,
         tmdbId: body.movie.tmdbId,
@@ -394,7 +394,7 @@ export class WebhookQueueService {
     if (isPilotRolling && episodeNumber === 1) {
       this.log.debug(
         { tvdbId, season: seasonNumber },
-        'Pilot rolling E01 - notifying immediately',
+        'Pilot rolling E01, notifying immediately',
       )
       await notifyOrQueueShow(
         tvdbId,

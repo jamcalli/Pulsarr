@@ -1,10 +1,3 @@
-/**
- * Apprise Format Cache
- *
- * Fetches and caches schema format information from the Apprise /details endpoint.
- * Used to determine whether to send HTML or text body to each notification target.
- */
-
 import type {
   AppriseDetailsResponse,
   AppriseNotificationBatch,
@@ -12,12 +5,10 @@ import type {
   AppriseSchemaFormatMap,
   AppriseUrlFormatInfo,
 } from '@root/types/apprise.types.js'
+import { errorMessage } from '@utils/error-message.js'
+import { splitUrlList } from '@utils/url.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-/**
- * Fetches schema format map from Apprise /details endpoint.
- * Maps each protocol (e.g., 'pover', 'tgram', 'slack') to its native format.
- */
 export async function fetchSchemaFormats(
   appriseUrl: string,
   log: FastifyBaseLogger,
@@ -25,20 +16,11 @@ export async function fetchSchemaFormats(
   const formatMap: AppriseSchemaFormatMap = new Map()
 
   try {
-    const url = new URL('/details/', appriseUrl)
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
-
-    let response: Response
-    try {
-      response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        signal: controller.signal,
-      })
-    } finally {
-      clearTimeout(timeoutId)
-    }
+    const response = await fetch(new URL('/details/', appriseUrl).toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(10_000),
+    })
 
     if (!response.ok) {
       log.warn(
@@ -54,7 +36,6 @@ export async function fetchSchemaFormats(
       const format: AppriseNotifyFormat =
         schema.details?.args?.format?.default ?? 'text'
 
-      // Map both protocols and secure_protocols to format
       for (const protocol of schema.protocols ?? []) {
         formatMap.set(protocol.toLowerCase(), format)
       }
@@ -69,7 +50,7 @@ export async function fetchSchemaFormats(
     )
   } catch (error) {
     log.warn(
-      { error: error instanceof Error ? error.message : String(error) },
+      { error: errorMessage(error) },
       'Error fetching Apprise schema details, will use text fallback for unknown schemas',
     )
   }
@@ -77,32 +58,14 @@ export async function fetchSchemaFormats(
   return formatMap
 }
 
-/**
- * Schema format overrides for services that report incorrect native formats.
- *
- * Telegram reports as HTML-native via Apprise /details, but only supports a tiny
- * subset of HTML tags (<b>, <i>, <a>, <code>, <pre>). Full HTML with <div>, <p>,
- * <hr>, etc. causes Telegram API errors. Force text format for these schemas.
- *
- * Add entries here if other services exhibit similar format misreporting issues.
- * The override takes precedence over the format reported by Apprise /details.
- */
+/** Telegram reports HTML but rejects most tags, so these schemas get text whatever /details says. */
 const SCHEMA_FORMAT_OVERRIDES: Record<string, 'text' | 'html' | 'markdown'> = {
   tgram: 'text',
 }
 
-/**
- * Schemas that deliver notifications via email.
- *
- * Email services already render images via <img> tags in the HTML body.
- * Sending attachments to these services results in redundant file attachments
- * rather than inline images. We exclude the attachment field for these schemas.
- */
 const EMAIL_SCHEMAS = new Set([
-  // SMTP direct
   'mailto',
   'mailtos',
-  // Email API services
   'brevo',
   'mailgun',
   'sendgrid',
@@ -112,56 +75,37 @@ const EMAIL_SCHEMAS = new Set([
   'sparkpost',
 ])
 
-/**
- * Extracts schema from Apprise URL using same logic as Apprise's parse_url().
- * Regex matches: one or more characters that are NOT colon or whitespace, before ://
- *
- * @see https://github.com/caronc/apprise/blob/master/apprise/utils/parse.py
- */
-export function extractSchema(url: string): string | null {
+// Matches the schema rule Apprise applies when it parses a notification URL
+function extractSchema(url: string): string | null {
   const match = url.match(/^([^:\s]+):\/\//)
   return match ? match[1].toLowerCase().trim() : null
 }
 
-/**
- * Analyzes Apprise URLs and determines their native format and attachment support.
- * Handles comma-separated URLs.
- */
 export function analyzeAppriseUrls(
   urlString: string,
   formatCache: AppriseSchemaFormatMap,
 ): AppriseUrlFormatInfo[] {
-  return urlString
-    .split(',')
-    .map((url) => url.trim())
-    .filter(Boolean)
-    .map((url) => {
-      const schema = extractSchema(url)
-      // Check for schema overrides first (e.g., tgram → text)
-      const override = schema ? SCHEMA_FORMAT_OVERRIDES[schema] : undefined
-      // Email services render images via <img> tags, attachments are redundant
-      const supportsInlineAttachment = !schema || !EMAIL_SCHEMAS.has(schema)
-      return {
-        url,
-        schema: schema ?? 'unknown',
-        format:
-          override ?? (schema ? (formatCache.get(schema) ?? 'text') : 'text'),
-        supportsInlineAttachment,
-      }
-    })
+  return splitUrlList(urlString).map((url) => {
+    const schema = extractSchema(url)
+    const override = schema ? SCHEMA_FORMAT_OVERRIDES[schema] : undefined
+    // Email services render the poster from the HTML body, so an attachment would duplicate it
+    const supportsInlineAttachment = !schema || !EMAIL_SCHEMAS.has(schema)
+    return {
+      url,
+      schema: schema ?? 'unknown',
+      format:
+        override ?? (schema ? (formatCache.get(schema) ?? 'text') : 'text'),
+      supportsInlineAttachment,
+    }
+  })
 }
 
-/**
- * Groups URLs by format and attachment support, creating batches for sending.
- * Returns up to 4 batches based on format (text/html) and attachment support.
- */
 export function createNotificationBatches(
   urls: AppriseUrlFormatInfo[],
   htmlBody: string,
   textBody: string,
 ): AppriseNotificationBatch[] {
-  // Group URLs by format and attachment support
-  // Markdown targets get text (Apprise handles conversion)
+  // Markdown targets get the text body because Apprise converts it
   const textWithAttachment = urls.filter(
     (u) =>
       (u.format === 'text' || u.format === 'markdown') &&

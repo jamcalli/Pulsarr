@@ -1,15 +1,16 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { ApprovalNotification } from '@root/types/discord.types.js'
+import type { ApprovalNotification } from '@root/types/notification.types.js'
 import {
-  createApprovalNotificationHtml,
-  createDeleteSyncNotificationHtml,
-  createMediaNotificationHtml,
-  createTestNotificationHtml,
-  createUpdateAvailableNotificationHtml,
-  createWatchlistAdditionHtml,
-  createWatchlistCapNotificationHtml,
+  createApprovalAppriseMessage,
+  createDeleteSyncAppriseMessage,
+  createMediaAppriseMessage,
+  createTestAppriseMessage,
+  createUpdateAvailableAppriseMessage,
+  createWatchlistAddedAppriseMessage,
+  createWatchlistCapAppriseMessage,
   escapeHtml,
 } from '@services/notifications/templates/apprise-html.js'
+import { TEST_NOTIFICATION } from '@services/notifications/templates/labels.js'
 import { describe, expect, it } from 'vitest'
 
 function deleteSyncResult(
@@ -57,39 +58,39 @@ describe('apprise-html', () => {
     })
   })
 
-  describe('createMediaNotificationHtml', () => {
+  describe('createMediaAppriseMessage', () => {
     it('should build a movie notification', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'movie',
         title: 'Dune',
         username: 'alice',
       })
 
       expect(result.title).toBe('🎬 Dune')
-      expect(result.htmlBody).toContain('Dune')
-      expect(result.textBody).toBe(
+      expect(result.bodyHtml).toContain('Dune')
+      expect(result.body).toBe(
         'Movie Available\n\nDune\nMovie available to watch!',
       )
     })
 
     it('should append the TMDB link to a movie notification', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'movie',
         title: 'Dune',
         username: 'alice',
         tmdbUrl: 'https://www.themoviedb.org/movie/438631',
       })
 
-      expect(result.textBody).toBe(
+      expect(result.body).toBe(
         'Movie Available\n\nDune\nMovie available to watch!\nTMDB: https://www.themoviedb.org/movie/438631',
       )
-      expect(result.htmlBody).toContain(
+      expect(result.bodyHtml).toContain(
         'https://www.themoviedb.org/movie/438631',
       )
     })
 
     it('should build an episode notification with padded season and episode', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'show',
         title: 'Severance',
         username: 'alice',
@@ -103,160 +104,156 @@ describe('apprise-html', () => {
       })
 
       expect(result.title).toBe('📺 Severance')
-      expect(result.htmlBody).toContain('S01E02')
-      expect(result.htmlBody).toContain('Episode Title')
-      expect(result.htmlBody).toContain('An episode overview')
-      expect(result.htmlBody).toContain('Air Date')
-      expect(result.textBody).toContain('New Episode Available')
-      expect(result.textBody).toContain('Episode: S01E02 - "Episode Title"')
-      expect(result.textBody).toContain('Overview: An episode overview')
-      expect(result.textBody).toContain('Air Date:')
+      expect(result.bodyHtml).toContain('S01E02')
+      expect(result.bodyHtml).toContain('Episode Title')
+      expect(result.bodyHtml).toContain('An episode overview')
+      expect(result.bodyHtml).toContain('Air Date')
+      expect(result.body).toContain('New Episode Available')
+      expect(result.body).toContain('Episode: S01E02 - "Episode Title"')
+      expect(result.body).toContain('Overview: An episode overview')
+      expect(result.body).toContain('Air Date:')
     })
 
     it('should omit overview and air date when not supplied', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'show',
         title: 'Severance',
         username: 'alice',
         episodeDetails: { seasonNumber: 1, episodeNumber: 2 },
       })
 
-      expect(result.textBody).toBe(
+      expect(result.body).toBe(
         'New Episode Available\n\nSeverance\nEpisode: S01E02',
       )
-      expect(result.htmlBody).not.toContain('Overview')
-      expect(result.htmlBody).not.toContain('Air Date')
+      expect(result.bodyHtml).not.toContain('Overview')
+      expect(result.bodyHtml).not.toContain('Air Date')
     })
 
     it('should build a season notification when only a season is supplied', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'show',
         title: 'Severance',
         username: 'alice',
         episodeDetails: { seasonNumber: 3 },
       })
 
-      expect(result.textBody).toContain('New Season Available')
-      expect(result.textBody).toContain('Season Added: Season 3')
-      expect(result.htmlBody).toContain('Season 3')
+      expect(result.body).toContain('New Season Available')
+      expect(result.body).toContain('Season Added: Season 3')
+      expect(result.bodyHtml).toContain('Season 3')
     })
 
     it('should fall back to generic wording for empty episode details', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'show',
         title: 'Severance',
         username: 'alice',
         episodeDetails: {},
       })
 
-      expect(result.textBody).toBe(
+      expect(result.body).toBe(
         'New Content Available\n\nSeverance\nNew content is now available to watch!',
       )
-      expect(result.htmlBody).toContain(
+      expect(result.bodyHtml).toContain(
         'New content is now available to watch!',
       )
     })
 
     it('should render the poster when a URL is supplied', () => {
-      const withPoster = createMediaNotificationHtml({
+      const withPoster = createMediaAppriseMessage({
         type: 'movie',
         title: 'Dune',
         username: 'alice',
         posterUrl: 'https://image.tmdb.org/poster.jpg',
       })
-      const withoutPoster = createMediaNotificationHtml({
+      const withoutPoster = createMediaAppriseMessage({
         type: 'movie',
         title: 'Dune',
         username: 'alice',
       })
 
-      expect(withPoster.htmlBody).toContain('<img')
-      expect(withPoster.htmlBody).toContain('https://image.tmdb.org/poster.jpg')
-      expect(withoutPoster.htmlBody).not.toContain('<img')
+      expect(withPoster.bodyHtml).toContain('<img')
+      expect(withPoster.bodyHtml).toContain('https://image.tmdb.org/poster.jpg')
+      expect(withoutPoster.bodyHtml).not.toContain('<img')
     })
 
     it('should escape the poster URL inside the src attribute', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'movie',
         title: 'Dune',
         username: 'alice',
         posterUrl: 'https://plex.example/poster.jpg" onerror="alert(1)',
       })
 
-      expect(result.htmlBody).toContain(
+      expect(result.bodyHtml).toContain(
         'src="https://plex.example/poster.jpg&quot; onerror=&quot;alert(1)"',
       )
-      expect(result.htmlBody).not.toContain('" onerror="')
+      expect(result.bodyHtml).not.toContain('" onerror="')
     })
 
     it('should escape the title in HTML but leave it raw in text', () => {
-      const result = createMediaNotificationHtml({
+      const result = createMediaAppriseMessage({
         type: 'movie',
         title: '<script>alert(1)</script>',
         username: 'alice',
       })
 
-      expect(result.htmlBody).toContain('&lt;script&gt;')
-      expect(result.htmlBody).not.toContain('<script>')
-      expect(result.textBody).toContain('<script>alert(1)</script>')
+      expect(result.bodyHtml).toContain('&lt;script&gt;')
+      expect(result.bodyHtml).not.toContain('<script>')
+      expect(result.body).toContain('<script>alert(1)</script>')
     })
   })
 
-  describe('createApprovalNotificationHtml', () => {
+  describe('createApprovalAppriseMessage', () => {
     const notification: ApprovalNotification = {
-      title: 'New Approval Request: Dune',
       contentTitle: 'Dune',
-      contentType: 'Movie',
+      contentType: 'movie',
       requestedBy: 'alice',
       reason: 'User quota exceeded',
       totalPending: 3,
-      actionRequired: 'Review in the approvals page',
       posterUrl: 'https://image.tmdb.org/approval.jpg',
       tmdbUrl: 'https://www.themoviedb.org/movie/1',
     }
 
     it('should render every field in both bodies', () => {
-      const result = createApprovalNotificationHtml(notification)
+      const result = createApprovalAppriseMessage(notification)
 
       for (const value of [
         'Dune',
         'Movie',
         'alice',
         'User quota exceeded',
-        'Review in the approvals page',
+        'Visit the Pulsarr UI',
       ]) {
-        expect(result.htmlBody).toContain(value)
-        expect(result.textBody).toContain(value)
+        expect(result.bodyHtml).toContain(value)
+        expect(result.body).toContain(value)
       }
-      expect(result.htmlBody).toContain('https://www.themoviedb.org/movie/1')
-      expect(result.textBody).toContain(
-        'TMDB: https://www.themoviedb.org/movie/1',
-      )
+      expect(result.bodyHtml).toContain('https://www.themoviedb.org/movie/1')
+      expect(result.body).toContain('TMDB: https://www.themoviedb.org/movie/1')
     })
 
     it('should relabel the pending count in HTML only', () => {
-      const result = createApprovalNotificationHtml(notification)
+      const result = createApprovalAppriseMessage(notification)
 
-      expect(result.htmlBody).toContain('3 awaiting review')
-      expect(result.htmlBody).not.toContain('3 requests')
-      expect(result.textBody).toContain('Total pending: 3 requests')
+      expect(result.bodyHtml).toContain('3 awaiting review')
+      expect(result.bodyHtml).not.toContain('3 requests')
+      expect(result.body).toContain('Total pending: 3 requests')
     })
 
     it('should render the poster when a URL is supplied', () => {
-      const withPoster = createApprovalNotificationHtml(notification)
-      const withoutPoster = createApprovalNotificationHtml({
+      const withPoster = createApprovalAppriseMessage(notification)
+      const withoutPoster = createApprovalAppriseMessage({
         ...notification,
         posterUrl: undefined,
       })
 
-      expect(withPoster.htmlBody).toContain(
+      expect(withPoster.bodyHtml).toContain(
         'https://image.tmdb.org/approval.jpg',
       )
-      expect(withoutPoster.htmlBody).not.toContain('<img')
+      expect(withoutPoster.bodyHtml).not.toContain('<img')
     })
   })
 
-  describe('createUpdateAvailableNotificationHtml', () => {
+  describe('createUpdateAvailableAppriseMessage', () => {
     const release = {
       currentVersion: '1.0.0',
       latestVersion: '1.1.0',
@@ -268,35 +265,35 @@ describe('apprise-html', () => {
     }
 
     it('should report both versions and the release URL', () => {
-      const result = createUpdateAvailableNotificationHtml(release)
+      const result = createUpdateAvailableAppriseMessage(release)
 
       expect(result.title).toBe('🚀 Pulsarr 1.1.0 is available')
-      expect(result.htmlBody).toContain('v1.0.0')
-      expect(result.htmlBody).toContain('v1.1.0')
-      expect(result.htmlBody).toContain(release.releaseUrl)
-      expect(result.textBody).toContain('Current: v1.0.0')
-      expect(result.textBody).toContain('Latest: v1.1.0')
-      expect(result.textBody).toContain(`View release: ${release.releaseUrl}`)
+      expect(result.bodyHtml).toContain('v1.0.0')
+      expect(result.bodyHtml).toContain('v1.1.0')
+      expect(result.bodyHtml).toContain(release.releaseUrl)
+      expect(result.body).toContain('Current: v1.0.0')
+      expect(result.body).toContain('Latest: v1.1.0')
+      expect(result.body).toContain(`View release: ${release.releaseUrl}`)
     })
 
     it('should inject the rendered release notes unescaped', () => {
-      const result = createUpdateAvailableNotificationHtml(release)
+      const result = createUpdateAvailableAppriseMessage(release)
 
-      expect(result.htmlBody).toContain('<b>Short notes</b>')
+      expect(result.bodyHtml).toContain('<b>Short notes</b>')
     })
 
     it('should truncate long notes in the text body only', () => {
-      const result = createUpdateAvailableNotificationHtml({
+      const result = createUpdateAvailableAppriseMessage({
         ...release,
         releaseBody: 'x'.repeat(1600),
       })
 
-      expect(result.textBody).toContain(`${'x'.repeat(1500)}...`)
-      expect(result.textBody).not.toContain('x'.repeat(1501))
+      expect(result.body).toContain(`${'x'.repeat(1500)}...`)
+      expect(result.body).not.toContain('x'.repeat(1501))
     })
 
     it('should fall back to the version when the release has no name', () => {
-      const result = createUpdateAvailableNotificationHtml({
+      const result = createUpdateAvailableAppriseMessage({
         ...release,
         releaseName: null,
         releaseBody: null,
@@ -304,53 +301,61 @@ describe('apprise-html', () => {
         publishedAt: null,
       })
 
-      expect(result.htmlBody).toContain('v1.1.0')
-      expect(result.textBody).toContain('v1.1.0')
-      expect(result.textBody).not.toContain('Published:')
-      expect(result.textBody).not.toContain('Release Notes:')
+      expect(result.bodyHtml).toContain('v1.1.0')
+      expect(result.body).toContain('v1.1.0')
+      expect(result.body).not.toContain('Published:')
+      expect(result.body).not.toContain('Release Notes:')
     })
   })
 
-  describe('createWatchlistCapNotificationHtml', () => {
+  describe('createWatchlistCapAppriseMessage', () => {
     it('should report movie cap usage in both bodies', () => {
-      const result = createWatchlistCapNotificationHtml({
-        userName: 'alice',
-        contentType: 'movie',
-        currentCount: 5,
-        cap: 10,
-      })
+      const result = createWatchlistCapAppriseMessage(
+        {
+          userId: 1,
+          userName: 'alice',
+          contentType: 'movie',
+          currentCount: 5,
+          cap: 10,
+        },
+        'alice',
+      )
 
-      expect(result.htmlBody).toContain('alice')
-      expect(result.htmlBody).toContain('Movie')
-      expect(result.htmlBody).toContain('5 / 10')
-      expect(result.textBody).toContain('User: alice')
-      expect(result.textBody).toContain('Content Type: Movie')
-      expect(result.textBody).toContain('Usage: 5 / 10')
+      expect(result.bodyHtml).toContain('alice')
+      expect(result.bodyHtml).toContain('Movie')
+      expect(result.bodyHtml).toContain('5 / 10')
+      expect(result.body).toContain('User: alice')
+      expect(result.body).toContain('Content Type: Movie')
+      expect(result.body).toContain('Usage: 5 / 10')
     })
 
     it('should label non-movie content as a show', () => {
-      const result = createWatchlistCapNotificationHtml({
-        userName: 'bob',
-        contentType: 'show',
-        currentCount: 1,
-        cap: 2,
-      })
+      const result = createWatchlistCapAppriseMessage(
+        {
+          userId: 1,
+          userName: 'bob',
+          contentType: 'show',
+          currentCount: 1,
+          cap: 2,
+        },
+        'bob',
+      )
 
-      expect(result.htmlBody).toContain('Show')
-      expect(result.textBody).toContain('Content Type: Show')
+      expect(result.bodyHtml).toContain('Show')
+      expect(result.body).toContain('Content Type: Show')
     })
   })
 
-  describe('createDeleteSyncNotificationHtml', () => {
+  describe('createDeleteSyncAppriseMessage', () => {
     it('should title by mode', () => {
       expect(
-        createDeleteSyncNotificationHtml(deleteSyncResult(), true).title,
+        createDeleteSyncAppriseMessage(deleteSyncResult(), true).title,
       ).toBe('🔍 Delete Sync Simulation Results')
       expect(
-        createDeleteSyncNotificationHtml(deleteSyncResult(), false).title,
+        createDeleteSyncAppriseMessage(deleteSyncResult(), false).title,
       ).toBe('🗑️ Delete Sync Results')
       expect(
-        createDeleteSyncNotificationHtml(
+        createDeleteSyncAppriseMessage(
           deleteSyncResult({ safetyTriggered: true }),
           false,
         ).title,
@@ -358,7 +363,7 @@ describe('apprise-html', () => {
     })
 
     it('should show the safety message when safety triggered', () => {
-      const result = createDeleteSyncNotificationHtml(
+      const result = createDeleteSyncAppriseMessage(
         deleteSyncResult({
           safetyTriggered: true,
           safetyMessage: 'Deletion count exceeded the configured maximum',
@@ -366,16 +371,16 @@ describe('apprise-html', () => {
         false,
       )
 
-      expect(result.htmlBody).toContain(
+      expect(result.bodyHtml).toContain(
         'Deletion count exceeded the configured maximum',
       )
-      expect(result.textBody).toContain(
+      expect(result.body).toContain(
         'Safety Reason: Deletion count exceeded the configured maximum',
       )
     })
 
     it('should cap the deleted list at ten and count the remainder', () => {
-      const result = createDeleteSyncNotificationHtml(
+      const result = createDeleteSyncAppriseMessage(
         deleteSyncResult({
           total: { deleted: 12, skipped: 0, processed: 12 },
           movies: {
@@ -387,28 +392,28 @@ describe('apprise-html', () => {
         false,
       )
 
-      expect(result.htmlBody).toContain('Movie 10')
-      expect(result.htmlBody).not.toContain('Movie 11')
-      expect(result.htmlBody).toContain('... and 2 more movies')
-      expect(result.textBody).toContain('• Movie 10')
-      expect(result.textBody).not.toContain('• Movie 11')
-      expect(result.textBody).toContain('... and 2 more movies')
+      expect(result.bodyHtml).toContain('Movie 10')
+      expect(result.bodyHtml).not.toContain('Movie 11')
+      expect(result.bodyHtml).toContain('... and 2 more movies')
+      expect(result.body).toContain('• Movie 10')
+      expect(result.body).not.toContain('• Movie 11')
+      expect(result.body).toContain('... and 2 more movies')
     })
 
     it('should report an empty section', () => {
-      const result = createDeleteSyncNotificationHtml(
+      const result = createDeleteSyncAppriseMessage(
         deleteSyncResult({
           shows: { deleted: 0, skipped: 0, items: [] },
         }),
         false,
       )
 
-      expect(result.htmlBody).toContain('No TV shows deleted')
-      expect(result.textBody).toContain('TV Shows: No TV shows deleted')
+      expect(result.bodyHtml).toContain('No TV shows deleted')
+      expect(result.body).toContain('TV Shows: No TV shows deleted')
     })
 
     it('should report protected counts when present', () => {
-      const result = createDeleteSyncNotificationHtml(
+      const result = createDeleteSyncAppriseMessage(
         deleteSyncResult({
           total: { deleted: 0, skipped: 0, processed: 4, protected: 4 },
           movies: { deleted: 0, skipped: 0, protected: 3, items: [] },
@@ -416,102 +421,98 @@ describe('apprise-html', () => {
         false,
       )
 
-      expect(result.htmlBody).toContain('(3 protected)')
-      expect(result.textBody).toContain('Protected: 4 items')
-      expect(result.textBody).toContain('No movies deleted (3 protected)')
-      expect(result.textBody).toContain(
+      expect(result.bodyHtml).toContain('(3 protected)')
+      expect(result.body).toContain('Protected: 4 items')
+      expect(result.body).toContain('No movies deleted (3 protected)')
+      expect(result.body).toContain(
         '4 items were preserved because they are in protected playlists.',
       )
     })
   })
 
-  describe('createWatchlistAdditionHtml', () => {
-    const base = {
-      title: 'Dune',
-      addedBy: { name: 'alice' },
-      displayName: 'Alice A',
-    }
+  describe('createWatchlistAddedAppriseMessage', () => {
+    const base = { title: 'Dune', username: 'alice' }
 
     it('should title movies with the film emoji', () => {
       expect(
-        createWatchlistAdditionHtml({ ...base, type: 'movie' }).title,
+        createWatchlistAddedAppriseMessage(
+          { ...base, type: 'movie' },
+          'Alice A',
+        ).title,
       ).toBe('🎬 Movie Added: Dune')
     })
 
-    it('should title every show alias with the TV emoji', () => {
-      for (const type of ['show', 'tv', 'series']) {
-        expect(createWatchlistAdditionHtml({ ...base, type }).title).toBe(
-          '📺 Show Added: Dune',
-        )
-      }
-    })
-
-    it('should label an unknown type as media', () => {
-      expect(createWatchlistAdditionHtml({ ...base, type: 'book' }).title).toBe(
-        '🎬 Media Added: Dune',
-      )
+    it('should title shows with the TV emoji', () => {
+      expect(
+        createWatchlistAddedAppriseMessage({ ...base, type: 'show' }, 'Alice A')
+          .title,
+      ).toBe('📺 Show Added: Dune')
     })
 
     it('should name the adding user in both bodies', () => {
-      const result = createWatchlistAdditionHtml({ ...base, type: 'movie' })
+      const result = createWatchlistAddedAppriseMessage(
+        { ...base, type: 'movie' },
+        'Alice A',
+      )
 
-      expect(result.htmlBody).toContain('Alice A')
-      expect(result.textBody).toContain('Added by: Alice A')
+      expect(result.bodyHtml).toContain('Alice A')
+      expect(result.body).toContain('Added by: Alice A')
     })
 
     it('should render the poster and TMDB link when supplied', () => {
-      const withExtras = createWatchlistAdditionHtml({
-        ...base,
-        type: 'movie',
-        posterUrl: 'https://image.tmdb.org/dune.jpg',
-        tmdbUrl: 'https://www.themoviedb.org/movie/438631',
-      })
-      const withoutExtras = createWatchlistAdditionHtml({
-        ...base,
-        type: 'movie',
-      })
+      const withExtras = createWatchlistAddedAppriseMessage(
+        {
+          ...base,
+          type: 'movie',
+          posterUrl: 'https://image.tmdb.org/dune.jpg',
+          tmdbUrl: 'https://www.themoviedb.org/movie/438631',
+        },
+        'Alice A',
+      )
+      const withoutExtras = createWatchlistAddedAppriseMessage(
+        { ...base, type: 'movie' },
+        'Alice A',
+      )
 
-      expect(withExtras.htmlBody).toContain('https://image.tmdb.org/dune.jpg')
-      expect(withExtras.htmlBody).toContain(
+      expect(withExtras.bodyHtml).toContain('https://image.tmdb.org/dune.jpg')
+      expect(withExtras.bodyHtml).toContain(
         'https://www.themoviedb.org/movie/438631',
       )
-      expect(withExtras.textBody).toContain(
+      expect(withExtras.body).toContain(
         'TMDB: https://www.themoviedb.org/movie/438631',
       )
-      expect(withoutExtras.htmlBody).not.toContain('<img')
-      expect(withoutExtras.textBody).not.toContain('TMDB:')
+      expect(withoutExtras.bodyHtml).not.toContain('<img')
+      expect(withoutExtras.body).not.toContain('TMDB:')
     })
   })
 
-  describe('createTestNotificationHtml', () => {
-    it('should return the fixed title and formatted HTML', () => {
-      const result = createTestNotificationHtml()
+  describe('createTestAppriseMessage', () => {
+    it('should render the shared test copy in both bodies', () => {
+      const result = createTestAppriseMessage()
 
-      expect(result.title).toBe('🔔 Pulsarr HTML Notification Test')
-      expect(result.htmlBody).toContain('<strong>')
-      expect(result.textBody).toContain('Pulsarr HTML Notification Test')
+      expect(result.title).toBe(TEST_NOTIFICATION.title)
+      expect(result.bodyHtml).toContain(TEST_NOTIFICATION.body)
+      expect(result.body).toContain(TEST_NOTIFICATION.body)
     })
   })
 
   describe('every template', () => {
     const outputs = [
-      createMediaNotificationHtml({
+      createMediaAppriseMessage({
         type: 'movie',
         title: 'Dune',
         username: 'alice',
         posterUrl: 'https://image.tmdb.org/dune.jpg',
         tmdbUrl: 'https://www.themoviedb.org/movie/438631',
       }),
-      createApprovalNotificationHtml({
-        title: 'New Approval Request: Dune',
+      createApprovalAppriseMessage({
         contentTitle: 'Dune',
-        contentType: 'Movie',
+        contentType: 'movie',
         requestedBy: 'alice',
         reason: 'User quota exceeded',
         totalPending: 1,
-        actionRequired: 'Review in the approvals page',
       }),
-      createUpdateAvailableNotificationHtml({
+      createUpdateAvailableAppriseMessage({
         currentVersion: '1.0.0',
         latestVersion: '1.1.0',
         releaseUrl: 'https://github.com/jamcalli/Pulsarr/releases/tag/v1.1.0',
@@ -520,31 +521,33 @@ describe('apprise-html', () => {
         releaseBodyHtml: '<b>Short notes</b>',
         publishedAt: '2024-03-01T00:00:00Z',
       }),
-      createWatchlistCapNotificationHtml({
-        userName: 'alice',
-        contentType: 'movie',
-        currentCount: 5,
-        cap: 10,
-      }),
-      createDeleteSyncNotificationHtml(
+      createWatchlistCapAppriseMessage(
+        {
+          userId: 1,
+          userName: 'alice',
+          contentType: 'movie',
+          currentCount: 5,
+          cap: 10,
+        },
+        'alice',
+      ),
+      createDeleteSyncAppriseMessage(
         deleteSyncResult({
           total: { deleted: 1, skipped: 0, processed: 1 },
           movies: { deleted: 1, skipped: 0, items: deletedItems(1, 'Movie') },
         }),
         false,
       ),
-      createWatchlistAdditionHtml({
-        title: 'Dune',
-        type: 'movie',
-        addedBy: { name: 'alice' },
-        displayName: 'Alice A',
-      }),
-      createTestNotificationHtml(),
+      createWatchlistAddedAppriseMessage(
+        { title: 'Dune', type: 'movie', username: 'alice' },
+        'Alice A',
+      ),
+      createTestAppriseMessage(),
     ]
 
     it('should carry no branding sign-off or arrow glyph', () => {
       for (const output of outputs) {
-        for (const body of [output.htmlBody, output.textBody]) {
+        for (const body of [output.bodyHtml, output.body]) {
           expect(body).not.toContain('Powered by')
           expect(body).not.toContain('- Pulsarr')
           expect(body).not.toContain('\u2192')
@@ -554,8 +557,8 @@ describe('apprise-html', () => {
 
     it('should wrap HTML bodies and keep text bodies free of markup', () => {
       for (const output of outputs) {
-        expect(output.htmlBody).toContain('<div')
-        expect(output.textBody).not.toContain('<')
+        expect(output.bodyHtml).toContain('<div')
+        expect(output.body).not.toContain('<')
       }
     })
   })

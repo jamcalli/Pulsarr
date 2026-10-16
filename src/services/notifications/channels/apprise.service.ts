@@ -1,29 +1,18 @@
 import type { AppriseSchemaFormatMap } from '@root/types/apprise.types.js'
-import type { NotificationUser } from '@root/types/config.types.js'
-import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
-  ApprovalNotification,
-  MediaNotification,
-  UpdateAvailableRelease,
-  WatchlistAdditionNotification,
-  WatchlistCapNotification,
-} from '@root/types/discord.types.js'
+  AppriseMessage,
+  DeliveryResult,
+  NotificationTestResult,
+} from '@root/types/notification.types.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   type AppriseDeps,
-  isAppriseEnabled as checkAppriseEnabled,
   pingAppriseServer,
-  sendApprovalNotification as sendApproval,
-  sendDeleteSyncNotification as sendDeleteSync,
-  sendMediaNotification as sendMedia,
-  sendPublicNotification as sendPublic,
-  sendTestNotification as sendTest,
-  sendUpdateAvailableNotification as sendUpdateAvailable,
-  sendUserWatchlistCapNotification as sendUserWatchlistCap,
-  sendWatchlistAdditionNotification as sendWatchlistAddition,
-  sendWatchlistCapNotification as sendWatchlistCap,
+  sendNotification,
+  testNotification,
 } from './apprise.js'
 import { fetchSchemaFormats } from './apprise-format-cache.js'
+import { timeTest } from './time-test.js'
 
 export type AppriseStatus = 'enabled' | 'disabled' | 'not_configured'
 
@@ -47,74 +36,21 @@ export class AppriseService {
 
   private get appriseDeps(): AppriseDeps {
     return {
-      log: this.log,
+      logger: this.log,
       config: this.fastify.config,
       schemaFormatCache: this.schemaFormatCache,
-      lookupUserAlias: async (username: string) => {
-        const users = await this.fastify.db.getAllUsers()
-        const user = users.find((u) => u.name === username)
-        return user?.alias ?? undefined
-      },
     }
   }
 
-  isEnabled(): boolean {
-    return checkAppriseEnabled(this.appriseDeps)
+  async sendNotification(
+    target: string | null | undefined,
+    message: AppriseMessage,
+  ): Promise<DeliveryResult> {
+    return sendNotification(target, message, this.appriseDeps)
   }
 
-  async sendPublicNotification(
-    notification: MediaNotification,
-  ): Promise<boolean> {
-    return sendPublic(notification, this.appriseDeps)
-  }
-
-  async sendMediaNotification(
-    user: NotificationUser,
-    notification: MediaNotification,
-  ): Promise<boolean> {
-    return sendMedia(user, notification, this.appriseDeps)
-  }
-
-  async sendApprovalNotification(
-    notification: ApprovalNotification,
-  ): Promise<boolean> {
-    return sendApproval(notification, this.appriseDeps)
-  }
-
-  async sendDeleteSyncNotification(
-    results: DeleteSyncResult,
-    dryRun: boolean,
-  ): Promise<boolean> {
-    return sendDeleteSync(results, dryRun, this.appriseDeps)
-  }
-
-  async sendUpdateAvailableNotification(
-    release: UpdateAvailableRelease,
-  ): Promise<boolean> {
-    return sendUpdateAvailable(release, this.appriseDeps)
-  }
-
-  async sendWatchlistAdditionNotification(
-    item: WatchlistAdditionNotification,
-  ): Promise<boolean> {
-    return sendWatchlistAddition(item, this.appriseDeps)
-  }
-
-  async sendWatchlistCapNotification(
-    event: WatchlistCapNotification,
-  ): Promise<boolean> {
-    return sendWatchlistCap(event, this.appriseDeps)
-  }
-
-  async sendUserWatchlistCapNotification(
-    user: NotificationUser,
-    event: WatchlistCapNotification,
-  ): Promise<boolean> {
-    return sendUserWatchlistCap(user, event, this.appriseDeps)
-  }
-
-  async sendTestNotification(targetUrl: string): Promise<boolean> {
-    return sendTest(targetUrl, this.appriseDeps)
+  async testNotification(targetUrl: string): Promise<NotificationTestResult> {
+    return timeTest(() => testNotification(targetUrl, this.appriseDeps))
   }
 
   getStatus(): AppriseStatus {
@@ -127,10 +63,6 @@ export class AppriseService {
 
   whenReady(): Promise<boolean> {
     return this.readyPromise
-  }
-
-  isReady(): boolean {
-    return this.readyValue
   }
 
   private async probeUntilReachable(appriseUrl: string): Promise<boolean> {

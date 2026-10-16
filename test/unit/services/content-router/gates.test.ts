@@ -56,11 +56,12 @@ function gateDeps(overrides: ContentRouterDepsOverrides = {}) {
   const createApprovalRequest = vi.fn().mockResolvedValue(undefined)
   const tryConsumeQuota = vi.fn().mockResolvedValue(quota())
   const sendWatchlistCapReached = vi.fn()
+  const clearWatchlistCap = vi.fn()
   const deps = createContentRouterDeps({
     rules: { get: vi.fn().mockResolvedValue([]) },
     approvalService: { createApprovalRequest },
     quotaService: { tryConsumeQuota },
-    notifications: { sendWatchlistCapReached },
+    notifications: { sendWatchlistCapReached, clearWatchlistCap },
     ...overrides,
     db: {
       getApprovalRequestByContent: vi.fn().mockResolvedValue(null),
@@ -76,6 +77,7 @@ function gateDeps(overrides: ContentRouterDepsOverrides = {}) {
     createApprovalRequest,
     tryConsumeQuota,
     sendWatchlistCapReached,
+    clearWatchlistCap,
   }
 }
 
@@ -126,6 +128,20 @@ describe('applyPreRoutingGates', () => {
       cap: 2,
     })
     expect(tryConsumeQuota).not.toHaveBeenCalled()
+  })
+
+  it('clears the cap notification when the user is at the cap', async () => {
+    const { deps, sendWatchlistCapReached, clearWatchlistCap } = gateDeps({
+      db: {
+        getUserQuota: vi.fn().mockResolvedValue({ watchlistCap: 2 }),
+        getWatchlistUsage: vi.fn().mockResolvedValue(2),
+      },
+    })
+
+    await applyPreRoutingGates(params({ decisions: [] }), deps)
+
+    expect(sendWatchlistCapReached).not.toHaveBeenCalled()
+    expect(clearWatchlistCap).toHaveBeenCalledWith(1, 'movie')
   })
 
   it('proceeds without consuming quota when there are no decisions', async () => {

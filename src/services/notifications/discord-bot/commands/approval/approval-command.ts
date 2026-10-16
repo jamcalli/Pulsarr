@@ -1,10 +1,3 @@
-/**
- * Approval Command Entry Point
- *
- * Slash command definition for /approvals.
- * Primary admin only - review and manage pending approval requests.
- */
-
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
@@ -31,7 +24,6 @@ export const approvalCommand = {
     const { db, logger } = deps
 
     try {
-      // Check if user is primary admin
       const isPrimary = await checkUserIsPrimary(interaction.user.id, {
         db,
         logger,
@@ -49,7 +41,6 @@ export const approvalCommand = {
         'Primary admin accessed approval command',
       )
 
-      // Show the main approval management menu
       await showApprovalMainMenu(interaction, { db, logger })
     } catch (error) {
       logger.error({ error }, 'Error in approval command')
@@ -74,6 +65,5 @@ export const approvalCommand = {
   },
 }
 
-// Re-export handlers for the event router
 export { handleApprovalButtons } from './handlers.js'
 export { showApprovalAtIndex } from './review-flow.js'

@@ -20,6 +20,8 @@ export interface WatchlistCapGateResult {
   skipIds: Set<string>
   skippedCount: number
   cappedEntries: CappedEntry[]
+  /** Users with a cap who are at or under it. */
+  uncappedEntries: Pick<CappedEntry, 'userId' | 'contentType'>[]
 }
 
 export async function evaluateWatchlistCaps(
@@ -29,11 +31,12 @@ export async function evaluateWatchlistCaps(
   const skipIds = new Set<string>()
   let skippedCount = 0
   const cappedEntries: CappedEntry[] = []
+  const uncappedEntries: WatchlistCapGateResult['uncappedEntries'] = []
 
   const capsRows = await deps.db.getActiveWatchlistCaps()
 
   if (capsRows.length === 0) {
-    return { skipIds, skippedCount, cappedEntries }
+    return { skipIds, skippedCount, cappedEntries, uncappedEntries }
   }
 
   const capsMap = new Map<string, number>()
@@ -59,34 +62,37 @@ export async function evaluateWatchlistCaps(
   for (const [mapKey, cap] of capsMap) {
     const total = totalCounts.get(mapKey) ?? 0
     const pending = pendingItems.get(mapKey) ?? []
+    const [userId, type] = mapKey.split(':')
+    const numericUserId = Number(userId)
+    const contentType = type === 'show' ? 'show' : 'movie'
 
+    if (total <= cap) {
+      uncappedEntries.push({ userId: numericUserId, contentType })
+      continue
+    }
     if (pending.length === 0) continue
 
-    if (total > cap) {
-      for (const item of pending) {
-        skipIds.add(item.id)
-      }
-      skippedCount += pending.length
-      const [userId, type] = mapKey.split(':')
-      const numericUserId = Number(userId)
-      deps.logger.info(
-        {
-          userId: numericUserId,
-          type,
-          total,
-          cap,
-          pendingSkipped: pending.length,
-        },
-        'Watchlist cap reached, skipping all pending items',
-      )
-      cappedEntries.push({
-        userId: numericUserId,
-        contentType: type as 'movie' | 'show',
-        currentCount: total,
-        cap,
-      })
+    for (const item of pending) {
+      skipIds.add(item.id)
     }
+    skippedCount += pending.length
+    deps.logger.info(
+      {
+        userId: numericUserId,
+        type,
+        total,
+        cap,
+        pendingSkipped: pending.length,
+      },
+      'Watchlist cap reached, skipping all pending items',
+    )
+    cappedEntries.push({
+      userId: numericUserId,
+      contentType,
+      currentCount: total,
+      cap,
+    })
   }
 
-  return { skipIds, skippedCount, cappedEntries }
+  return { skipIds, skippedCount, cappedEntries, uncappedEntries }
 }

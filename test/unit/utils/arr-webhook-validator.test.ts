@@ -2,11 +2,11 @@ import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.
 import {
   clearWebhookCacheForTests,
   isWebhookProcessable,
-} from '@utils/notifications/webhook-validator.js'
+} from '@utils/arr-webhook-validator.js'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createMockLogger } from '../../../mocks/logger.js'
+import { createMockLogger } from '../../mocks/logger.js'
 
-describe('webhook-validator', () => {
+describe('arr-webhook-validator', () => {
   const mockLogger = createMockLogger()
 
   beforeEach(() => {
@@ -236,11 +236,9 @@ describe('webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        // First call should pass
         const firstResult = isWebhookProcessable(payload, mockLogger)
         expect(firstResult).toBe(true)
 
-        // Second call with same payload should be detected as duplicate
         const secondResult = isWebhookProcessable(payload, mockLogger)
         expect(secondResult).toBe(false)
       })
@@ -286,7 +284,6 @@ describe('webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        // Both should pass because they're different episodes
         const result1 = isWebhookProcessable(payload1, mockLogger)
         const result2 = isWebhookProcessable(payload2, mockLogger)
 

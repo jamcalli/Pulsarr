@@ -136,13 +136,17 @@ export async function syncWatchlistItems(
     ])
     const allWatchlistItems = [...shows, ...movies]
 
-    const { skipIds, cappedEntries } = await evaluateWatchlistCaps(
-      { db: deps.db, logger: deps.logger },
-      allWatchlistItems,
-    )
+    const { skipIds, cappedEntries, uncappedEntries } =
+      await evaluateWatchlistCaps(
+        { db: deps.db, logger: deps.logger },
+        allWatchlistItems,
+      )
 
     const exclusionMap = await deps.db.getExclusionMap()
 
+    for (const entry of uncappedEntries) {
+      deps.notifications.clearWatchlistCap(entry.userId, entry.contentType)
+    }
     // The notification service debounces these, so repeats per cycle are harmless
     for (const entry of cappedEntries) {
       const user = userById.get(entry.userId)

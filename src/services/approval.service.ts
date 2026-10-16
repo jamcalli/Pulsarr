@@ -1126,9 +1126,8 @@ export class ApprovalService {
 
     // Set new timer to send batched notification
     this.notificationTimer = setTimeout(async () => {
-      await this.sendBatchedApprovalNotifications()
-      this.notificationQueue.clear()
       this.notificationTimer = null
+      await this.sendBatchedApprovalNotifications()
     }, this.NOTIFICATION_DEBOUNCE_MS)
   }
 
@@ -1137,45 +1136,31 @@ export class ApprovalService {
    * Delegates channel routing and delivery to the orchestration layer.
    */
   private async sendBatchedApprovalNotifications(): Promise<void> {
-    if (this.notificationQueue.size === 0) {
+    const queuedRequestIds = new Set(this.notificationQueue)
+    this.notificationQueue.clear()
+    if (queuedRequestIds.size === 0) {
       return
     }
 
-    // Get all pending approvals and the queued requests
     const pendingApprovals = await this.fastify.db.getPendingApprovalRequests()
     const totalPending = pendingApprovals.length
-    const queuedRequestIds = Array.from(this.notificationQueue)
-
-    // Find the queued requests in the pending approvals and map to orchestration format
-    const queuedRequests = pendingApprovals
-      .filter((approval) => queuedRequestIds.includes(approval.id))
-      .map((approval) => ({
-        id: approval.id,
-        contentTitle: approval.contentTitle,
-        contentType: approval.contentType,
-        contentKey: approval.contentKey,
-        contentGuids: approval.contentGuids,
-        userId: approval.userId,
-        userName: approval.userName,
-        triggeredBy: approval.triggeredBy,
-        approvalReason: approval.approvalReason ?? null,
-      }))
+    const queuedRequests = pendingApprovals.filter((approval) =>
+      queuedRequestIds.has(approval.id),
+    )
 
     if (queuedRequests.length === 0) {
       this.log.debug('No queued requests found in pending approvals')
       return
     }
 
-    // Delegate notification delivery to NotificationService
-    const successCount = await this.fastify.notifications.sendApprovalBatch(
-      queuedRequests,
-      totalPending,
-    )
-
-    this.log.debug(
-      { queuedCount: queuedRequests.length, successCount },
-      'Approval batch notification complete',
-    )
+    void this.fastify.notifications
+      .sendApprovalBatch(queuedRequests, totalPending)
+      .then((delivered) => {
+        this.log.debug(
+          { queuedCount: queuedRequests.length, delivered },
+          'Approval batch notification complete',
+        )
+      })
   }
 
   /**
@@ -1187,9 +1172,6 @@ export class ApprovalService {
       this.notificationTimer = null
     }
 
-    if (this.notificationQueue.size > 0) {
-      await this.sendBatchedApprovalNotifications()
-      this.notificationQueue.clear()
-    }
+    await this.sendBatchedApprovalNotifications()
   }
 }

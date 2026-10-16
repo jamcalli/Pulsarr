@@ -1,16 +1,9 @@
-/**
- * Plex Mobile Service
- *
- * Owns the full Plex mobile notification flow:
- * - Rating key resolution (movie/episode/season)
- * - User ID mapping (username → numeric Plex ID)
- * - In-memory retry queue for Plex indexing delay
- * - Delegates to the pure sendPlexMobileNotification function
- */
-
-import type { NotificationUser } from '@root/types/config.types.js'
-import type { MediaNotification } from '@root/types/discord.types.js'
-import type { PlexUser } from '@root/types/plex-server.types.js'
+import type {
+  DeliveryResult,
+  MediaNotification,
+  NotificationTestResult,
+  NotificationUser,
+} from '@root/types/notification.types.js'
 import { buildPlexGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -18,7 +11,9 @@ import {
   type PlexMobileNotificationDeps,
   type PlexMobilePayload,
   sendPlexMobileNotification,
+  sendPlexMobileTestNotification,
 } from './plex-mobile.js'
+import { timeTest } from './time-test.js'
 
 export type PlexMobileStatus =
   | 'enabled'
@@ -33,6 +28,22 @@ interface PendingPlexNotification {
   guid: string
   isBulkRelease: boolean
   createdAt: number
+  settle: (result: DeliveryResult) => void
+}
+
+/** `queued` settles once Plex indexes the item and the push goes out, or the retry gives up. */
+export type PlexMobileDelivery =
+  | DeliveryResult
+  | { queued: Promise<DeliveryResult> }
+
+const STATUS_TEST_ERRORS: Record<
+  Exclude<PlexMobileStatus, 'enabled'>,
+  string
+> = {
+  disabled: 'Plex mobile notifications are turned off.',
+  no_plex_pass: 'Plex mobile notifications need Plex Pass on the server.',
+  not_configured:
+    'Pulsarr has not checked for Plex Pass yet. Connect a Plex server first.',
 }
 
 const RETRY_INTERVAL_MS = 120_000
@@ -47,9 +58,6 @@ export class PlexMobileService {
     | ReturnType<typeof setInterval>
     | null = null
   private isProcessingRetries = false
-  private plexUsersCache: PlexUser[] | null = null
-  private plexUsersCacheTimestamp = 0
-  private readonly PLEX_USERS_CACHE_TTL = 30 * 60 * 1000
 
   constructor(
     baseLog: FastifyBaseLogger,
@@ -60,7 +68,7 @@ export class PlexMobileService {
 
   private get notificationDeps(): PlexMobileNotificationDeps {
     return {
-      log: this.log,
+      logger: this.log,
       plexToken: this.fastify.config.plexTokens?.[0] ?? '',
       serverMachineId:
         this.fastify.plexServerService.getServerMachineId() ?? '',
@@ -87,13 +95,13 @@ export class PlexMobileService {
     const hasPlexPass = this.fastify.plexServerService.getHasPlexPass()
     if (hasPlexPass === null) {
       this.log.info(
-        'Plex Pass status not yet determined — Plex mobile notifications deferred',
+        'Plex Pass status not yet determined, so Plex mobile notifications are deferred',
       )
       return
     }
     if (!hasPlexPass) {
       this.log.info(
-        'Plex Pass not detected — Plex mobile notifications unavailable',
+        'Plex Pass not detected, so Plex mobile notifications are unavailable',
       )
       return
     }
@@ -116,50 +124,43 @@ export class PlexMobileService {
         `Shutting down with ${this.pendingQueue.size} pending notifications discarded`,
       )
     }
+    for (const pending of this.pendingQueue.values()) {
+      pending.settle({ ok: false, reason: 'discarded at shutdown' })
+    }
     this.pendingQueue.clear()
-    this.plexUsersCache = null
   }
-
-  // ---------------------------------------------------------------------------
-  // SSE-triggered retry - bypasses polling interval for near-instant delivery
-  // ---------------------------------------------------------------------------
 
   triggerRetryProcessing(): void {
     if (this.pendingQueue.size === 0) return
     void this.processRetryQueue()
   }
 
-  // ---------------------------------------------------------------------------
-  // Public entry point — called from notification orchestration
-  // ---------------------------------------------------------------------------
-
-  async sendMediaNotification(
+  async sendNotification(
     user: NotificationUser,
     notification: MediaNotification,
     watchlistItemKey: string,
     guid: string,
     isBulkRelease: boolean,
-  ): Promise<boolean> {
-    if (!this.isEnabled()) return false
-    if (!user.notify_plex_mobile) return false
+  ): Promise<PlexMobileDelivery> {
+    if (!this.isEnabled()) {
+      return { ok: false, reason: 'Plex mobile notifications disabled' }
+    }
+    if (!user.notify_plex_mobile) {
+      return { ok: false, reason: 'user has Plex mobile notifications off' }
+    }
 
     const plexToken = this.fastify.config.plexTokens?.[0]
     const serverMachineId = this.fastify.plexServerService.getServerMachineId()
     if (!plexToken || !serverMachineId) {
-      this.log.error(
-        { hasToken: !!plexToken, hasMachineId: !!serverMachineId },
-        'Missing critical deps for Plex mobile notification — skipping',
-      )
-      return false
+      return { ok: false, reason: 'not connected to a Plex server' }
     }
 
-    const plexUserId = await this.resolveUserPlexId(user.name, user.id)
+    const plexUserId = await this.fastify.plexServerService.resolveUserPlexId(
+      user.name,
+      user.id,
+    )
     if (plexUserId === null) {
-      this.log.warn(
-        { username: user.name },
-        'Could not resolve numeric Plex user ID — skipping notification',
-      )
-      return false
+      return { ok: false, reason: 'no matching Plex account' }
     }
 
     const plexGuid = buildPlexGuid(
@@ -175,22 +176,27 @@ export class PlexMobileService {
     )
 
     if (resolved) {
-      const sent = await this.sendResolved(
+      return this.sendResolved(
         notification,
         resolved,
         [plexUserId],
         isBulkRelease,
       )
-      if (sent) {
-        this.log.info(
-          `Plex mobile notification sent successfully to ${user.name} for "${notification.title}"`,
-        )
-      }
-      return sent
     }
 
-    // Not found yet — queue for retry
-    const queueKey = `${guid}:${user.id}`
+    const episode = notification.episodeDetails
+    const queueKey = [
+      guid,
+      user.id,
+      episode?.seasonNumber,
+      episode?.episodeNumber,
+    ].join(':')
+    const { promise: queued, resolve: settle } =
+      Promise.withResolvers<DeliveryResult>()
+    this.pendingQueue.get(queueKey)?.settle({
+      ok: false,
+      reason: 'replaced by a newer queued notification',
+    })
     this.pendingQueue.set(queueKey, {
       user,
       notification,
@@ -198,18 +204,47 @@ export class PlexMobileService {
       guid,
       isBulkRelease,
       createdAt: Date.now(),
+      settle,
     })
-    this.log.info(
+    this.log.debug(
       { queueKey, title: notification.title, username: user.name },
-      'Plex mobile notification queued — content not yet indexed in Plex',
+      'Plex mobile notification queued until Plex indexes the content',
     )
     this.ensureRetryTimer()
-    return false
+    return { queued }
   }
 
-  // ---------------------------------------------------------------------------
-  // Rating key resolution
-  // ---------------------------------------------------------------------------
+  testNotification(
+    user: Pick<NotificationUser, 'id' | 'name'>,
+  ): Promise<NotificationTestResult> {
+    return timeTest(async () => {
+      const status = this.getStatus()
+      if (status !== 'enabled') {
+        return { success: false, error: STATUS_TEST_ERRORS[status] }
+      }
+
+      const deps = this.notificationDeps
+      if (!deps.plexToken || !deps.serverMachineId) {
+        return {
+          success: false,
+          error: 'Pulsarr is not connected to a Plex server yet.',
+        }
+      }
+
+      const plexUserId = await this.fastify.plexServerService.resolveUserPlexId(
+        user.name,
+        user.id,
+      )
+      if (plexUserId === null) {
+        return {
+          success: false,
+          error: 'This user is not matched to a Plex account on your server.',
+        }
+      }
+
+      return sendPlexMobileTestNotification(plexUserId, deps)
+    })
+  }
 
   private async resolveRatingKey(
     plexGuid: string,
@@ -222,12 +257,10 @@ export class PlexMobileService {
 
     const ratingKey = results[0].ratingKey
 
-    // Movie — single call, done
     if (mediaType === 'movie') {
       return { ratingKey }
     }
 
-    // Show — drill into seasons via includeChildren on show metadata
     const showMeta = await this.fastify.plexServerService.getShowMetadata(
       ratingKey,
       true,
@@ -238,7 +271,6 @@ export class PlexMobileService {
     const targetSeason = episodeDetails?.seasonNumber
 
     if (targetSeason == null) {
-      // No season info — link to the show itself
       return { ratingKey }
     }
 
@@ -251,12 +283,11 @@ export class PlexMobileService {
       return null
     }
 
-    // Bulk release — link to the season
     if (isBulkRelease) {
       return { ratingKey: season.ratingKey, episodeCount: season.leafCount }
     }
 
-    // Single episode — use /children endpoint (includeChildren=1 doesn't work on seasons)
+    // includeChildren=1 does not return episodes on a season, so episodes come from /children
     const targetEpisode = episodeDetails?.episodeNumber
     if (targetEpisode == null) {
       return { ratingKey: season.ratingKey }
@@ -279,60 +310,12 @@ export class PlexMobileService {
     return { ratingKey: episode.ratingKey }
   }
 
-  // ---------------------------------------------------------------------------
-  // User ID mapping
-  // ---------------------------------------------------------------------------
-
-  private async resolveUserPlexId(
-    username: string,
-    userId: number,
-  ): Promise<number | null> {
-    // Admin user — use the captured admin ID
-    const primaryUser = await this.fastify.db.getPrimaryUser()
-    if (primaryUser && primaryUser.id === userId) {
-      const adminId = this.fastify.plexServerService.getAdminPlexId()
-      if (adminId !== null) return adminId
-    }
-
-    // Friend user — lookup from cached getPlexUsers()
-    const plexUsers = await this.getCachedPlexUsers()
-    const match = plexUsers.find(
-      (pu) =>
-        pu.username.toLowerCase() === username.toLowerCase() ||
-        pu.title.toLowerCase() === username.toLowerCase(),
-    )
-
-    if (match) {
-      const numericId = Number(match.id)
-      return Number.isNaN(numericId) ? null : numericId
-    }
-
-    return null
-  }
-
-  private async getCachedPlexUsers(): Promise<PlexUser[]> {
-    if (
-      this.plexUsersCache &&
-      Date.now() - this.plexUsersCacheTimestamp < this.PLEX_USERS_CACHE_TTL
-    ) {
-      return this.plexUsersCache
-    }
-
-    this.plexUsersCache = await this.fastify.plexServerService.getPlexUsers()
-    this.plexUsersCacheTimestamp = Date.now()
-    return this.plexUsersCache
-  }
-
-  // ---------------------------------------------------------------------------
-  // Send resolved notification
-  // ---------------------------------------------------------------------------
-
   private async sendResolved(
     notification: MediaNotification,
     resolved: { ratingKey: string; episodeCount?: number },
     userIds: number[],
     isBulkRelease: boolean,
-  ): Promise<boolean> {
+  ): Promise<DeliveryResult> {
     let payloadType: PlexMobilePayload['type']
     if (notification.type === 'movie') {
       payloadType = 'movie'
@@ -350,7 +333,7 @@ export class PlexMobileService {
           : notification.title,
       grandparentTitle:
         payloadType !== 'movie' ? notification.title : undefined,
-      year: undefined, // Year not available in MediaNotification
+      year: undefined,
       seasonNumber: notification.episodeDetails?.seasonNumber,
       episodeNumber:
         payloadType === 'episode'
@@ -364,11 +347,7 @@ export class PlexMobileService {
     return sendPlexMobileNotification(payload, this.notificationDeps)
   }
 
-  // ---------------------------------------------------------------------------
-  // Retry queue
-  // ---------------------------------------------------------------------------
-
-  // Start retry polling on SSE disconnect so queued items still get processed
+  /** Call on SSE disconnect so queued items still retry without content-scanned events. */
   startRetryPolling(): void {
     if (this.pendingQueue.size === 0) return
     this.ensureRetryTimer()
@@ -376,17 +355,21 @@ export class PlexMobileService {
 
   private ensureRetryTimer(): void {
     if (this.retryTimer) return
-    // Skip starting the timer when SSE is connected - items will be
-    // processed via onContentScanned -> triggerRetryProcessing() instead
+    // A connected SSE stream drives retries through triggerRetryProcessing instead
     if (this.fastify.plexServerService.isSSEConnected()) return
-    // Wait for initial grace period before first poll, then switch to regular interval.
-    // SSE content-scanned events handle the fast path via triggerRetryProcessing().
     this.retryTimer = setTimeout(() => {
       void this.processRetryQueue()
       this.retryTimer = setInterval(() => {
         void this.processRetryQueue()
       }, RETRY_INTERVAL_MS)
     }, INITIAL_RETRY_DELAY_MS)
+  }
+
+  /** Resolves why a queued push must not go out now, or null when it may. */
+  private async sendTimeOptOut(userId: number): Promise<string | null> {
+    if (!this.isEnabled()) return 'Plex mobile turned off'
+    const user = await this.fastify.db.getUser(userId)
+    return user?.notify_plex_mobile ? null : 'user turned off Plex mobile'
   }
 
   private async processRetryQueue(): Promise<void> {
@@ -406,12 +389,11 @@ export class PlexMobileService {
 
       for (const [key, pending] of this.pendingQueue) {
         try {
-          // Expired
           if (now - pending.createdAt > MAX_RETRY_AGE_MS) {
-            this.log.warn(
-              { key, title: pending.notification.title },
-              'Plex mobile notification expired after max retry age',
-            )
+            pending.settle({
+              ok: false,
+              reason: 'Plex did not index the content in time',
+            })
             this.pendingQueue.delete(key)
             continue
           }
@@ -428,49 +410,50 @@ export class PlexMobileService {
             pending.isBulkRelease,
           )
 
-          if (!resolved) continue // Still not indexed, try next cycle
+          if (!resolved) continue
 
-          const plexUserId = await this.resolveUserPlexId(
-            pending.user.name,
-            pending.user.id,
-          )
-          if (plexUserId === null) {
-            this.log.warn(
-              { key, username: pending.user.name },
-              'Could not resolve Plex user ID during retry — dropping notification',
-            )
+          const optOut = await this.sendTimeOptOut(pending.user.id)
+          if (optOut) {
+            pending.settle({ ok: false, reason: optOut })
             this.pendingQueue.delete(key)
             continue
           }
 
-          const sent = await this.sendResolved(
+          const plexUserId =
+            await this.fastify.plexServerService.resolveUserPlexId(
+              pending.user.name,
+              pending.user.id,
+            )
+          if (plexUserId === null) {
+            pending.settle({ ok: false, reason: 'no matching Plex account' })
+            this.pendingQueue.delete(key)
+            continue
+          }
+
+          const result = await this.sendResolved(
             pending.notification,
             resolved,
             [plexUserId],
             pending.isBulkRelease,
           )
 
-          if (sent) {
-            this.log.info(
-              { key, title: pending.notification.title },
-              'Plex mobile notification sent on retry',
-            )
+          if (result.ok) {
+            pending.settle(result)
             this.pendingQueue.delete(key)
           } else {
-            this.log.warn(
-              { key, title: pending.notification.title },
-              'Plex mobile notification send failed on retry — will retry next cycle',
+            this.log.debug(
+              { key, title: pending.notification.title, reason: result.reason },
+              'Plex mobile retry send failed, retrying next cycle',
             )
           }
         } catch (error) {
           this.log.error(
             { error, key, title: pending.notification.title },
-            'Unexpected error processing retry item — will retry next cycle',
+            'Unexpected error processing retry item, retrying next cycle',
           )
         }
       }
 
-      // Stop timer if queue is empty
       if (this.pendingQueue.size === 0 && this.retryTimer) {
         clearTimeout(this.retryTimer)
         this.retryTimer = null

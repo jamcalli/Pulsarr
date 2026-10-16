@@ -94,13 +94,3 @@ export interface WebhookDispatchResult {
     error?: string
   }>
 }
-
-/**
- * Result of testing a webhook endpoint
- */
-export interface TestWebhookResult {
-  success: boolean
-  statusCode?: number
-  responseTime: number // milliseconds
-  error?: string
-}

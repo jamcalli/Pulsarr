@@ -1,4 +1,7 @@
-import type { ConfigFull } from '@root/schemas/config/config.schema.js'
+import {
+  type ConfigFull,
+  NOTIFY_DEFAULTS,
+} from '@root/schemas/config/config.schema.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -138,8 +141,10 @@ export async function getConfig(
     queueWaitTime: config.queueWaitTime ?? 120000,
     newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
     // Out-of-app update notifications
-    notifyOnUpdate: config.notifyOnUpdate || 'none',
-    notifyOnAvailability: Boolean(config.notifyOnAvailability ?? true),
+    notifyOnUpdate: config.notifyOnUpdate || NOTIFY_DEFAULTS.notifyOnUpdate,
+    notifyOnAvailability: Boolean(
+      config.notifyOnAvailability ?? NOTIFY_DEFAULTS.notifyOnAvailability,
+    ),
     // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -167,10 +172,14 @@ export async function getConfig(
       config.deleteSyncCleanupApprovals ?? false,
     ),
     deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
-    approvalNotify: config.approvalNotify || 'none',
-    watchlistCapNotify: config.watchlistCapNotify || 'none',
-    watchlistCapNotifyUser: Boolean(config.watchlistCapNotifyUser ?? false),
-    watchlistAddNotify: config.watchlistAddNotify || 'all',
+    approvalNotify: config.approvalNotify || NOTIFY_DEFAULTS.approvalNotify,
+    watchlistCapNotify:
+      config.watchlistCapNotify || NOTIFY_DEFAULTS.watchlistCapNotify,
+    watchlistCapNotifyUser: Boolean(
+      config.watchlistCapNotifyUser ?? NOTIFY_DEFAULTS.watchlistCapNotifyUser,
+    ),
+    watchlistAddNotify:
+      config.watchlistAddNotify || NOTIFY_DEFAULTS.watchlistAddNotify,
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
@@ -261,7 +270,7 @@ export async function createConfig(
 ): Promise<number> {
   const exists = await this.knex('configs').count('* as c').first()
   if (Number(exists?.c) > 0) {
-    throw new Error('Configuration already exists – use updateConfig instead')
+    throw new Error('Configuration already exists, use updateConfig instead')
   }
 
   const result = await this.knex('configs')
@@ -291,8 +300,9 @@ export async function createConfig(
       maintainerrExclusionMode:
         config.maintainerrExclusionMode ?? 'watchlisters',
       // Out-of-app update notifications
-      notifyOnUpdate: config.notifyOnUpdate ?? 'none',
-      notifyOnAvailability: config.notifyOnAvailability ?? true,
+      notifyOnUpdate: config.notifyOnUpdate ?? NOTIFY_DEFAULTS.notifyOnUpdate,
+      notifyOnAvailability:
+        config.notifyOnAvailability ?? NOTIFY_DEFAULTS.notifyOnAvailability,
       // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -318,10 +328,13 @@ export async function createConfig(
       deleteSyncTrackedOnly: config.deleteSyncTrackedOnly ?? false,
       deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals ?? false,
       deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
-      approvalNotify: config.approvalNotify || 'none',
-      watchlistCapNotify: config.watchlistCapNotify || 'none',
-      watchlistCapNotifyUser: config.watchlistCapNotifyUser ?? false,
-      watchlistAddNotify: config.watchlistAddNotify || 'all',
+      approvalNotify: config.approvalNotify || NOTIFY_DEFAULTS.approvalNotify,
+      watchlistCapNotify:
+        config.watchlistCapNotify || NOTIFY_DEFAULTS.watchlistCapNotify,
+      watchlistCapNotifyUser:
+        config.watchlistCapNotifyUser ?? NOTIFY_DEFAULTS.watchlistCapNotifyUser,
+      watchlistAddNotify:
+        config.watchlistAddNotify || NOTIFY_DEFAULTS.watchlistAddNotify,
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:

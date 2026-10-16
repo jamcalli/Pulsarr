@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Pulsarr API",
-    "description": "API documentation for Pulsarr - a Plex watchlist integration for Sonarr and Radarr",
+    "description": "API documentation for Pulsarr, a Plex watchlist integration for Sonarr and Radarr",
     "version": "V1"
   },
   "components": {
@@ -53,6 +53,20 @@
         ],
         "additionalProperties": false,
         "description": "Activity counts within the requested range"
+      },
+      "AppriseTestPayload": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Apprise URL or plain email address"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "description": "Apprise URL to send a test notification to"
       },
       "ApprovalQuotaData": {
         "type": "object",
@@ -2230,6 +2244,33 @@
         ],
         "additionalProperties": false,
         "description": "Every dashboard statistic in one response"
+      },
+      "DiscordDmTestPayload": {
+        "type": "object",
+        "properties": {
+          "discordId": {
+            "type": "string",
+            "pattern": "^\\d{17,20}$",
+            "description": "Discord user ID to message"
+          }
+        },
+        "required": [
+          "discordId"
+        ],
+        "description": "Discord user to send a test direct message to"
+      },
+      "DiscordWebhookTestPayload": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "A single https://discord.com/api/webhooks/ URL"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "description": "Discord webhook URL to post a test message to"
       },
       "Error": {
         "type": "object",
@@ -4667,6 +4708,29 @@
         "additionalProperties": false,
         "description": "Result of syncing user tags onto Sonarr and Radarr content"
       },
+      "SystemTestPayload": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "systemApprise",
+              "adminWebhook",
+              "publicDiscord",
+              "publicDiscordMovies",
+              "publicDiscordShows",
+              "publicApprise",
+              "publicAppriseMovies",
+              "publicAppriseShows"
+            ],
+            "description": "Saved system setting to test"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "description": "Saved system notification setting to test"
+      },
       "TagCleanupResponse": {
         "type": "object",
         "properties": {
@@ -4921,6 +4985,33 @@
         ],
         "additionalProperties": false,
         "description": "User tag sync counts for one arr type"
+      },
+      "TestResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the test was delivered"
+          },
+          "statusCode": {
+            "description": "HTTP status from the target, when one responded",
+            "type": "number"
+          },
+          "error": {
+            "description": "Why the test failed, in plain language",
+            "type": "string"
+          },
+          "responseTime": {
+            "type": "number",
+            "description": "Time the test took, in milliseconds"
+          }
+        },
+        "required": [
+          "success",
+          "responseTime"
+        ],
+        "additionalProperties": false,
+        "description": "Result of sending a test notification"
       },
       "TmdbContentMetadata": {
         "anyOf": [
@@ -5963,6 +6054,24 @@
         "additionalProperties": false,
         "description": "A user with their total watchlist item count in the range and its movie and show split"
       },
+      "UserTestPayload": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "apprise",
+              "discord-dm",
+              "plex-mobile"
+            ],
+            "description": "User notification channel to test"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "description": "Saved user notification channel to test"
+      },
       "WatchlistStatus": {
         "type": "string",
         "enum": [
@@ -5972,6 +6081,57 @@
           "notified"
         ],
         "description": "Routing state of a watchlist item or one of its instance rows: pending (not routed), requested (sent to the arr, no file), grabbed (the arr has the file), notified (in Plex and the user was told)"
+      },
+      "WebhookContent": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "key": {
+            "type": "string"
+          },
+          "guids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "posterUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "key",
+          "guids"
+        ],
+        "additionalProperties": false,
+        "description": "Movie or show the event is about"
+      },
+      "WebhookUser": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "username": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "username"
+        ],
+        "additionalProperties": false,
+        "description": "Pulsarr user the event is about, alias only when set"
       }
     }
   },
@@ -9203,6 +9363,343 @@
                     "result"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/test/apprise": {
+      "post": {
+        "operationId": "testAppriseNotification",
+        "summary": "Test Apprise URL",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Send a test notification to an Apprise URL, saved or not",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppriseTestPayload"
+              }
+            }
+          },
+          "description": "Apprise URL to send a test notification to"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/test/discord-dm": {
+      "post": {
+        "operationId": "testDiscordDmNotification",
+        "summary": "Test Discord direct message",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Send a test direct message to a Discord user through the running bot",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscordDmTestPayload"
+              }
+            }
+          },
+          "description": "Discord user to send a test direct message to"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/test/discord-webhook": {
+      "post": {
+        "operationId": "testDiscordWebhookNotification",
+        "summary": "Test Discord webhook",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Post a test message to a Discord webhook URL, saved or not",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscordWebhookTestPayload"
+              }
+            }
+          },
+          "description": "Discord webhook URL to post a test message to"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/test/system": {
+      "post": {
+        "operationId": "testSystemNotification",
+        "summary": "Test saved system notification",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Send a test notification to every URL saved in a system notification setting",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemTestPayload"
+              }
+            }
+          },
+          "description": "Saved system notification setting to test"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/test/users/{userId}": {
+      "post": {
+        "operationId": "testUserNotification",
+        "summary": "Test saved user notification",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Send a test notification through a channel saved on a user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserTestPayload"
+              }
+            }
+          },
+          "description": "Saved user notification channel to test"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -21829,26 +22326,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "responseTime": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "responseTime"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/TestResult"
                 }
               }
             }
@@ -22308,26 +22786,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "responseTime": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "responseTime"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/TestResult"
                 }
               }
             }
@@ -22497,6 +22956,9 @@
                   "title": {
                     "type": "string"
                   },
+                  "key": {
+                    "type": "string"
+                  },
                   "guids": {
                     "type": "array",
                     "items": {
@@ -22542,29 +23004,14 @@
                   "watchlistedBy": {
                     "type": "array",
                     "items": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "number"
-                        },
-                        "username": {
-                          "type": "string"
-                        },
-                        "alias": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "userId",
-                        "username"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/WebhookUser"
                     }
                   }
                 },
                 "required": [
                   "mediaType",
                   "title",
+                  "key",
                   "guids",
                   "isBulkRelease",
                   "watchlistedBy"
@@ -22574,6 +23021,7 @@
               "example": {
                 "mediaType": "movie",
                 "title": "Dune: Part Two",
+                "key": "5d7768388718ba001e31563d",
                 "guids": [
                   "imdb:tt15239678",
                   "tmdb:693134"
@@ -22620,20 +23068,7 @@
                 "type": "object",
                 "properties": {
                   "addedBy": {
-                    "type": "object",
-                    "properties": {
-                      "userId": {
-                        "type": "number"
-                      },
-                      "username": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "userId",
-                      "username"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookUser"
                   },
                   "content": {
                     "type": "object",
@@ -22644,9 +23079,6 @@
                       "type": {
                         "$ref": "#/components/schemas/ContentType"
                       },
-                      "thumb": {
-                        "type": "string"
-                      },
                       "key": {
                         "type": "string"
                       },
@@ -22655,6 +23087,9 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "thumb": {
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -22778,7 +23213,8 @@
               "example": {
                 "addedBy": {
                   "userId": 1,
-                  "username": "john_doe"
+                  "username": "john_doe",
+                  "alias": "John"
                 },
                 "content": {
                   "title": "Dune: Part Two",
@@ -22834,47 +23270,10 @@
                     "type": "number"
                   },
                   "content": {
-                    "type": "object",
-                    "properties": {
-                      "title": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "$ref": "#/components/schemas/ContentType"
-                      },
-                      "key": {
-                        "type": "string"
-                      },
-                      "guids": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": [
-                      "title",
-                      "type",
-                      "key",
-                      "guids"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookContent"
                   },
                   "removedBy": {
-                    "type": "object",
-                    "properties": {
-                      "userId": {
-                        "type": "number"
-                      },
-                      "username": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "userId",
-                      "username"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookUser"
                   }
                 },
                 "required": [
@@ -22893,11 +23292,13 @@
                   "guids": [
                     "imdb:tt15239678",
                     "tmdb:693134"
-                  ]
+                  ],
+                  "posterUrl": "https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg"
                 },
                 "removedBy": {
                   "userId": 1,
-                  "username": "john_doe"
+                  "username": "john_doe",
+                  "alias": "John"
                 }
               }
             }
@@ -22929,27 +23330,7 @@
                     "type": "number"
                   },
                   "content": {
-                    "type": "object",
-                    "properties": {
-                      "title": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "$ref": "#/components/schemas/ContentType"
-                      },
-                      "key": {
-                        "type": "string"
-                      },
-                      "posterUrl": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "title",
-                      "type",
-                      "key"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookContent"
                   },
                   "requestedBy": {
                     "type": "object",
@@ -22962,6 +23343,9 @@
                           "string",
                           "null"
                         ]
+                      },
+                      "alias": {
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -23140,6 +23524,162 @@
                       }
                     ],
                     "type": "object"
+                  },
+                  "additionalRouting": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "qualityProfile": {
+                              "type": [
+                                "number",
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "syncedInstances": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "radarr"
+                            },
+                            "minimumAvailability": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/RadarrMinimumAvailability"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "monitor": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/RadarrMonitor"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "qualityProfile",
+                            "rootFolder",
+                            "tags",
+                            "searchOnAdd",
+                            "instanceType",
+                            "minimumAvailability",
+                            "monitor"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "qualityProfile": {
+                              "type": [
+                                "number",
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "syncedInstances": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "sonarr"
+                            },
+                            "seasonMonitoring": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "seriesType": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/SonarrSeriesType"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "qualityProfile",
+                            "rootFolder",
+                            "tags",
+                            "searchOnAdd",
+                            "instanceType",
+                            "seasonMonitoring",
+                            "seriesType"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ],
+                      "type": "object"
+                    }
                   }
                 },
                 "required": [
@@ -23158,11 +23698,16 @@
                   "title": "The Batman",
                   "type": "movie",
                   "key": "5d7768388718ba001e31abc",
+                  "guids": [
+                    "imdb:tt1877830",
+                    "tmdb:414906"
+                  ],
                   "posterUrl": "https://image.tmdb.org/t/p/w500/poster.jpg"
                 },
                 "requestedBy": {
                   "userId": 1,
-                  "username": "john_doe"
+                  "username": "john_doe",
+                  "alias": "John"
                 },
                 "triggeredBy": "quota_exceeded",
                 "approvalReason": "User has exceeded monthly movie quota (5/5)",
@@ -23178,7 +23723,21 @@
                   "searchOnAdd": true,
                   "minimumAvailability": "released",
                   "monitor": "movieOnly"
-                }
+                },
+                "additionalRouting": [
+                  {
+                    "instanceType": "radarr",
+                    "instanceId": 2,
+                    "qualityProfile": "4K",
+                    "rootFolder": "/movies-4k",
+                    "tags": [
+                      "plex-user"
+                    ],
+                    "searchOnAdd": true,
+                    "minimumAvailability": "released",
+                    "monitor": "movieOnly"
+                  }
+                ]
               }
             }
           }
@@ -23216,47 +23775,10 @@
                     ]
                   },
                   "content": {
-                    "type": "object",
-                    "properties": {
-                      "title": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "$ref": "#/components/schemas/ContentType"
-                      },
-                      "key": {
-                        "type": "string"
-                      },
-                      "guids": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": [
-                      "title",
-                      "type",
-                      "key",
-                      "guids"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookContent"
                   },
                   "requestedBy": {
-                    "type": "object",
-                    "properties": {
-                      "userId": {
-                        "type": "number"
-                      },
-                      "username": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "userId",
-                      "username"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookUser"
                   },
                   "resolvedBy": {
                     "type": "object",
@@ -23443,6 +23965,162 @@
                       }
                     ],
                     "type": "object"
+                  },
+                  "additionalRouting": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "qualityProfile": {
+                              "type": [
+                                "number",
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "syncedInstances": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "radarr"
+                            },
+                            "minimumAvailability": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/RadarrMinimumAvailability"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "monitor": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/RadarrMonitor"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "qualityProfile",
+                            "rootFolder",
+                            "tags",
+                            "searchOnAdd",
+                            "instanceType",
+                            "minimumAvailability",
+                            "monitor"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "qualityProfile": {
+                              "type": [
+                                "number",
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "syncedInstances": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "sonarr"
+                            },
+                            "seasonMonitoring": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "seriesType": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/SonarrSeriesType"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "qualityProfile",
+                            "rootFolder",
+                            "tags",
+                            "searchOnAdd",
+                            "instanceType",
+                            "seasonMonitoring",
+                            "seriesType"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ],
+                      "type": "object"
+                    }
                   }
                 },
                 "required": [
@@ -23467,11 +24145,13 @@
                   "guids": [
                     "imdb:tt1877830",
                     "tmdb:414906"
-                  ]
+                  ],
+                  "posterUrl": "https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg"
                 },
                 "requestedBy": {
                   "userId": 1,
-                  "username": "john_doe"
+                  "username": "john_doe",
+                  "alias": "John"
                 },
                 "resolvedBy": {
                   "userId": 99
@@ -23522,47 +24202,10 @@
                     "type": "number"
                   },
                   "content": {
-                    "type": "object",
-                    "properties": {
-                      "title": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "$ref": "#/components/schemas/ContentType"
-                      },
-                      "key": {
-                        "type": "string"
-                      },
-                      "guids": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": [
-                      "title",
-                      "type",
-                      "key",
-                      "guids"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookContent"
                   },
                   "user": {
-                    "type": "object",
-                    "properties": {
-                      "userId": {
-                        "type": "number"
-                      },
-                      "username": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "userId",
-                      "username"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/WebhookUser"
                   },
                   "routing": {
                     "oneOf": [
@@ -23717,6 +24360,162 @@
                     ],
                     "type": "object"
                   },
+                  "additionalRouting": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "qualityProfile": {
+                              "type": [
+                                "number",
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "syncedInstances": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "radarr"
+                            },
+                            "minimumAvailability": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/RadarrMinimumAvailability"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "monitor": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/RadarrMonitor"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "qualityProfile",
+                            "rootFolder",
+                            "tags",
+                            "searchOnAdd",
+                            "instanceType",
+                            "minimumAvailability",
+                            "monitor"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "qualityProfile": {
+                              "type": [
+                                "number",
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "syncedInstances": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "sonarr"
+                            },
+                            "seasonMonitoring": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "seriesType": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/SonarrSeriesType"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "qualityProfile",
+                            "rootFolder",
+                            "tags",
+                            "searchOnAdd",
+                            "instanceType",
+                            "seasonMonitoring",
+                            "seriesType"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ],
+                      "type": "object"
+                    }
+                  },
                   "reason": {
                     "type": "string"
                   }
@@ -23740,11 +24539,13 @@
                     "imdb:tt0903747",
                     "tmdb:1396",
                     "tvdb:81189"
-                  ]
+                  ],
+                  "posterUrl": "https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg"
                 },
                 "user": {
                   "userId": 1,
-                  "username": "john_doe"
+                  "username": "john_doe",
+                  "alias": "John"
                 },
                 "routing": {
                   "instanceType": "sonarr",
@@ -24063,6 +24864,9 @@
                           "string",
                           "null"
                         ]
+                      },
+                      "alias": {
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -24092,7 +24896,8 @@
               "example": {
                 "user": {
                   "userId": 1,
-                  "username": "john_doe"
+                  "username": "john_doe",
+                  "alias": "John"
                 },
                 "contentType": "movie",
                 "currentCount": 25,

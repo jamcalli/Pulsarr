@@ -102,7 +102,7 @@ export async function notifyOrQueueShow(
     return
   }
 
-  logger.info(
+  logger.debug(
     {
       series: title,
       tvdbId,

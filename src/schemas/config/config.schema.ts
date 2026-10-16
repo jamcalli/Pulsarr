@@ -1,3 +1,4 @@
+import { isDiscordWebhookUrl } from '@root/schemas/common/discord-webhook-url.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
@@ -7,43 +8,22 @@ import {
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
-import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
 import {
   longestQuotaWindowDays,
   resolveQuotaWindowSettings,
 } from '@root/utils/quota-window.js'
+import { splitUrlList } from '@root/utils/url.js'
 import { z } from 'zod'
 
 // Max constants for validation
 const QUEUE_WAIT_TIME_MAX_MS = 30 * 60 * 1000
 const NEW_EPISODE_THRESHOLD_MAX_MS = 720 * 60 * 60 * 1000
 
-/**
- * Validates Discord webhook URL format (comma-separated).
- * Accepts empty strings and validates each URL in comma-separated list.
- * Must be https, discord.com/discordapp.com host, and /api/webhooks/ path.
- */
-const DiscordWebhookUrlSchema = z
+const DiscordWebhookUrlListSchema = z
   .string()
-  .refine(
-    (val) => {
-      if (!val || val.trim() === '') return true
-      return val.split(',').every((url) => {
-        const trimmed = url.trim()
-        if (trimmed === '') return true
-        // First check if it's a valid URL
-        if (!z.url().safeParse(trimmed).success) return false
-        // Then check Discord-specific requirements
-        const parsed = new URL(trimmed)
-        return (
-          parsed.protocol === 'https:' &&
-          DISCORD_WEBHOOK_HOSTS.some((host) => host === parsed.hostname) &&
-          parsed.pathname.startsWith('/api/webhooks/')
-        )
-      })
-    },
-    { message: 'Must be valid Discord webhook URL(s) (comma-separated)' },
-  )
+  .refine((val) => splitUrlList(val).every(isDiscordWebhookUrl), {
+    message: 'Must be valid Discord webhook URL(s) (comma-separated)',
+  })
   .optional()
 
 /**
@@ -67,7 +47,7 @@ const LogLevelEnum = z.enum([
 /** Empty means Pulsarr negotiates the Plex server connection itself. */
 export const PLEX_SERVER_URL_DEFAULT = ''
 
-const NotifyOptionEnum = z.enum([
+export const NOTIFY_OPTIONS = [
   'none', // No notifications
   'all', // All available notification channels
   'discord-only', // Only Discord (both webhook and DM if configured)
@@ -77,19 +57,18 @@ const NotifyOptionEnum = z.enum([
   'discord-webhook', // Same as webhook-only for backward compatibility
   'discord-message', // Same as dm-only for backward compatibility
   'discord-both', // Both Discord webhook and DMs but no Apprise
-])
+] as const
 
-const UpdateNotifyEnum = z.enum([
+export const UPDATE_NOTIFY_OPTIONS = [
   'none',
   'all',
   'discord-only',
   'apprise-only',
   'webhook-only',
   'dm-only',
-])
+] as const
 
-// Legacy enum for backward compatibility
-const DeleteSyncNotifyOptionEnum = z.enum([
+export const DELETE_SYNC_NOTIFY_OPTIONS = [
   'none', // No notifications
   'message', // Legacy option for DM
   'webhook', // Legacy option for webhook
@@ -102,7 +81,33 @@ const DeleteSyncNotifyOptionEnum = z.enum([
   'discord-webhook', // Same as webhook-only for backward compatibility
   'discord-message', // Same as dm-only for backward compatibility
   'discord-both', // Both Discord webhook and DMs but no Apprise
-])
+] as const
+
+export const NOTIFY_DEFAULTS = {
+  approvalNotify: 'none',
+  watchlistCapNotify: 'none',
+  watchlistCapNotifyUser: false,
+  watchlistAddNotify: 'all',
+  notifyOnUpdate: 'none',
+  notifyOnAvailability: true,
+  deleteSyncNotify: 'none',
+  deleteSyncNotifyOnlyOnDeletion: false,
+} as const satisfies {
+  approvalNotify: (typeof NOTIFY_OPTIONS)[number]
+  watchlistCapNotify: (typeof NOTIFY_OPTIONS)[number]
+  watchlistCapNotifyUser: boolean
+  watchlistAddNotify: (typeof NOTIFY_OPTIONS)[number]
+  notifyOnUpdate: (typeof UPDATE_NOTIFY_OPTIONS)[number]
+  notifyOnAvailability: boolean
+  deleteSyncNotify: (typeof DELETE_SYNC_NOTIFY_OPTIONS)[number]
+  deleteSyncNotifyOnlyOnDeletion: boolean
+}
+
+const NotifyOptionEnum = z.enum(NOTIFY_OPTIONS)
+
+const UpdateNotifyEnum = z.enum(UPDATE_NOTIFY_OPTIONS)
+
+const DeleteSyncNotifyOptionEnum = z.enum(DELETE_SYNC_NOTIFY_OPTIONS)
 
 const DeletionModeEnum = z.enum([
   'watchlist', // Remove content when it's no longer on any watchlist
@@ -345,7 +350,7 @@ export const ConfigUpdateSchema = z
     maintainerrUrl: HttpUrlOptionalSchema,
     maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
     // Discord Config
-    discordWebhookUrl: DiscordWebhookUrlSchema,
+    discordWebhookUrl: DiscordWebhookUrlListSchema,
     discordBotToken: z.string().optional(),
     discordClientId: z.string().optional(),
     // Apprise Config (enableApprise/appriseUrl are runtime-only; not writable via API)
@@ -356,11 +361,11 @@ export const ConfigUpdateSchema = z
       .object({
         enabled: z.boolean(),
         // Discord webhook URLs for public content announcements (comma-separated)
-        discordWebhookUrls: DiscordWebhookUrlSchema,
+        discordWebhookUrls: DiscordWebhookUrlListSchema,
         // Movie-specific Discord webhook URLs (comma-separated)
-        discordWebhookUrlsMovies: DiscordWebhookUrlSchema,
+        discordWebhookUrlsMovies: DiscordWebhookUrlListSchema,
         // Show-specific Discord webhook URLs (comma-separated)
-        discordWebhookUrlsShows: DiscordWebhookUrlSchema,
+        discordWebhookUrlsShows: DiscordWebhookUrlListSchema,
         // Apprise URLs for public content announcements (comma-separated)
         appriseUrls: AppriseUrlSchema,
         // Movie-specific Apprise URLs (comma-separated)
