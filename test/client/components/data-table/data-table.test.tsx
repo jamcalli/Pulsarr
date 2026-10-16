@@ -3,10 +3,11 @@ import type {
   RowSelectionState,
   SortingState,
 } from '@tanstack/react-table'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { createRef, useState } from 'react'
 import { DataTable } from '@/components/data-table/data-table'
+import type { DataTableVariant } from '@/components/data-table/data-table-variant'
 
 interface Row {
   id: number
@@ -155,7 +156,15 @@ describe('DataTable', () => {
   })
 })
 
-function ExpandHarness({ frozen }: { frozen?: boolean }) {
+function ExpandHarness({
+  frozen,
+  canExpand,
+  variant,
+}: {
+  frozen?: boolean
+  canExpand?: (row: Row) => boolean
+  variant?: DataTableVariant
+}) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   return (
     <DataTable
@@ -172,7 +181,9 @@ function ExpandHarness({ frozen }: { frozen?: boolean }) {
       expandedLabel={(row) => `${row.name} details`}
       expandedId={expandedId}
       onExpandedChange={setExpandedId}
+      canExpand={canExpand}
       frozen={frozen}
+      variant={variant}
     />
   )
 }
@@ -239,6 +250,45 @@ describe('DataTable row expansion', () => {
     expect(screen.queryByRole('region')).not.toBeInTheDocument()
   })
 
+  it('gives only the rows canExpand accepts a toggle and a click', async () => {
+    const user = userEvent.setup()
+    render(<ExpandHarness canExpand={(row) => row.size > 1} />)
+
+    expect(
+      screen.queryByRole('button', { name: 'Beta details' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('row', { name: /Beta/ })).getAllByRole('cell'),
+    ).toHaveLength(5)
+    await user.click(screen.getByText('Beta'))
+    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+
+    await user.click(screen.getByText('Gamma'))
+    expect(
+      screen.getByRole('region', { name: 'Gamma details' }),
+    ).toBeInTheDocument()
+  })
+
+  it('scrolls the rows inside the card under a pinned header', () => {
+    const scrollRef = createRef<HTMLDivElement>()
+    render(
+      <DataTable
+        label="Things"
+        columns={columns}
+        data={rows}
+        getRowId={(row) => String(row.id)}
+        sorting={[]}
+        onSortingChange={() => undefined}
+        scroll={{ ref: scrollRef, className: 'h-40' }}
+      />,
+    )
+    const table = screen.getByRole('table', { name: 'Things' })
+    expect(scrollRef.current).toContainElement(table)
+    expect(scrollRef.current).toHaveClass('overflow-y-auto')
+    expect(table.querySelector('thead')).toHaveClass('sticky')
+    expect(scrollRef.current?.closest('[data-slot="card"]')).toHaveClass('h-40')
+  })
+
   it('renders no toggle column without renderExpanded', () => {
     render(<Harness />)
     expect(screen.getAllByRole('columnheader')).toHaveLength(4)
@@ -284,5 +334,45 @@ describe('DataTable row expansion', () => {
 
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
     expect(screen.getAllByRole('columnheader')).toHaveLength(columns.length)
+  })
+})
+
+describe('DataTable flat variant', () => {
+  it('renders inside a framed card by default', () => {
+    render(<ExpandHarness />)
+    const table = screen.getByRole('table', { name: 'Things' })
+    expect(table.closest('[data-slot="card"]')).toBeInTheDocument()
+  })
+
+  it('drops the card frame but keeps the header, rows and expansion', async () => {
+    const user = userEvent.setup()
+    render(<ExpandHarness variant="flat" />)
+    const table = screen.getByRole('table', { name: 'Things' })
+    expect(table.closest('[data-slot="card"]')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('columnheader')).toHaveLength(5)
+    expect(screen.getAllByRole('row')).toHaveLength(rows.length + 1)
+
+    await user.click(screen.getByText('Beta'))
+    expect(
+      screen.getByRole('region', { name: 'Beta details' }),
+    ).toHaveTextContent('Detail of Beta')
+  })
+
+  it('sizes the flat wrapper from the scroll class', () => {
+    const scrollRef = createRef<HTMLDivElement>()
+    const { container } = render(
+      <DataTable
+        label="Things"
+        columns={columns}
+        data={rows}
+        getRowId={(row) => String(row.id)}
+        sorting={[]}
+        onSortingChange={() => undefined}
+        variant="flat"
+        scroll={{ ref: scrollRef, className: 'h-40' }}
+      />,
+    )
+    expect(scrollRef.current).toHaveClass('overflow-y-auto')
+    expect(container.firstElementChild).toHaveClass('h-40')
   })
 })

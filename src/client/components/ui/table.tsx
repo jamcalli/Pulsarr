@@ -1,10 +1,27 @@
 import { cn } from 'cn'
 import type * as React from 'react'
-import { ScrollFade } from '@/components/scroll-fade'
+import { ScrollFade, type ScrollFadeAction } from '@/components/scroll-fade'
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+function Table({
+  className,
+  containerClassName,
+  scrollClassName,
+  scrollRef,
+  bottomAction,
+  ...props
+}: React.ComponentProps<'table'> & {
+  containerClassName?: string
+  scrollClassName?: string
+  scrollRef?: React.RefObject<HTMLDivElement | null>
+  bottomAction?: ScrollFadeAction
+}) {
   return (
-    <ScrollFade className="w-full">
+    <ScrollFade
+      className={cn('w-full', containerClassName)}
+      scrollClassName={scrollClassName}
+      scrollRef={scrollRef}
+      bottomAction={bottomAction}
+    >
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}

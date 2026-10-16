@@ -32,10 +32,12 @@ function cellSkeleton(id: string, titleWidth: string): ReactNode {
   }
 }
 
+const MANAGE_BUTTON_WIDTHS = ['w-36'] as const
+
 function RollingShowsCardSkeleton() {
   return (
     <Card>
-      <CardHeaderSkeleton badge description buttons={1} />
+      <CardHeaderSkeleton badge description buttons={MANAGE_BUTTON_WIDTHS} />
       <CardContent className="gap-4">
         <FilterToolbarSkeleton widths={SHOWS_FILTER_WIDTHS} />
         <DataTableSkeleton
@@ -45,6 +47,7 @@ function RollingShowsCardSkeleton() {
           cell={cellSkeleton}
           selectable={false}
           expandable
+          variant="flat"
         />
       </CardContent>
     </Card>

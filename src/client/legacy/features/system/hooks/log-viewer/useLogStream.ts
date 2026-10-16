@@ -1,12 +1,12 @@
-import type { LogEntry } from '@root/schemas/logs/logs.schema.js'
+import type { LogEntry } from '@root/types/logs.types.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
+import { handleSseError } from '@/lib/sse-retry'
 import {
   calculateRetryDelay,
-  handleSseError,
   MAX_SSE_RECONNECT_ATTEMPTS,
-} from '@/lib/sse-retry'
+} from '@/lib/sse-retry-policy'
 
 interface LogStreamOptions {
   tail: number

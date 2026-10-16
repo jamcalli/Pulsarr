@@ -20,6 +20,7 @@ export function RollingShowsTable({ page, rows }: RollingShowsTableProps) {
       label="Rolling shows"
       columns={SHOWS_COLUMNS}
       columnClasses={SHOWS_COLUMN_CLASSES}
+      variant="flat"
       data={rows}
       getRowId={(row) => String(row.record.id)}
       sorting={[{ id: sort, desc: dir === 'desc' }]}

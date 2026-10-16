@@ -9,6 +9,7 @@ import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-q
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { ApiKeysSkeleton } from '@/features/system/components/api-keys/api-keys-skeleton'
+import { LogsSkeleton } from '@/features/system/components/logs/logs-skeleton'
 import { PlexConnectionSkeleton } from '@/features/system/components/plex-connection/plex-connection-skeleton'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
 import { PlexUsersSkeleton } from '@/features/users/components/plex-users/plex-users-skeleton'
@@ -49,6 +50,7 @@ const SessionMonitoringPage = lazy(
   () => import('@/features/library/pages/session-monitoring'),
 )
 const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
+const LogsPage = lazy(() => import('@/features/system/pages/logs'))
 const PlexConnectionPage = lazy(
   () => import('@/features/system/pages/plex-connection'),
 )
@@ -261,6 +263,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<ApiKeysSkeleton />}>
                   <ApiKeysPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'system/logs',
+              element: (
+                <Suspense fallback={<LogsSkeleton />}>
+                  <LogsPage />
                 </Suspense>
               ),
             },

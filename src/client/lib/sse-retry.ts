@@ -1,19 +1,6 @@
+import { MAX_SSE_RECONNECT_ATTEMPTS } from '@/lib/sse-retry-policy'
 import { apiFetch } from '@/lib/tanstackApi'
 import { router } from '@/router/router'
-
-export const MAX_SSE_RECONNECT_ATTEMPTS = 5
-export const MAX_RECONNECT_DELAY_MS = 30000
-
-/**
- * Calculate exponential backoff delay with jitter
- * @param attempt - Current attempt number (1-based)
- * @returns Delay in milliseconds
- */
-export function calculateRetryDelay(attempt: number): number {
-  const baseDelay = Math.min(1000 * 2 ** attempt, MAX_RECONNECT_DELAY_MS)
-  const jitter = Math.floor(Math.random() * 1000)
-  return baseDelay + jitter
-}
 
 /**
  * Check if the current session is authenticated by making a lightweight request.

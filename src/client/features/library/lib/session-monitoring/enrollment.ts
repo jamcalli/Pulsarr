@@ -1,3 +1,4 @@
+import { pageSizePref } from '@/components/data-table/page-size'
 import { compareText } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
@@ -20,6 +21,8 @@ export const ENROLLMENT_DEFAULTS: EnrollmentValues = {
   mode: null,
   startOver: false,
 }
+
+export const enrollmentPageSizePref = pageSizePref('enrollment')
 
 export interface EnrollmentFilter {
   q: string

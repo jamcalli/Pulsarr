@@ -10,7 +10,12 @@ import {
 } from '@tanstack/react-table'
 import { cn } from 'cn'
 import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react'
-import { Fragment, type ReactNode, useId, useMemo } from 'react'
+import { Fragment, type ReactNode, type RefObject, useId, useMemo } from 'react'
+import {
+  DATA_TABLE_EDGES,
+  type DataTableVariant,
+} from '@/components/data-table/data-table-variant'
+import type { ScrollFadeAction } from '@/components/scroll-fade'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -25,8 +30,7 @@ import {
 } from '@/components/ui/table'
 
 const SELECT_ID = 'select'
-const SELECT_CLASS = 'w-px pl-4'
-const EXPAND_CLASS = 'w-px pr-4'
+const EXPAND_ID = 'expand'
 const NO_SELECTION: RowSelectionState = {}
 
 /** A row either opens elsewhere on click or expands its own detail below it, never both. */
@@ -37,6 +41,7 @@ type RowActionProps<TData> =
       expandedLabel?: never
       expandedId?: never
       onExpandedChange?: never
+      canExpand?: never
     }
   | {
       onRowClick?: never
@@ -45,6 +50,8 @@ type RowActionProps<TData> =
       expandedLabel: (row: TData) => string
       expandedId: string | null
       onExpandedChange: (id: string | null) => void
+      /** Rows it rejects get an empty toggle cell and no click, every row expands without it. */
+      canExpand?: (row: TData) => boolean
     }
 
 /** Rows are selectable only when the caller owns a selection. */
@@ -66,7 +73,7 @@ type DataTableProps<TData> = RowActionProps<TData> &
     label: string
     /** Must be referentially stable, since a new cell renderer remounts its cells. */
     columns: ColumnDef<TData>[]
-    /** Cell and header classes by column id, such as widths and wrapping. */
+    /** Cell and header classes by column id, such as widths and wrapping, and `expand` for the toggle column. */
     columnClasses?: Partial<Record<string, string>>
     data: TData[]
     getRowId: (row: TData) => string
@@ -74,6 +81,13 @@ type DataTableProps<TData> = RowActionProps<TData> &
     onSortingChange: (next: SortingState) => void
     /** Shows the rows without letting them be selected or opened, such as while the next page loads. */
     frozen?: boolean
+    variant?: DataTableVariant
+    /** Scrolls the rows under a pinned header, `className` sizing the table frame. */
+    scroll?: {
+      ref: RefObject<HTMLDivElement | null>
+      className?: string
+      bottomAction?: ScrollFadeAction
+    }
   }
 
 function SortHeader<TData>({ header }: { header: Header<TData, unknown> }) {
@@ -114,7 +128,10 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
     onSortingChange,
     onRowClick,
     frozen = false,
+    variant = 'framed',
+    scroll,
   } = props
+  const edges = DATA_TABLE_EDGES[variant]
   const expansion = props.renderExpanded ? props : null
   const selection = props.rowSelection ? props : null
   const detailIdPrefix = useId()
@@ -147,23 +164,28 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
       selection?.onRowSelectionChange(functionalUpdate(updater, rowSelection)),
   })
   const classFor = (id: string) =>
-    id === SELECT_ID ? SELECT_CLASS : columnClasses[id]
+    id === SELECT_ID ? edges.select : columnClasses[id]
+  const expandClass = cn(edges.expand, columnClasses[EXPAND_ID])
 
   return (
-    <Card className="gap-0 overflow-hidden py-0">
+    <DataTableFrame variant={variant} className={scroll?.className}>
       <Table
         aria-label={label}
         aria-busy={frozen || undefined}
         className={cn('transition-opacity', frozen && 'opacity-60')}
+        scrollRef={scroll?.ref}
+        bottomAction={scroll?.bottomAction}
+        containerClassName={scroll && 'min-h-0 flex-1'}
+        scrollClassName={scroll && 'h-full overflow-y-auto'}
       >
-        <TableHeader>
+        <TableHeader className={cn(scroll && 'sticky top-0 z-10 bg-card')}>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id} className="hover:bg-transparent">
               {group.headers.map((header) => (
                 <TableHead
                   key={header.id}
                   aria-sort={ariaSort(header.column.getIsSorted())}
-                  className={cn('last:pr-4', classFor(header.column.id))}
+                  className={cn(edges.last, classFor(header.column.id))}
                 >
                   {header.column.id === SELECT_ID ? (
                     <Checkbox
@@ -182,23 +204,27 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                   )}
                 </TableHead>
               ))}
-              {expansion && <TableHead className={EXPAND_CLASS} />}
+              {expansion && <TableHead className={expandClass} />}
             </TableRow>
           ))}
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.map((row) => {
-            const open = expansion?.expandedId === row.id
+            const expandable =
+              expansion !== null &&
+              (expansion.canExpand?.(row.original) ?? true)
+            const open = expandable && expansion.expandedId === row.id
             const detailId = `${detailIdPrefix}-${row.id}`
             const toggle =
-              expansion &&
+              expandable &&
               (() => expansion.onExpandedChange(open ? null : row.id))
             const click = onRowClick && (() => onRowClick(row.original))
-            const onActivate = frozen ? undefined : (toggle ?? click)
+            const onActivate = frozen ? undefined : toggle || click
 
             return (
               <Fragment key={row.id}>
                 <TableRow
+                  data-row-id={row.id}
                   data-state={row.getIsSelected() ? 'selected' : undefined}
                   className={cn(onActivate && 'cursor-pointer')}
                   onClick={onActivate}
@@ -206,7 +232,11 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={cn('py-2 last:pr-4', classFor(cell.column.id))}
+                      className={cn(
+                        'py-2',
+                        edges.last,
+                        classFor(cell.column.id),
+                      )}
                     >
                       {cell.column.id === SELECT_ID && selection ? (
                         <Checkbox
@@ -226,8 +256,11 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                       )}
                     </TableCell>
                   ))}
-                  {expansion && (
-                    <TableCell className={cn('py-2', EXPAND_CLASS)}>
+                  {expansion && !expandable && (
+                    <TableCell className={cn('py-2', expandClass)} />
+                  )}
+                  {expandable && (
+                    <TableCell className={cn('py-2', expandClass)}>
                       <button
                         type="button"
                         aria-label={expansion.expandedLabel(row.original)}
@@ -247,7 +280,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                     </TableCell>
                   )}
                 </TableRow>
-                {expansion && open && (
+                {expandable && open && (
                   <TableRow className="bg-accent/50 hover:bg-accent/50">
                     <TableCell
                       colSpan={row.getVisibleCells().length + 1}
@@ -268,21 +301,56 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
           })}
         </TableBody>
       </Table>
+    </DataTableFrame>
+  )
+}
+
+export function DataTableFrame({
+  variant,
+  className,
+  children,
+}: {
+  variant: DataTableVariant
+  className?: string
+  children: ReactNode
+}) {
+  if (variant === 'flat') {
+    return (
+      <div className={cn('-mx-2 flex flex-col overflow-hidden', className)}>
+        {children}
+      </div>
+    )
+  }
+  return (
+    <Card className={cn('gap-0 overflow-hidden py-0', className)}>
+      {children}
     </Card>
   )
 }
 
-export function DataTableSelectSkeleton() {
+export function DataTableSelectSkeleton({
+  variant,
+}: {
+  variant: DataTableVariant
+}) {
   return (
-    <TableCell className={cn('py-2', SELECT_CLASS)}>
+    <TableCell className={cn('py-2', DATA_TABLE_EDGES[variant].select)}>
       <Skeleton className="size-5" />
     </TableCell>
   )
 }
 
-export function DataTableExpandSkeleton() {
+export function DataTableExpandSkeleton({
+  variant,
+  className,
+}: {
+  variant: DataTableVariant
+  className?: string
+}) {
   return (
-    <TableCell className={cn('py-2', EXPAND_CLASS)}>
+    <TableCell
+      className={cn('py-2', DATA_TABLE_EDGES[variant].expand, className)}
+    >
       <Skeleton className="size-4" />
     </TableCell>
   )

@@ -7,15 +7,15 @@ interface CardHeaderSkeletonProps {
   description?: boolean
   badge?: boolean
   action?: ReactNode
-  /** Button placeholders for a header drawn with `CardHeaderWithActions`. */
-  buttons?: number
+  /** One button placeholder per width class, for a header drawn with `CardHeaderWithActions`. */
+  buttons?: readonly string[]
 }
 
 export function CardHeaderSkeleton({
   description = false,
   badge = false,
   action,
-  buttons = 0,
+  buttons = [],
 }: CardHeaderSkeletonProps) {
   const title = <Skeleton className="h-5 w-36" />
   const heading = (
@@ -31,11 +31,11 @@ export function CardHeaderSkeleton({
       {description && <Skeleton className="h-4 w-64 max-w-full" />}
     </>
   )
-  if (buttons > 0) {
+  if (buttons.length > 0) {
     return (
       <CardHeaderWithActions
-        actions={Array.from({ length: buttons }, (_, index) => (
-          <Skeleton key={`button-${index}`} className="h-8 w-36" />
+        actions={buttons.map((width, index) => (
+          <Skeleton key={`button-${index}`} className={`h-8 ${width}`} />
         ))}
       >
         {heading}

@@ -20,6 +20,7 @@ import {
 } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
+import type { ConfigLogLevel } from '@root/types/config.types.js'
 import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
 import {
   longestQuotaWindowDays,
@@ -67,15 +68,14 @@ const DiscordWebhookUrlSchema = z
  */
 const AppriseUrlSchema = z.string().optional()
 
-const LogLevelEnum = z.enum([
-  'fatal',
-  'error',
-  'warn',
-  'info',
-  'debug',
-  'trace',
-  'silent',
-])
+export const ConfigLogLevelSchema = z
+  .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+  .meta({
+    id: 'ConfigLogLevel',
+    description: 'How much Pulsarr writes to its log',
+  }) satisfies z.ZodType<ConfigLogLevel>
+
+export const DEFAULT_LOG_LEVEL = 'info' satisfies ConfigLogLevel
 
 export const DEFAULT_PULSARR_PORT = 3003
 export const APPROVAL_EXPIRATION_HOURS = { min: 1, max: 8760 } as const
@@ -331,7 +331,7 @@ export const ConfigFullSchema = z
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean(),
     // Logging & Performance
-    logLevel: LogLevelEnum.optional(),
+    logLevel: ConfigLogLevelSchema.optional(),
     closeGraceDelay: z
       .number()
       .meta({ description: 'Shutdown grace period in milliseconds' })
@@ -462,7 +462,7 @@ export const ConfigUpdateSchema = z
     dbPath: z.string().optional(),
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean().optional(),
-    logLevel: LogLevelEnum.optional(),
+    logLevel: ConfigLogLevelSchema.optional(),
     closeGraceDelay: z.number().optional(),
     rateLimitMax: z.number().optional(),
     queueProcessDelaySeconds: z.number().optional(),

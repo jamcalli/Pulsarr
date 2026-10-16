@@ -181,6 +181,16 @@ const checkResult: CheckResult = {
   ],
 }
 
+const pagedEnrollable: EnrollableShow[] = Array.from(
+  { length: 25 },
+  (_, index) =>
+    enrollable({
+      watchlistId: index + 1,
+      sonarrSeriesId: index + 1,
+      title: `Show ${String(index + 1).padStart(2, '0')}`,
+    }),
+)
+
 function mockEndpoints({
   saved = SAVED,
   shows = rolling,
@@ -872,6 +882,77 @@ describe('SessionMonitoringPage', () => {
     expect(
       within(dialog).getByRole('checkbox', { name: 'Select Barry' }),
     ).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('pages the enrollment list and keeps the selection across pages', async () => {
+    const user = userEvent.setup()
+    const calls = mockEndpoints({ enrollableList: pagedEnrollable })
+    renderPage()
+    await findTable()
+
+    await user.click(screen.getByRole('button', { name: 'Manage enrollment' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Manage enrollment',
+    })
+    const list = await within(dialog).findByRole('table', {
+      name: 'Shows sent to Sonarr',
+    })
+    const pageRows = () => within(list).getAllByRole('row').slice(1)
+    expect(pageRows()).toHaveLength(20)
+
+    await user.click(
+      within(dialog).getByRole('checkbox', { name: 'Select Show 01' }),
+    )
+    await user.click(within(dialog).getByLabelText('Go to next page'))
+    expect(pageRows()).toHaveLength(5)
+    expect(
+      within(dialog).queryByRole('checkbox', { name: 'Select Show 01' }),
+    ).not.toBeInTheDocument()
+
+    await user.click(
+      within(dialog).getByRole('checkbox', { name: 'Select Show 25' }),
+    )
+    await user.click(
+      within(dialog).getByRole('combobox', { name: 'Rolling mode' }),
+    )
+    await user.click(
+      await screen.findByRole('option', { name: 'First season rolling' }),
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Apply to 2 shows' }),
+    )
+
+    await waitFor(() => expect(calls.bulk).toHaveLength(1))
+    expect(calls.bulk[0]?.shows.map((show) => show.sonarrSeriesId)).toEqual([
+      1, 25,
+    ])
+  })
+
+  it('returns the enrollment list to the first page on a new search', async () => {
+    const user = userEvent.setup()
+    mockEndpoints({ enrollableList: pagedEnrollable })
+    renderPage()
+    await findTable()
+
+    await user.click(screen.getByRole('button', { name: 'Manage enrollment' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Manage enrollment',
+    })
+    await user.click(await within(dialog).findByLabelText('Go to next page'))
+    expect(
+      within(dialog).getByRole('checkbox', { name: 'Select Show 21' }),
+    ).toBeInTheDocument()
+
+    await user.type(
+      within(dialog).getByRole('searchbox', { name: 'Search by title' }),
+      'Show',
+    )
+    expect(
+      within(dialog).getByRole('checkbox', { name: 'Select Show 01' }),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).queryByRole('checkbox', { name: 'Select Show 21' }),
+    ).not.toBeInTheDocument()
   })
 
   it('offers enrollment when nothing is rolling yet', async () => {

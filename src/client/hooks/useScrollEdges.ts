@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
 
 const EDGE_TOLERANCE = 2
 const PAGE_FRACTION = 0.8
 
 /** Tracks whether a scroller has more content past each edge, and pages it sideways by most of its width. Sets `--scroll-fade-width` on it to its visible width. */
-export function useScrollEdges<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
+export function useScrollEdges<T extends HTMLElement>(
+  scrollRef?: RefObject<T | null>,
+) {
+  const ownRef = useRef<T>(null)
+  const ref = scrollRef ?? ownRef
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [canScrollUp, setCanScrollUp] = useState(false)

@@ -1,4 +1,5 @@
 import type { PlexLabelSyncConfig } from '@root/schemas/plex/label-sync-config.schema.js'
+import type { LogLevel } from '@root/types/logs.types.js'
 
 export interface User {
   id: number
@@ -36,14 +37,7 @@ export type NotificationUser = Pick<
   | 'can_sync'
 >
 
-export type LogLevel =
-  | 'fatal'
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'silent'
+export type ConfigLogLevel = LogLevel | 'silent'
 
 export type UpdateNotifyOption =
   | 'none'
@@ -130,7 +124,7 @@ export interface Config {
   cookieName: string
   cookieSecured: boolean
   webhookSecret: string
-  logLevel: LogLevel
+  logLevel: ConfigLogLevel
   closeGraceDelay: number
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
   rateLimitMax: number

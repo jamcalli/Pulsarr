@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { open, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import type { LogEntry, LogLevel } from '@schemas/logs/logs.schema.js'
+import type { LogEntry, LogValue } from '@root/types/logs.types.js'
 import { resolveLogPath } from '@utils/data-dir.js'
 import {
   createServiceLogger,
@@ -177,17 +177,20 @@ export class LogStreamingService {
 
   private parseLogLine(line: string): LogEntry {
     try {
-      const parsed = JSON.parse(line) as Record<string, unknown>
-      const timestamp = parsed.time
-        ? new Date(parsed.time as number).toISOString()
-        : new Date().toISOString()
-      const level = pinoLevelToName(parsed.level as number)
+      const parsed: Record<string, LogValue> = JSON.parse(line)
+      const timestamp =
+        typeof parsed.time === 'number' || typeof parsed.time === 'string'
+          ? new Date(parsed.time).toISOString()
+          : new Date().toISOString()
+      const level = pinoLevelToName(
+        typeof parsed.level === 'number' ? parsed.level : 0,
+      )
       const { module, message } = parseModuleFromMsg(
-        (parsed.msg as string) ?? '',
+        typeof parsed.msg === 'string' ? parsed.msg : '',
       )
 
       // Collect extra fields beyond standard pino fields into data
-      let data: Record<string, unknown> | undefined
+      let data: Record<string, LogValue> | undefined
       for (const key of Object.keys(parsed)) {
         if (PINO_STANDARD_FIELDS.has(key)) continue
         if (key === 'err' && !parsed[key]) continue
@@ -200,7 +203,7 @@ export class LogStreamingService {
       // Non-JSON line (legacy pretty text, console.log output, stack traces)
       return {
         timestamp: new Date().toISOString(),
-        level: 'info' as LogLevel,
+        level: 'info',
         message: line,
         module: undefined,
       }

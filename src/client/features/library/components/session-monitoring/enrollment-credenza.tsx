@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { BulkFormCredenza } from '@/components/bulk-form-credenza'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { DataTable } from '@/components/data-table/data-table'
+import { DataTableFooter } from '@/components/data-table/data-table-footer'
 import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorAlert } from '@/components/error-alert'
@@ -22,6 +23,7 @@ import {
 import type { Enrollment } from '@/features/library/hooks/session-monitoring/useEnrollment'
 import {
   ENROLLMENT_DEFAULTS,
+  type EnrollableRow,
   type EnrollmentValues,
   enrollableId,
 } from '@/features/library/lib/session-monitoring/enrollment'
@@ -44,6 +46,14 @@ const TOOLBAR = 'flex flex-wrap items-center gap-2'
 
 const CHOOSE_MODE = 'Choose a rolling mode'
 
+function rowId(row: EnrollableRow): string {
+  return enrollableId(row.show)
+}
+
+function rowName(row: EnrollableRow): string {
+  return row.show.title
+}
+
 function footerMessage(values: EnrollmentValues, shows: string): string {
   if (values.mode === null) return CHOOSE_MODE
   if (shows === '') return 'Select shows to apply it to'
@@ -52,7 +62,7 @@ function footerMessage(values: EnrollmentValues, shows: string): string {
 }
 
 function EnrollmentList({ enrollment }: { enrollment: Enrollment }) {
-  const { rows, filter } = enrollment
+  const { rows, filter, total } = enrollment
   const selectedCount = enrollment.selected.length
 
   if (enrollment.loadError) {
@@ -67,23 +77,25 @@ function EnrollmentList({ enrollment }: { enrollment: Enrollment }) {
         columnClasses={ENROLLMENT_COLUMN_CLASSES}
         rows={SKELETON_ROWS}
         cell={() => <Skeleton className="h-4 w-24" />}
+        variant="flat"
       />
     )
   }
 
   const countLine =
     selectedCount > 0
-      ? `${formatCount(rows.length, 'show')}, ${formatNumber(selectedCount)} selected`
-      : formatCount(rows.length, 'show')
+      ? `${formatCount(total, 'show')}, ${formatNumber(selectedCount)} selected`
+      : formatCount(total, 'show')
   const table =
     rows.length > 0 ? (
       <DataTable
         label="Shows sent to Sonarr"
         columns={ENROLLMENT_COLUMNS}
         columnClasses={ENROLLMENT_COLUMN_CLASSES}
+        variant="flat"
         data={rows}
-        getRowId={(row) => enrollableId(row.show)}
-        rowName={(row) => row.show.title}
+        getRowId={rowId}
+        rowName={rowName}
         sorting={[]}
         onSortingChange={() => undefined}
         rowSelection={enrollment.selection}
@@ -116,6 +128,14 @@ function EnrollmentList({ enrollment }: { enrollment: Enrollment }) {
       </div>
       <p className="text-muted-foreground">{countLine}</p>
       {table}
+      <DataTableFooter
+        page={enrollment.page}
+        pageSize={enrollment.pageSize}
+        onPageSizeChange={enrollment.setPageSize}
+        total={total}
+        pageHref={enrollment.pageHref}
+        onPageChange={enrollment.setPage}
+      />
     </div>
   )
 }

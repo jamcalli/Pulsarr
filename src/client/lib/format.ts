@@ -70,6 +70,47 @@ export function formatDateTime(value: Date | number): string {
   }).format(value)
 }
 
+/** A log line's clock time in the browser time zone, 24-hour, with milliseconds unless turned off. */
+export function formatLogTime(
+  value: Date | number,
+  milliseconds = true,
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+    fractionalSecondDigits: milliseconds ? 3 : undefined,
+  }).format(value)
+}
+
+const pad2 = (value: number) => String(value).padStart(2, '0')
+
+/** Local `yyyy-mm-dd HH:MM:ss +ZZZZ`, matching the server's terminal output. */
+export function formatLogExportTime(value: Date): string {
+  const offset = -value.getTimezoneOffset()
+  const sign = offset >= 0 ? '+' : '-'
+  const zone = `${sign}${pad2(Math.floor(Math.abs(offset) / 60))}${pad2(Math.abs(offset) % 60)}`
+  const day = `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`
+  const time = `${pad2(value.getHours())}:${pad2(value.getMinutes())}:${pad2(value.getSeconds())}`
+  return `${day} ${time} ${zone}`
+}
+
+/** A log line's date and time to the millisecond, with the browser's zone offset. */
+export function formatLogDateTime(value: Date | number): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+    fractionalSecondDigits: 3,
+    timeZoneName: 'shortOffset',
+  }).format(value)
+}
+
 export function compareText(a: string, b: string): number {
   return new Intl.Collator(locale).compare(a, b)
 }

@@ -3,9 +3,13 @@ import { cn } from 'cn'
 import type { ReactNode } from 'react'
 import {
   DataTableExpandSkeleton,
+  DataTableFrame,
   DataTableSelectSkeleton,
 } from '@/components/data-table/data-table'
-import { Card } from '@/components/ui/card'
+import {
+  DATA_TABLE_EDGES,
+  type DataTableVariant,
+} from '@/components/data-table/data-table-variant'
 import {
   Table,
   TableBody,
@@ -25,6 +29,8 @@ interface DataTableSkeletonProps<TData> {
   expandable?: boolean
   /** Drops the leading checkbox column of a table without a selection. */
   selectable?: boolean
+  variant?: DataTableVariant
+  className?: string
 }
 
 export function DataTableSkeleton<TData>({
@@ -34,7 +40,10 @@ export function DataTableSkeleton<TData>({
   cell,
   expandable = false,
   selectable = true,
+  variant = 'framed',
+  className,
 }: DataTableSkeletonProps<TData>) {
+  const edges = DATA_TABLE_EDGES[variant]
   const headers = columns.map((column) => ({
     id: column.id ?? '',
     label: typeof column.header === 'string' ? column.header : null,
@@ -42,39 +51,46 @@ export function DataTableSkeleton<TData>({
   }))
 
   return (
-    <Card className="gap-0 overflow-hidden py-0">
+    <DataTableFrame variant={variant} className={className}>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {selectable && <TableHead className="w-px pl-4" />}
+            {selectable && <TableHead className={edges.select} />}
             {headers.map((header) => (
               <TableHead
                 key={header.id}
-                className={cn('last:pr-4', header.className)}
+                className={cn(edges.last, header.className)}
               >
                 {header.label}
               </TableHead>
             ))}
-            {expandable && <TableHead className="w-px pr-4" />}
+            {expandable && (
+              <TableHead className={cn(edges.expand, columnClasses.expand)} />
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row} className="hover:bg-transparent">
-              {selectable && <DataTableSelectSkeleton />}
+              {selectable && <DataTableSelectSkeleton variant={variant} />}
               {headers.map((header) => (
                 <TableCell
                   key={header.id}
-                  className={cn('py-2 last:pr-4', header.className)}
+                  className={cn('py-2', edges.last, header.className)}
                 >
                   {cell(header.id, row)}
                 </TableCell>
               ))}
-              {expandable && <DataTableExpandSkeleton />}
+              {expandable && (
+                <DataTableExpandSkeleton
+                  variant={variant}
+                  className={columnClasses.expand}
+                />
+              )}
             </TableRow>
           ))}
         </TableBody>
       </Table>
-    </Card>
+    </DataTableFrame>
   )
 }

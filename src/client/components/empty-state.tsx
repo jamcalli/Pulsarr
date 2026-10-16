@@ -12,7 +12,7 @@ import {
 interface EmptyStateProps {
   icon: ReactNode
   title: string
-  description: ReactNode
+  description?: ReactNode
   className?: string
   children?: ReactNode
 }
@@ -29,7 +29,7 @@ export function EmptyState({
       <EmptyHeader>
         <EmptyMedia variant="icon">{icon}</EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
-        <EmptyDescription>{description}</EmptyDescription>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
       </EmptyHeader>
       {children && <EmptyContent>{children}</EmptyContent>}
     </Empty>
