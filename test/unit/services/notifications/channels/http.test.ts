@@ -105,6 +105,36 @@ describe('postJson retry', () => {
     expect(attempts()).toBe(2)
   })
 
+  it('returns the 429 without waiting when Retry-After exceeds the cap', async () => {
+    const attempts = respondWith(
+      status(429, { 'Retry-After': '61' }),
+      status(204),
+    )
+
+    const result = await postJson(
+      ENDPOINT,
+      {},
+      { timeoutMs: 1000, retry: true },
+    )
+
+    expect(result).toMatchObject({ ok: false, status: 429 })
+    expect(attempts()).toBe(1)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('falls back to the backoff for a negative Retry-After', async () => {
+    const attempts = respondWith(
+      status(429, { 'Retry-After': '-5' }),
+      status(204),
+    )
+
+    const result = postJson(ENDPOINT, {}, { timeoutMs: 1000, retry: true })
+    await nextBackoff(2_000)
+
+    expect(await result).toEqual({ ok: true, status: 204 })
+    expect(attempts()).toBe(2)
+  })
+
   it('sends once without the retry option', async () => {
     const attempts = respondWith(status(503))
 

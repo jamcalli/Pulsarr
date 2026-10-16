@@ -75,7 +75,7 @@ describe('discord webhook sendNotification', () => {
         return attempts === 1
           ? new HttpResponse(null, {
               status: 429,
-              headers: { 'Retry-After': '0' },
+              headers: { 'Retry-After': '0.001' },
             })
           : new HttpResponse(null, { status: 204 })
       }),
@@ -95,7 +95,7 @@ describe('discord webhook sendNotification', () => {
         return new HttpResponse(null, {
           status: 429,
           statusText: 'Too Many Requests',
-          headers: { 'Retry-After': '0' },
+          headers: { 'Retry-After': '0.001' },
         })
       }),
     )

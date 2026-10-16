@@ -19,10 +19,13 @@ interface Attempt {
 }
 
 const RETRY_BACKOFF_MS = [2_000, 10_000] as const
+const MAX_RETRY_AFTER_MS = 60_000
 
 function retryAfterMs(response: Response): number | undefined {
   const seconds = Number.parseFloat(response.headers.get('Retry-After') ?? '')
-  return Number.isFinite(seconds) ? Math.ceil(seconds * 1000) : undefined
+  return Number.isFinite(seconds) && seconds > 0
+    ? Math.ceil(seconds * 1000)
+    : undefined
 }
 
 function statusReason(response: Response): string {
@@ -72,6 +75,7 @@ export async function postJson(
   let attempt = await postOnce(url, body, options)
   for (const backoffMs of options.retry ? RETRY_BACKOFF_MS : []) {
     if (!attempt.transient) break
+    if ((attempt.retryAfterMs ?? 0) > MAX_RETRY_AFTER_MS) break
     await wait(attempt.retryAfterMs ?? backoffMs)
     attempt = await postOnce(url, body, options)
   }
