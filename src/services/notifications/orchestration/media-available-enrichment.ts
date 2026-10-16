@@ -6,7 +6,7 @@ import type {
 } from '@root/types/notification.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
-import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import { getTmdbUrl, parseGuids } from '@root/utils/guid-handler.js'
 import { buildContentPayload } from '../templates/webhook-payloads.js'
 
 export interface MediaInfo {
@@ -105,13 +105,8 @@ export function extractUserDiscordIds(
 function mergeGuids(watchlistItems: TokenWatchlistItem[]): string[] {
   const guids = new Set<string>()
   for (const item of watchlistItems) {
-    const itemGuids = Array.isArray(item.guids)
-      ? item.guids
-      : typeof item.guids === 'string'
-        ? item.guids.split(',').map((g) => g.trim())
-        : []
-    for (const guid of itemGuids) {
-      if (guid) guids.add(guid)
+    for (const guid of parseGuids(item.guids)) {
+      guids.add(guid)
     }
   }
   return Array.from(guids)

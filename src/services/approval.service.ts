@@ -13,6 +13,7 @@ import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
 import { settingsFromRouting } from '@services/content-router/approved-routing.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
+import { errorMessage } from '@utils/error-message.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
@@ -521,7 +522,7 @@ export class ApprovalService {
       )
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage(error),
       }
     }
   }
@@ -905,7 +906,7 @@ export class ApprovalService {
       this.log.error({ error, requestId }, 'Error in approveAndRoute')
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage(error),
       }
     }
   }
@@ -1034,9 +1035,7 @@ export class ApprovalService {
         }
       } catch (error) {
         results.failed.push(id)
-        results.errors.push(
-          `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
+        results.errors.push(`Request ${id}: ${errorMessage(error)}`)
       }
     }
 
@@ -1098,9 +1097,7 @@ export class ApprovalService {
         }
       } catch (error) {
         results.failed.push(id)
-        results.errors.push(
-          `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
+        results.errors.push(`Request ${id}: ${errorMessage(error)}`)
       }
     }
 

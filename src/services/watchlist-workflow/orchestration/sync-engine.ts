@@ -2,6 +2,7 @@ import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
+import { errorMessage } from '@utils/error-message.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -522,7 +523,7 @@ export async function syncWatchlistItems(
     deps.logger.error(
       {
         error,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: errorMessage(error),
         errorStack: error instanceof Error ? error.stack : undefined,
       },
       'Error during watchlist sync',

@@ -1,3 +1,4 @@
+import { toItemId } from '@utils/item-id.js'
 /**
  * Notification Handler
  *
@@ -140,8 +141,7 @@ export async function shouldSuppressRadarrNotification(
 
   try {
     for (const item of matchingItems) {
-      const itemId =
-        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+      const itemId = toItemId(item.id)
 
       if (Number.isNaN(itemId)) continue
 

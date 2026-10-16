@@ -47,6 +47,7 @@ import {
   createSafetyTriggeredResult,
 } from '@services/delete-sync/utils/index.js'
 import { performWatchlistSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
+import { errorMessage, toError } from '@utils/error-message.js'
 import { createGuidSet } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -515,18 +516,14 @@ export class DeleteSyncService {
         return { success: true, message: 'Watchlists refreshed successfully' }
       } catch (refreshError) {
         const isLastAttempt = attempt === maxRetries
-        const errorMessage = `Failed to refresh watchlist data: ${
-          refreshError instanceof Error
-            ? refreshError.message
-            : String(refreshError)
-        }`
+        const message = `Failed to refresh watchlist data: ${errorMessage(refreshError)}`
 
         if (isLastAttempt) {
           this.log.error(
             { error: refreshError, attempts: attempt + 1 },
             'Error refreshing watchlist data after all retry attempts',
           )
-          return { success: false, message: errorMessage }
+          return { success: false, message }
         } else {
           const delay = baseDelay * 2 ** attempt // Exponential backoff
           this.log.warn(
@@ -590,13 +587,10 @@ export class DeleteSyncService {
 
       return { success: true }
     } catch (trackedError) {
-      const errorMsg = `Error retrieving tracked content GUIDs: ${trackedError instanceof Error ? trackedError.message : String(trackedError)}`
+      const errorMsg = `Error retrieving tracked content GUIDs: ${errorMessage(trackedError)}`
       this.log.error(
         {
-          error:
-            trackedError instanceof Error
-              ? trackedError
-              : new Error(String(trackedError)),
+          error: toError(trackedError),
         },
         errorMsg,
       )
@@ -662,13 +656,10 @@ export class DeleteSyncService {
 
       return { success: true, protectedGuids }
     } catch (protectedItemsError) {
-      const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
+      const errorMsg = `Error retrieving protected items from playlists: ${errorMessage(protectedItemsError)}`
       this.log.error(
         {
-          error:
-            protectedItemsError instanceof Error
-              ? protectedItemsError
-              : new Error(String(protectedItemsError)),
+          error: toError(protectedItemsError),
         },
         errorMsg,
       )
@@ -689,8 +680,7 @@ export class DeleteSyncService {
    * Helper method to log errors with consistent format
    */
   private logError(message: string, error: unknown): void {
-    const errObj = error instanceof Error ? error : new Error(String(error))
-    this.log.error({ error: errObj }, message)
+    this.log.error({ error: toError(error) }, message)
   }
 
   /**

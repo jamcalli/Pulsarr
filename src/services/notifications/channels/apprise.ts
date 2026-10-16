@@ -12,6 +12,7 @@ import type { FastifyBaseLogger } from 'fastify'
 import { createTestAppriseMessage } from '../templates/apprise-html.js'
 import {
   analyzeAppriseUrls,
+  appriseEndpoint,
   createNotificationBatches,
 } from './apprise-format-cache.js'
 import { postJson } from './http.js'
@@ -81,7 +82,7 @@ function postBatch(
   // Email services render the poster from the HTML body, so their batches drop the attachment
   const attachment = batch.includeAttachment ? message.attachment : undefined
   return postJson(
-    new URL('/notify', appriseUrl).toString(),
+    appriseEndpoint(appriseUrl, 'notify'),
     {
       urls: batch.urls.join(','),
       title: message.title,
@@ -186,7 +187,7 @@ export async function pingAppriseServer(url: string): Promise<boolean> {
     return false
   }
   try {
-    const response = await fetch(new URL('/', url).toString(), {
+    const response = await fetch(appriseEndpoint(url, ''), {
       method: 'GET',
       signal: AbortSignal.timeout(5000),
     })

@@ -9,6 +9,15 @@ import { errorMessage } from '@utils/error-message.js'
 import { splitUrlList } from '@utils/url.js'
 import type { FastifyBaseLogger } from 'fastify'
 
+/** Joins path onto the Apprise base URL, keeping any subpath the server is mounted under. */
+export function appriseEndpoint(baseUrl: string, path: string): string {
+  const url = new URL(baseUrl)
+  url.pathname = `${url.pathname.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`
+  url.search = ''
+  url.hash = ''
+  return url.toString()
+}
+
 export async function fetchSchemaFormats(
   appriseUrl: string,
   log: FastifyBaseLogger,
@@ -16,7 +25,7 @@ export async function fetchSchemaFormats(
   const formatMap: AppriseSchemaFormatMap = new Map()
 
   try {
-    const response = await fetch(new URL('/details/', appriseUrl).toString(), {
+    const response = await fetch(appriseEndpoint(appriseUrl, 'details/'), {
       method: 'GET',
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(10_000),

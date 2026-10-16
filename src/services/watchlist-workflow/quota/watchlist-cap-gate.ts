@@ -39,9 +39,16 @@ export async function evaluateWatchlistCaps(
     return { skipIds, skippedCount, cappedEntries, uncappedEntries }
   }
 
-  const capsMap = new Map<string, number>()
+  const capsMap = new Map<
+    string,
+    { userId: number; contentType: 'movie' | 'show'; cap: number }
+  >()
   for (const row of capsRows) {
-    capsMap.set(`${row.userId}:${row.contentType}`, row.watchlistCap)
+    capsMap.set(`${row.userId}:${row.contentType}`, {
+      userId: row.userId,
+      contentType: row.contentType,
+      cap: row.watchlistCap,
+    })
   }
 
   const totalCounts = new Map<string, number>()
@@ -59,15 +66,12 @@ export async function evaluateWatchlistCaps(
     }
   }
 
-  for (const [mapKey, cap] of capsMap) {
+  for (const [mapKey, { userId, contentType, cap }] of capsMap) {
     const total = totalCounts.get(mapKey) ?? 0
     const pending = pendingItems.get(mapKey) ?? []
-    const [userId, type] = mapKey.split(':')
-    const numericUserId = Number(userId)
-    const contentType = type === 'show' ? 'show' : 'movie'
 
     if (total <= cap) {
-      uncappedEntries.push({ userId: numericUserId, contentType })
+      uncappedEntries.push({ userId, contentType })
       continue
     }
     if (pending.length === 0) continue
@@ -78,8 +82,8 @@ export async function evaluateWatchlistCaps(
     skippedCount += pending.length
     deps.logger.info(
       {
-        userId: numericUserId,
-        type,
+        userId,
+        type: contentType,
         total,
         cap,
         pendingSkipped: pending.length,
@@ -87,7 +91,7 @@ export async function evaluateWatchlistCaps(
       'Watchlist cap reached, skipping all pending items',
     )
     cappedEntries.push({
-      userId: numericUserId,
+      userId,
       contentType,
       currentCount: total,
       cap,

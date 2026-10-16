@@ -4,6 +4,7 @@ import type {
 } from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { Item as WatchlistItem } from '@root/types/plex.types.js'
+import { toContentType } from '@utils/content-type.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { dispatchAndRecord, recipientLabel } from '../dispatch.js'
 import { describeContent } from '../templates/labels.js'
@@ -118,7 +119,7 @@ export async function sendWatchlistRemoved(
 ): Promise<boolean> {
   const guids =
     typeof item.guids === 'string' ? parseGuids(item.guids) : (item.guids ?? [])
-  const contentType = item.type === 'show' ? 'show' : 'movie'
+  const contentType = toContentType(item.type)
   const user = await deps.db.getUser(userId)
 
   return dispatchAndRecord(

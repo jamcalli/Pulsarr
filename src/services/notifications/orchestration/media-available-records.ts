@@ -2,6 +2,7 @@ import type { User } from '@root/types/config.types.js'
 import type { NotificationResult } from '@root/types/notification.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import { toItemId } from '@utils/item-id.js'
 import { NOTHING_DELIVERED } from '../dispatch.js'
 import type { DeliveryOutcome, NotificationDeps } from '../types.js'
 import {
@@ -133,8 +134,7 @@ export async function claimUserNotifications(
 
     const title = mediaInfo.title || item.title
     const userId = Number(item.user_id)
-    const itemId =
-      typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+    const itemId = toItemId(item.id)
 
     if (Number.isNaN(userId) || Number.isNaN(itemId)) {
       deps.logger.warn(

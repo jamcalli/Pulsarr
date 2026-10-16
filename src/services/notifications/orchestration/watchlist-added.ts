@@ -2,6 +2,8 @@ import type { Friend } from '@root/types/plex.types.js'
 import type { RoutingDetails } from '@root/types/router.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import { getUserCanSync } from '@services/plex-watchlist/users/permissions.js'
+import { toContentType } from '@utils/content-type.js'
+import { toItemId } from '@utils/item-id.js'
 import { notifyAdmins, recipientLabel } from '../dispatch.js'
 import { describeContent } from '../templates/labels.js'
 import { createWatchlistAddedMessage } from '../templates/messages.js'
@@ -41,7 +43,7 @@ export async function sendWatchlistAdded(
 
   const username = user.username || 'Unknown User'
   const alias = (await db.getUser(user.userId))?.alias
-  const mediaType = item.type?.toLowerCase() === 'show' ? 'show' : 'movie'
+  const mediaType = toContentType(item.type)
   const guids = Array.isArray(item.guids)
     ? item.guids
     : item.guids
@@ -54,8 +56,7 @@ export async function sendWatchlistAdded(
     guids,
     thumb: item.thumb,
   })
-  const itemId =
-    typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+  const itemId = toItemId(item.id)
 
   return notifyAdmins(deps, {
     setting: deps.config.watchlistAddNotify,

@@ -1,5 +1,6 @@
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { errorMessage } from '@utils/error-message.js'
 import type { ButtonInteraction } from 'discord.js'
 import { MessageFlags } from 'discord.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -121,17 +122,16 @@ export async function handleApprovalButtons(
       'Error handling approval button',
     )
 
-    const errorMessage =
-      error instanceof Error ? error.message : 'An unknown error occurred'
+    const message = errorMessage(error)
 
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({
-        content: `❌ Error: ${errorMessage}`,
+        content: `❌ Error: ${message}`,
         flags: MessageFlags.Ephemeral,
       })
     } else {
       await interaction.reply({
-        content: `❌ Error: ${errorMessage}`,
+        content: `❌ Error: ${message}`,
         flags: MessageFlags.Ephemeral,
       })
     }

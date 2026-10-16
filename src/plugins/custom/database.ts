@@ -3,6 +3,7 @@ import {
   defaultRadarrInstance,
   defaultSonarrInstance,
 } from '@utils/arr-default-instance.js'
+import { toError } from '@utils/error-message.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import type { Knex } from 'knex'
@@ -143,7 +144,7 @@ export default fp(
           }
         }
       } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error))
+        const err = toError(error)
         fastify.log.error(err, 'Error initializing config')
         throw error
       }
@@ -152,7 +153,7 @@ export default fp(
     try {
       await initializeConfig()
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error))
+      const err = toError(error)
       fastify.log.error(err, 'Failed to initialize config')
       throw error
     }

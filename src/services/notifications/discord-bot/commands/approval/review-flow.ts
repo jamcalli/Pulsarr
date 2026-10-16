@@ -2,6 +2,7 @@ import type { ApprovalRequest } from '@root/types/approval.types.js'
 import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { errorMessage } from '@utils/error-message.js'
 import type { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js'
 import { MessageFlags } from 'discord.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -311,7 +312,7 @@ export async function handleApprovalAction(
       'Error processing approval action',
     )
     await interaction.editReply(
-      `❌ Error processing ${action}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      `❌ Error processing ${action}: ${errorMessage(error)}`,
     )
   }
 }
