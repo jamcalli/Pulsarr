@@ -164,6 +164,8 @@ export async function getConfig(
     deleteContinuingShow: Boolean(config.deleteContinuingShow),
     deleteFiles: Boolean(config.deleteFiles),
     respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+    deleteSyncNotify:
+      config.deleteSyncNotify || NOTIFY_DEFAULTS.deleteSyncNotify,
     deleteSyncNotifyOnlyOnDeletion: Boolean(
       config.deleteSyncNotifyOnlyOnDeletion,
     ),
@@ -323,7 +325,8 @@ export async function createConfig(
       deleteContinuingShow: config.deleteContinuingShow,
       deleteFiles: config.deleteFiles,
       respectUserSyncSetting: config.respectUserSyncSetting,
-      deleteSyncNotify: config.deleteSyncNotify,
+      deleteSyncNotify:
+        config.deleteSyncNotify || NOTIFY_DEFAULTS.deleteSyncNotify,
       deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
       deleteSyncTrackedOnly: config.deleteSyncTrackedOnly ?? false,
       deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals ?? false,

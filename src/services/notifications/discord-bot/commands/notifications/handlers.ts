@@ -53,12 +53,6 @@ export async function handleNotificationButtons(
 
   if (interaction.customId.startsWith('retryPlexLink_')) {
     await interaction.showModal(createPlexLinkModal())
-    await interaction.deleteReply().catch((error) => {
-      logger.debug(
-        { error, userId: interaction.user.id },
-        'Failed to delete the failed Plex link reply',
-      )
-    })
     return
   }
 

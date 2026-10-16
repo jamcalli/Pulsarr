@@ -33,14 +33,9 @@ describe('createApprovalEmbed', () => {
   it.each([
     ['quota_exceeded', 'Quota Exceeded'],
     ['manual_flag', 'Manual Flag'],
+    ['router_rule', 'Router Rule'],
+    ['content_criteria', 'Content Criteria'],
   ] as const)('labels the %s trigger', (trigger, label) => {
     expect(requestInformation(trigger)).toContain(label)
   })
-
-  it.each(['router_rule', 'content_criteria'] as const)(
-    'labels the %s trigger instead of printing the raw key',
-    (trigger) => {
-      expect(requestInformation(trigger)).not.toContain(trigger)
-    },
-  )
 })
