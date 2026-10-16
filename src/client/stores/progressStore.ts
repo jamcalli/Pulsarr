@@ -1,11 +1,11 @@
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import { create } from 'zustand'
 import { api } from '@/lib/api'
+import { handleSseError } from '@/lib/sse-retry'
 import {
   calculateRetryDelay,
-  handleSseError,
   MAX_SSE_RECONNECT_ATTEMPTS,
-} from '@/lib/sse-retry'
+} from '@/lib/sse-retry-policy'
 import {
   nextWatchlistSyncCache,
   type WatchlistSyncCache,

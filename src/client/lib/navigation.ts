@@ -131,7 +131,10 @@ export const NAV_PAGES = {
     ...page('API keys', '/system/api-keys', ['/utilities/api-keys']),
     rebuilt: true,
   },
-  logs: page('Logs', '/system/logs', ['/utilities/log-viewer']),
+  logs: {
+    ...page('Logs', '/system/logs', ['/utilities/log-viewer']),
+    rebuilt: true,
+  },
 } as const satisfies Record<string, NavPage>
 
 export const NAV_SECTIONS: readonly NavSection[] = [

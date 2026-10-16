@@ -373,7 +373,7 @@ describe('AppSidebar', () => {
       await user.click(screen.getByRole('button', { name: /Sync running/ }))
       await user.click(await screen.findByRole('link', { name: 'View logs' }))
 
-      expect(router.state.location.pathname).toBe('/utilities/log-viewer')
+      expect(router.state.location.pathname).toBe('/system/logs')
       await waitFor(() =>
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
       )
