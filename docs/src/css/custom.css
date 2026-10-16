@@ -20,7 +20,7 @@
 /* Override Infima defaults that conflict with our styles */
 :root {
   --ifm-font-family-base:
-    "Shuttleblock", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Chakra Petch", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
   --ifm-font-family-monospace:
     SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;

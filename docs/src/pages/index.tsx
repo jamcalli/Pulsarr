@@ -32,7 +32,7 @@ export default function Home(): React.ReactElement {
               justifyContent: 'center',
               color: '#c1666b',
               fontSize: '1.5rem',
-              fontFamily: 'Shuttleblock, system-ui, -apple-system, sans-serif',
+              fontFamily: '"Chakra Petch", system-ui, -apple-system, sans-serif',
             }}
           >
             Loading Pulsarr...
@@ -100,7 +100,7 @@ export default function Home(): React.ReactElement {
                     color: '#c1666b',
                     fontSize: '1.5rem',
                     fontFamily:
-                      'Shuttleblock, system-ui, -apple-system, sans-serif',
+                      '"Chakra Petch", system-ui, -apple-system, sans-serif',
                   }}
                 >
                   Loading Pulsarr...
@@ -166,7 +166,7 @@ export default function Home(): React.ReactElement {
                             fontSize: '4rem',
                             fontWeight: 'bold',
                             fontFamily:
-                              'Shuttleblock, system-ui, -apple-system, sans-serif',
+                              '"Chakra Petch", system-ui, -apple-system, sans-serif',
                             textShadow: '3px 3px 0px rgba(0, 0, 0, 0.5)',
                           }}
                         >
@@ -179,7 +179,7 @@ export default function Home(): React.ReactElement {
                           color: '#c1666b', // --backdrop-title red color
                           fontSize: '1.5rem',
                           fontFamily:
-                            'Shuttleblock, system-ui, -apple-system, sans-serif',
+                            '"Chakra Petch", system-ui, -apple-system, sans-serif',
                           marginTop:
                             '-0.5rem' /* Increased negative margin to pull up more */,
                           marginBottom: '3rem',
