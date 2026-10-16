@@ -56,6 +56,12 @@ interface PlexMobileOutcome {
 
 const USER_CONCURRENCY = 10
 
+const NOTHING_SENT: ChannelDelivery = {
+  sent_to_discord: false,
+  sent_to_apprise: false,
+  sent_to_plex_mobile: false,
+}
+
 async function sourceInstanceName(
   deps: NotificationDeps,
   options: MediaAvailableOptions,
@@ -175,11 +181,7 @@ async function deliverToUser(
   const user = await deps.db.getUser(claim.user.id)
   if (!user) {
     return {
-      sent: {
-        sent_to_discord: false,
-        sent_to_apprise: false,
-        sent_to_plex_mobile: false,
-      },
+      sent: NOTHING_SENT,
     }
   }
   const message = createMediaAvailableMessage(claim.notification, [])
@@ -281,11 +283,21 @@ export async function deliverMediaAvailable(
   const deliverClaim = async (
     claim: ClaimedNotification,
   ): Promise<ClaimDelivery & { claim: ClaimedNotification }> => {
-    const delivery: ClaimDelivery =
-      claim.user.id === PUBLIC_USER_ID
-        ? { sent: await deliverToPublic(deps, claim, line, mentionDiscordIds) }
-        : await deliverToUser(deps, claim, line, fanOut)
-    return { ...delivery, claim }
+    try {
+      const delivery: ClaimDelivery =
+        claim.user.id === PUBLIC_USER_ID
+          ? {
+              sent: await deliverToPublic(deps, claim, line, mentionDiscordIds),
+            }
+          : await deliverToUser(deps, claim, line, fanOut)
+      return { ...delivery, claim }
+    } catch (error) {
+      deps.logger.error(
+        { error, recordId: claim.recordId, userId: claim.user.id },
+        'Media available delivery failed for one watchlister',
+      )
+      return { sent: NOTHING_SENT, claim }
+    }
   }
 
   const results: Array<ClaimDelivery & { claim: ClaimedNotification }> = []

@@ -263,6 +263,26 @@ describe('PlexServerService.resolveUserPlexId', () => {
     expect(await createResolver().resolveUserPlexId(name, 2)).toBe(2002)
   })
 
+  it('prefers an exact username over another user whose title matches', async () => {
+    const service = createResolver()
+    vi.spyOn(service, 'getPlexUsers').mockResolvedValue([
+      { id: '4004', username: 'someone', title: 'bob' },
+      { id: '5005', username: 'bob', title: 'Robert' },
+    ])
+
+    expect(await service.resolveUserPlexId('bob', 9)).toBe(5005)
+  })
+
+  it('leaves an ambiguous title match unresolved', async () => {
+    const service = createResolver()
+    vi.spyOn(service, 'getPlexUsers').mockResolvedValue([
+      { id: '4004', username: 'one', title: 'Sam' },
+      { id: '5005', username: 'two', title: 'Sam' },
+    ])
+
+    expect(await service.resolveUserPlexId('sam', 9)).toBeNull()
+  })
+
   it('returns null for an unmatched user or a non-numeric id', async () => {
     const service = createResolver()
 

@@ -660,10 +660,11 @@ export class PlexServerService {
     }
 
     const name = username.toLowerCase()
-    const match = (await this.getPlexUsers()).find(
-      (pu) =>
-        pu.username.toLowerCase() === name || pu.title.toLowerCase() === name,
-    )
+    const plexUsers = await this.getPlexUsers()
+    const byTitle = plexUsers.filter((pu) => pu.title.toLowerCase() === name)
+    const match =
+      plexUsers.find((pu) => pu.username.toLowerCase() === name) ??
+      (byTitle.length === 1 ? byTitle[0] : undefined)
     if (!match) return null
 
     const numericId = Number(match.id)

@@ -87,6 +87,29 @@ describe('deliverMediaAvailable', () => {
     expect(db.updateNotificationDelivery).not.toHaveBeenCalled()
   })
 
+  it('releases a claim whose delivery throws and still delivers the others', async () => {
+    const { deps, db, discordBot } = createDeps(new Promise(() => {}))
+    db.getUser.mockImplementation(async (id: number) => {
+      if (id === PLEX_USER.id) throw new Error('db read failed')
+      return DM_USER
+    })
+
+    await deliverMediaAvailable(deps, {
+      mediaInfo: { type: 'movie', guid: 'tmdb:348', title: 'Alien' },
+      options: { isBulkRelease: false, sequential: true },
+      enrichment: ENRICHMENT,
+      claims: [claimFor(PLEX_USER, 11), claimFor(DM_USER, 12)],
+      watchlisters: [],
+    })
+
+    expect(db.deleteNotificationRecord).toHaveBeenCalledWith(11)
+    expect(discordBot.sendNotification).toHaveBeenCalledTimes(1)
+    expect(db.updateNotificationDelivery).toHaveBeenCalledWith(
+      12,
+      expect.objectContaining({ sent_to_discord: true }),
+    )
+  })
+
   it('holds a queued Plex claim until the push fails, then releases it', async () => {
     const plexDelivery = createDeferred<DeliveryResult>()
     const { deps, db, detached } = createDeps(plexDelivery.promise)
