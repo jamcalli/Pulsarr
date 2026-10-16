@@ -1,16 +1,20 @@
 import { useMutation } from '@tanstack/react-query'
 import type { RowSelectionState } from '@tanstack/react-table'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import type { PageSize } from '@/components/data-table/page-size'
 import {
   bulkEnrollPayload,
   type EnrollableRow,
   type EnrollmentFilter,
   enrollableId,
+  enrollmentPageSizePref,
   visibleEnrollable,
 } from '@/features/library/lib/session-monitoring/enrollment'
 import { invalidateEnrollment } from '@/features/library/lib/session-monitoring/session-monitoring-queries'
 import { useArrInstances } from '@/hooks/useArrInstances'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
+import { paginate } from '@/lib/paginate'
+import { usePref } from '@/lib/prefs'
 import {
   $api,
   apiErrorMessage,
@@ -29,6 +33,8 @@ export interface EnrollmentResult {
 
 const NO_FILTER: EnrollmentFilter = { q: '', instanceId: null }
 
+const DIALOG_PAGE_HREF = () => '#'
+
 async function applyEnrollment(
   payload: BulkPayload,
 ): Promise<EnrollmentResult> {
@@ -43,6 +49,8 @@ async function applyEnrollment(
 export function useEnrollment() {
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState(NO_FILTER)
+  const [page, setPage] = useState(1)
+  const [pageSize, savePageSize] = usePref(enrollmentPageSizePref)
   const [selection, setSelection] = useState<RowSelectionState>({})
   const [result, setResult] = useState<EnrollmentResult | null>(null)
   const query = $api.useQuery(
@@ -64,9 +72,14 @@ export function useEnrollment() {
 
   const shows = query.data?.shows ?? null
   const selected = (shows ?? []).filter((show) => selection[enrollableId(show)])
+  const matching = useMemo(
+    () => shows && visibleEnrollable(shows, filter),
+    [shows, filter],
+  )
+  const paged = paginate(matching ?? [], page, pageSize)
   const rows: EnrollableRow[] | null =
-    shows &&
-    visibleEnrollable(shows, filter).map((show) => ({
+    matching &&
+    paged.rows.map((show) => ({
       show,
       instanceName:
         instances.findTarget(show.sonarrInstanceId)?.instance.name ?? '',
@@ -76,6 +89,7 @@ export function useEnrollment() {
     open,
     openCredenza: () => {
       setFilter(NO_FILTER)
+      setPage(1)
       setSelection({})
       setResult(null)
       mutation.reset()
@@ -86,6 +100,15 @@ export function useEnrollment() {
     },
     shows,
     rows,
+    total: matching?.length ?? 0,
+    page: paged.page,
+    pageHref: DIALOG_PAGE_HREF,
+    setPage,
+    pageSize,
+    setPageSize: (size: PageSize) => {
+      savePageSize(size)
+      setPage(1)
+    },
     instanceOptions: instances.configuredTargets.map(({ instance }) => ({
       value: instance.id,
       label: instance.name,
@@ -95,8 +118,10 @@ export function useEnrollment() {
       : null,
     retry: () => void query.refetch(),
     filter,
-    updateFilter: (patch: Partial<EnrollmentFilter>) =>
-      setFilter({ ...filter, ...patch }),
+    updateFilter: (patch: Partial<EnrollmentFilter>) => {
+      setFilter({ ...filter, ...patch })
+      setPage(1)
+    },
     selection,
     setSelection,
     selected,
