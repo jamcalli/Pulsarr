@@ -49,7 +49,7 @@ function serverOption(server: components['schemas']['PlexServer']) {
     label: server.name,
     description: (
       <span className="flex flex-col gap-1.5">
-        <span>{url}</span>
+        <span className="wrap-anywhere">{url}</span>
         {server.description && <span>{server.description}</span>}
         {!server.success && <span>{server.message}</span>}
         <span className="flex flex-wrap gap-1.5">

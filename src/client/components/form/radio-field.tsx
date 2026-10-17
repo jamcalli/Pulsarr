@@ -49,7 +49,9 @@ export function RadioField<T extends string>({
             <FieldLabel key={option.value} htmlFor={id}>
               <Field orientation="horizontal">
                 <FieldContent>
-                  <FieldTitle>{option.label}</FieldTitle>
+                  <FieldTitle className="wrap-anywhere">
+                    {option.label}
+                  </FieldTitle>
                   {option.description && (
                     <FieldDescription>{option.description}</FieldDescription>
                   )}
