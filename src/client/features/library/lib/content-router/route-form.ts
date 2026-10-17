@@ -75,8 +75,14 @@ function ruleRouting(
   rule: RouterRule,
   defaults: RouteRoutingValues,
 ): RouteRoutingValues {
+  const addOptions = {
+    searchOnAdd: rule.search_on_add ?? null,
+    seasonMonitoring: rule.season_monitoring ?? null,
+    seriesType: rule.series_type ?? null,
+    monitor: rule.monitor ?? null,
+  }
   if (rule.exclude_from_routing || rule.target_instance_id === null) {
-    return defaults
+    return { ...defaults, ...addOptions }
   }
   return {
     instanceId: String(rule.target_instance_id),
@@ -86,10 +92,7 @@ function ruleRouting(
         : String(rule.quality_profile),
     rootFolder: rule.root_folder || null,
     tags: rule.tags ?? [],
-    searchOnAdd: rule.search_on_add ?? null,
-    seasonMonitoring: rule.season_monitoring ?? null,
-    seriesType: rule.series_type ?? null,
-    monitor: rule.monitor ?? null,
+    ...addOptions,
   }
 }
 
@@ -137,7 +140,7 @@ export function draftValue(
       return text === null ? [] : [text]
     }
     case 'range':
-      return rangeOf(value)
+      return typeof value === 'string' ? value : rangeOf(value)
     case 'number': {
       if (typeof value === 'number') return value
       const parsed = typeof value === 'string' ? Number(value) : Number.NaN
@@ -291,12 +294,18 @@ function ratingValue(
   if (typeof value === 'number') return value
   if (Array.isArray(value)) {
     const items: ReadonlyArray<unknown> = value
-    return items.flatMap((item) => {
+    const ratings = items.flatMap((item) => {
       const rating = typeof item === 'string' ? storedScalar(item, true) : item
       return typeof rating === 'number' ? [rating] : []
     })
+    return ratings.length > 0 ? ratings : undefined
   }
-  if (isRecord(value) && !('rating' in value)) return rangeOf(value)
+  if (isRecord(value) && !('rating' in value)) {
+    const range = rangeOf(value)
+    return range.min === undefined && range.max === undefined
+      ? undefined
+      : range
+  }
   return undefined
 }
 
@@ -376,7 +385,6 @@ export function rulePayload(
 ): RouterRulePayload {
   const exclude = values.action === 'exclude'
   const { routing } = values
-  const approval = !exclude && values.always_require_approval
   return {
     name: values.name,
     target_type: type,
@@ -387,13 +395,13 @@ export function rulePayload(
     enabled,
     order: values.order,
     condition: conditionTree(values.conditions, numeric),
-    search_on_add: exclude ? undefined : routing.searchOnAdd,
+    search_on_add: routing.searchOnAdd,
     season_monitoring: type === 'sonarr' ? routing.seasonMonitoring : undefined,
     series_type: type === 'sonarr' ? routing.seriesType : undefined,
     monitor: type === 'radarr' ? routing.monitor : undefined,
-    always_require_approval: approval,
-    approval_reason: approval ? values.approval_reason : undefined,
-    bypass_user_quotas: !exclude && values.bypass_user_quotas,
+    always_require_approval: values.always_require_approval,
+    approval_reason: values.approval_reason,
+    bypass_user_quotas: values.bypass_user_quotas,
     exclude_from_routing: exclude,
   }
 }

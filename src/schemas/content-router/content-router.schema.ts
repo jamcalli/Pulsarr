@@ -177,7 +177,6 @@ export interface ICondition {
   operator: ComparisonOperator
   value: z.infer<typeof ConditionValueSchema>
   negate?: boolean
-  _cid?: string
 }
 
 export const ConditionSchema = z
@@ -186,7 +185,6 @@ export const ConditionSchema = z
     operator: ComparisonOperatorSchema,
     value: ConditionValueSchema,
     negate: z.boolean().optional().default(false),
-    _cid: z.string().optional(),
   })
   .refine(
     (cond) => {
@@ -241,7 +239,6 @@ export interface IConditionGroup {
   operator: z.infer<typeof RouterGroupOperatorSchema>
   conditions: (ICondition | IConditionGroup)[]
   negate?: boolean
-  _cid?: string
 }
 
 // Helper function to check if a value is a condition group
@@ -330,13 +327,11 @@ export const ConditionGroupSchema = z
             operator: RouterGroupOperatorSchema,
             conditions: z.array(z.any()).max(ROUTER_GROUP_MAX_CONDITIONS),
             negate: z.boolean().optional().default(false),
-            _cid: z.string().optional(),
           }),
         ]),
       )
       .max(ROUTER_GROUP_MAX_CONDITIONS),
     negate: z.boolean().optional().default(false),
-    _cid: z.string().optional(),
   })
   .superRefine((group, ctx) => {
     const issue = conditionGroupIssue(group)
@@ -479,7 +474,6 @@ const StoredConditionSchema = z.object({
   operator: ComparisonOperatorSchema,
   value: StoredConditionValueSchema,
   negate: z.boolean().optional().default(false),
-  _cid: z.string().optional(),
 })
 
 const StoredConditionGroupSchema = z.object({
@@ -491,12 +485,10 @@ const StoredConditionGroupSchema = z.object({
         operator: RouterGroupOperatorSchema,
         conditions: z.array(z.any()),
         negate: z.boolean().optional().default(false),
-        _cid: z.string().optional(),
       }),
     ]),
   ),
   negate: z.boolean().optional().default(false),
-  _cid: z.string().optional(),
 })
 
 // Response schemas skip the request refinements so one stale stored row cannot fail the whole list

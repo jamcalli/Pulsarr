@@ -54,10 +54,6 @@ interface LegacyCase {
   label: string
   condition: LegacyGroup
   rule: RouterRule
-  /** Set when the strict comparison is known to fail, naming the difference. */
-  finding?: string
-  /** True when loading is known to blank a condition value. */
-  blanked?: true
 }
 
 function catalog(type: RouteType) {
@@ -103,12 +99,10 @@ function stored(
   label: string,
   condition: LegacyGroup,
   overrides: Partial<RouterRule> = {},
-  finding?: string,
 ): LegacyCase {
   return {
     label,
     condition,
-    finding,
     rule: {
       id: 1,
       name: label,
@@ -159,8 +153,12 @@ const radarrConditions: Array<[string, LegacyCondition]> = [
   ['certification in', when('certification', 'in', ['PG', 'PG-13'])],
   ['certification contains', when('certification', 'contains', 'PG')],
   ['certification regex', when('certification', 'regex', '^TV-')],
+  ['certification notIn', when('certification', 'notIn', ['R', 'NC-17'])],
+  ['certification notContains', when('certification', 'notContains', 'TV')],
   ['movieStatus equals', when('movieStatus', 'equals', 'released')],
   ['movieStatus in', when('movieStatus', 'in', ['released', 'inCinemas'])],
+  ['movieStatus notEquals', when('movieStatus', 'notEquals', 'announced')],
+  ['movieStatus notIn', when('movieStatus', 'notIn', ['announced'])],
   ['user equals a numeric id', when('user', 'equals', 7)],
   ['user equals a numeric id as a string', when('user', 'equals', '7')],
   ['user equals a username', when('user', 'equals', 'alice')],
@@ -171,6 +169,7 @@ const radarrConditions: Array<[string, LegacyCondition]> = [
   ['user notEquals a numeric id', when('user', 'notEquals', 7)],
   ['user in ids', when('user', 'in', [7, 8])],
   ['user notIn ids', when('user', 'notIn', [9])],
+  ['user regex', when('user', 'regex', '^ali')],
   ['user equals a one-element list', when('user', 'equals', [7])],
   ['streamingServices in ids', when('streamingServices', 'in', [8, 337])],
   ['streamingServices notIn ids', when('streamingServices', 'notIn', [15])],
@@ -192,7 +191,14 @@ const radarrConditions: Array<[string, LegacyCondition]> = [
     when('imdbRating', 'in', { rating: [7, 8], votes: 5000 }),
   ],
   ['imdbRating votes only', when('imdbRating', 'greaterThan', { votes: 2500 })],
+  [
+    'imdbRating votes only with between',
+    when('imdbRating', 'between', { votes: 2500 }),
+  ],
+  ['imdbRating votes only with in', when('imdbRating', 'in', { votes: 2500 })],
   ['rtCriticRating greaterThan', when('rtCriticRating', 'greaterThan', 80)],
+  ['rtCriticRating lessThan', when('rtCriticRating', 'lessThan', 40)],
+  ['rtCriticRating in', when('rtCriticRating', 'in', [90, 95])],
   [
     'rtCriticRating between',
     when('rtCriticRating', 'between', { min: 60, max: 90 }),
@@ -205,11 +211,18 @@ const radarrConditions: Array<[string, LegacyCondition]> = [
   ['tmdbRating greaterThan', when('tmdbRating', 'greaterThan', 7.2)],
   ['tmdbRating between', when('tmdbRating', 'between', { min: 6.5, max: 9 })],
   ['tmdbRating in', when('tmdbRating', 'in', [7, 8])],
+  ['tmdbRating lessThan', when('tmdbRating', 'lessThan', 5.5)],
   ['year greaterThan', when('year', 'greaterThan', 2000)],
   ['year between', when('year', 'between', { min: 1980, max: 1989 })],
   ['year in', when('year', 'in', [1999, 2000])],
+  ['year equals', when('year', 'equals', 1999)],
+  ['year lessThan', when('year', 'lessThan', 1970)],
+  ['year notIn', when('year', 'notIn', [2001])],
   ['language equals', when('language', 'equals', 'English')],
   ['language in', when('language', 'in', ['English', 'French'])],
+  ['language notIn', when('language', 'notIn', ['German'])],
+  ['language contains', when('language', 'contains', 'Eng')],
+  ['language regex', when('language', 'regex', '^Fr')],
   ['plexList equals', when('plexList', 'equals', 'Favorites')],
 ]
 
@@ -219,6 +232,16 @@ const sonarrConditions: Array<[string, LegacyCondition]> = [
   ['season equals', when('season', 'equals', 1)],
   ['season in', when('season', 'in', [1, 2])],
   ['season between', when('season', 'between', { min: 1, max: 3 })],
+  ['seriesStatus notEquals', when('seriesStatus', 'notEquals', 'ended')],
+  ['seriesStatus notIn', when('seriesStatus', 'notIn', ['deleted'])],
+  ['season notEquals', when('season', 'notEquals', 0)],
+  ['season greaterThan', when('season', 'greaterThan', 1)],
+  ['season lessThan', when('season', 'lessThan', 4)],
+  ['season notIn', when('season', 'notIn', [0])],
+  [
+    'season between typed into the legacy fallback text input',
+    when('season', 'between', '1-3'),
+  ],
 ]
 
 const nested: LegacyGroup = {
@@ -328,60 +351,45 @@ const cases: LegacyCase[] = [
     approval_reason: 'Anime needs a look',
     bypass_user_quotas: true,
   }),
+  // The deprecated _cid keys are no longer part of the rule contract, so a save drops them
+  stored('conditions carrying the legacy editor _cid keys', withCids),
+  stored('approval required with no reason', genreRule, {
+    always_require_approval: true,
+  }),
+  stored('approval reason kept while approval is off', genreRule, {
+    approval_reason: 'Stale reason',
+  }),
+  stored('exclude rule as the legacy editor saved it', genreRule, {
+    exclude_from_routing: true,
+    target_instance_id: null,
+    root_folder: null,
+    quality_profile: null,
+  }),
+  stored('exclude rule with approval and quota bypass set', genreRule, {
+    exclude_from_routing: true,
+    target_instance_id: null,
+    root_folder: null,
+    quality_profile: null,
+    search_on_add: null,
+    monitor: null,
+    always_require_approval: true,
+    approval_reason: 'Held',
+    bypass_user_quotas: true,
+  }),
   stored(
-    'conditions carrying the legacy editor _cid keys',
-    withCids,
-    {},
-    'the _cid keys on the root, the nested group and each condition are dropped',
-  ),
-  stored(
-    'approval required with no reason',
-    genreRule,
-    { always_require_approval: true },
-    'the payload sends approval_reason as an empty string where the rule had none',
-  ),
-  stored(
-    'approval reason kept while approval is off',
-    genreRule,
-    { approval_reason: 'Stale reason' },
-    'the payload drops approval_reason when always_require_approval is false',
-  ),
-  stored(
-    'exclude rule as the legacy editor saved it',
-    genreRule,
+    'sonarr exclude rule with season monitoring and series type pinned',
+    seasonRule,
     {
+      ...SONARR,
       exclude_from_routing: true,
       target_instance_id: null,
       root_folder: null,
       quality_profile: null,
+      search_on_add: false,
+      season_monitoring: 'pilot',
+      series_type: 'anime',
     },
-    'the payload resets search_on_add and monitor to null on an exclude rule',
   ),
-  stored(
-    'exclude rule with approval and quota bypass set',
-    genreRule,
-    {
-      exclude_from_routing: true,
-      target_instance_id: null,
-      root_folder: null,
-      quality_profile: null,
-      search_on_add: null,
-      monitor: null,
-      always_require_approval: true,
-      approval_reason: 'Held',
-      bypass_user_quotas: true,
-    },
-    'the payload forces always_require_approval, approval_reason and bypass_user_quotas off on an exclude rule',
-  ),
-  {
-    ...stored(
-      'season between typed into the legacy fallback text input',
-      all(when('season', 'between', '1-3')),
-      SONARR,
-      'the range control reads the text as an empty range and saves {}',
-    ),
-    blanked: true,
-  },
 ]
 
 const LIST_OPERATORS: ReadonlySet<ConditionOperator> = new Set(['in', 'notIn'])
@@ -429,7 +437,6 @@ function expectedCondition(condition: LegacyCondition) {
     operator,
     value: next,
     negate: condition.negate,
-    ...(condition._cid === undefined ? {} : { _cid: condition._cid }),
   }
 }
 
@@ -437,7 +444,6 @@ interface ExpectedGroup {
   operator: GroupOperator
   negate: boolean
   conditions: Array<ReturnType<typeof expectedCondition> | ExpectedGroup>
-  _cid?: string
 }
 
 function expectedGroup(group: LegacyGroup): ExpectedGroup {
@@ -447,7 +453,6 @@ function expectedGroup(group: LegacyGroup): ExpectedGroup {
     conditions: group.conditions.map((child) =>
       'conditions' in child ? expectedGroup(child) : expectedCondition(child),
     ),
-    ...(group._cid === undefined ? {} : { _cid: group._cid }),
   }
 }
 
@@ -470,7 +475,8 @@ function expectedPayload({ rule, condition }: LegacyCase) {
     series_type: rule.series_type ?? null,
     monitor: rule.monitor ?? null,
     always_require_approval: rule.always_require_approval ?? false,
-    approval_reason: rule.approval_reason ?? null,
+    // The response omits an empty stored reason, which the legacy editor always saved as ''.
+    approval_reason: rule.approval_reason ?? '',
     bypass_user_quotas: rule.bypass_user_quotas ?? false,
     exclude_from_routing: rule.exclude_from_routing ?? false,
   }
@@ -537,36 +543,18 @@ function roundTrip({ rule }: LegacyCase): {
   return { values, payload }
 }
 
-const clean = cases.filter((entry) => entry.finding === undefined)
-const findings = cases.filter((entry) => entry.finding !== undefined)
-const loaded = cases.filter((entry) => entry.blanked === undefined)
-const blanked = cases.filter((entry) => entry.blanked !== undefined)
-
-function expectNothingBlanked(entry: LegacyCase) {
-  const conditions = conditionNodesOf(roundTrip(entry).values.conditions)
-
-  expect(conditions).toHaveLength(leafCount(entry.condition))
-  expect(conditions.filter(isBlank)).toEqual([])
-}
-
 describe('legacy rule round trip', () => {
-  it.each(loaded)(
+  it.each(cases)(
     'loads every condition of $label without blanking it',
-    expectNothingBlanked,
+    (entry) => {
+      const conditions = conditionNodesOf(roundTrip(entry).values.conditions)
+
+      expect(conditions).toHaveLength(leafCount(entry.condition))
+      expect(conditions.filter(isBlank)).toEqual([])
+    },
   )
 
-  it.fails.each(blanked)(
-    'loads every condition of $label without blanking it ($finding)',
-    expectNothingBlanked,
-  )
-
-  it.each(clean)('saves $label back unchanged', (entry) => {
-    expect(sentPayload(roundTrip(entry).payload)).toEqual(
-      expectedPayload(entry),
-    )
-  })
-
-  it.fails.each(findings)('saves $label back unchanged ($finding)', (entry) => {
+  it.each(cases)('saves $label back unchanged', (entry) => {
     expect(sentPayload(roundTrip(entry).payload)).toEqual(
       expectedPayload(entry),
     )

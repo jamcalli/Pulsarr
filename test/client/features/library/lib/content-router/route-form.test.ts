@@ -267,13 +267,27 @@ describe('ruleFormValues', () => {
     })
   })
 
-  it('keeps the default routing for an exclude rule', () => {
+  it('keeps the default destination and the stored add options for an exclude rule', () => {
     expect(
       ruleFormValues(
-        rule({ exclude_from_routing: true, target_instance_id: null }),
+        rule({
+          exclude_from_routing: true,
+          target_instance_id: null,
+          search_on_add: false,
+          monitor: 'none',
+        }),
         context,
       ),
-    ).toMatchObject({ action: 'exclude', routing })
+    ).toMatchObject({
+      action: 'exclude',
+      routing: {
+        ...routing,
+        searchOnAdd: false,
+        seasonMonitoring: null,
+        seriesType: null,
+        monitor: 'none',
+      },
+    })
   })
 })
 
@@ -307,7 +321,7 @@ describe('rulePayload', () => {
       series_type: undefined,
       monitor: 'movieOnly',
       always_require_approval: false,
-      approval_reason: undefined,
+      approval_reason: 'stale',
       bypass_user_quotas: true,
       exclude_from_routing: false,
     })
@@ -351,7 +365,7 @@ describe('rulePayload', () => {
     })
   })
 
-  it('clears routing and approval for an exclude rule', () => {
+  it('clears the destination but keeps add options and approval for an exclude rule', () => {
     expect(
       rulePayload(
         { ...values, action: 'exclude', always_require_approval: true },
@@ -362,10 +376,11 @@ describe('rulePayload', () => {
       quality_profile: undefined,
       root_folder: undefined,
       tags: [],
-      search_on_add: undefined,
-      always_require_approval: false,
-      approval_reason: undefined,
-      bypass_user_quotas: false,
+      search_on_add: true,
+      monitor: 'movieOnly',
+      always_require_approval: true,
+      approval_reason: 'stale',
+      bypass_user_quotas: true,
       exclude_from_routing: true,
     })
   })

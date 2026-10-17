@@ -4439,7 +4439,6 @@ export interface components {
             value: components["schemas"]["ConditionValue"];
             /** @default false */
             negate?: boolean;
-            _cid?: string;
         };
         /** @description Boolean grouping of router conditions, nestable to 20 levels */
         RouterConditionGroup: {
@@ -4449,11 +4448,9 @@ export interface components {
                 conditions: unknown[];
                 /** @default false */
                 negate?: boolean;
-                _cid?: string;
             })[];
             /** @default false */
             negate?: boolean;
-            _cid?: string;
         };
         /** @description Router outcome for a request, holding the routing used on approval */
         RouterDecision: {
@@ -4506,7 +4503,6 @@ export interface components {
                 } | components["schemas"]["ConditionRange"] | null;
                 /** @default false */
                 negate: boolean;
-                _cid?: string;
             } | {
                 operator: components["schemas"]["RouterGroupOperator"];
                 conditions: ({
@@ -4524,17 +4520,14 @@ export interface components {
                     } | components["schemas"]["ConditionRange"] | null;
                     /** @default false */
                     negate: boolean;
-                    _cid?: string;
                 } | {
                     operator: components["schemas"]["RouterGroupOperator"];
                     conditions: unknown[];
                     /** @default false */
                     negate: boolean;
-                    _cid?: string;
                 })[];
                 /** @default false */
                 negate: boolean;
-                _cid?: string;
             };
             root_folder?: string | null;
             quality_profile?: number | string | null;

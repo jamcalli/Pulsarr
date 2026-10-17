@@ -419,6 +419,7 @@ describe('ContentRouterPage', () => {
       search_on_add: null,
       monitor: null,
       always_require_approval: false,
+      approval_reason: '',
       bypass_user_quotas: false,
       exclude_from_routing: false,
     })
@@ -471,6 +472,47 @@ describe('ContentRouterPage', () => {
 
     await waitFor(() => expect(bodies.put).toHaveLength(1))
     expect(bodies.put[0]).toMatchObject({ name: 'Legacy renamed', order: 150 })
+  })
+
+  it('shows a between value saved as text in a text input and saves it back', async () => {
+    const user = userEvent.setup()
+    const bodies = mockEndpoints([
+      makeRule({
+        id: 9,
+        name: 'Legacy text',
+        condition: {
+          operator: 'AND',
+          negate: false,
+          conditions: [
+            {
+              field: 'year',
+              operator: 'between',
+              value: '1990-1999',
+              negate: false,
+            },
+          ],
+        },
+      }),
+    ])
+    renderPage()
+
+    await user.click(
+      await screen.findByRole('button', { name: /^Edit Legacy text/ }),
+    )
+    expect(await screen.findByDisplayValue('1990-1999')).toBeVisible()
+    const name = screen.getByLabelText('Route name')
+    await user.clear(name)
+    await user.type(name, 'Legacy renamed')
+    await user.click(screen.getByRole('button', { name: 'Save route' }))
+
+    await waitFor(() => expect(bodies.put).toHaveLength(1))
+    expect(bodies.put[0]).toMatchObject({
+      condition: {
+        conditions: [
+          { field: 'year', operator: 'between', value: '1990-1999' },
+        ],
+      },
+    })
   })
 
   it('saves an edited route with a full replace', async () => {

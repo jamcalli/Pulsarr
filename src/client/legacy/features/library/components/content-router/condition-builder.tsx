@@ -73,7 +73,7 @@ const ConditionBuilder = ({
   const fieldSelectId = useId()
   const operatorSelectId = useId()
   const fallbackId = useId()
-  const inputId = `condition-input-${value._cid || fallbackId}`
+  const inputId = `condition-input-${fallbackId}`
 
   const routerContext = useContext(ContentRouterContext)
   const contentType = routerContext?.contentType || 'both'
