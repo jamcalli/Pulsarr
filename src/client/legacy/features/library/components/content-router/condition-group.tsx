@@ -27,7 +27,6 @@ import {
   isCondition,
   isConditionGroup,
 } from '@/legacy/features/library/lib/content-router/route-types'
-import { generateUUID } from '@/legacy/features/library/lib/content-router/utils'
 
 interface ConditionGroupComponentProps {
   value: ConditionGroup
@@ -77,7 +76,6 @@ const ConditionGroupComponent = ({
         operator: 'equals' as ComparisonOperator,
         value: null,
         negate: false,
-        _cid: generateUUID(),
       }
     }
 
@@ -116,7 +114,6 @@ const ConditionGroupComponent = ({
         operator: 'equals' as ComparisonOperator,
         value: null,
         negate: false,
-        _cid: generateUUID(),
       }
     }
 
@@ -125,7 +122,6 @@ const ConditionGroupComponent = ({
       operator: firstOperator,
       value: null,
       negate: false,
-      _cid: generateUUID(),
     }
   }, [filteredEvaluators])
 
@@ -135,7 +131,6 @@ const ConditionGroupComponent = ({
       operator: 'AND',
       conditions: [createEmptyCondition()],
       negate: false,
-      _cid: generateUUID(),
     }
   }, [createEmptyCondition])
 

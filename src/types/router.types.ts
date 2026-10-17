@@ -186,7 +186,6 @@ export interface Condition {
   operator: ComparisonOperator
   value: unknown
   negate?: boolean
-  _cid?: string
 }
 
 // Group condition for nesting
@@ -194,5 +193,4 @@ export interface ConditionGroup {
   operator: LogicalOperator
   conditions: Array<Condition | ConditionGroup>
   negate?: boolean
-  _cid?: string
 }

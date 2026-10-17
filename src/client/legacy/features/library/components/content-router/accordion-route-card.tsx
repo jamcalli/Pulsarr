@@ -160,7 +160,6 @@ function normalizeConditionGroup(
         }
       }),
       negate: cg.negate ?? false,
-      _cid: cg._cid,
     }
   }
   return {
