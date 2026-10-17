@@ -1,5 +1,5 @@
 import type { LogEntry } from '@root/types/logs.types'
-import type { StatusTone } from '@/components/status-pill'
+import type { StatusPillView } from '@/components/status-pill'
 import { MAX_LOG_LINES } from '@/features/system/lib/logs/log-buffer'
 import {
   type ConfigLogLevel,
@@ -12,10 +12,7 @@ import { MAX_SSE_RECONNECT_ATTEMPTS } from '@/lib/sse-retry-policy'
 
 const LABEL_LENGTH = 48
 
-export const STREAM_PILLS: Record<
-  StreamStatus['kind'],
-  { tone: StatusTone; label: string }
-> = {
+export const STREAM_PILLS: Record<StreamStatus['kind'], StatusPillView> = {
   connecting: { tone: 'pending', label: 'Connecting' },
   live: { tone: 'on', label: 'Live' },
   paused: { tone: 'off', label: 'Paused' },

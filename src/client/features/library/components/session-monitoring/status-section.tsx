@@ -32,8 +32,8 @@ function LiveConnectionRow({ pollingMinutes }: { pollingMinutes: number }) {
           {liveConnectionLine(state, pollingMinutes)}
         </ItemDescription>
       </ItemContent>
-      <ItemActions role="status" aria-live="polite">
-        <StatusPill tone={pill.tone} label={pill.label} />
+      <ItemActions>
+        <StatusPill tone={pill.tone} label={pill.label} live />
       </ItemActions>
     </Item>
   )

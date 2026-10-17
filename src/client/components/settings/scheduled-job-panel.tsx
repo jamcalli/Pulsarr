@@ -6,7 +6,7 @@ import {
   ActionRow,
 } from '@/components/settings/action-row'
 import { SettingsSection } from '@/components/settings/settings-section'
-import { StatusPill, type StatusTone } from '@/components/status-pill'
+import { StatusPill, type StatusPillView } from '@/components/status-pill'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
 import type { ActionState } from '@/lib/action-state'
 import { formatRelative } from '@/lib/format'
@@ -33,10 +33,7 @@ interface ScheduledJobPanelProps {
   children: ReactNode
 }
 
-function jobStatus(
-  schedule: ScheduleStatus,
-  running: boolean,
-): { tone: StatusTone; label: string } {
+function jobStatus(schedule: ScheduleStatus, running: boolean): StatusPillView {
   if (running) return { tone: 'requested', label: 'Running' }
   if (!schedule.enabled) return { tone: 'off', label: 'Disabled' }
   if (schedule.last_run?.status === 'failed') {

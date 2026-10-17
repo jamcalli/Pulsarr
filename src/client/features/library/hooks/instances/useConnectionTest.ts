@@ -1,9 +1,7 @@
-import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
 import type { ConnectionTestStatus } from '@/components/connection-test'
 import type { ArrType } from '@/features/library/lib/instances/instance-form'
-import { withMinDuration } from '@/hooks/useMinLoading'
-import { apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
+import { useSendTest } from '@/hooks/useSendTest'
+import { apiFetch } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 type TestResponse = components['schemas']['ArrTestConnectionResponse']
@@ -25,65 +23,38 @@ export async function testConnection(
   return data
 }
 
-type Outcome =
-  | { status: 'passed' }
-  | {
-      status: 'failed'
-      message: string
-      code: TestResponse['code']
-    }
-
 function sameCredentials(a: ArrCredentials, b: ArrCredentials): boolean {
   return a.baseUrl === b.baseUrl && a.apiKey === b.apiKey
 }
 
-/** A result only holds for the credentials it tested, so editing either field returns the test to idle. */
 export function useConnectionTest(type: ArrType, current: ArrCredentials) {
-  const [tested, setTested] = useState<
-    (ArrCredentials & { outcome: Outcome }) | null
-  >(null)
-  const mutation = useMutation({
-    mutationFn: (credentials: ArrCredentials) =>
-      withMinDuration(testConnection(type, credentials)),
-  })
-
-  const outcome =
-    tested && sameCredentials(tested, current) ? tested.outcome : null
-  const status: ConnectionTestStatus = mutation.isPending
+  const test = useSendTest(
+    (credentials: ArrCredentials) => testConnection(type, credentials),
+    current,
+    sameCredentials,
+  )
+  const outcome = test.outcome
+  const status: ConnectionTestStatus = test.testing
     ? 'testing'
-    : (outcome?.status ?? 'idle')
-
-  const run = (credentials: ArrCredentials) => {
-    mutation.mutate(credentials, {
-      onSuccess: (data) =>
-        setTested({
-          ...credentials,
-          outcome: data.success
-            ? { status: 'passed' }
-            : { status: 'failed', message: data.message, code: data.code },
-        }),
-      onError: (error) =>
-        setTested({
-          ...credentials,
-          outcome: {
-            status: 'failed',
-            message: mutationErrorMessage(
-              error,
-              'The connection test did not run. Try again.',
-            ),
-            code: null,
-          },
-        }),
-    })
-  }
+    : outcome === null
+      ? 'idle'
+      : outcome.success
+        ? 'passed'
+        : 'failed'
+  const failure =
+    outcome === null || outcome.success
+      ? null
+      : 'error' in outcome
+        ? { message: outcome.error, code: null }
+        : { message: outcome.message, code: outcome.code }
 
   return {
     status,
-    failure: outcome?.status === 'failed' ? outcome : null,
+    failure,
     passedCredentials:
-      outcome?.status === 'passed' && tested
-        ? { baseUrl: tested.baseUrl, apiKey: tested.apiKey }
+      outcome?.success === true
+        ? { baseUrl: current.baseUrl, apiKey: current.apiKey }
         : null,
-    run,
+    run: test.run,
   }
 }

@@ -12,14 +12,13 @@ import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { useQuotaSettingsForm } from '@/features/requests/hooks/quota-settings/useQuotaSettingsForm'
-import { NOTIFY_OPTIONS } from '@/features/requests/lib/notify-options'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useShowLoading } from '@/hooks/useMinLoading'
 import { type ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
 import { NAV_PAGES } from '@/lib/navigation'
-import { withStoredOption } from '@/lib/select-options'
+import { notifyOptions } from '@/lib/notify-labels'
 import type { components } from '@/types/api.js'
 
 const SECTION = 'Requests'
@@ -79,11 +78,6 @@ function QuotaSettings({
   const cleanupOn = useStore(
     configForm.store,
     (state) => state.values.quotaSettings.cleanup.enabled,
-  )
-
-  const notifyOptions = withStoredOption(
-    NOTIFY_OPTIONS,
-    config.watchlistCapNotify,
   )
 
   return (
@@ -189,7 +183,7 @@ function QuotaSettings({
               {(field) => (
                 <field.SelectField
                   label="Send cap notifications to"
-                  options={notifyOptions}
+                  options={notifyOptions(config.watchlistCapNotify)}
                 />
               )}
             </configForm.AppField>

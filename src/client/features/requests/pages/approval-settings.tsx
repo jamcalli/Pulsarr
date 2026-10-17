@@ -12,14 +12,13 @@ import { SettingsPageSkeleton } from '@/components/settings/settings-page-skelet
 import { SettingsSection } from '@/components/settings/settings-section'
 import { useApprovalSettingsForm } from '@/features/requests/hooks/approval-settings/useApprovalSettingsForm'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
-import { NOTIFY_OPTIONS } from '@/features/requests/lib/notify-options'
 import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useShowLoading } from '@/hooks/useMinLoading'
 import { type ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
 import { NAV_PAGES } from '@/lib/navigation'
+import { notifyOptions } from '@/lib/notify-labels'
 import { intervalOptions } from '@/lib/schedule'
-import { withStoredOption } from '@/lib/select-options'
 import type { components } from '@/types/api.js'
 
 const SECTION = 'Requests'
@@ -76,7 +75,6 @@ function ApprovalSettings({
 
   const savedExpression =
     schedule.type === 'cron' ? schedule.config.expression : ''
-  const notifyOptions = withStoredOption(NOTIFY_OPTIONS, config.approvalNotify)
 
   return (
     <Page>
@@ -159,7 +157,7 @@ function ApprovalSettings({
               {(field) => (
                 <field.SelectField
                   label="Send approval notifications to"
-                  options={notifyOptions}
+                  options={notifyOptions(config.approvalNotify)}
                 />
               )}
             </configForm.AppField>
