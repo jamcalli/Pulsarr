@@ -14,7 +14,10 @@ import {
   VOTE_FIELDS,
 } from '@/features/library/lib/content-router/condition-fields'
 import type { ConditionNode } from '@/features/library/lib/content-router/condition-tree'
-import { valueFits } from '@/features/library/lib/content-router/value-control'
+import {
+  type ValueControl,
+  valueFits,
+} from '@/features/library/lib/content-router/value-control'
 
 interface ConditionRowProps {
   form: RouteEditorForm
@@ -38,10 +41,12 @@ export function ConditionRow({
   const field = catalog.fields.find(
     (candidate) => candidate.name === node.field,
   )
-  const control = catalog.controlFor(node.field, node.operator) ?? {
-    kind: 'text',
-    regex: false,
-  }
+  // A stored value that does not fit its control keeps a text input so it saves back unchanged.
+  const resolved = catalog.controlFor(node.field, node.operator)
+  const control: ValueControl =
+    resolved !== null && valueFits(node.value, resolved)
+      ? resolved
+      : { kind: 'text', regex: false }
   const fieldOptions = catalog.fields.map((candidate) => ({
     value: candidate.name,
     label: candidate.label,
