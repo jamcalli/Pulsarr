@@ -234,6 +234,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           userQuotas,
         }
       } catch (error) {
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to update separate user quotas',
           context: { userId: request.params.userId },

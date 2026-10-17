@@ -189,7 +189,9 @@ export class QuotaService {
 
     if (!quota.quotaType || !quota.quotaLimit) {
       const label = contentType === 'movie' ? 'Movie' : 'Show'
-      throw new Error(`${label} quota type and limit are required`)
+      throw this.fastify.httpErrors.badRequest(
+        `${label} quota type and limit are required`,
+      )
     }
     return this.fastify.db.createUserQuota({
       userId,

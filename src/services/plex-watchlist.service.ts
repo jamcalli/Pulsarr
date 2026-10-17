@@ -11,7 +11,6 @@ import type {
   UserMapEntry,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { PlexUser } from '@root/types/plex-server.types.js'
 import type {
   ProgressEvent,
   WatchlistSyncType,
@@ -23,7 +22,7 @@ import type {
   UserStatusResponse,
 } from '@schemas/plex/user-status.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { extractUuidFromThumb } from '@utils/plex-avatar.js'
+import { indexPlexUsersByUuid } from '@utils/plex-avatar.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import { type PlexPingResult, pingPlex } from './plex-watchlist/api/client.js'
@@ -517,18 +516,7 @@ export class PlexWatchlistService {
       friendsByUuid.set(friend.watchlistId, friend)
     }
 
-    const serverUsersByUuid = new Map<string, PlexUser>()
-    for (const user of serverUsers) {
-      const uuid = extractUuidFromThumb(user.thumb)
-      if (uuid) {
-        serverUsersByUuid.set(uuid, user)
-      } else if (user.thumb) {
-        this.log.warn(
-          { thumb: user.thumb, username: user.username },
-          'Could not extract UUID from server user thumb URL',
-        )
-      }
-    }
+    const serverUsersByUuid = indexPlexUsersByUuid(serverUsers, this.log)
 
     const pendingSentByUuid = new Map<string, FriendRequestNode>()
     for (const node of friendRequests.sent) {

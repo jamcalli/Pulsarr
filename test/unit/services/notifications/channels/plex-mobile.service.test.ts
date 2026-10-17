@@ -37,9 +37,9 @@ function createService({
       getHasPlexPass: () => hasPlexPass,
       getServerMachineId: () => machineId,
       getServerName: () => 'Basement',
-      resolveUserPlexId: vi.fn(async (_username: string, userId: number) => {
-        if (userId === OWNER.id) return adminPlexId
-        return userId === FRIEND.id ? 2002 : null
+      resolveUserPlexId: vi.fn(async (user: Pick<User, 'id'>) => {
+        if (user.id === OWNER.id) return adminPlexId
+        return user.id === FRIEND.id ? 2002 : null
       }),
       isSSEConnected: () => true,
       searchByGuid: vi.fn(async () =>
@@ -132,7 +132,7 @@ describe('PlexMobileService.testNotification', () => {
 
     const result = await createService().testNotification({
       id: 9,
-      name: 'stranger',
+      plex_uuid: 'unmatched',
     })
 
     expect(result.success).toBe(false)

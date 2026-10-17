@@ -41,6 +41,9 @@ describe('POST /v1/notifications/test', () => {
   beforeEach(async () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
+    await getTestDatabase()('users')
+      .where({ id: APPRISE_DISCORD_USER_ID })
+      .update({ plex_uuid: 'a1b2c3d4e5f60002' })
     app.config.authenticationMethod = 'disabled'
     app.config.appriseUrl = APPRISE_BASE
     app.config.enableApprise = true

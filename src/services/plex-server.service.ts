@@ -1,4 +1,5 @@
 import { PLEX_DEFAULT_PORT } from '@root/schemas/plex/configure-notifications.schema.js'
+import type { User } from '@root/types/config.types.js'
 import type { Item } from '@root/types/plex.types.js'
 import type {
   PlexMetadata,
@@ -17,6 +18,7 @@ import type {
 import { toItemsSingle } from '@services/plex-watchlist/enrichment/single-item.js'
 import { buildPlexGuid, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { extractUuidFromThumb } from '@utils/plex-avatar.js'
 import { isSameServerEndpoint } from '@utils/url.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
@@ -649,22 +651,20 @@ export class PlexServerService {
     }
   }
 
-  /** Numeric Plex account id for a Pulsarr user, or null when no Plex account matches. */
+  /** Numeric Plex account id for a Pulsarr user, or null when no server user shares its plex_uuid. */
   async resolveUserPlexId(
-    username: string,
-    userId: number,
+    user: Pick<User, 'id' | 'plex_uuid'>,
   ): Promise<number | null> {
     const primaryUser = await this.fastify.db.getPrimaryUser()
-    if (primaryUser?.id === userId && this._adminPlexId !== null) {
+    if (primaryUser?.id === user.id && this._adminPlexId !== null) {
       return this._adminPlexId
     }
+    if (!user.plex_uuid) return null
 
-    const name = username.toLowerCase()
     const plexUsers = await this.getPlexUsers()
-    const byTitle = plexUsers.filter((pu) => pu.title.toLowerCase() === name)
-    const match =
-      plexUsers.find((pu) => pu.username.toLowerCase() === name) ??
-      (byTitle.length === 1 ? byTitle[0] : undefined)
+    const match = plexUsers.find(
+      (pu) => extractUuidFromThumb(pu.thumb) === user.plex_uuid,
+    )
     if (!match) return null
 
     const numericId = Number(match.id)

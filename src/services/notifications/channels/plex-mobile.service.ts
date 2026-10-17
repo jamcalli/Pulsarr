@@ -155,10 +155,8 @@ export class PlexMobileService {
       return { ok: false, reason: 'not connected to a Plex server' }
     }
 
-    const plexUserId = await this.fastify.plexServerService.resolveUserPlexId(
-      user.name,
-      user.id,
-    )
+    const plexUserId =
+      await this.fastify.plexServerService.resolveUserPlexId(user)
     if (plexUserId === null) {
       return { ok: false, reason: 'no matching Plex account' }
     }
@@ -215,7 +213,7 @@ export class PlexMobileService {
   }
 
   testNotification(
-    user: Pick<NotificationUser, 'id' | 'name'>,
+    user: Pick<NotificationUser, 'id' | 'plex_uuid'>,
   ): Promise<NotificationTestResult> {
     return timeTest(async () => {
       const status = this.getStatus()
@@ -231,10 +229,8 @@ export class PlexMobileService {
         }
       }
 
-      const plexUserId = await this.fastify.plexServerService.resolveUserPlexId(
-        user.name,
-        user.id,
-      )
+      const plexUserId =
+        await this.fastify.plexServerService.resolveUserPlexId(user)
       if (plexUserId === null) {
         return {
           success: false,
@@ -420,10 +416,7 @@ export class PlexMobileService {
           }
 
           const plexUserId =
-            await this.fastify.plexServerService.resolveUserPlexId(
-              pending.user.name,
-              pending.user.id,
-            )
+            await this.fastify.plexServerService.resolveUserPlexId(pending.user)
           if (plexUserId === null) {
             pending.settle({ ok: false, reason: 'no matching Plex account' })
             this.pendingQueue.delete(key)

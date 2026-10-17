@@ -62,6 +62,7 @@ export type NotificationUser = Pick<
   | 'notify_discord_mention'
   | 'notify_plex_mobile'
   | 'can_sync'
+  | 'plex_uuid'
 >
 
 export interface NotificationResult {

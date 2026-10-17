@@ -80,4 +80,29 @@ describe('Quota routes clear watchlist cap notices', () => {
     expect(clear).toHaveBeenCalledWith(1, 'movie')
     expect(clear).toHaveBeenCalledWith(1, 'show')
   })
+
+  it('rejects creating a quota without a type and limit with a 400', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/v1/quota/users/1/separate',
+      payload: { showQuota: { enabled: true, watchlistCap: 10 } },
+    })
+
+    expect(res.statusCode).toBe(400)
+    expect(res.json().message).toBe('Show quota type and limit are required')
+  })
+
+  it('rejects a bulk update with an incomplete enabled quota', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/v1/quota/users/bulk',
+      payload: {
+        userIds: [1],
+        operation: 'update',
+        movieQuota: { enabled: true, watchlistCap: 10 },
+      },
+    })
+
+    expect(res.statusCode).toBe(400)
+  })
 })
