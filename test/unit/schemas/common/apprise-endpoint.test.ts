@@ -37,5 +37,18 @@ describe('apprise-endpoint', () => {
       expect(isValidAppriseEndpoint('   ')).toBe(false)
       expect(isValidAppriseEndpoint('just-a-string')).toBe(false)
     })
+
+    it('rejects a scheme or an email missing a part', () => {
+      for (const value of [
+        '://',
+        '://target',
+        'tgram://',
+        '@',
+        'user@',
+        '@domain',
+      ]) {
+        expect(isValidAppriseEndpoint(value)).toBe(false)
+      }
+    })
   })
 })
