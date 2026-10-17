@@ -1,22 +1,67 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  DirectMessage,
   DiscordEmbed,
   DiscordWebhookPayload,
+} from '@root/types/discord.types.js'
+import type {
   MediaNotification,
   UpdateAvailableRelease,
-} from '@root/types/discord.types.js'
+  WatchlistCapNotification,
+} from '@root/types/notification.types.js'
+import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 import {
   type DeleteSyncSection,
   summarizeDeleteSync,
 } from './delete-sync-summary.js'
-import { mediaTypeLabel } from './media-type.js'
-import { isSafetyNotification } from './system-notification.js'
+import {
+  formatTriggerReason,
+  mediaTypeLabel,
+  TEST_NOTIFICATION,
+  userLabel,
+  WATCHLIST_CAP_IMPACT,
+  WATCHLIST_CAP_TITLE,
+} from './labels.js'
+import {
+  type MediaAvailability,
+  summarizeMediaAvailable,
+} from './media-available.js'
 
-export const EMBED_COLOR = 0x48a9a6
+const EMBED_COLOR = 0x48a9a6
 
-export const COLOR_RED = 0xff0000
+const COLOR_RED = 0xff0000
 
-export const COLOR_GREEN = 0x00ff00
+const COLOR_GREEN = 0x00ff00
+
+const COLOR_APPROVAL = 0xff9500
+
+const COLOR_WATCHLIST_CAP = 0xffbf00
+
+const PULSARR_AVATAR_URL =
+  'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png'
+
+const WEBHOOK_SENDER_NAMES = {
+  default: 'Pulsarr',
+  approval: 'Pulsarr Approvals',
+  deleteSync: 'Pulsarr Delete Sync',
+  updateAvailable: 'Pulsarr Updates',
+  watchlistCap: 'Pulsarr Watchlist',
+} as const
+
+type WebhookSender = keyof typeof WEBHOOK_SENDER_NAMES
+
+export function createWebhookPayload(
+  sender: WebhookSender,
+  embed: DiscordEmbed,
+): DiscordWebhookPayload {
+  return {
+    embeds: [embed],
+    username: WEBHOOK_SENDER_NAMES[sender],
+    avatar_url: PULSARR_AVATAR_URL,
+  }
+}
 
 const EMBED_TITLE_MAX = 256
 const EMBED_FIELD_MAX = 1024
@@ -37,68 +82,27 @@ function tmdbField(url: string): EmbedField {
   }
 }
 
+const MEDIA_AVAILABLE_DESCRIPTIONS: Record<
+  MediaAvailability,
+  (title: string) => string
+> = {
+  episode: (title) => `New episode available for ${title}!`,
+  season: (title) => `New season available for ${title}!`,
+  content: (title) => `New content available for ${title}!`,
+  movie: () => 'Movie available to watch!',
+}
+
 export function createMediaNotificationEmbed(
   notification: MediaNotification,
 ): DiscordEmbed {
-  const emoji = notification.type === 'movie' ? '🎬' : '📺'
-  let description: string
-  const fields: EmbedField[] = []
+  const { emoji } = mediaTypeLabel(notification.type)
+  const { availability, details } = summarizeMediaAvailable(notification)
 
-  if (notification.type === 'show' && notification.episodeDetails) {
-    const { episodeDetails } = notification
-
-    if (
-      episodeDetails.episodeNumber !== undefined &&
-      episodeDetails.seasonNumber !== undefined
-    ) {
-      description = `New episode available for ${notification.title}! ${emoji}`
-
-      const seasonNum = episodeDetails.seasonNumber.toString().padStart(2, '0')
-      const episodeNum = episodeDetails.episodeNumber
-        .toString()
-        .padStart(2, '0')
-
-      const episodeTitle = episodeDetails.title
-        ? ` - "${episodeDetails.title}"`
-        : ''
-
-      fields.push({
-        name: 'Episode',
-        value: truncate(
-          `S${seasonNum}E${episodeNum}${episodeTitle}`,
-          EMBED_FIELD_MAX,
-        ),
-        inline: false,
-      })
-
-      if (episodeDetails.overview) {
-        fields.push({
-          name: 'Overview',
-          value: truncate(episodeDetails.overview, EMBED_FIELD_MAX),
-          inline: false,
-        })
-      }
-
-      if (episodeDetails.airDateUtc) {
-        fields.push({
-          name: 'Air Date',
-          value: new Date(episodeDetails.airDateUtc).toLocaleDateString(),
-          inline: true,
-        })
-      }
-    } else if (episodeDetails.seasonNumber !== undefined) {
-      description = `New season available for ${notification.title}! ${emoji}`
-      fields.push({
-        name: 'Season Added',
-        value: `Season ${episodeDetails.seasonNumber}`,
-        inline: true,
-      })
-    } else {
-      description = `New content available for ${notification.title}! ${emoji}`
-    }
-  } else {
-    description = `Movie available to watch! ${emoji}`
-  }
+  const fields: EmbedField[] = details.map((detail) => ({
+    name: detail.label,
+    value: truncate(detail.value, EMBED_FIELD_MAX),
+    inline: detail.inline,
+  }))
 
   if (notification.tmdbUrl) {
     fields.push(tmdbField(notification.tmdbUrl))
@@ -106,7 +110,7 @@ export function createMediaNotificationEmbed(
 
   const embed: DiscordEmbed = {
     title: truncate(notification.title, EMBED_TITLE_MAX),
-    description,
+    description: `${MEDIA_AVAILABLE_DESCRIPTIONS[availability](notification.title)} ${emoji}`,
     color: EMBED_COLOR,
     timestamp: new Date().toISOString(),
     fields,
@@ -119,6 +123,20 @@ export function createMediaNotificationEmbed(
   }
 
   return embed
+}
+
+export function createPublicMediaWebhookPayload(
+  notification: MediaNotification,
+  mentionDiscordIds: string[],
+): DiscordWebhookPayload {
+  const mentions = mentionDiscordIds.map((id) => `<@${id}>`).join(' ')
+  return {
+    content: mentions ? `${mentions} 👋` : '',
+    ...createWebhookPayload(
+      'default',
+      createMediaNotificationEmbed(notification),
+    ),
+  }
 }
 
 export function createMediaAddedEmbed(
@@ -157,16 +175,17 @@ export function createMediaAddedEmbed(
   return embed
 }
 
-export function createMediaWebhookPayload(
-  notification: MediaNotification,
-  displayName: string,
-): DiscordWebhookPayload {
+export function createTestEmbed(): DiscordEmbed {
   return {
-    embeds: [createMediaAddedEmbed(notification, displayName)],
-    username: 'Pulsarr',
-    avatar_url:
-      'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+    title: TEST_NOTIFICATION.title,
+    description: TEST_NOTIFICATION.body,
+    color: EMBED_COLOR,
+    timestamp: new Date().toISOString(),
   }
+}
+
+export function createTestWebhookPayload(): DiscordWebhookPayload {
+  return createWebhookPayload('default', createTestEmbed())
 }
 
 function deleteSyncFields(section: DeleteSyncSection): EmbedField[] {
@@ -294,24 +313,237 @@ export function createUpdateAvailableEmbed(
   }
 }
 
-export function createSystemEmbed(
-  title: string,
-  fields: EmbedField[],
-  safetyTriggered?: boolean,
-  tmdbUrl?: string,
+interface SystemDmContent {
+  title: string
+  fields: EmbedField[]
+  safetyTriggered?: boolean
+  tmdbUrl?: string
+  button?: { label: string; customId: string }
+}
+
+export function createSystemDm(content: SystemDmContent): DirectMessage {
+  const fields = content.tmdbUrl
+    ? [...content.fields, tmdbField(content.tmdbUrl)]
+    : content.fields
+
+  const embed: DiscordEmbed = {
+    title: truncate(content.title, EMBED_TITLE_MAX),
+    description: 'System notification',
+    color: content.safetyTriggered === true ? COLOR_RED : COLOR_GREEN,
+    timestamp: new Date().toISOString(),
+    fields,
+  }
+  if (!content.button) return { embed }
+
+  const button = new ButtonBuilder()
+    .setCustomId(content.button.customId)
+    .setLabel(content.button.label)
+    .setStyle(ButtonStyle.Primary)
+  return {
+    embed,
+    components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)],
+  }
+}
+
+export function createApprovalRequestEmbed(
+  request: ApprovalRequest,
+  totalPending: number,
+  posterUrl?: string,
 ): DiscordEmbed {
-  const embedFields = [...fields]
+  const tmdbUrl = getTmdbUrl(request.contentGuids, request.contentType)
+
+  const fields: EmbedField[] = [
+    {
+      name: 'Requested by',
+      value: userLabel(request.userName, request.userId),
+      inline: true,
+    },
+    {
+      name: 'Pending requests',
+      value: `${totalPending} awaiting review`,
+      inline: true,
+    },
+    {
+      name: 'Reason for approval',
+      value: formatTriggerReason(request.triggeredBy, request.approvalReason),
+      inline: false,
+    },
+  ]
+
   if (tmdbUrl) {
-    embedFields.push(tmdbField(tmdbUrl))
+    fields.push(tmdbField(tmdbUrl))
   }
 
-  return {
-    title: truncate(title, EMBED_TITLE_MAX),
-    description: 'System notification',
-    color: isSafetyNotification({ title, embedFields: fields, safetyTriggered })
-      ? COLOR_RED
-      : COLOR_GREEN,
+  const embed: DiscordEmbed = {
+    title: 'Content Approval Required',
+    description: `**${request.contentTitle}** (${mediaTypeLabel(request.contentType).label})`,
+    color: COLOR_APPROVAL,
     timestamp: new Date().toISOString(),
-    fields: embedFields,
+    fields,
+    footer: {
+      text: `Request ID: ${request.id}`,
+    },
   }
+
+  if (posterUrl) {
+    embed.image = { url: posterUrl }
+  }
+
+  return embed
+}
+
+const APPROVAL_EXAMPLE_LIMIT = 3
+
+function countLabel(count: number, noun: string): string {
+  return `${count} ${noun}${count > 1 ? 's' : ''}`
+}
+
+function approvalBatchFields(requests: ApprovalRequest[]): EmbedField[] {
+  if (requests.length === 1) {
+    const [request] = requests
+    return [
+      {
+        name: 'Latest Request',
+        value: `${request.contentTitle} (${mediaTypeLabel(request.contentType).label})`,
+        inline: false,
+      },
+      {
+        name: 'Requested by',
+        value: userLabel(request.userName, request.userId),
+        inline: true,
+      },
+      {
+        name: 'Reason for approval',
+        value: formatTriggerReason(request.triggeredBy, request.approvalReason),
+        inline: false,
+      },
+    ]
+  }
+
+  const movieCount = requests.filter((r) => r.contentType === 'movie').length
+  const showCount = requests.filter((r) => r.contentType === 'show').length
+  const contentSummary = [
+    ...(movieCount > 0 ? [countLabel(movieCount, 'movie')] : []),
+    ...(showCount > 0 ? [countLabel(showCount, 'show')] : []),
+  ]
+
+  const exampleTitles = requests
+    .slice(0, APPROVAL_EXAMPLE_LIMIT)
+    .map((r) => `• ${r.contentTitle}`)
+    .join('\n')
+  const moreText =
+    requests.length > APPROVAL_EXAMPLE_LIMIT
+      ? `\n... and ${requests.length - APPROVAL_EXAMPLE_LIMIT} more`
+      : ''
+
+  return [
+    {
+      name: 'New Requests',
+      value: `${contentSummary.join(' and ')} added to queue`,
+      inline: false,
+    },
+    {
+      name: 'Recent Requests',
+      value: exampleTitles + moreText,
+      inline: false,
+    },
+  ]
+}
+
+/** Expects at least one request. */
+export function createApprovalBatchDm(
+  requests: ApprovalRequest[],
+  totalPending: number,
+): DirectMessage {
+  const isMultiple = requests.length > 1
+  const [first] = requests
+
+  return createSystemDm({
+    title: isMultiple
+      ? `${requests.length} New Approval Requests`
+      : 'New Approval Request',
+    fields: [
+      {
+        name: 'Pending Approvals',
+        value: `${totalPending} awaiting review`,
+        inline: false,
+      },
+      { name: '\u200b', value: '\u200b', inline: false },
+      ...approvalBatchFields(requests),
+    ],
+    tmdbUrl: isMultiple
+      ? undefined
+      : getTmdbUrl(first.contentGuids, first.contentType),
+    button: {
+      label: 'Review Approvals',
+      customId: `review_approvals_${Date.now()}`,
+    },
+  })
+}
+
+function watchlistCapFields(event: WatchlistCapNotification): EmbedField[] {
+  return [
+    {
+      name: 'User',
+      value: userLabel(event.userName, event.userId),
+      inline: true,
+    },
+    {
+      name: 'Content Type',
+      value: mediaTypeLabel(event.contentType).label,
+      inline: true,
+    },
+    {
+      name: 'Usage',
+      value: `${event.currentCount} / ${event.cap}`,
+      inline: true,
+    },
+  ]
+}
+
+export function createWatchlistCapEmbed(
+  event: WatchlistCapNotification,
+): DiscordEmbed {
+  const contentLabel = mediaTypeLabel(event.contentType).label.toLowerCase()
+
+  return {
+    title: WATCHLIST_CAP_TITLE,
+    description: `**${userLabel(event.userName, event.userId)}** reached their ${contentLabel} cap (${event.currentCount}/${event.cap})`,
+    color: COLOR_WATCHLIST_CAP,
+    timestamp: new Date().toISOString(),
+    fields: watchlistCapFields(event),
+    footer: {
+      text: WATCHLIST_CAP_IMPACT,
+    },
+  }
+}
+
+export function createWatchlistCapDm(
+  event: WatchlistCapNotification,
+): DirectMessage {
+  return createSystemDm({
+    title: WATCHLIST_CAP_TITLE,
+    fields: [
+      ...watchlistCapFields(event),
+      { name: 'Impact', value: WATCHLIST_CAP_IMPACT, inline: false },
+    ],
+  })
+}
+
+export function createUserWatchlistCapDm(
+  event: WatchlistCapNotification,
+  displayName: string,
+): DirectMessage {
+  const contentLabel = mediaTypeLabel(event.contentType).label.toLowerCase()
+
+  return createSystemDm({
+    title: WATCHLIST_CAP_TITLE,
+    fields: [
+      {
+        name: 'Notice',
+        value: `${displayName}, you've reached your ${contentLabel} watchlist cap (${event.currentCount}/${event.cap}). New ${contentLabel} items won't be processed until the cap is raised or existing items are removed.`,
+        inline: false,
+      },
+    ],
+  })
 }

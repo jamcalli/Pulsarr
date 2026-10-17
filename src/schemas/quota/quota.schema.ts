@@ -211,6 +211,15 @@ export const BulkQuotaOperationSchema = z
     movieQuota: EnabledQuotaSchema.optional(),
     showQuota: EnabledQuotaSchema.optional(),
   })
+  .refine(
+    ({ movieQuota, showQuota }) =>
+      [movieQuota, showQuota].every(
+        (quota) =>
+          !quota?.enabled ||
+          (quota.quotaType !== undefined && quota.quotaLimit !== undefined),
+      ),
+    { error: 'An enabled quota needs a quota type and limit' },
+  )
   .meta({
     id: 'UserQuotaBulkOperationPayload',
     description: 'Quotas to set on, or delete from, several users at once',

@@ -1,3 +1,4 @@
+import { toItemId } from '@utils/item-id.js'
 /**
  * Instance Syncer
  *
@@ -205,9 +206,7 @@ export async function syncInstance<
 
     // PERF FIX: Bulk fetch all junction data to avoid N+1 queries
     const watchlistIds = uniqueWatchlistItems
-      .map((item) =>
-        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id,
-      )
+      .map((item) => toItemId(item.id))
       .filter((id): id is number => id !== undefined && !Number.isNaN(id))
 
     const allJunctions = await getAllJunctions(watchlistIds)
@@ -396,8 +395,7 @@ async function buildItemsToCopy<
       if (item.id === undefined) continue
 
       // Convert id to number
-      const numericId =
-        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+      const numericId = toItemId(item.id)
       if (Number.isNaN(numericId)) continue
 
       // Get current instance IDs from pre-fetched Map (O(1) lookup)

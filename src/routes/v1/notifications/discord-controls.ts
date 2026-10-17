@@ -125,60 +125,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { webhookUrls } = request.body
-
-        const trimmedInput = webhookUrls.trim()
-        if (trimmedInput.length === 0) {
-          return reply.badRequest('No webhook URLs provided')
-        }
-
-        const allUrls = trimmedInput
-          .split(',')
-          .map((url) => url.trim())
-          .filter((url) => url.length > 0)
-
-        const uniqueUrls = [...new Set(allUrls)]
-        const duplicateCount = allUrls.length - uniqueUrls.length
-
-        if (uniqueUrls.length === 0) {
-          return reply.badRequest('No valid webhook URLs provided')
-        }
-
-        // Limit the number of URLs to process (prevent DoS)
-        const MAX_URLS = 20
-        if (uniqueUrls.length > MAX_URLS) {
-          return reply.badRequest(
-            `Too many webhook URLs. Maximum allowed is ${MAX_URLS}`,
+        const outcome =
+          await fastify.notifications.discordWebhook.validateWebhooks(
+            request.body.webhookUrls,
           )
+        if (outcome.status === 'invalid_input') {
+          return reply.badRequest(outcome.message)
         }
-
-        const results = await Promise.all(
-          uniqueUrls.map(async (url) => {
-            const result =
-              await fastify.notifications.discordWebhook.validateWebhook(url)
-            return { url, ...result }
-          }),
-        )
-
-        const allValid = results.every((result) => result.valid)
-
-        function plural(count: number, word: string): string {
-          return `${count} ${word}${count === 1 ? '' : 's'}`
-        }
-
-        return {
-          success: true,
-          valid: allValid,
-          urls: results,
-          duplicateCount: duplicateCount > 0 ? duplicateCount : undefined,
-          message: allValid
-            ? `Successfully validated ${plural(results.length, 'webhook')}${
-                duplicateCount > 0
-                  ? ` (${plural(duplicateCount, 'duplicate URL')} removed)`
-                  : ''
-              }`
-            : 'One or more webhooks failed validation',
-        }
+        return outcome.result
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to validate webhooks',

@@ -616,6 +616,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notifications/test/apprise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Apprise URL
+         * @description Send a test notification to an Apprise URL, saved or not
+         */
+        post: operations["testAppriseNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/test/discord-dm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Discord direct message
+         * @description Send a test direct message to a Discord user through the running bot
+         */
+        post: operations["testDiscordDmNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/test/discord-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Discord webhook
+         * @description Post a test message to a Discord webhook URL, saved or not
+         */
+        post: operations["testDiscordWebhookNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/test/system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test saved system notification
+         * @description Send a test notification to every URL saved in a system notification setting
+         */
+        post: operations["testSystemNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/test/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test saved user notification
+         * @description Send a test notification through a channel saved on a user
+         */
+        post: operations["testUserNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notifications/validatewebhook": {
         parameters: {
             query?: never;
@@ -3140,6 +3240,11 @@ export interface components {
         ApiKeyCreatePayload: {
             name: string;
         };
+        /** @description Apprise URL to send a test notification to */
+        AppriseTestPayload: {
+            /** @description Apprise URL or plain email address */
+            url: string;
+        };
         /** @description Approval requests to approve, with optional notes */
         ApprovalBulkApprovePayload: {
             requestIds: number[];
@@ -3778,6 +3883,16 @@ export interface components {
             status_transitions?: components["schemas"]["StatusTransitionTime"][];
             notification_stats?: components["schemas"]["NotificationStats"];
             instance_content_breakdown?: components["schemas"]["InstanceBreakdown"][];
+        };
+        /** @description Discord user to send a test direct message to */
+        DiscordDmTestPayload: {
+            /** @description Discord user ID to message */
+            discordId: string;
+        };
+        /** @description Discord webhook URL to post a test message to */
+        DiscordWebhookTestPayload: {
+            /** @description A single https://discord.com/api/webhooks/ URL */
+            url: string;
         };
         /** @description Standard error response */
         Error: {
@@ -4678,6 +4793,14 @@ export interface components {
                 sonarr: components["schemas"]["TagCleanupStats"];
             };
         };
+        /** @description Saved system notification setting to test */
+        SystemTestPayload: {
+            /**
+             * @description Saved system setting to test
+             * @enum {string}
+             */
+            target: "systemApprise" | "adminWebhook" | "publicDiscord" | "publicDiscordMovies" | "publicDiscordShows" | "publicApprise" | "publicAppriseMovies" | "publicAppriseShows";
+        };
         /** @description Result of cleaning up orphaned user tags */
         TagCleanupResponse: {
             success: boolean;
@@ -4752,6 +4875,17 @@ export interface components {
             tagged: number;
             skipped: number;
             failed: number;
+        };
+        /** @description Result of sending a test notification */
+        TestResult: {
+            /** @description Whether the test was delivered */
+            success: boolean;
+            /** @description HTTP status from the target, when one responded */
+            statusCode?: number;
+            /** @description Why the test failed, in plain language */
+            error?: string;
+            /** @description Time the test took, in milliseconds */
+            responseTime: number;
         };
         /** @description Metadata for either a movie or a TV show. */
         TmdbContentMetadata: components["schemas"]["TmdbMovieMetadata"] | components["schemas"]["TmdbTvMetadata"];
@@ -5058,6 +5192,14 @@ export interface components {
             notificationsSent: number;
             pendingApprovals: number;
         };
+        /** @description Saved user notification channel to test */
+        UserTestPayload: {
+            /**
+             * @description User notification channel to test
+             * @enum {string}
+             */
+            channel: "apprise" | "discord-dm" | "plex-mobile";
+        };
         /** @description User with their Plex friend status and watchlist item count */
         UserWithCount: {
             id: number;
@@ -5110,6 +5252,20 @@ export interface components {
          * @enum {string}
          */
         WatchlistStatus: "pending" | "requested" | "grabbed" | "notified";
+        /** @description Movie or show the event is about */
+        WebhookContent: {
+            title: string;
+            type: components["schemas"]["ContentType"];
+            key: string;
+            guids: string[];
+            posterUrl?: string;
+        };
+        /** @description Pulsarr user the event is about, alias only when set */
+        WebhookUser: {
+            userId: number;
+            username: string;
+            alias?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -7086,6 +7242,277 @@ export interface operations {
             };
         };
     };
+    testAppriseNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Apprise URL to send a test notification to */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppriseTestPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    testDiscordDmNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Discord user to send a test direct message to */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscordDmTestPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    testDiscordWebhookNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Discord webhook URL to post a test message to */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscordWebhookTestPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    testSystemNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Saved system notification setting to test */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SystemTestPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    testUserNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        /** @description Saved user notification channel to test */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserTestPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     validateDiscordWebhooks: {
         parameters: {
             query?: never;
@@ -7179,7 +7606,7 @@ export interface operations {
                         seasonNumber: number;
                         title: string;
                         overview?: string;
-                        airDateUtc: string;
+                        airDateUtc?: string;
                     }[];
                     episodeFile: {
                         id: number;
@@ -7203,7 +7630,7 @@ export interface operations {
                         seasonNumber: number;
                         title: string;
                         overview?: string;
-                        airDateUtc: string;
+                        airDateUtc?: string;
                     }[];
                     episodeFiles: {
                         id: number;
@@ -13785,12 +14212,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        statusCode?: number;
-                        error?: string;
-                        responseTime: number;
-                    };
+                    "application/json": components["schemas"]["TestResult"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -14019,12 +14441,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        statusCode?: number;
-                        error?: string;
-                        responseTime: number;
-                    };
+                    "application/json": components["schemas"]["TestResult"];
                 };
             };
             /** @description Default Response */
@@ -14106,6 +14523,7 @@ export interface operations {
                  * @example {
                  *       "mediaType": "movie",
                  *       "title": "Dune: Part Two",
+                 *       "key": "5d7768388718ba001e31563d",
                  *       "guids": [
                  *         "imdb:tt15239678",
                  *         "tmdb:693134"
@@ -14130,6 +14548,7 @@ export interface operations {
                 "application/json": {
                     mediaType: components["schemas"]["ContentType"];
                     title: string;
+                    key: string;
                     guids: string[];
                     posterUrl?: string;
                     episodeDetails?: {
@@ -14142,11 +14561,7 @@ export interface operations {
                     isBulkRelease: boolean;
                     instanceType?: components["schemas"]["InstanceType"];
                     instanceId?: number;
-                    watchlistedBy: {
-                        userId: number;
-                        username: string;
-                        alias?: string;
-                    }[];
+                    watchlistedBy: components["schemas"]["WebhookUser"][];
                 };
             };
         };
@@ -14173,7 +14588,8 @@ export interface operations {
                  * @example {
                  *       "addedBy": {
                  *         "userId": 1,
-                 *         "username": "john_doe"
+                 *         "username": "john_doe",
+                 *         "alias": "John"
                  *       },
                  *       "content": {
                  *         "title": "Dune: Part Two",
@@ -14202,16 +14618,13 @@ export interface operations {
                  *     }
                  */
                 "application/json": {
-                    addedBy: {
-                        userId: number;
-                        username: string;
-                    };
+                    addedBy: components["schemas"]["WebhookUser"];
                     content: {
                         title: string;
                         type: components["schemas"]["ContentType"];
-                        thumb?: string;
                         key: string;
                         guids: string[];
+                        thumb?: string;
                     };
                     routedTo: ({
                         instanceId: number;
@@ -14270,26 +14683,20 @@ export interface operations {
                  *         "guids": [
                  *           "imdb:tt15239678",
                  *           "tmdb:693134"
-                 *         ]
+                 *         ],
+                 *         "posterUrl": "https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg"
                  *       },
                  *       "removedBy": {
                  *         "userId": 1,
-                 *         "username": "john_doe"
+                 *         "username": "john_doe",
+                 *         "alias": "John"
                  *       }
                  *     }
                  */
                 "application/json": {
                     watchlistItemId: number;
-                    content: {
-                        title: string;
-                        type: components["schemas"]["ContentType"];
-                        key: string;
-                        guids: string[];
-                    };
-                    removedBy: {
-                        userId: number;
-                        username: string;
-                    };
+                    content: components["schemas"]["WebhookContent"];
+                    removedBy: components["schemas"]["WebhookUser"];
                 };
             };
         };
@@ -14319,11 +14726,16 @@ export interface operations {
                  *         "title": "The Batman",
                  *         "type": "movie",
                  *         "key": "5d7768388718ba001e31abc",
+                 *         "guids": [
+                 *           "imdb:tt1877830",
+                 *           "tmdb:414906"
+                 *         ],
                  *         "posterUrl": "https://image.tmdb.org/t/p/w500/poster.jpg"
                  *       },
                  *       "requestedBy": {
                  *         "userId": 1,
-                 *         "username": "john_doe"
+                 *         "username": "john_doe",
+                 *         "alias": "John"
                  *       },
                  *       "triggeredBy": "quota_exceeded",
                  *       "approvalReason": "User has exceeded monthly movie quota (5/5)",
@@ -14339,20 +14751,30 @@ export interface operations {
                  *         "searchOnAdd": true,
                  *         "minimumAvailability": "released",
                  *         "monitor": "movieOnly"
-                 *       }
+                 *       },
+                 *       "additionalRouting": [
+                 *         {
+                 *           "instanceType": "radarr",
+                 *           "instanceId": 2,
+                 *           "qualityProfile": "4K",
+                 *           "rootFolder": "/movies-4k",
+                 *           "tags": [
+                 *             "plex-user"
+                 *           ],
+                 *           "searchOnAdd": true,
+                 *           "minimumAvailability": "released",
+                 *           "monitor": "movieOnly"
+                 *         }
+                 *       ]
                  *     }
                  */
                 "application/json": {
                     approvalId: number;
-                    content: {
-                        title: string;
-                        type: components["schemas"]["ContentType"];
-                        key: string;
-                        posterUrl?: string;
-                    };
+                    content: components["schemas"]["WebhookContent"];
                     requestedBy: {
                         userId: number;
                         username: string | null;
+                        alias?: string;
                     };
                     triggeredBy: components["schemas"]["ApprovalTrigger"];
                     approvalReason: string | null;
@@ -14380,6 +14802,29 @@ export interface operations {
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
                         seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
+                    additionalRouting?: ({
+                        instanceId: number;
+                        qualityProfile: number | string | null;
+                        rootFolder: string | null;
+                        tags: string[];
+                        searchOnAdd: boolean | null;
+                        syncedInstances?: number[];
+                        /** @constant */
+                        instanceType: "radarr";
+                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"] | null;
+                        monitor: components["schemas"]["RadarrMonitor"] | null;
+                    } | {
+                        instanceId: number;
+                        qualityProfile: number | string | null;
+                        rootFolder: string | null;
+                        tags: string[];
+                        searchOnAdd: boolean | null;
+                        syncedInstances?: number[];
+                        /** @constant */
+                        instanceType: "sonarr";
+                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
+                    })[];
                 };
             };
         };
@@ -14413,11 +14858,13 @@ export interface operations {
                  *         "guids": [
                  *           "imdb:tt1877830",
                  *           "tmdb:414906"
-                 *         ]
+                 *         ],
+                 *         "posterUrl": "https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg"
                  *       },
                  *       "requestedBy": {
                  *         "userId": 1,
-                 *         "username": "john_doe"
+                 *         "username": "john_doe",
+                 *         "alias": "John"
                  *       },
                  *       "resolvedBy": {
                  *         "userId": 99
@@ -14444,16 +14891,8 @@ export interface operations {
                     approvalId: number;
                     /** @enum {string} */
                     status: "approved" | "rejected";
-                    content: {
-                        title: string;
-                        type: components["schemas"]["ContentType"];
-                        key: string;
-                        guids: string[];
-                    };
-                    requestedBy: {
-                        userId: number;
-                        username: string;
-                    };
+                    content: components["schemas"]["WebhookContent"];
+                    requestedBy: components["schemas"]["WebhookUser"];
                     resolvedBy: {
                         userId: number | null;
                     };
@@ -14484,6 +14923,29 @@ export interface operations {
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
                         seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
+                    additionalRouting?: ({
+                        instanceId: number;
+                        qualityProfile: number | string | null;
+                        rootFolder: string | null;
+                        tags: string[];
+                        searchOnAdd: boolean | null;
+                        syncedInstances?: number[];
+                        /** @constant */
+                        instanceType: "radarr";
+                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"] | null;
+                        monitor: components["schemas"]["RadarrMonitor"] | null;
+                    } | {
+                        instanceId: number;
+                        qualityProfile: number | string | null;
+                        rootFolder: string | null;
+                        tags: string[];
+                        searchOnAdd: boolean | null;
+                        syncedInstances?: number[];
+                        /** @constant */
+                        instanceType: "sonarr";
+                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
+                    })[];
                 };
             };
         };
@@ -14517,11 +14979,13 @@ export interface operations {
                  *           "imdb:tt0903747",
                  *           "tmdb:1396",
                  *           "tvdb:81189"
-                 *         ]
+                 *         ],
+                 *         "posterUrl": "https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg"
                  *       },
                  *       "user": {
                  *         "userId": 1,
-                 *         "username": "john_doe"
+                 *         "username": "john_doe",
+                 *         "alias": "John"
                  *       },
                  *       "routing": {
                  *         "instanceType": "sonarr",
@@ -14540,16 +15004,8 @@ export interface operations {
                  */
                 "application/json": {
                     approvalId: number;
-                    content: {
-                        title: string;
-                        type: components["schemas"]["ContentType"];
-                        key: string;
-                        guids: string[];
-                    };
-                    user: {
-                        userId: number;
-                        username: string;
-                    };
+                    content: components["schemas"]["WebhookContent"];
+                    user: components["schemas"]["WebhookUser"];
                     routing: {
                         instanceId: number;
                         qualityProfile: number | string | null;
@@ -14573,6 +15029,29 @@ export interface operations {
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
                         seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
+                    additionalRouting?: ({
+                        instanceId: number;
+                        qualityProfile: number | string | null;
+                        rootFolder: string | null;
+                        tags: string[];
+                        searchOnAdd: boolean | null;
+                        syncedInstances?: number[];
+                        /** @constant */
+                        instanceType: "radarr";
+                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"] | null;
+                        monitor: components["schemas"]["RadarrMonitor"] | null;
+                    } | {
+                        instanceId: number;
+                        qualityProfile: number | string | null;
+                        rootFolder: string | null;
+                        tags: string[];
+                        searchOnAdd: boolean | null;
+                        syncedInstances?: number[];
+                        /** @constant */
+                        instanceType: "sonarr";
+                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
+                    })[];
                     reason: string;
                 };
             };
@@ -14736,7 +15215,8 @@ export interface operations {
                  * @example {
                  *       "user": {
                  *         "userId": 1,
-                 *         "username": "john_doe"
+                 *         "username": "john_doe",
+                 *         "alias": "John"
                  *       },
                  *       "contentType": "movie",
                  *       "currentCount": 25,
@@ -14747,6 +15227,7 @@ export interface operations {
                     user: {
                         userId: number;
                         username: string | null;
+                        alias?: string;
                     };
                     contentType: components["schemas"]["ContentType"];
                     currentCount: number;

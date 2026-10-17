@@ -236,6 +236,14 @@ export interface UpdateUserQuotaData {
   watchlistCap?: number | null
 }
 
+export interface EnabledQuotaData {
+  enabled: boolean
+  quotaType?: QuotaType
+  quotaLimit?: number
+  bypassApproval?: boolean
+  watchlistCap?: number | null
+}
+
 // Approval workflow context
 export interface ApprovalContext {
   user: { id: number; name: string }

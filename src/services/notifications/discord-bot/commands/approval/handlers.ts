@@ -1,11 +1,6 @@
-/**
- * Approval Command Handlers
- *
- * Routes button interactions to appropriate handler modules.
- */
-
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { errorMessage } from '@utils/error-message.js'
 import type { ButtonInteraction } from 'discord.js'
 import { MessageFlags } from 'discord.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -25,11 +20,6 @@ export interface HandlerDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Handle approval button interactions
- *
- * Routes based on customId prefix to appropriate handler functions.
- */
 export async function handleApprovalButtons(
   interaction: ButtonInteraction,
   deps: HandlerDeps,
@@ -42,16 +32,14 @@ export async function handleApprovalButtons(
 
   const parts = interaction.customId.split('_')
 
-  // Handle main menu buttons
   if (parts[1] === 'menu') {
     const menuAction = parts[2]
     await handleMenuAction(interaction, menuAction, deps)
     return
   }
 
-  // Handle navigation buttons
   if (parts[1] === 'nav') {
-    const direction = parts[2] // 'back' or 'next'
+    const direction = parts[2]
     const currentIndex = Number.parseInt(parts[3], 10)
 
     if (Number.isNaN(currentIndex)) {
@@ -66,25 +54,21 @@ export async function handleApprovalButtons(
     return
   }
 
-  // Handle history navigation buttons
   if (parts[1] === 'history') {
     await handleHistoryAction(interaction, parts, deps)
     return
   }
 
-  // Handle individual item clicks
   if (parts[1] === 'item') {
     await handleItemAction(interaction, parts, deps)
     return
   }
 
-  // Handle delete confirmation
   if (parts[1] === 'delete') {
     await handleDeleteAction(interaction, parts, deps)
     return
   }
 
-  // Handle approval action buttons
   const action = parts[1]
   const approvalIdStr = parts[2]
   const currentIndexStr = parts[3]
@@ -138,17 +122,16 @@ export async function handleApprovalButtons(
       'Error handling approval button',
     )
 
-    const errorMessage =
-      error instanceof Error ? error.message : 'An unknown error occurred'
+    const message = errorMessage(error)
 
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({
-        content: `❌ Error: ${errorMessage}`,
+        content: `❌ Error: ${message}`,
         flags: MessageFlags.Ephemeral,
       })
     } else {
       await interaction.reply({
-        content: `❌ Error: ${errorMessage}`,
+        content: `❌ Error: ${message}`,
         flags: MessageFlags.Ephemeral,
       })
     }

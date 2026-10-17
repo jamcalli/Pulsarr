@@ -1,123 +1,86 @@
-/**
- * Discord Direct Message Channel
- *
- * Functions for sending direct messages via the Discord bot.
- * Requires an active bot client to send DMs.
- */
-
+import type { DirectMessage } from '@root/types/discord.types.js'
 import type {
-  DiscordEmbed,
-  MediaNotification,
-  SystemNotification,
-} from '@root/types/discord.types.js'
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  type Client,
-} from 'discord.js'
+  DeliveryResult,
+  NotificationTestOutcome,
+} from '@root/types/notification.types.js'
+import { errorMessage } from '@utils/error-message.js'
+import { type Client, DiscordAPIError } from 'discord.js'
 import type { FastifyBaseLogger } from 'fastify'
-import {
-  createMediaNotificationEmbed,
-  createSystemEmbed,
-} from '../templates/discord-embeds.js'
+import type { BotStatus } from '../discord-bot/bot.service.js'
+import { createTestEmbed } from '../templates/discord-embeds.js'
 
 export interface DiscordDmDeps {
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
   botClient: Client | null
-  botStatus: 'stopped' | 'starting' | 'running' | 'stopping'
+  botStatus: BotStatus
 }
 
-/**
- * Sends a pre-built embed as a direct message to a Discord user.
- *
- * @param discordId - The Discord user ID to message
- * @param embed - The embed to send
- * @param deps - Dependencies (bot client, logger)
- * @param components - Optional action-row components (e.g. buttons)
- * @returns true if the message was sent successfully
- */
-export async function sendDirectMessageEmbed(
+function dmFailureReason(error: unknown): string {
+  return error instanceof DiscordAPIError
+    ? `${error.code} ${error.message}`
+    : errorMessage(error)
+}
+
+export async function sendNotification(
   discordId: string,
-  embed: DiscordEmbed,
+  message: DirectMessage,
   deps: DiscordDmDeps,
-  components?: ActionRowBuilder<ButtonBuilder>[],
-): Promise<boolean> {
-  const { log, botClient, botStatus } = deps
+): Promise<DeliveryResult> {
+  const { logger, botClient, botStatus } = deps
 
   if (!botClient || botStatus !== 'running') {
-    log.warn('Bot client not available for sending direct message')
-    return false
+    return { ok: false, reason: 'bot not running' }
   }
+
+  const { embed, components } = message
 
   try {
     const user = await botClient.users.fetch(discordId)
-    if (!user) {
-      log.warn({ discordId }, 'Could not find Discord user')
-      return false
-    }
-
-    const messagePayload: {
-      content: string
-      embeds: DiscordEmbed[]
-      components?: ActionRowBuilder<ButtonBuilder>[]
-    } = {
+    await user.send({
       content: `Hey ${user}! 👋`,
       embeds: [embed],
-    }
+      ...(components ? { components } : {}),
+    })
 
-    if (components) {
-      messagePayload.components = components
-    }
-
-    await user.send(messagePayload)
-
-    log.info(
-      `Discord notification sent successfully to ${user.username} for "${embed.title ?? 'notification'}"`,
+    logger.debug(
+      `Discord DM sent to ${user.username} for "${embed.title ?? 'notification'}"`,
     )
-
-    return true
+    return { ok: true, handle: user.username }
   } catch (error) {
-    log.error({ error, discordId }, 'Failed to send direct message')
-    return false
+    const reason = dmFailureReason(error)
+    logger.debug({ discordId, reason }, 'Failed to send direct message')
+    return { ok: false, reason }
   }
 }
 
-/**
- * Sends a direct message to a Discord user.
- *
- * @param discordId - The Discord user ID to message
- * @param notification - The notification payload (media or system)
- * @param deps - Dependencies (bot client, logger)
- * @returns true if the message was sent successfully
- */
-export async function sendDirectMessage(
+export async function testNotification(
   discordId: string,
-  notification: MediaNotification | SystemNotification,
   deps: DiscordDmDeps,
-): Promise<boolean> {
-  let embed: DiscordEmbed
-  let components: ActionRowBuilder<ButtonBuilder>[] | undefined
-
-  if (notification.type === 'system') {
-    embed = createSystemEmbed(
-      notification.title,
-      notification.embedFields,
-      notification.safetyTriggered,
-      notification.tmdbUrl,
-    )
-
-    if (notification.actionButton) {
-      const button = new ButtonBuilder()
-        .setCustomId(notification.actionButton.customId)
-        .setLabel(notification.actionButton.label)
-        .setStyle(ButtonStyle[notification.actionButton.style])
-
-      components = [new ActionRowBuilder<ButtonBuilder>().addComponents(button)]
+): Promise<NotificationTestOutcome> {
+  if (deps.botStatus === 'starting') {
+    return {
+      success: false,
+      error: 'The Discord bot is still starting. Try again in a moment.',
     }
-  } else {
-    embed = createMediaNotificationEmbed(notification)
+  }
+  if (!deps.botClient || deps.botStatus !== 'running') {
+    return {
+      success: false,
+      error:
+        'The Discord bot is not running. Start it to send direct messages.',
+    }
   }
 
-  return sendDirectMessageEmbed(discordId, embed, deps, components)
+  const result = await sendNotification(
+    discordId,
+    { embed: createTestEmbed() },
+    deps,
+  )
+  return result.ok
+    ? { success: true }
+    : {
+        success: false,
+        error:
+          'Discord refused the direct message. Check the Discord ID, that the user shares a server with the bot, and that they allow direct messages.',
+      }
 }

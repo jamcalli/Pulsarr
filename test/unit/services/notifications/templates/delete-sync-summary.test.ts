@@ -36,7 +36,7 @@ describe('summarizeDeleteSync', () => {
 
     expect(summary.title).toBe('🔍 Delete Sync Simulation Results')
     expect(summary.summaryText).toBe(
-      'This was a dry run - no content was actually deleted.',
+      'This was a dry run, so nothing was deleted.',
     )
   })
 

@@ -19,7 +19,7 @@ export interface EpisodeCheckerDeps {
  * early releases, leaks, timezone differences, and pre-releases.
  */
 export function isRecentEpisode(
-  airDateUtc: string,
+  airDateUtc: string | undefined,
   deps: EpisodeCheckerDeps,
 ): boolean {
   const { logger, newEpisodeThreshold } = deps

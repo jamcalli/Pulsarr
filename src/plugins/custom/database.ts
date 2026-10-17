@@ -3,6 +3,7 @@ import {
   defaultRadarrInstance,
   defaultSonarrInstance,
 } from '@utils/arr-default-instance.js'
+import { toError } from '@utils/error-message.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import type { Knex } from 'knex'
@@ -121,7 +122,12 @@ export default fp(
           }
           fastify.log.debug('Creating initial config in database')
           await dbService.createConfig(initialConfig)
-          await fastify.updateConfig({ _isReady: false })
+          const createdConfig = await dbService.getConfig()
+          await fastify.updateConfig({
+            ...createdConfig,
+            ...envConfig,
+            _isReady: false,
+          })
 
           if (initialConfig.sonarrBaseUrl) {
             fastify.log.info('Creating default Sonarr instance from .env')
@@ -138,7 +144,7 @@ export default fp(
           }
         }
       } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error))
+        const err = toError(error)
         fastify.log.error(err, 'Error initializing config')
         throw error
       }
@@ -147,7 +153,7 @@ export default fp(
     try {
       await initializeConfig()
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error))
+      const err = toError(error)
       fastify.log.error(err, 'Failed to initialize config')
       throw error
     }

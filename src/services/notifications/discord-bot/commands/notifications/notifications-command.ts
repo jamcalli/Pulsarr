@@ -1,10 +1,3 @@
-/**
- * Notifications Command Entry Point
- *
- * Slash command definition for /notifications.
- * Allows users to configure their notification preferences.
- */
-
 import type { User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
@@ -19,7 +12,6 @@ export interface NotificationCommandDeps {
   logger: FastifyBaseLogger
 }
 
-// Database Operations
 async function getUser(
   discordId: string,
   deps: NotificationCommandDeps,
@@ -78,7 +70,6 @@ export const notificationsCommand = {
   },
 }
 
-// Re-export handlers for the event router
 export { handleNotificationButtons } from './handlers.js'
 export {
   handlePlexUsernameModal,

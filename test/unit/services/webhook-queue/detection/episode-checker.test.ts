@@ -156,7 +156,7 @@ describe('episode-checker', () => {
     })
 
     it('should handle undefined airDateUtc', () => {
-      const result = isRecentEpisode(undefined as unknown as string, deps)
+      const result = isRecentEpisode(undefined, deps)
 
       expect(result).toBe(false)
       expect(deps.logger.warn).toHaveBeenCalled()

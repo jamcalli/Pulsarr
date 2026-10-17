@@ -99,13 +99,6 @@ export const WebhookEndpointsListResponseSchema = z.object({
   data: z.array(WebhookEndpointSchema),
 })
 
-export const WebhookTestResponseSchema = z.object({
-  success: z.boolean(),
-  statusCode: z.number().optional(),
-  error: z.string().optional(),
-  responseTime: z.number(), // milliseconds
-})
-
 export const WebhookDeleteResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -135,7 +128,6 @@ export type WebhookEndpointResponse = z.infer<
 export type WebhookEndpointsListResponse = z.infer<
   typeof WebhookEndpointsListResponseSchema
 >
-export type WebhookTestResponse = z.infer<typeof WebhookTestResponseSchema>
 export type WebhookDeleteResponse = z.infer<typeof WebhookDeleteResponseSchema>
 export type WebhookEventTypesResponse = z.infer<
   typeof WebhookEventTypesResponseSchema

@@ -48,7 +48,7 @@ const plexResourcesHandler = http.get(
 
 const plexUsersHandler = http.get('https://plex.tv/api/users', () => {
   return HttpResponse.text(
-    `<?xml version="1.0" encoding="UTF-8"?><MediaContainer size="4"><User id="1" title="test-user-primary" username="test-user-primary" email="user1@example.com" /><User id="2" title="test-user-discord-apprise" username="test-user-discord-apprise" email="user2@example.com" /><User id="3" title="test-user-all-notifications" username="test-user-all-notifications" email="user3@example.com" /><User id="4" title="test-user-no-sync" username="test-user-no-sync" email="user4@example.com" /></MediaContainer>`,
+    `<?xml version="1.0" encoding="UTF-8"?><MediaContainer size="4"><User id="1" title="test-user-primary" username="test-user-primary" email="user1@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60001/avatar?c=1" /><User id="2" title="test-user-discord-apprise" username="test-user-discord-apprise" email="user2@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60002/avatar?c=1" /><User id="3" title="test-user-all-notifications" username="test-user-all-notifications" email="user3@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60003/avatar?c=1" /><User id="4" title="test-user-no-sync" username="test-user-no-sync" email="user4@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60004/avatar?c=1" /></MediaContainer>`,
     { headers: { 'Content-Type': 'text/xml; charset=utf-8' } },
   )
 })

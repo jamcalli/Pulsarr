@@ -225,3 +225,83 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(1)
   })
 })
+
+describe('PlexServerService.resolveUserPlexId', () => {
+  const OWNER = { id: 1, plex_uuid: 'aaa111' }
+  const FRIEND = { id: 2, plex_uuid: 'bbb222' }
+  const thumb = (uuid: string) => `https://plex.tv/users/${uuid}/avatar?c=1`
+
+  function createResolver(adminPlexId: number | null = 1001) {
+    const fastify = {
+      config: { plexTokens: ['admin-token'], plexServerUrl: '' },
+      db: { getPrimaryUser: vi.fn(async () => ({ id: OWNER.id })) },
+    } as unknown as FastifyInstance
+    const service = new PlexServerService(createMockLogger(), fastify)
+    if (adminPlexId !== null) service.setAdminPlexId(adminPlexId)
+    vi.spyOn(service, 'getPlexUsers').mockResolvedValue([
+      {
+        id: '2002',
+        username: 'friend',
+        title: 'Friend Title',
+        thumb: thumb(FRIEND.plex_uuid),
+      },
+      {
+        id: 'not-a-number',
+        username: 'odd',
+        title: 'Odd',
+        thumb: thumb('ccc333'),
+      },
+      {
+        id: '3003',
+        username: 'owner',
+        title: 'Owner',
+        thumb: thumb(OWNER.plex_uuid),
+      },
+    ])
+    return service
+  }
+
+  it('resolves the primary user to the admin Plex id', async () => {
+    expect(await createResolver().resolveUserPlexId(OWNER)).toBe(1001)
+  })
+
+  it('falls back to the server user with the primary uuid when the admin id is unknown', async () => {
+    expect(await createResolver(null).resolveUserPlexId(OWNER)).toBe(3003)
+  })
+
+  it('matches a server user by thumb uuid', async () => {
+    expect(await createResolver().resolveUserPlexId(FRIEND)).toBe(2002)
+  })
+
+  it('returns null for a user without a plex_uuid', async () => {
+    const service = createResolver()
+
+    expect(
+      await service.resolveUserPlexId({ id: 9, plex_uuid: null }),
+    ).toBeNull()
+    expect(await service.resolveUserPlexId({ id: 9 })).toBeNull()
+  })
+
+  it('returns null when no server user has the uuid', async () => {
+    expect(
+      await createResolver().resolveUserPlexId({ id: 9, plex_uuid: 'ddd444' }),
+    ).toBeNull()
+  })
+
+  it('returns null for a non-numeric Plex id', async () => {
+    expect(
+      await createResolver().resolveUserPlexId({ id: 9, plex_uuid: 'ccc333' }),
+    ).toBeNull()
+  })
+
+  it('ignores a server user whose name matches but whose uuid differs', async () => {
+    const service = createResolver()
+    vi.spyOn(service, 'getPlexUsers').mockResolvedValue([
+      { id: '4004', username: 'bob', title: 'bob', thumb: thumb('eee555') },
+    ])
+
+    expect(
+      await service.resolveUserPlexId({ id: 9, plex_uuid: 'fff666' }),
+    ).toBeNull()
+  })
+})

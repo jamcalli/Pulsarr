@@ -44,6 +44,8 @@ async function isWatchlistCapped(
       currentCount: count,
       cap: quota.watchlistCap,
     })
+  } else {
+    deps.notifications.clearWatchlistCap(userId, contentType)
   }
 
   return capped
@@ -142,7 +144,7 @@ export async function applyPreRoutingGates(
 
     if (quotasBypassedByRule) {
       logger.debug(
-        `Skipping quota consumption for "${item.title}" - router rule bypasses quotas`,
+        `Skipping quota consumption for "${item.title}" because a router rule bypasses quotas`,
       )
       return { action: 'proceed' }
     }

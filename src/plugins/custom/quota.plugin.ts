@@ -66,7 +66,7 @@ const quotaPlugin: FastifyPluginAsync = async (fastify, _opts) => {
 
 export default fp(quotaPlugin, {
   name: 'quota',
-  dependencies: ['database', 'scheduler'],
+  dependencies: ['database', 'notification-service', 'scheduler'],
 })
 
 // Add type definitions

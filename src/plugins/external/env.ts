@@ -5,6 +5,9 @@ import {
   ConfigLogLevelSchema,
   DEFAULT_LOG_LEVEL,
   DEFAULT_PULSARR_PORT,
+  DELETE_SYNC_NOTIFY_OPTIONS,
+  NOTIFY_DEFAULTS,
+  NOTIFY_OPTIONS,
   PLEX_SERVER_URL_DEFAULT,
 } from '@root/schemas/config/config.schema.js'
 import {
@@ -345,25 +348,12 @@ const schema = {
     },
     deleteSyncNotify: {
       type: 'string',
-      enum: [
-        'none',
-        'message',
-        'webhook',
-        'both',
-        'all',
-        'discord-only',
-        'apprise-only',
-        'webhook-only',
-        'dm-only',
-        'discord-webhook',
-        'discord-message',
-        'discord-both',
-      ],
-      default: 'none',
+      enum: DELETE_SYNC_NOTIFY_OPTIONS,
+      default: NOTIFY_DEFAULTS.deleteSyncNotify,
     },
     deleteSyncNotifyOnlyOnDeletion: {
       type: 'boolean',
-      default: false,
+      default: NOTIFY_DEFAULTS.deleteSyncNotifyOnlyOnDeletion,
     },
     deleteSyncTrackedOnly: {
       type: 'boolean',
@@ -378,18 +368,8 @@ const schema = {
     },
     approvalNotify: {
       type: 'string',
-      enum: [
-        'none',
-        'all',
-        'discord-only',
-        'apprise-only',
-        'webhook-only',
-        'dm-only',
-        'discord-webhook',
-        'discord-message',
-        'discord-both',
-      ],
-      default: 'none',
+      enum: NOTIFY_OPTIONS,
+      default: NOTIFY_DEFAULTS.approvalNotify,
     },
     maxDeletionPrevention: {
       type: 'number',

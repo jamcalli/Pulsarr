@@ -8,7 +8,7 @@ export interface QueuedWebhook {
       episodeNumber: number
       title: string
       overview?: string
-      airDateUtc: string
+      airDateUtc?: string
     }[]
   }
   receivedAt: Date
@@ -21,7 +21,7 @@ export interface SeasonQueue {
     seasonNumber: number
     title: string
     overview?: string
-    airDateUtc: string
+    airDateUtc?: string
   }>
   firstReceived: Date
   lastUpdated: Date

@@ -91,6 +91,7 @@ Each event type has its own `data` schema. For example, `media.available` includ
   "data": {
     "mediaType": "movie",
     "title": "Dune: Part Two",
+    "key": "5d7768388718ba001e31563d",
     "guids": ["imdb:tt15239678", "tmdb:693134"],
     "posterUrl": "https://image.tmdb.org/t/p/w500/...",
     "isBulkRelease": false,
@@ -102,6 +103,8 @@ Each event type has its own `data` schema. For example, `media.available` includ
   }
 }
 ```
+
+Events that name a user carry the same `userId`, `username` and `alias` fields (`user.created` uses `id`, `name` and `alias`). Events about a movie or show carry a `content` block with `title`, `type`, `key` and `guids`, and `media.available` keeps those facts as top-level fields.
 
 For complete payload schemas and examples, see the [Webhook Payloads API Reference](/docs/api/webhook-payloads).
 
@@ -157,7 +160,7 @@ https://your-home-assistant.local/api/webhook/pulsarr_media_available
 ### Payloads Not Received
 
 1. **Endpoint response**: Your endpoint must return a 2xx status code
-2. **Timeout**: Endpoints must respond within 10 seconds
+2. **Timeout**: Endpoints must respond within 10 seconds. Timeouts, network errors, 5xx and 429 responses are retried, three attempts in total
 3. **Payload size**: Ensure your receiver can handle the payload size
 
 ### Debugging Payloads
