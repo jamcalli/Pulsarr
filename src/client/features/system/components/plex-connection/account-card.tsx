@@ -78,11 +78,7 @@ export function AccountCard({
       <SettingsSection
         title="Plex account"
         description="Pulsarr reads watchlists through the server owner's Plex account."
-        action={
-          <span role="status" aria-live="polite">
-            <StatusPill tone={pill.tone} label={pill.label} />
-          </span>
-        }
+        action={<StatusPill tone={pill.tone} label={pill.label} live />}
       >
         {showDetails && <FactList facts={facts} />}
         {linked && (

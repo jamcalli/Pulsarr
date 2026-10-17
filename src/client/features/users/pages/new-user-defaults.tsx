@@ -1,13 +1,12 @@
+import { ConfigPageGate } from '@/components/config-page-gate'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
-import { RetryAlert } from '@/components/retry-alert'
 import { SaveBar } from '@/components/settings/save-bar'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
 import { QuotaCard } from '@/features/users/components/quota-card'
 import { useNewUserDefaultsForm } from '@/features/users/hooks/new-user-defaults/useNewUserDefaultsForm'
 import { USER_SWITCH_LABELS } from '@/features/users/lib/user-switches'
-import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
@@ -82,16 +81,14 @@ function NewUserDefaults({
 }
 
 export default function NewUserDefaultsPage() {
-  const { config, error, initialize } = useConfig()
-
-  if (!config && error) {
-    return (
-      <Page>
-        <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <RetryAlert message={error} onRetry={() => initialize(true)} />
-      </Page>
-    )
-  }
-  if (!config) return <NewUserDefaultsSkeleton />
-  return <NewUserDefaults config={config} />
+  return (
+    <ConfigPageGate
+      section={SECTION}
+      title={TITLE}
+      description={DESCRIPTION}
+      skeleton={<NewUserDefaultsSkeleton />}
+    >
+      {(config) => <NewUserDefaults config={config} />}
+    </ConfigPageGate>
+  )
 }

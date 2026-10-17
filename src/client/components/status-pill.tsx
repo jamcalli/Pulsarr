@@ -17,19 +17,30 @@ const TONE_VARIANTS: Record<StatusTone, BadgeVariant> = {
   off: 'outline',
 }
 
-interface StatusPillProps {
+export interface StatusPillView {
   tone: StatusTone
   label: string
-  detail?: string
 }
 
-export function StatusPill({ tone, label, detail }: StatusPillProps) {
-  const pill = <Badge variant={TONE_VARIANTS[tone]}>{label}</Badge>
-  if (!detail) return pill
-  return (
+interface StatusPillProps extends StatusPillView {
+  detail?: string
+  live?: boolean
+}
+
+export function StatusPill({ tone, label, detail, live }: StatusPillProps) {
+  const badge = <Badge variant={TONE_VARIANTS[tone]}>{label}</Badge>
+  const pill = detail ? (
     <span className="inline-flex shrink-0 items-center gap-2 text-xs">
-      {pill}
+      {badge}
       <span className="text-muted-foreground">{detail}</span>
+    </span>
+  ) : (
+    badge
+  )
+  if (!live) return pill
+  return (
+    <span role="status" aria-live="polite">
+      {pill}
     </span>
   )
 }

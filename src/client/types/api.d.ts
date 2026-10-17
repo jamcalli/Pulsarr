@@ -3048,7 +3048,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Media Available
+         * Media available
          * @description Fired when content becomes available to watch
          */
         post: operations["webhookMediaAvailable"];
@@ -3068,7 +3068,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Watchlist Added
+         * Watchlist added
          * @description Fired when a user adds content to their Plex watchlist
          */
         post: operations["webhookWatchlistAdded"];
@@ -3088,7 +3088,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Watchlist Removed
+         * Watchlist removed
          * @description Fired when a user removes content from their watchlist
          */
         post: operations["webhookWatchlistRemoved"];
@@ -3108,7 +3108,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Approval Created
+         * Approval created
          * @description Fired when a new approval request is submitted
          */
         post: operations["webhookApprovalCreated"];
@@ -3128,7 +3128,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Approval Resolved
+         * Approval resolved
          * @description Fired when an approval is approved or rejected
          */
         post: operations["webhookApprovalResolved"];
@@ -3148,7 +3148,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Auto Approved
+         * Auto approved
          * @description Fired when content is auto-approved
          */
         post: operations["webhookApprovalAuto"];
@@ -3168,7 +3168,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Delete Sync Complete
+         * Delete sync complete
          * @description Fired when a delete sync job finishes
          */
         post: operations["webhookDeleteSyncCompleted"];
@@ -3188,7 +3188,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * User Created
+         * User created
          * @description Fired when a new user is added
          */
         post: operations["webhookUserCreated"];
@@ -3208,7 +3208,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Watchlist Cap Reached
+         * Watchlist cap reached
          * @description Fired when a user reaches their watchlist cap
          */
         post: operations["webhookQuotaCapReached"];
@@ -3653,8 +3653,7 @@ export interface components {
             queueWaitTime: number;
             /** @description New episode notification threshold in milliseconds */
             newEpisodeThreshold: number;
-            /** @enum {string} */
-            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnUpdate: components["schemas"]["UpdateNotifyOption"];
             notifyOnAvailability: boolean;
             /** @description Pending webhook retry interval in seconds */
             pendingWebhookRetryInterval: number;
@@ -3675,13 +3674,10 @@ export interface components {
             respectUserSyncSetting: boolean;
             /** @enum {string} */
             deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            approvalNotify: components["schemas"]["NotifyOption"];
+            watchlistCapNotify: components["schemas"]["NotifyOption"];
             watchlistCapNotifyUser: boolean;
-            /** @enum {string} */
-            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistAddNotify: components["schemas"]["NotifyOption"];
             deleteSyncNotifyOnlyOnDeletion: boolean;
             maxDeletionPrevention?: number;
             deleteSyncTrackedOnly: boolean;
@@ -3770,8 +3766,7 @@ export interface components {
             plexMobileEnabled?: boolean;
             queueWaitTime?: number;
             newEpisodeThreshold?: number;
-            /** @enum {string} */
-            notifyOnUpdate?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnUpdate?: components["schemas"]["UpdateNotifyOption"];
             notifyOnAvailability?: boolean;
             pendingWebhookRetryInterval?: number;
             pendingWebhookMaxAge?: number;
@@ -3786,13 +3781,10 @@ export interface components {
             respectUserSyncSetting?: boolean;
             /** @enum {string} */
             deleteSyncNotify?: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            approvalNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            watchlistCapNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            approvalNotify?: components["schemas"]["NotifyOption"];
+            watchlistCapNotify?: components["schemas"]["NotifyOption"];
             watchlistCapNotifyUser?: boolean;
-            /** @enum {string} */
-            watchlistAddNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistAddNotify?: components["schemas"]["NotifyOption"];
             deleteSyncNotifyOnlyOnDeletion?: boolean;
             maxDeletionPrevention?: number;
             /** @enum {string} */
@@ -3884,6 +3876,13 @@ export interface components {
             notification_stats?: components["schemas"]["NotificationStats"];
             instance_content_breakdown?: components["schemas"]["InstanceBreakdown"][];
         };
+        /** @description Discord bot status after a start or stop request */
+        DiscordBotControlResponse: {
+            success: boolean;
+            /** @enum {string} */
+            status: "running" | "stopped" | "starting" | "stopping" | "unknown";
+            message?: string;
+        };
         /** @description Discord user to send a test direct message to */
         DiscordDmTestPayload: {
             /** @description Discord user ID to message */
@@ -3893,6 +3892,22 @@ export interface components {
         DiscordWebhookTestPayload: {
             /** @description A single https://discord.com/api/webhooks/ URL */
             url: string;
+        };
+        /** @description Comma-separated Discord webhook URLs to check */
+        DiscordWebhookValidationPayload: {
+            webhookUrls: string;
+        };
+        /** @description Whether each Discord webhook URL answered */
+        DiscordWebhookValidationResponse: {
+            success: boolean;
+            valid: boolean;
+            urls: {
+                url: string;
+                valid: boolean;
+                error?: string;
+            }[];
+            duplicateCount?: number;
+            message?: string;
         };
         /** @description Standard error response */
         Error: {
@@ -4013,6 +4028,11 @@ export interface components {
             user_name: string;
             count: number;
         };
+        /**
+         * @description Channels an admin notification goes to, legacy aliases included
+         * @enum {string}
+         */
+        NotifyOption: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
         /** @description Orphaned tag reference cleanup result for one instance */
         OrphanedTagRefInstanceResult: {
             instanceName: string;
@@ -5091,6 +5111,11 @@ export interface components {
              */
             newEmail: string;
         };
+        /**
+         * @description Channels an admin notification goes to
+         * @enum {string}
+         */
+        UpdateNotifyOption: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
         /** @description Change the current admin username */
         UpdateUsernamePayload: {
             /** @description Current password for verification */
@@ -5252,6 +5277,74 @@ export interface components {
             key: string;
             guids: string[];
             posterUrl?: string;
+        };
+        /** @description A native webhook endpoint, auth header value included */
+        WebhookEndpoint: {
+            id: number;
+            name: string;
+            url: string;
+            authHeaderName: string | null;
+            authHeaderValue: string | null;
+            eventTypes: components["schemas"]["WebhookEventType"][];
+            enabled: boolean;
+            createdAt: string;
+            updatedAt: string;
+        };
+        /** @description A new native webhook endpoint */
+        WebhookEndpointCreatePayload: {
+            name: string;
+            url: string;
+            authHeaderName?: string;
+            authHeaderValue?: string;
+            eventTypes: components["schemas"]["WebhookEventType"][];
+            /** @default true */
+            enabled?: boolean;
+        };
+        /** @description Result of deleting a native webhook endpoint */
+        WebhookEndpointDeleteResponse: {
+            success: boolean;
+            message: string;
+        };
+        /** @description Every native webhook endpoint */
+        WebhookEndpointList: {
+            /** @constant */
+            success: true;
+            data: components["schemas"]["WebhookEndpoint"][];
+        };
+        /** @description One native webhook endpoint */
+        WebhookEndpointResponse: {
+            /** @constant */
+            success: true;
+            data: components["schemas"]["WebhookEndpoint"];
+        };
+        /** @description An unsaved webhook URL and auth header to send a test event to */
+        WebhookEndpointTestPayload: {
+            url: string;
+            authHeaderName?: string;
+            authHeaderValue?: string;
+        };
+        /** @description Changes to a native webhook endpoint, null clears a header */
+        WebhookEndpointUpdatePayload: {
+            name?: string;
+            url?: string;
+            authHeaderName?: string | null;
+            authHeaderValue?: string | null;
+            eventTypes?: components["schemas"]["WebhookEventType"][];
+            enabled?: boolean;
+        };
+        /**
+         * @description A Pulsarr event a webhook endpoint can receive
+         * @enum {string}
+         */
+        WebhookEventType: "media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached";
+        /** @description Every webhook event type with what triggers it */
+        WebhookEventTypeList: {
+            /** @constant */
+            success: true;
+            data: {
+                type: components["schemas"]["WebhookEventType"];
+                description: string;
+            }[];
         };
         /** @description Pulsarr user the event is about, alias only when set */
         WebhookUser: {
@@ -7073,12 +7166,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["DiscordBotControlResponse"];
                 };
             };
             /** @description Default Response */
@@ -7125,12 +7213,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["DiscordBotControlResponse"];
                 };
             };
             /** @description Default Response */
@@ -7513,11 +7596,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Comma-separated Discord webhook URLs to check */
         requestBody: {
             content: {
-                "application/json": {
-                    webhookUrls: string;
-                };
+                "application/json": components["schemas"]["DiscordWebhookValidationPayload"];
             };
         };
         responses: {
@@ -7527,17 +7609,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        valid: boolean;
-                        urls: {
-                            url: string;
-                            valid: boolean;
-                            error?: string;
-                        }[];
-                        duplicateCount?: number;
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["DiscordWebhookValidationResponse"];
                 };
             };
             /** @description Default Response */
@@ -14072,21 +14144,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointList"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -14116,17 +14174,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description A new native webhook endpoint */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    url: string;
-                    authHeaderName?: string;
-                    authHeaderValue?: string;
-                    eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                    /** @default true */
-                    enabled?: boolean;
-                };
+                "application/json": components["schemas"]["WebhookEndpointCreatePayload"];
             };
         };
         responses: {
@@ -14136,21 +14187,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointResponse"];
                 };
             };
             /** @description Default Response */
@@ -14189,13 +14226,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description An unsaved webhook URL and auth header to send a test event to */
         requestBody: {
             content: {
-                "application/json": {
-                    url: string;
-                    authHeaderName?: string;
-                    authHeaderValue?: string;
-                };
+                "application/json": components["schemas"]["WebhookEndpointTestPayload"];
             };
         };
         responses: {
@@ -14245,21 +14279,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointResponse"];
                 };
             };
             /** @description Default Response */
@@ -14300,16 +14320,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Changes to a native webhook endpoint, null clears a header */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    url?: string;
-                    authHeaderName?: string | null;
-                    authHeaderValue?: string | null;
-                    eventTypes?: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                    enabled?: boolean;
-                };
+                "application/json": components["schemas"]["WebhookEndpointUpdatePayload"];
             };
         };
         responses: {
@@ -14319,21 +14333,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointResponse"];
                 };
             };
             /** @description Default Response */
@@ -14382,10 +14382,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointDeleteResponse"];
                 };
             };
             /** @description Default Response */
@@ -14481,15 +14478,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            /** @enum {string} */
-                            type: "media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached";
-                            description: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["WebhookEventTypeList"];
                 };
             };
             /** @description Rate limit exceeded */

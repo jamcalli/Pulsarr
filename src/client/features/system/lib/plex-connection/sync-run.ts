@@ -1,5 +1,5 @@
 import type { WatchlistSyncType } from '@root/types/progress.types'
-import type { StatusTone } from '@/components/status-pill'
+import type { StatusPillView } from '@/components/status-pill'
 import { isSyncActive, type WatchlistSyncCache } from '@/lib/watchlist-sync'
 
 export type SyncStepId = 'verify' | 'self' | 'friends' | 'feeds'
@@ -37,10 +37,7 @@ export const SYNC_STEP_PROGRESS: Partial<
   friends: 'others-watchlist',
 }
 
-export const SYNC_STATUS_PILLS: Record<
-  SyncStepStatus,
-  { tone: StatusTone; label: string }
-> = {
+export const SYNC_STATUS_PILLS: Record<SyncStepStatus, StatusPillView> = {
   waiting: { tone: 'off', label: 'Waiting' },
   running: { tone: 'pending', label: 'Running' },
   done: { tone: 'on', label: 'Done' },

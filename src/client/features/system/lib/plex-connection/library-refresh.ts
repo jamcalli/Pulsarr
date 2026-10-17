@@ -1,5 +1,5 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder'
-import type { StatusTone } from '@/components/status-pill'
+import type { StatusPillView } from '@/components/status-pill'
 import type { components } from '@/types/api.js'
 
 type NotificationResults =
@@ -20,10 +20,7 @@ export interface RefreshRow {
 /** Status reads whether each instance has the connection, a run reports what each change did. */
 type RefreshSource = 'status' | 'setup' | 'remove'
 
-export const REFRESH_PILLS: Record<
-  RefreshState,
-  { tone: StatusTone; label: string }
-> = {
+export const REFRESH_PILLS: Record<RefreshState, StatusPillView> = {
   set: { tone: 'on', label: 'Set up' },
   unset: { tone: 'off', label: 'Not set up' },
   failed: { tone: 'failed', label: 'Failed' },

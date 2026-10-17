@@ -15,6 +15,7 @@ import { SwitchField } from '@/components/form/switch-field'
 import { TagsField } from '@/components/form/tags-field'
 import { TextField } from '@/components/form/text-field'
 import { TextareaField } from '@/components/form/textarea-field'
+import { UrlListField } from '@/components/form/url-list-field'
 import { fieldContext, formContext } from '@/lib/form-context'
 
 export const { useAppForm, withForm, withFieldGroup } = createFormHook({
@@ -31,6 +32,7 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
     NumberField,
     ScheduleField,
     TagsField,
+    UrlListField,
   },
   formComponents: { Form },
 })

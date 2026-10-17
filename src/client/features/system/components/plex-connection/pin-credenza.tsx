@@ -78,7 +78,7 @@ function WaitingBody({
 
   if (phone) {
     return (
-      <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex w-full flex-col items-center gap-3 text-center">
         {link}
         <span className="text-sm text-muted-foreground">{lead}</span>
         {code}

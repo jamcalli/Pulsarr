@@ -37,11 +37,7 @@ export default function LogsPage() {
       <PageHeader
         section={SECTION}
         title={TITLE}
-        action={
-          <div role="status" aria-live="polite">
-            <StatusPill tone={pill.tone} label={pill.label} />
-          </div>
-        }
+        action={<StatusPill tone={pill.tone} label={pill.label} live />}
       />
       <LogStreamCard page={page} silent={savedLevel === 'silent'} />
       <LogSettingsSection

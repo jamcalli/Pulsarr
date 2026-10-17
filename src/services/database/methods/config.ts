@@ -1,6 +1,8 @@
 import {
   type ConfigFull,
+  NEW_EPISODE_THRESHOLD_MS,
   NOTIFY_DEFAULTS,
+  QUEUE_WAIT_TIME_MS,
 } from '@root/schemas/config/config.schema.js'
 import {
   PLEX_LABEL_SYNC_DEFAULTS,
@@ -138,8 +140,9 @@ export async function getConfig(
     // Handle timing defaults
     queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
     // Handle notification timing defaults
-    queueWaitTime: config.queueWaitTime ?? 120000,
-    newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+    queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
+    newEpisodeThreshold:
+      config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
     // Out-of-app update notifications
     notifyOnUpdate: config.notifyOnUpdate || NOTIFY_DEFAULTS.notifyOnUpdate,
     notifyOnAvailability: Boolean(
@@ -274,8 +277,9 @@ export async function createConfig(
       // Timing fields
       queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
       // Notification timing fields
-      queueWaitTime: config.queueWaitTime ?? 120000,
-      newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+      queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
+      newEpisodeThreshold:
+        config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
       // Maintainerr fields
       maintainerrEnabled: config.maintainerrEnabled ?? false,
       maintainerrUrl: config.maintainerrUrl ?? '',

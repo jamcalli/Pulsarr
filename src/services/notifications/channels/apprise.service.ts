@@ -1,6 +1,7 @@
 import type { AppriseSchemaFormatMap } from '@root/types/apprise.types.js'
 import type {
   AppriseMessage,
+  AppriseStatus,
   DeliveryResult,
   NotificationTestResult,
 } from '@root/types/notification.types.js'
@@ -13,8 +14,6 @@ import {
 } from './apprise.js'
 import { fetchSchemaFormats } from './apprise-format-cache.js'
 import { timeTest } from './time-test.js'
-
-export type AppriseStatus = 'enabled' | 'disabled' | 'not_configured'
 
 const READY_PROBE_DEADLINE_MS = 30_000
 const READY_PROBE_INTERVAL_MS = 1_000

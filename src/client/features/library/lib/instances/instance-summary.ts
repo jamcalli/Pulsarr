@@ -1,4 +1,4 @@
-import type { StatusTone } from '@/components/status-pill'
+import type { StatusPillView } from '@/components/status-pill'
 import { needsSetup } from '@/features/library/lib/instances/instance-form'
 import { type ArrTarget, NOT_SET } from '@/lib/approval'
 import { formatList } from '@/lib/format'
@@ -14,7 +14,7 @@ export interface InstanceCardSummary {
   isDefault: boolean
   url: string | null
   facts: Array<{ label: string; value: string }>
-  status: { tone: StatusTone; label: string } | null
+  status: StatusPillView | null
 }
 
 interface SummaryContext {

@@ -1,5 +1,5 @@
 import { ResultsTableHeader } from '@/components/settings/action-results'
-import { StatusPill, type StatusTone } from '@/components/status-pill'
+import { StatusPill, type StatusPillView } from '@/components/status-pill'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -14,7 +14,7 @@ export interface ArrInstanceResultRow {
   key: string
   type: keyof typeof ARR_TYPE_LABELS
   name: string
-  pill: { tone: StatusTone; label: string }
+  pill: StatusPillView
   /** Shown under the name, such as the reason a row failed. */
   message: string | null
 }

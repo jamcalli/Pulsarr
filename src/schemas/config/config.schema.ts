@@ -1,6 +1,7 @@
 import { isDiscordWebhookUrl } from '@root/schemas/common/discord-webhook-url.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
+import { splitUrlList } from '@root/schemas/common/url-list.js'
 import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
 import {
   PlexLabelSyncConfigPayloadSchema,
@@ -26,12 +27,7 @@ import {
   longestQuotaWindowDays,
   resolveQuotaWindowSettings,
 } from '@root/utils/quota-window.js'
-import { splitUrlList } from '@root/utils/url.js'
 import { z } from 'zod'
-
-// Max constants for validation
-const QUEUE_WAIT_TIME_MAX_MS = 30 * 60 * 1000
-const NEW_EPISODE_THRESHOLD_MAX_MS = 720 * 60 * 60 * 1000
 
 const DiscordWebhookUrlListSchema = z
   .string()
@@ -59,6 +55,21 @@ export const DEFAULT_LOG_LEVEL = 'info' satisfies ConfigLogLevel
 
 export const DEFAULT_PULSARR_PORT = 3003
 export const APPROVAL_EXPIRATION_HOURS = { min: 1, max: 8760 } as const
+export const QUEUE_WAIT_TIME_MS = {
+  min: 0,
+  max: 1_800_000,
+  default: 120_000,
+} as const
+export const NEW_EPISODE_THRESHOLD_MS = {
+  min: 0,
+  max: 2_592_000_000,
+  default: 172_800_000,
+} as const
+
+export const MS_PER_MINUTE = 60_000
+export const MS_PER_HOUR = 60 * MS_PER_MINUTE
+const QUEUE_WAIT_TIME_ERROR = `Enter ${QUEUE_WAIT_TIME_MS.min / MS_PER_MINUTE} to ${QUEUE_WAIT_TIME_MS.max / MS_PER_MINUTE} minutes.`
+const NEW_EPISODE_THRESHOLD_ERROR = `Enter ${NEW_EPISODE_THRESHOLD_MS.min / MS_PER_HOUR} to ${NEW_EPISODE_THRESHOLD_MS.max / MS_PER_HOUR} hours.`
 export const EXPIRED_APPROVAL_CLEANUP_DAYS = { min: 1, max: 365 } as const
 export const QUOTA_USAGE_RETENTION_DAYS = { min: 1, max: 365 } as const
 export const QUOTA_WEEKLY_ROLLING_DAYS = { min: 1, max: 365 } as const
@@ -122,9 +133,16 @@ export const NOTIFY_DEFAULTS = {
   deleteSyncNotifyOnlyOnDeletion: boolean
 }
 
-const NotifyOptionEnum = z.enum(NOTIFY_OPTIONS)
+const NotifyOptionEnum = z.enum(NOTIFY_OPTIONS).meta({
+  id: 'NotifyOption',
+  description:
+    'Channels an admin notification goes to, legacy aliases included',
+})
 
-const UpdateNotifyEnum = z.enum(UPDATE_NOTIFY_OPTIONS)
+const UpdateNotifyEnum = z.enum(UPDATE_NOTIFY_OPTIONS).meta({
+  id: 'UpdateNotifyOption',
+  description: 'Channels an admin notification goes to',
+})
 
 const DeleteSyncNotifyOptionEnum = z.enum(DELETE_SYNC_NOTIFY_OPTIONS)
 
@@ -506,21 +524,15 @@ export const ConfigUpdateSchema = z
     queueWaitTime: z.coerce
       .number()
       .int()
-      .min(0, { error: 'Queue wait time must be at least 0 milliseconds' })
-      .max(QUEUE_WAIT_TIME_MAX_MS, {
-        error: `Queue wait time cannot exceed ${QUEUE_WAIT_TIME_MAX_MS} milliseconds (30 minutes)`,
-      })
-      .optional(), // 0-30 minutes in ms
+      .min(QUEUE_WAIT_TIME_MS.min, { error: QUEUE_WAIT_TIME_ERROR })
+      .max(QUEUE_WAIT_TIME_MS.max, { error: QUEUE_WAIT_TIME_ERROR })
+      .optional(),
     newEpisodeThreshold: z.coerce
       .number()
       .int()
-      .min(0, {
-        error: 'New episode threshold must be at least 0 milliseconds',
-      })
-      .max(NEW_EPISODE_THRESHOLD_MAX_MS, {
-        error: `New episode threshold cannot exceed ${NEW_EPISODE_THRESHOLD_MAX_MS} milliseconds (720 hours)`,
-      })
-      .optional(), // 0-720 hours in ms
+      .min(NEW_EPISODE_THRESHOLD_MS.min, { error: NEW_EPISODE_THRESHOLD_ERROR })
+      .max(NEW_EPISODE_THRESHOLD_MS.max, { error: NEW_EPISODE_THRESHOLD_ERROR })
+      .optional(),
     // lastNotifiedVersion is internal-only; only the user-facing setting here.
     notifyOnUpdate: UpdateNotifyEnum.optional(),
     notifyOnAvailability: z.boolean().optional(),
