@@ -5,6 +5,9 @@ import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
 import { SessionMonitoringSkeleton } from '@/features/library/components/session-monitoring/session-monitoring-skeleton'
+import { APPRISE_SKELETON } from '@/features/notifications/lib/apprise-skeleton'
+import { DELIVERY_SKELETON } from '@/features/notifications/lib/delivery-skeleton'
+import { DISCORD_SKELETON } from '@/features/notifications/lib/discord-skeleton'
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
@@ -48,6 +51,11 @@ const ArrInstancesPage = lazy(
 )
 const SessionMonitoringPage = lazy(
   () => import('@/features/library/pages/session-monitoring'),
+)
+const DiscordPage = lazy(() => import('@/features/notifications/pages/discord'))
+const ApprisePage = lazy(() => import('@/features/notifications/pages/apprise'))
+const DeliveryPage = lazy(
+  () => import('@/features/notifications/pages/delivery'),
 )
 const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
 const LogsPage = lazy(() => import('@/features/system/pages/logs'))
@@ -247,6 +255,36 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<SessionMonitoringSkeleton />}>
                   <SessionMonitoringPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'notifications/discord',
+              element: (
+                <Suspense
+                  fallback={<SettingsPageSkeleton {...DISCORD_SKELETON} />}
+                >
+                  <DiscordPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'notifications/apprise',
+              element: (
+                <Suspense
+                  fallback={<SettingsPageSkeleton {...APPRISE_SKELETON} />}
+                >
+                  <ApprisePage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'notifications/delivery',
+              element: (
+                <Suspense
+                  fallback={<SettingsPageSkeleton {...DELIVERY_SKELETON} />}
+                >
+                  <DeliveryPage />
                 </Suspense>
               ),
             },

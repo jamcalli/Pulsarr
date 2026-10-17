@@ -102,12 +102,18 @@ export const NAV_PAGES = {
     ]),
     rebuilt: true,
   },
-  discord: page('Discord', '/notifications/discord', [
-    '/notifications#discord-notifications',
-  ]),
-  apprise: page('Apprise', '/notifications/apprise', [
-    '/notifications#apprise-notifications',
-  ]),
+  discord: {
+    ...page('Discord', '/notifications/discord', [
+      '/notifications#discord-notifications',
+    ]),
+    rebuilt: true,
+  },
+  apprise: {
+    ...page('Apprise', '/notifications/apprise', [
+      '/notifications#apprise-notifications',
+    ]),
+    rebuilt: true,
+  },
   webhooks: page('Webhooks', '/notifications/webhooks', [
     '/notifications#native-webhooks',
   ]),
@@ -117,9 +123,12 @@ export const NAV_PAGES = {
   publicContent: page('Public content', '/notifications/public-content', [
     '/notifications#public-content-notifications',
   ]),
-  delivery: page('Delivery', '/notifications/delivery', [
-    '/notifications#general-notifications',
-  ]),
+  delivery: {
+    ...page('Delivery', '/notifications/delivery', [
+      '/notifications#general-notifications',
+    ]),
+    rebuilt: true,
+  },
   plexConnection: {
     ...page('Plex connection', '/system/plex', [
       '/plex/configuration',
@@ -200,7 +209,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   },
 ]
 
-export const DOCS_URL = 'https://jamcalli.github.io/Pulsarr/docs/intro'
+export const DOCS_ROOT = 'https://jamcalli.github.io/Pulsarr/docs'
+export const DOCS_URL = `${DOCS_ROOT}/intro`
 
 export const HELP_LINKS: readonly {
   label: string

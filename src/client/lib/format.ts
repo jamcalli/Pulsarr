@@ -151,6 +151,14 @@ export function formatRuntime(minutes: number): string {
   return `${unit(hours, 'hour')} ${unit(rest, 'minute')}`
 }
 
+export function formatDuration(milliseconds: number): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'unit',
+    unit: 'millisecond',
+    unitDisplay: 'short',
+  }).format(Math.round(milliseconds))
+}
+
 export function upperFirst(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }

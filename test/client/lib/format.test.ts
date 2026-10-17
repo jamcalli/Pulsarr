@@ -3,6 +3,7 @@ import {
   formatCount,
   formatCurrency,
   formatDateTime,
+  formatDuration,
   formatLanguage,
   formatList,
   formatLogDateTime,
@@ -169,6 +170,12 @@ describe('format', () => {
     expect(formatRuntime(120)).toBe('2 hr')
     expect(formatRuntime(135)).toBe('2 hr 15 min')
     expect(formatRuntime(59.6)).toBe('1 hr')
+  })
+
+  it('formats a duration in milliseconds', () => {
+    setFormatLocale('en-US')
+    expect(formatDuration(386)).toBe('386 ms')
+    expect(formatDuration(1204.4)).toBe('1,204 ms')
   })
 })
 
