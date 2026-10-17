@@ -1,9 +1,3 @@
-/**
- * Notifications Command Handlers
- *
- * Button interaction handlers for the notifications settings UI.
- */
-
 import type { User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { ButtonInteraction } from 'discord.js'
@@ -18,7 +12,6 @@ export interface HandlerDeps {
   logger: FastifyBaseLogger
 }
 
-// Database Operations
 async function getUser(
   discordId: string,
   deps: HandlerDeps,
@@ -51,12 +44,6 @@ async function updateUser(
   }
 }
 
-/**
- * Handles button interactions for the notifications settings UI.
- *
- * Responds to button presses for toggling Discord, Apprise, and Plex Mobile notifications,
- * editing the user profile, and closing the settings form.
- */
 export async function handleNotificationButtons(
   interaction: ButtonInteraction,
   deps: HandlerDeps,
@@ -64,9 +51,8 @@ export async function handleNotificationButtons(
   const { logger } = deps
   const cache = SettingsCache.getInstance()
 
-  // Check if this is a dynamic retry button (they start with retryPlexLink_)
   if (interaction.customId.startsWith('retryPlexLink_')) {
-    // This is now handled by the collector in the modal handler
+    await interaction.showModal(createPlexLinkModal())
     return
   }
 

@@ -139,19 +139,7 @@ export async function createAutoApprovalRecord(
     if (updatedRequest) {
       void deps.notifications.sendApprovalAuto(
         updatedRequest,
-        {
-          instanceType: proposedRouting.instanceType,
-          instanceId: proposedRouting.instanceId,
-          qualityProfile: proposedRouting.qualityProfile ?? null,
-          rootFolder: proposedRouting.rootFolder ?? null,
-          tags: proposedRouting.tags ?? [],
-          searchOnAdd: proposedRouting.searchOnAdd ?? null,
-          minimumAvailability: proposedRouting.minimumAvailability ?? null,
-          monitor: proposedRouting.monitor ?? null,
-          seasonMonitoring: proposedRouting.seasonMonitoring ?? null,
-          seriesType: proposedRouting.seriesType ?? null,
-          syncedInstances: proposedRouting.syncedInstances,
-        },
+        proposedRouting,
         'Auto-approved (no approval required)',
       )
     }

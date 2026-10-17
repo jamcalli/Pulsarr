@@ -2,6 +2,7 @@ import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
+import { errorMessage } from '@utils/error-message.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -136,13 +137,17 @@ export async function syncWatchlistItems(
     ])
     const allWatchlistItems = [...shows, ...movies]
 
-    const { skipIds, cappedEntries } = await evaluateWatchlistCaps(
-      { db: deps.db, logger: deps.logger },
-      allWatchlistItems,
-    )
+    const { skipIds, cappedEntries, uncappedEntries } =
+      await evaluateWatchlistCaps(
+        { db: deps.db, logger: deps.logger },
+        allWatchlistItems,
+      )
 
     const exclusionMap = await deps.db.getExclusionMap()
 
+    for (const entry of uncappedEntries) {
+      deps.notifications.clearWatchlistCap(entry.userId, entry.contentType)
+    }
     // The notification service debounces these, so repeats per cycle are harmless
     for (const entry of cappedEntries) {
       const user = userById.get(entry.userId)
@@ -518,7 +523,7 @@ export async function syncWatchlistItems(
     deps.logger.error(
       {
         error,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: errorMessage(error),
         errorStack: error instanceof Error ? error.stack : undefined,
       },
       'Error during watchlist sync',

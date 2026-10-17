@@ -1,5 +1,6 @@
 import type {
   CreateUserQuotaData,
+  EnabledQuotaData,
   QuotaExceeded,
   QuotaStatus,
   QuotaType,
@@ -30,13 +31,7 @@ async function upsertOrDeleteQuota(
   trx: Knex.Transaction,
   userId: number,
   contentType: 'movie' | 'show',
-  quotaConfig?: {
-    enabled: boolean
-    quotaType?: QuotaType
-    quotaLimit?: number
-    bypassApproval?: boolean
-    watchlistCap?: number | null
-  },
+  quotaConfig?: EnabledQuotaData,
 ): Promise<void> {
   if (!quotaConfig) return
 
@@ -845,52 +840,6 @@ export async function cleanupOldQuotaUsage(
 }
 
 /**
- * Deletes all quota usage records associated with the specified user.
- *
- * @param userId - The user ID for which all quota usage records will be removed
- * @returns The total number of deleted quota usage records
- */
-export async function deleteQuotaUsageByUser(
-  this: DatabaseService,
-  userId: number,
-): Promise<number> {
-  const deletedCount = await this.knex('quota_usage')
-    .where('user_id', userId)
-    .del()
-
-  return deletedCount
-}
-
-/**
- * Delete quota usage records for a user on or after a given date.
- *
- * Validates `fromDate`, converts it to the service's local date string, and deletes
- * quota_usage rows where `user_id` matches and `request_date` is >= the converted date.
- *
- * @param userId - User ID whose quota usage records will be removed
- * @param fromDate - Delete records from this date (inclusive); must be a valid Date
- * @returns The number of deleted quota usage records
- * @throws Error if `fromDate` is not a valid Date
- */
-export async function deleteQuotaUsageByUserSince(
-  this: DatabaseService,
-  userId: number,
-  fromDate: Date,
-): Promise<number> {
-  if (!(fromDate instanceof Date) || Number.isNaN(fromDate.getTime())) {
-    throw new Error('Invalid fromDate')
-  }
-  const fromDateString = this.getLocalDateString(fromDate)
-
-  const deletedCount = await this.knex('quota_usage')
-    .where('user_id', userId)
-    .where('request_date', '>=', fromDateString)
-    .del()
-
-  return deletedCount
-}
-
-/**
  * Retrieves all user quota configurations for users with the specified quota type.
  *
  * @param quotaType - The type of quota to filter by
@@ -988,20 +937,8 @@ export async function bulkDeleteQuotas(
 export async function bulkUpdateQuotas(
   this: DatabaseService,
   userIds: number[],
-  movieQuota?: {
-    enabled: boolean
-    quotaType?: QuotaType
-    quotaLimit?: number
-    bypassApproval?: boolean
-    watchlistCap?: number | null
-  },
-  showQuota?: {
-    enabled: boolean
-    quotaType?: QuotaType
-    quotaLimit?: number
-    bypassApproval?: boolean
-    watchlistCap?: number | null
-  },
+  movieQuota?: EnabledQuotaData,
+  showQuota?: EnabledQuotaData,
 ): Promise<{ processedCount: number; failedIds: number[] }> {
   const failedIds: number[] = []
   let processedCount = 0

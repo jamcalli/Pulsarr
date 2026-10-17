@@ -1,12 +1,6 @@
-/**
- * Approval Command Entry Point
- *
- * Slash command definition for /approvals.
- * Primary admin only - review and manage pending approval requests.
- */
-
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { errorMessage } from '@utils/error-message.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
 import { MessageFlags, SlashCommandBuilder } from 'discord.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -31,7 +25,6 @@ export const approvalCommand = {
     const { db, logger } = deps
 
     try {
-      // Check if user is primary admin
       const isPrimary = await checkUserIsPrimary(interaction.user.id, {
         db,
         logger,
@@ -49,24 +42,22 @@ export const approvalCommand = {
         'Primary admin accessed approval command',
       )
 
-      // Show the main approval management menu
       await showApprovalMainMenu(interaction, { db, logger })
     } catch (error) {
       logger.error({ error }, 'Error in approval command')
 
-      const errorMessage =
-        error instanceof Error ? error.message : 'An unknown error occurred'
+      const message = errorMessage(error)
 
       if (interaction.deferred && !interaction.replied) {
-        await interaction.editReply({ content: `❌ Error: ${errorMessage}` })
+        await interaction.editReply({ content: `❌ Error: ${message}` })
       } else if (interaction.replied) {
         await interaction.followUp({
-          content: `❌ Error: ${errorMessage}`,
+          content: `❌ Error: ${message}`,
           flags: MessageFlags.Ephemeral,
         })
       } else {
         await interaction.reply({
-          content: `❌ Error: ${errorMessage}`,
+          content: `❌ Error: ${message}`,
           flags: MessageFlags.Ephemeral,
         })
       }
@@ -74,6 +65,5 @@ export const approvalCommand = {
   },
 }
 
-// Re-export handlers for the event router
 export { handleApprovalButtons } from './handlers.js'
 export { showApprovalAtIndex } from './review-flow.js'

@@ -17,7 +17,12 @@ const EnabledQuotaSchema = QuotaFieldsSchema.extend({
 
 const EnabledQuotaCappedSchema = EnabledQuotaSchema.extend({
   quotaLimit: z.number().min(1).max(1000).optional(),
-})
+}).refine(
+  (quota) =>
+    !quota.enabled ||
+    (quota.quotaType !== undefined && quota.quotaLimit !== undefined),
+  { error: 'An enabled quota needs a quota type and limit' },
+)
 
 // User quota schemas
 export const CreateUserQuotaSchema = z.object({

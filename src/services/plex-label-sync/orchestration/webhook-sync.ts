@@ -129,7 +129,7 @@ export async function syncLabelsOnWebhook(
         {
           guids,
           contentType,
-          note: 'Content may be downloaded before appearing in watchlists - will retry when watchlist syncs',
+          note: 'Content may be downloaded before appearing in watchlists, so this retries when the watchlist syncs',
         },
         'No users have this content in their watchlist yet',
       )
@@ -277,7 +277,7 @@ export async function syncLabelsOnWebhook(
     }
 
     if (allSuccessful) {
-      deps.logger.info(
+      deps.logger.debug(
         { guids, contentType, itemCount: watchlistItems.length },
         'Webhook label sync completed successfully',
       )

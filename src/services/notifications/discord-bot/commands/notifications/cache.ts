@@ -1,24 +1,11 @@
-/**
- * Notifications Command Settings Cache
- *
- * Singleton cache for tracking active notification settings sessions.
- * Keeps as class because it's stateful with cleanup interval.
- */
-
-/**
- * Cache for tracking active notification settings sessions.
- *
- * Sessions expire after 15 minutes of inactivity.
- */
 export class SettingsCache {
   private static instance: SettingsCache
-  private cache: Map<string, { messageId: string; timestamp: number }> =
-    new Map()
-  private readonly SESSION_TIMEOUT = 15 * 60 * 1000 // 15 minutes
+  private cache: Map<string, number> = new Map()
+  private readonly SESSION_TIMEOUT = 15 * 60 * 1000
 
   private constructor() {
     const cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000)
-    cleanupInterval.unref() // Don't keep process alive for cleanup
+    cleanupInterval.unref()
   }
 
   static getInstance(): SettingsCache {
@@ -29,21 +16,18 @@ export class SettingsCache {
   }
 
   has(userId: string): boolean {
-    const entry = this.cache.get(userId)
-    if (!entry) return false
+    const timestamp = this.cache.get(userId)
+    if (timestamp === undefined) return false
 
-    if (Date.now() - entry.timestamp > this.SESSION_TIMEOUT) {
+    if (Date.now() - timestamp > this.SESSION_TIMEOUT) {
       this.delete(userId)
       return false
     }
     return true
   }
 
-  set(userId: string, messageId: string): void {
-    this.cache.set(userId, {
-      messageId,
-      timestamp: Date.now(),
-    })
+  set(userId: string): void {
+    this.cache.set(userId, Date.now())
   }
 
   delete(userId: string): void {
@@ -52,8 +36,8 @@ export class SettingsCache {
 
   private cleanup(): void {
     const now = Date.now()
-    for (const [userId, entry] of this.cache.entries()) {
-      if (now - entry.timestamp > this.SESSION_TIMEOUT) {
+    for (const [userId, timestamp] of this.cache.entries()) {
+      if (now - timestamp > this.SESSION_TIMEOUT) {
         this.cache.delete(userId)
       }
     }

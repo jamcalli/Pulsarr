@@ -1,5 +1,6 @@
 import type {
   CreateUserQuotaData,
+  EnabledQuotaData,
   QuotaExceeded,
   QuotaStatus,
   QuotaType,
@@ -221,22 +222,6 @@ declare module '@services/database.service.js' {
     cleanupOldQuotaUsage(olderThanDays?: number): Promise<number>
 
     /**
-     * Deletes all quota usage records for a specific user
-     * @param userId - User ID
-     * @returns Promise resolving to the number of deleted records
-     */
-    deleteQuotaUsageByUser(userId: number): Promise<number>
-
-    /**
-     * Deletes quota usage records for a specific user since a given date
-     * @param userId - User ID
-     * @param fromDate - Inclusive start date; records with request_date >= this local date are deleted.
-     *                   Note: Date is normalized to YYYY-MM-DD in the server's local timezone via getLocalDateString.
-     * @returns Promise resolving to the number of deleted records
-     */
-    deleteQuotaUsageByUserSince(userId: number, fromDate: Date): Promise<number>
-
-    /**
      * Gets users with a specific quota type
      * @param quotaType - The quota type to filter by
      * @returns Promise resolving to array of user quota configs with the specified type
@@ -268,20 +253,8 @@ declare module '@services/database.service.js' {
      */
     bulkUpdateQuotas(
       userIds: number[],
-      movieQuota?: {
-        enabled: boolean
-        quotaType?: QuotaType
-        quotaLimit?: number
-        bypassApproval?: boolean
-        watchlistCap?: number | null
-      },
-      showQuota?: {
-        enabled: boolean
-        quotaType?: QuotaType
-        quotaLimit?: number
-        bypassApproval?: boolean
-        watchlistCap?: number | null
-      },
+      movieQuota?: EnabledQuotaData,
+      showQuota?: EnabledQuotaData,
     ): Promise<{ processedCount: number; failedIds: number[] }>
 
     /**

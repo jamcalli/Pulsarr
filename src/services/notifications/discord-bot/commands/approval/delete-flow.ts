@@ -1,9 +1,3 @@
-/**
- * Approval Command Delete Flow
- *
- * Delete confirmation and execution for the approval command.
- */
-
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import {
@@ -22,9 +16,6 @@ export interface DeleteFlowDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Handle delete confirmation and execution
- */
 export async function handleDeleteAction(
   interaction: ButtonInteraction,
   parts: string[],
@@ -35,7 +26,7 @@ export async function handleDeleteAction(
   await interaction.deferUpdate()
 
   try {
-    const action = parts[2] // 'confirm' or 'execute'
+    const action = parts[2]
     const approvalId = Number.parseInt(parts[3], 10)
 
     if (Number.isNaN(approvalId)) {
@@ -44,7 +35,6 @@ export async function handleDeleteAction(
     }
 
     if (action === 'confirm') {
-      // Show delete confirmation
       const returnPage = Number.parseInt(parts[4], 10) || 0
       const returnFilter = parts.slice(5).join('_') || 'all'
       await showDeleteConfirmation(
@@ -55,7 +45,6 @@ export async function handleDeleteAction(
         deps,
       )
     } else if (action === 'execute') {
-      // Execute the delete
       const returnPage = Number.parseInt(parts[4], 10) || 0
       const returnFilter = parts.slice(5).join('_') || 'all'
       await executeDelete(
@@ -72,9 +61,6 @@ export async function handleDeleteAction(
   }
 }
 
-/**
- * Show delete confirmation dialog
- */
 async function showDeleteConfirmation(
   interaction: ButtonInteraction,
   approvalId: number,
@@ -147,9 +133,6 @@ async function showDeleteConfirmation(
   }
 }
 
-/**
- * Execute the delete operation
- */
 async function executeDelete(
   interaction: ButtonInteraction,
   approvalId: number,
@@ -160,7 +143,6 @@ async function executeDelete(
   const { db, approvalService, logger } = deps
 
   try {
-    // Get approval details before deletion for logging
     const approval = await db.getApprovalRequest(approvalId)
     if (!approval) {
       await interaction.editReply({
@@ -171,7 +153,6 @@ async function executeDelete(
       return
     }
 
-    // Delete the approval request
     const deleted = await approvalService.deleteApprovalRequest(approvalId)
 
     if (!deleted) {
@@ -183,7 +164,6 @@ async function executeDelete(
       return
     }
 
-    // Show success message
     const successEmbed = new EmbedBuilder()
       .setTitle('🗑️ Deleted')
       .setDescription(

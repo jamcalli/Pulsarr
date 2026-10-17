@@ -1,9 +1,3 @@
-/**
- * Approval Command History
- *
- * History browser with filtering and pagination for the approval command.
- */
-
 import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import {
@@ -26,16 +20,6 @@ export interface HistoryDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Display a paginated, filterable view of approval history.
- *
- * Shows up to five approval items per page, renders a summary embed, adds item selection buttons,
- * filter buttons (All, Pending, Approved, Rejected, Expired, Auto-Approved), and pagination controls.
- *
- * @param page - Zero-based page index to display.
- * @param filter - Filter key: "all" for no filter, or one of
- *                 "pending" | "approved" | "rejected" | "expired" | "auto_approved".
- */
 export async function showApprovalHistory(
   interaction: ButtonInteraction,
   page: number,
@@ -45,11 +29,10 @@ export async function showApprovalHistory(
   const { db, logger } = deps
 
   try {
-    const pageSize = 5 // Reduced to fit button limits
-    const fetchSize = pageSize + 1 // Fetch one extra to detect if more pages exist
+    const pageSize = 5 // Discord caps an action row at five buttons
+    const fetchSize = pageSize + 1 // The extra row reveals whether a next page exists
     const offset = page * pageSize
 
-    // Map filter to database status
     let status: ApprovalRequest['status'] | undefined
     switch (filter) {
       case 'pending':
@@ -68,12 +51,11 @@ export async function showApprovalHistory(
         status = 'auto_approved'
         break
       default:
-        status = undefined // 'all'
+        status = undefined
     }
 
-    // Get paginated history (fetch one extra to detect more pages)
     const approvals = await db.getApprovalHistory(
-      undefined, // userId - get all users
+      undefined,
       status,
       fetchSize,
       offset,
@@ -89,7 +71,6 @@ export async function showApprovalHistory(
       return
     }
 
-    // Create history embed
     const historyEmbed = new EmbedBuilder()
       .setTitle(`📊 Approval History (Page ${page + 1})`)
       .setDescription(
@@ -97,7 +78,6 @@ export async function showApprovalHistory(
       )
       .setColor(0x5865f2)
 
-    // Add approval items as clickable buttons (max 5 per page to fit Discord limits)
     const displayApprovals = approvals.slice(0, 5)
 
     for (const approval of displayApprovals) {
@@ -113,7 +93,6 @@ export async function showApprovalHistory(
       })
     }
 
-    // Create clickable item buttons
     const itemButtons = []
     for (let i = 0; i < displayApprovals.length; i++) {
       const approval = displayApprovals[i]
@@ -127,10 +106,8 @@ export async function showApprovalHistory(
       )
     }
 
-    // Create navigation buttons
     const actionRows = []
 
-    // Item selection buttons (if any items)
     if (itemButtons.length > 0) {
       const itemRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         ...itemButtons,
@@ -138,7 +115,6 @@ export async function showApprovalHistory(
       actionRows.push(itemRow)
     }
 
-    // Filter buttons row 1 (All, Pending, Approved)
     const filterRow1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId('approval_history_filter_all')
@@ -161,7 +137,6 @@ export async function showApprovalHistory(
     )
     actionRows.push(filterRow1)
 
-    // Filter buttons row 2 (Rejected, Expired, Auto-Approved)
     const filterRow2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId('approval_history_filter_rejected')
@@ -186,7 +161,6 @@ export async function showApprovalHistory(
     )
     actionRows.push(filterRow2)
 
-    // Navigation buttons row
     const navRow = new ActionRowBuilder<ButtonBuilder>()
 
     if (page > 0) {
@@ -229,9 +203,6 @@ export async function showApprovalHistory(
   }
 }
 
-/**
- * Handle history-related actions (filter changes, page navigation)
- */
 export async function handleHistoryAction(
   interaction: ButtonInteraction,
   parts: string[],
@@ -242,7 +213,7 @@ export async function handleHistoryAction(
   await interaction.deferUpdate()
 
   try {
-    const action = parts[2] // filter, page, etc.
+    const action = parts[2]
 
     if (action === 'filter') {
       const filter = parts.slice(3).join('_') || 'all'
@@ -258,9 +229,6 @@ export async function handleHistoryAction(
   }
 }
 
-/**
- * Handle individual item clicks from history
- */
 export async function handleItemAction(
   interaction: ButtonInteraction,
   parts: string[],
@@ -293,16 +261,7 @@ export async function handleItemAction(
   }
 }
 
-/**
- * Display a detailed view for a single approval request from history.
- *
- * Shows request metadata, trigger reason, timestamps, and any approval action history,
- * then presents action buttons tailored to the approval's current status.
- *
- * @param returnPage - The history page number to return to when the user selects "Back to History"
- * @param returnFilter - The history filter identifier to preserve when returning to the history view
- */
-export async function showItemDetail(
+async function showItemDetail(
   interaction: ButtonInteraction,
   approvalId: number,
   returnPage: number,
@@ -363,7 +322,6 @@ export async function showItemDetail(
       .setFooter({ text: `ID: ${approval.id}` })
       .setTimestamp()
 
-    // Add approval details if exists
     if (approval.approvedBy || approval.approvalNotes) {
       const approvalDetails = []
       if (approval.approvedBy) {
@@ -380,21 +338,14 @@ export async function showItemDetail(
       })
     }
 
-    // Create action buttons based on current status
     const actionRows = []
     const actionRow = new ActionRowBuilder<ButtonBuilder>()
-
-    // State transition rules:
-    // - Pending: Approve/Reject/Delete
-    // - Approved: Delete only (cannot reject once approved)
-    // - Rejected: Approve/Delete (allows reversal)
-    // - Expired: Delete only
 
     switch (approval.status) {
       case 'pending':
         actionRow.addComponents(
           new ButtonBuilder()
-            .setCustomId(`approval_approve_${approvalId}_0`) // Use 0 for index since we're not in review flow
+            .setCustomId(`approval_approve_${approvalId}_0`) // History items sit outside the review flow, so the index is 0
             .setLabel('✅ Approve')
             .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
@@ -457,7 +408,6 @@ export async function showItemDetail(
       actionRows.push(actionRow)
     }
 
-    // Navigation row
     const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`approval_history_page_${returnPage}_${returnFilter}`)

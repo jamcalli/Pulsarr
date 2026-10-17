@@ -70,6 +70,26 @@ export async function createNotificationRecord(
   }
 }
 
+export async function updateNotificationDelivery(
+  this: DatabaseService,
+  id: number,
+  delivery: {
+    sent_to_discord: boolean
+    sent_to_apprise: boolean
+    sent_to_plex_mobile: boolean
+    sent_to_native_webhook: boolean
+  },
+): Promise<void> {
+  await this.knex('notifications').where({ id }).update(delivery)
+}
+
+export async function deleteNotificationRecord(
+  this: DatabaseService,
+  id: number,
+): Promise<void> {
+  await this.knex('notifications').where({ id }).delete()
+}
+
 /**
  * Checks whether an active notification already exists for the given criteria.
  *

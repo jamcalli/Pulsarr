@@ -12,6 +12,7 @@ import {
 } from '@root/schemas/common/routing-target.schema.js'
 import { RadarrMinimumAvailabilitySchema } from '@root/schemas/radarr/add-options.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
+import type { RouterDecision } from '@root/types/approval.types.js'
 import { z } from 'zod'
 
 export const ApprovalStatusSchema = z
@@ -104,7 +105,7 @@ export const RouterDecisionSchema = z
     id: 'RouterDecision',
     description:
       'Router outcome for a request, holding the routing used on approval',
-  })
+  }) satisfies z.ZodType<RouterDecision>
 
 // Approval request schemas
 export const ApprovalIdParamsSchema = z.object({
@@ -307,7 +308,6 @@ export const BulkOperationResponseSchema = z.object({
 
 // Type exports
 export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>
-export type RouterDecision = z.infer<typeof RouterDecisionSchema>
 export type ProposedRouting = NonNullable<
   NonNullable<RouterDecision['approval']>['proposedRouting']
 >

@@ -123,7 +123,7 @@ function createSonarrPayload(
     seasonNumber: number
     title: string
     overview?: string
-    airDateUtc: string
+    airDateUtc?: string
   }>,
 ): WebhookPayload {
   return {

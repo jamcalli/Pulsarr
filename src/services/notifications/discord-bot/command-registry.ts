@@ -1,10 +1,3 @@
-/**
- * Discord Command Registry
- *
- * Manages slash command registration and storage.
- * Commands are registered globally for DM support.
- */
-
 import {
   type ChatInputCommandInteraction,
   REST,
@@ -36,9 +29,6 @@ export interface CommandRegistryDeps extends CommandRegistryCreateDeps {
   }
 }
 
-/**
- * Creates and initializes the command registry with default commands.
- */
 export function createCommandRegistry(
   deps: CommandRegistryCreateDeps,
 ): Map<string, Command> {
@@ -86,9 +76,6 @@ export function createCommandRegistry(
   return commands
 }
 
-/**
- * Registers commands with Discord API globally for DM support.
- */
 export async function registerCommandsWithDiscord(
   commands: Map<string, Command>,
   deps: CommandRegistryDeps,
@@ -104,7 +91,7 @@ export async function registerCommandsWithDiscord(
       cmd.data.toJSON(),
     )
 
-    // Register commands globally for DM support
+    // Guild-scoped commands never reach DMs, so registration is global
     await rest.put(Routes.applicationCommands(config.discordClientId), {
       body: commandsData,
     })

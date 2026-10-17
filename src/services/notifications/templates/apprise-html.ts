@@ -1,16 +1,26 @@
+import type { AppriseMessageType } from '@root/types/apprise.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  AppriseMessage,
   ApprovalNotification,
   MediaNotification,
   UpdateAvailableRelease,
-  WatchlistAdditionNotification,
   WatchlistCapNotification,
-} from '@root/types/discord.types.js'
+} from '@root/types/notification.types.js'
 import {
   type DeleteSyncSection,
   summarizeDeleteSync,
 } from './delete-sync-summary.js'
-import { mediaTypeLabel } from './media-type.js'
+import {
+  mediaTypeLabel,
+  TEST_NOTIFICATION,
+  WATCHLIST_CAP_IMPACT,
+  WATCHLIST_CAP_TITLE,
+} from './labels.js'
+import {
+  type MediaAvailability,
+  summarizeMediaAvailable,
+} from './media-available.js'
 
 export function escapeHtml(str: string): string {
   if (!str) return ''
@@ -119,67 +129,33 @@ function createPosterHtml(
      </div>`
 }
 
-type DetailLine = { label?: string; value: string }
+const MEDIA_AVAILABLE_HEADINGS: Record<MediaAvailability, string> = {
+  episode: 'New Episode Available',
+  season: 'New Season Available',
+  content: 'New Content Available',
+  movie: 'Movie Available',
+}
 
-export function createMediaNotificationHtml(notification: MediaNotification): {
-  htmlBody: string
-  textBody: string
-  title: string
-} {
-  const emoji = notification.type === 'movie' ? '🎬' : '📺'
-  const title = `${emoji} ${notification.title}`
+const MEDIA_AVAILABLE_NOTICES: Partial<Record<MediaAvailability, string>> = {
+  content: 'New content is now available to watch!',
+  movie: 'Movie available to watch!',
+}
 
-  const details = notification.episodeDetails
-  let textHeading: string
-  const lines: DetailLine[] = []
+export function createMediaAppriseMessage(
+  notification: MediaNotification,
+): AppriseMessage {
+  const { emoji } = mediaTypeLabel(notification.type)
+  const { availability, details } = summarizeMediaAvailable(notification)
+  const notice = MEDIA_AVAILABLE_NOTICES[availability]
 
-  if (notification.type === 'show' && details) {
-    if (
-      details.seasonNumber !== undefined &&
-      details.episodeNumber !== undefined
-    ) {
-      const seasonNum = details.seasonNumber.toString().padStart(2, '0')
-      const episodeNum = details.episodeNumber.toString().padStart(2, '0')
-      const episodeTitle = details.title ? ` - "${details.title}"` : ''
+  const htmlLines =
+    details
+      .map((detail) =>
+        labelledParagraph(detail.label, escapeHtml(detail.value)),
+      )
+      .join('') + (notice ? paragraph(escapeHtml(notice)) : '')
 
-      textHeading = 'New Episode Available'
-      lines.push({
-        label: 'Episode',
-        value: `S${seasonNum}E${episodeNum}${episodeTitle}`,
-      })
-      if (details.overview) {
-        lines.push({ label: 'Overview', value: details.overview })
-      }
-      if (details.airDateUtc) {
-        lines.push({
-          label: 'Air Date',
-          value: new Date(details.airDateUtc).toLocaleDateString(),
-        })
-      }
-    } else if (details.seasonNumber !== undefined) {
-      textHeading = 'New Season Available'
-      lines.push({
-        label: 'Season Added',
-        value: `Season ${details.seasonNumber}`,
-      })
-    } else {
-      textHeading = 'New Content Available'
-      lines.push({ value: 'New content is now available to watch!' })
-    }
-  } else {
-    textHeading = 'Movie Available'
-    lines.push({ value: 'Movie available to watch!' })
-  }
-
-  const htmlLines = lines
-    .map((line) =>
-      line.label
-        ? labelledParagraph(line.label, escapeHtml(line.value))
-        : paragraph(escapeHtml(line.value)),
-    )
-    .join('')
-
-  const htmlBody = htmlWrapper(
+  const bodyHtml = htmlWrapper(
     createPosterHtml(notification.posterUrl, notification.title) +
       card(
         heading(escapeHtml(notification.title)) +
@@ -188,25 +164,36 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
       ),
   )
 
-  const textLines = lines
-    .map((line) => (line.label ? `${line.label}: ${line.value}` : line.value))
-    .join('\n')
+  const textLines = [
+    ...details.map((detail) => `${detail.label}: ${detail.value}`),
+    ...(notice ? [notice] : []),
+  ].join('\n')
 
-  let textBody = `${textHeading}\n\n${notification.title}\n${textLines}`
+  let body = `${MEDIA_AVAILABLE_HEADINGS[availability]}\n\n${notification.title}\n${textLines}`
   if (notification.tmdbUrl) {
-    textBody += `\nTMDB: ${notification.tmdbUrl}`
+    body += `\nTMDB: ${notification.tmdbUrl}`
   }
 
-  return { htmlBody, textBody, title }
+  return {
+    title: `${emoji} ${notification.title}`,
+    body,
+    bodyHtml,
+    type: 'info',
+    attachment: notification.posterUrl,
+  }
 }
 
-export function createApprovalNotificationHtml(
+const APPROVAL_ACTION_REQUIRED =
+  'Visit the Pulsarr UI to review and handle this approval request.'
+
+export function createApprovalAppriseMessage(
   notification: ApprovalNotification,
-): { htmlBody: string; textBody: string } {
+): AppriseMessage {
+  const contentType = mediaTypeLabel(notification.contentType).label
   const contentCard = card(
     createPosterHtml(notification.posterUrl, notification.contentTitle, 150) +
       heading(escapeHtml(notification.contentTitle)) +
-      labelValue('TYPE', escapeHtml(notification.contentType)),
+      labelValue('TYPE', escapeHtml(contentType)),
   )
 
   const requestCard = card(
@@ -221,10 +208,10 @@ export function createApprovalNotificationHtml(
   )
 
   const actionCard = card(
-    `<div style="${NOTICE_STYLE}">${escapeHtml(notification.actionRequired)}</div>`,
+    `<div style="${NOTICE_STYLE}">${escapeHtml(APPROVAL_ACTION_REQUIRED)}</div>`,
   )
 
-  const htmlBody = htmlWrapper(
+  const bodyHtml = htmlWrapper(
     pageHeading('Content Approval Required') +
       contentCard +
       (notification.tmdbUrl
@@ -236,19 +223,25 @@ export function createApprovalNotificationHtml(
 
   let textBody = 'Content Approval Required\n\n'
   textBody += `${notification.contentTitle}\n`
-  textBody += `Type: ${notification.contentType}\n\n`
+  textBody += `Type: ${contentType}\n\n`
   textBody += `Requested by: ${notification.requestedBy}\n`
   textBody += `Total pending: ${notification.totalPending} requests\n`
   textBody += `Reason: ${notification.reason}\n`
   if (notification.tmdbUrl) textBody += `TMDB: ${notification.tmdbUrl}\n`
-  textBody += `\n${notification.actionRequired}\n`
+  textBody += `\n${APPROVAL_ACTION_REQUIRED}\n`
 
-  return { htmlBody, textBody }
+  return {
+    title: `New Approval Request: ${notification.contentTitle}`,
+    body: textBody,
+    bodyHtml,
+    type: 'info',
+    attachment: notification.posterUrl,
+  }
 }
 
-export function createUpdateAvailableNotificationHtml(
+export function createUpdateAvailableAppriseMessage(
   release: UpdateAvailableRelease,
-): { htmlBody: string; textBody: string; title: string } {
+): AppriseMessage {
   const title = `🚀 Pulsarr ${release.latestVersion} is available`
   const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
   const publishedAt = release.publishedAt
@@ -272,7 +265,7 @@ export function createUpdateAvailableNotificationHtml(
       )
     : ''
 
-  const htmlBody = htmlWrapper(
+  const bodyHtml = htmlWrapper(
     pageHeading('Pulsarr update available') +
       versionsCard +
       centeredLink(release.releaseUrl, 'View release on GitHub') +
@@ -295,37 +288,41 @@ export function createUpdateAvailableNotificationHtml(
   if (truncatedNotes) textBody += `\nRelease Notes:\n${truncatedNotes}\n`
   textBody += `\nView release: ${release.releaseUrl}\n`
 
-  return { htmlBody, textBody, title }
+  return { title, body: textBody, bodyHtml, type: 'info' }
 }
 
-export function createWatchlistCapNotificationHtml(
+export function createWatchlistCapAppriseMessage(
   event: WatchlistCapNotification,
-): { htmlBody: string; textBody: string } {
-  const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
-  const impact =
-    'New items will not be processed until the cap is raised or items are removed.'
+  userName: string,
+): AppriseMessage {
+  const contentLabel = mediaTypeLabel(event.contentType).label
 
   const detailsCard = card(
     sectionHeading('Cap Details') +
-      labelValue('USER', escapeHtml(event.userName)) +
+      labelValue('USER', escapeHtml(userName)) +
       labelValue('CONTENT TYPE', escapeHtml(contentLabel)) +
       divider() +
       labelValue('USAGE', `${event.currentCount} / ${event.cap}`),
   )
 
-  const htmlBody = htmlWrapper(
-    pageHeading('Watchlist Cap Reached') +
+  const bodyHtml = htmlWrapper(
+    pageHeading(WATCHLIST_CAP_TITLE) +
       detailsCard +
-      card(`<div style="${NOTICE_STYLE}">${impact}</div>`),
+      card(`<div style="${NOTICE_STYLE}">${WATCHLIST_CAP_IMPACT}</div>`),
   )
 
-  let textBody = 'Watchlist Cap Reached\n\n'
-  textBody += `User: ${event.userName}\n`
+  let textBody = `${WATCHLIST_CAP_TITLE}\n\n`
+  textBody += `User: ${userName}\n`
   textBody += `Content Type: ${contentLabel}\n`
   textBody += `Usage: ${event.currentCount} / ${event.cap}\n\n`
-  textBody += `${impact}\n`
+  textBody += `${WATCHLIST_CAP_IMPACT}\n`
 
-  return { htmlBody, textBody }
+  return {
+    title: WATCHLIST_CAP_TITLE,
+    body: textBody,
+    bodyHtml,
+    type: 'warning',
+  }
 }
 
 function deletedSection(section: DeleteSyncSection): {
@@ -374,10 +371,18 @@ function summaryStat(count: number, label: string): string {
       </span>`
 }
 
-export function createDeleteSyncNotificationHtml(
+function deleteSyncMessageType(
   results: DeleteSyncResult,
   dryRun: boolean,
-): { htmlBody: string; textBody: string; title: string } {
+): AppriseMessageType {
+  if (results.safetyTriggered) return 'failure'
+  return dryRun ? 'info' : 'success'
+}
+
+export function createDeleteSyncAppriseMessage(
+  results: DeleteSyncResult,
+  dryRun: boolean,
+): AppriseMessage {
   const summary = summarizeDeleteSync(results, dryRun)
   const { title, totals } = summary
 
@@ -407,7 +412,7 @@ export function createDeleteSyncNotificationHtml(
   const shows = deletedSection(summary.shows)
   const timestamp = new Date().toLocaleString()
 
-  const htmlBody = htmlWrapper(
+  const bodyHtml = htmlWrapper(
     `<p style="margin-bottom: 20px; color: #000000;">${escapeHtml(summaryText)}</p>` +
       summaryCard +
       safetyCard +
@@ -434,22 +439,26 @@ export function createDeleteSyncNotificationHtml(
   textBody += shows.text
   textBody += `Delete sync completed at ${timestamp}`
 
-  return { htmlBody, textBody, title }
+  return {
+    title,
+    body: textBody,
+    bodyHtml,
+    type: deleteSyncMessageType(results, dryRun),
+  }
 }
 
-export function createWatchlistAdditionHtml(
-  item: WatchlistAdditionNotification & { displayName: string },
-): { htmlBody: string; textBody: string; title: string } {
+export function createWatchlistAddedAppriseMessage(
+  item: MediaNotification,
+  addedBy: string,
+): AppriseMessage {
   const { label: mediaType, emoji } = mediaTypeLabel(item.type)
 
-  const title = `${emoji} ${mediaType} Added: ${item.title}`
-
-  const htmlBody = htmlWrapper(
+  const bodyHtml = htmlWrapper(
     card(
       createPosterHtml(item.posterUrl, item.title) +
         heading(escapeHtml(item.title)) +
         labelledParagraph('Type', escapeHtml(mediaType)) +
-        labelledParagraph('Added by', escapeHtml(item.displayName)) +
+        labelledParagraph('Added by', escapeHtml(addedBy)) +
         tmdbLink(item.tmdbUrl),
     ),
   )
@@ -457,70 +466,27 @@ export function createWatchlistAdditionHtml(
   let textBody = `New ${mediaType} Added\n\n`
   textBody += `${item.title}\n`
   textBody += `Type: ${mediaType}\n`
-  textBody += `Added by: ${item.displayName}`
+  textBody += `Added by: ${addedBy}`
   if (item.tmdbUrl) {
     textBody += `\nTMDB: ${item.tmdbUrl}`
   }
 
-  return { htmlBody, textBody, title }
+  return {
+    title: `${emoji} ${mediaType} Added: ${item.title}`,
+    body: textBody,
+    bodyHtml,
+    type: 'info',
+    attachment: item.posterUrl,
+  }
 }
 
-export function createTestNotificationHtml(): {
-  htmlBody: string
-  textBody: string
-  title: string
-} {
-  const htmlBody = htmlWrapper(
-    pageHeading('Pulsarr HTML Notification Test') +
-      card(
-        paragraph(
-          'This is a test notification to verify your Apprise configuration is working correctly with <strong>HTML formatting</strong>.',
-        ),
-      ) +
-      `<h3 style="color: #000000; font-weight: 700;">HTML Formatting Examples:</h3>` +
-      card(
-        sectionHeading('Text Styling') +
-          paragraph(
-            '<strong>Bold text</strong>, <em>italic text</em>, <u>underlined text</u>, and <span style="color: #ffffff;">colored text</span>',
-          ),
-      ) +
-      card(
-        sectionHeading('Lists') +
-          `<ul style="padding-left: 20px; color: #ffffff;">
-        <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 1</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 2</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 3</li>
-      </ul>
-      <ol style="padding-left: 20px; color: #ffffff;">
-        <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 1</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 2</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 3</li>
-      </ol>`,
-      ) +
-      card(
-        sectionHeading('Styled Boxes') +
-          `<div style="padding: 10px; background-color: #343746; border-radius: 5px; border: 1px solid #ffffff; ${VALUE_STYLE}">
-        <p style="margin: 0;">This is a styled box</p>
-      </div>`,
-      ) +
-      `<p style="font-weight: 500; color: #000000;">If you can see the formatting above, your notification service supports <strong>HTML</strong>! If not, you're seeing the plain text version.</p>`,
-  )
+export function createTestAppriseMessage(): AppriseMessage {
+  const { title, body } = TEST_NOTIFICATION
 
-  const textBody =
-    'Pulsarr HTML Notification Test\n\n' +
-    'This is a test notification to verify your Apprise configuration is working correctly.\n\n' +
-    'HTML Formatting Examples:\n\n' +
-    '- Text Styling: Bold text, italic text, underlined text, and colored text\n\n' +
-    '- Lists:\n' +
-    '  • Unordered list item 1\n' +
-    '  • Unordered list item 2\n' +
-    '  • Unordered list item 3\n\n' +
-    '  1. Ordered list item 1\n' +
-    '  2. Ordered list item 2\n' +
-    '  3. Ordered list item 3\n\n' +
-    '- Styled Boxes:\n' +
-    '  [Box] This is a styled box\n\n' +
-    'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.'
-
-  return { htmlBody, textBody, title: '🔔 Pulsarr HTML Notification Test' }
+  return {
+    title,
+    body: `${title}\n\n${body}`,
+    bodyHtml: htmlWrapper(pageHeading(title) + card(paragraph(body))),
+    type: 'info',
+  }
 }

@@ -1,23 +1,11 @@
-/**
- * Valid hostnames for Discord webhook URLs.
- * Discord uses both discord.com and the legacy discordapp.com domain.
- */
-export const DISCORD_WEBHOOK_HOSTS = ['discord.com', 'discordapp.com'] as const
+import type { ActionRowBuilder, ButtonBuilder } from 'discord.js'
 
-export interface MediaNotification {
-  type: 'movie' | 'show'
-  title: string
-  username: string
-  posterUrl?: string
-  tmdbUrl?: string
-  episodeDetails?: {
-    title?: string
-    overview?: string
-    seasonNumber?: number
-    episodeNumber?: number
-    airDateUtc?: string
-  }
-}
+export const DISCORD_WEBHOOK_HOSTS = [
+  'discord.com',
+  'discordapp.com',
+  'canary.discord.com',
+  'ptb.discord.com',
+] as const
 
 export interface DiscordEmbed {
   title?: string
@@ -61,65 +49,7 @@ export interface DiscordWebhookPayload {
   allowed_mentions?: DiscordAllowedMentions
 }
 
-export interface SystemNotification {
-  type: 'system'
-  username: string
-  title: string
-  embedFields: Array<{ name: string; value: string; inline?: boolean }>
-  safetyTriggered?: boolean
-  posterUrl?: string
-  tmdbUrl?: string
-  actionButton?: {
-    label: string
-    customId: string
-    style: 'Primary' | 'Secondary' | 'Success' | 'Danger'
-  }
-}
-
-export interface ApprovalNotification {
-  title: string
-  contentTitle: string
-  contentType: 'Movie' | 'Show'
-  requestedBy: string
-  reason: string
-  totalPending: number
-  actionRequired: string
-  posterUrl?: string
-  tmdbUrl?: string
-}
-
-export interface UpdateAvailableRelease {
-  currentVersion: string
-  latestVersion: string
-  releaseUrl: string
-  releaseName: string | null
-  releaseBody: string | null
-  releaseBodyHtml: string | null
-  publishedAt: string | null
-}
-
-export interface WatchlistCapEvent {
-  userId: number
-  userName: string | null
-  contentType: 'movie' | 'show'
-  currentCount: number
-  cap: number
-}
-
-export interface WatchlistCapNotification {
-  userName: string
-  contentType: 'movie' | 'show'
-  currentCount: number
-  cap: number
-}
-
-export interface WatchlistAdditionNotification {
-  title: string
-  type: string
-  addedBy: {
-    name: string
-    alias?: string | null
-  }
-  posterUrl?: string
-  tmdbUrl?: string
+export interface DirectMessage {
+  embed: DiscordEmbed
+  components?: ActionRowBuilder<ButtonBuilder>[]
 }

@@ -9,7 +9,8 @@ import {
   WebhookQuerySchema,
   WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
-import { isWebhookProcessable } from '@root/utils/notifications/index.js'
+import { isWebhookProcessable } from '@utils/arr-webhook-validator.js'
+import { episodeRange } from '@utils/episode-code.js'
 import { logRouteError } from '@utils/route-errors.js'
 import { safeSecretCompare } from '@utils/webhook-secret.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -56,7 +57,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       if (!safeSecretCompare(providedSecret, fastify.config.webhookSecret)) {
         fastify.log.warn(
           { hasSecret: !!providedSecret },
-          'Webhook rejected - invalid or missing secret',
+          'Webhook rejected because the secret is invalid or missing',
         )
         return reply.unauthorized('Invalid webhook secret')
       }
@@ -77,22 +78,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return { success: true }
       }
 
-      const contentTitle =
-        'movie' in body
-          ? body.movie.title
-          : 'series' in body
-            ? body.series.title
-            : 'unknown'
-      fastify.log.info(
-        {
-          instanceName: body.instanceName,
-          eventType: 'eventType' in body ? body.eventType : 'unknown',
-          contentTitle,
-          reqId: request.id,
-        },
-        'Webhook received and processing',
-      )
-
       try {
         // Trigger Plex label sync (fire and forget)
         fastify.webhookQueue.triggerLabelSync(body)
@@ -109,6 +94,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               instanceName: instance?.name,
             },
             'Radarr instance lookup result',
+          )
+          fastify.log.info(
+            { instanceId: instance?.id },
+            `${instance?.name ?? body.instanceName}: ${body.movie.title} downloaded`,
           )
 
           await fastify.webhookQueue.handleMovieWebhook(
@@ -135,6 +124,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               instanceName: instance?.name,
             },
             'Sonarr instance lookup result',
+          )
+          fastify.log.info(
+            { instanceId: instance?.id },
+            `${instance?.name ?? body.instanceName}: ${body.series.title} ${episodeRange(body.episodes)} downloaded`,
           )
 
           await fastify.webhookQueue.handleSonarrWebhook(

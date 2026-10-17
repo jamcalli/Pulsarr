@@ -20,7 +20,7 @@ export const SonarrEpisodeSchema = z.object({
   seasonNumber: z.number(),
   title: z.string(),
   overview: z.string().optional(),
-  airDateUtc: z.string(),
+  airDateUtc: z.string().optional(),
 })
 
 export const SonarrSeriesSchema = z.object({

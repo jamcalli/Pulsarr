@@ -1,14 +1,8 @@
-/**
- * Approval Command Review Flow
- *
- * Handles the pending approval review flow including navigation,
- * approve/reject actions, and details view.
- */
-
 import type { ApprovalRequest } from '@root/types/approval.types.js'
 import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { errorMessage } from '@utils/error-message.js'
 import type { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js'
 import { MessageFlags } from 'discord.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -30,9 +24,6 @@ export interface ReviewFlowDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Show approval at specific index with navigation
- */
 export async function showApprovalAtIndex(
   interaction: ChatInputCommandInteraction | ButtonInteraction,
   currentIndex: number,
@@ -51,7 +42,6 @@ export async function showApprovalAtIndex(
     return
   }
 
-  // Get poster URL from watchlist items
   const posterUrl = await getPosterUrl(approval.contentKey, { db, logger })
 
   const embed = createApprovalEmbed(
@@ -99,9 +89,6 @@ export async function showApprovalAtIndex(
   }
 }
 
-/**
- * Handle navigation actions (back/next)
- */
 export async function handleNavigationAction(
   interaction: ButtonInteraction,
   direction: string,
@@ -113,7 +100,6 @@ export async function handleNavigationAction(
   await interaction.deferUpdate()
 
   try {
-    // Get all pending approvals
     const pendingApprovals = await db.getPendingApprovalRequests()
 
     if (pendingApprovals.length === 0) {
@@ -145,9 +131,6 @@ export async function handleNavigationAction(
   }
 }
 
-/**
- * Show loading state with disabled buttons
- */
 async function showLoadingState(
   interaction: ButtonInteraction,
   action: 'approve' | 'reject',
@@ -157,7 +140,6 @@ async function showLoadingState(
   const { db, logger } = deps
 
   try {
-    // Get the current approval info
     const parts = interaction.customId.split('_')
     const approvalId = Number.parseInt(parts[2], 10)
     const approval = await db.getApprovalRequest(approvalId)
@@ -174,7 +156,7 @@ async function showLoadingState(
     const embed = createApprovalEmbed(
       approval,
       currentIndex,
-      1, // Fake total count for loading state
+      1, // The loading embed never shows the real total
       posterUrl,
     )
 
@@ -185,14 +167,10 @@ async function showLoadingState(
       components: [loadingActionRow],
     })
   } catch (_error) {
-    // Fallback to defer if update fails
     await interaction.deferUpdate()
   }
 }
 
-/**
- * Show success state with feedback
- */
 async function showSuccessState(
   interaction: ButtonInteraction,
   action: 'approve' | 'reject',
@@ -207,9 +185,6 @@ async function showSuccessState(
   })
 }
 
-/**
- * Show next approval after an action (approve/reject)
- */
 async function showNextApprovalAfterAction(
   interaction: ButtonInteraction,
   currentIndex: number,
@@ -218,11 +193,9 @@ async function showNextApprovalAfterAction(
   const { db, logger } = deps
 
   try {
-    // Get fresh list of pending approvals
     const pendingApprovals = await db.getPendingApprovalRequests()
 
     if (pendingApprovals.length === 0) {
-      // No more approvals - show completion message
       const completionEmbed = createCompletionEmbed()
 
       await interaction.editReply({
@@ -233,7 +206,6 @@ async function showNextApprovalAfterAction(
       return
     }
 
-    // Show the same index or first if current was processed
     const nextIndex = Math.min(currentIndex, pendingApprovals.length - 1)
     await showApprovalAtIndex(interaction, nextIndex, pendingApprovals, deps)
   } catch (error) {
@@ -242,9 +214,6 @@ async function showNextApprovalAfterAction(
   }
 }
 
-/**
- * Handle approve/reject actions
- */
 export async function handleApprovalAction(
   interaction: ButtonInteraction,
   approvalId: number,
@@ -254,11 +223,9 @@ export async function handleApprovalAction(
 ): Promise<void> {
   const { db, approvalService, logger } = deps
 
-  // Show loading state immediately
   await showLoadingState(interaction, action, currentIndex, deps)
 
   try {
-    // Get approval request
     const approval = await db.getApprovalRequest(approvalId)
     if (!approval) {
       await interaction.editReply('❌ Approval request not found')
@@ -279,7 +246,6 @@ export async function handleApprovalAction(
       return
     }
 
-    // Get the admin user ID from Discord user
     const adminUser = await getAdminUserFromDiscord(interaction.user.id, {
       db,
       logger,
@@ -289,9 +255,7 @@ export async function handleApprovalAction(
       return
     }
 
-    // Process the approval/rejection using the EXACT same logic as API routes
     if (action === 'approve') {
-      // Check instance health before approving
       const healthCheck = await approvalService.checkInstanceHealth(
         approval.contentType,
       )
@@ -302,7 +266,6 @@ export async function handleApprovalAction(
         return
       }
 
-      // Approve and route atomically
       const result = await approvalService.approveAndRoute(
         approvalId,
         adminUser.id,
@@ -312,7 +275,7 @@ export async function handleApprovalAction(
       if (!result.success) {
         if (result.rollbackFailed) {
           await interaction.editReply(
-            '❌ Routing failed and rollback failed - request may be in inconsistent state',
+            '❌ Routing failed and so did the rollback, so this request may be in an inconsistent state',
           )
         } else {
           await interaction.editReply(
@@ -322,10 +285,8 @@ export async function handleApprovalAction(
         return
       }
 
-      // Show success feedback
       await showSuccessState(interaction, 'approve', approval)
     } else {
-      // Reject the request using the approval service (same as API route)
       const rejectedRequest = await approvalService.rejectRequest(
         approvalId,
         adminUser.id,
@@ -337,11 +298,9 @@ export async function handleApprovalAction(
         return
       }
 
-      // Show success feedback
       await showSuccessState(interaction, 'reject', approval)
     }
 
-    // Show next approval after a short delay
     setTimeout(() => {
       showNextApprovalAfterAction(interaction, currentIndex, deps).catch(
         (err) => deps.logger.error({ err }, 'Failed to show next approval'),
@@ -353,14 +312,11 @@ export async function handleApprovalAction(
       'Error processing approval action',
     )
     await interaction.editReply(
-      `❌ Error processing ${action}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      `❌ Error processing ${action}: ${errorMessage(error)}`,
     )
   }
 }
 
-/**
- * Show approval details view
- */
 export async function handleApprovalDetails(
   interaction: ButtonInteraction,
   approvalId: number,
@@ -400,9 +356,6 @@ export async function handleApprovalDetails(
   }
 }
 
-/**
- * Handle back button from details view
- */
 export async function handleApprovalBack(
   interaction: ButtonInteraction,
   approvalId: number,
@@ -414,7 +367,6 @@ export async function handleApprovalBack(
   await interaction.deferUpdate()
 
   try {
-    // Get all pending approvals to restore navigation context
     const pendingApprovals = await db.getPendingApprovalRequests()
 
     if (pendingApprovals.length === 0) {
@@ -426,14 +378,12 @@ export async function handleApprovalBack(
       return
     }
 
-    // Find the current approval in the list
     const approvalIndex = pendingApprovals.findIndex((a) => a.id === approvalId)
     const indexToShow =
       approvalIndex >= 0
         ? approvalIndex
         : Math.min(currentIndex, pendingApprovals.length - 1)
 
-    // Restore the original approval message with navigation
     await showApprovalAtIndex(interaction, indexToShow, pendingApprovals, deps)
   } catch (error) {
     logger.error(

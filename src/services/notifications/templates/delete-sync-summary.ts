@@ -1,7 +1,6 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 
-const DRY_RUN_SUMMARY_TEXT =
-  'This was a dry run - no content was actually deleted.'
+const DRY_RUN_SUMMARY_TEXT = 'This was a dry run, so nothing was deleted.'
 
 const SAFETY_FALLBACK_TEXT =
   'A safety check prevented the delete sync operation from running.'
