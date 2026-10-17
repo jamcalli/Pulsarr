@@ -1,3 +1,4 @@
+import { splitUrlList } from '@root/schemas/common/url-list.js'
 import type {
   AppriseDetailsResponse,
   AppriseNotificationBatch,
@@ -6,7 +7,6 @@ import type {
   AppriseUrlFormatInfo,
 } from '@root/types/apprise.types.js'
 import { errorMessage } from '@utils/error-message.js'
-import { splitUrlList } from '@utils/url.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /** Joins path onto the Apprise base URL, keeping any subpath the server is mounted under. */

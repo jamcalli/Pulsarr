@@ -1,4 +1,5 @@
-import { splitUrlList } from '@utils/url.js'
+import { isPlainEmail } from '@root/schemas/common/apprise-endpoint.js'
+import { splitUrlList } from '@root/schemas/common/url-list.js'
 
 /**
  * Apprise Email Resolution Utilities
@@ -7,33 +8,6 @@ import { splitUrlList } from '@utils/url.js'
  * instead of a full Apprise URL. The admin configures an email sender URL
  * once, and the system appends ?to= to send to different recipients.
  */
-
-/**
- * Checks if a value is a plain email address (not a full Apprise URL).
- *
- * @param value - The string to check
- * @returns True if the value looks like a plain email address
- */
-export function isPlainEmail(value: string): boolean {
-  return value.includes('@') && !value.includes('://')
-}
-
-/**
- * Checks if a value is a valid Apprise endpoint (URL or email).
- * This is the canonical validation used across all Apprise notification paths.
- *
- * @param value - The string to check
- * @returns True if the value is a valid Apprise URL or plain email
- */
-export function isValidAppriseEndpoint(value: string): boolean {
-  if (!value || value.trim().length === 0) return false
-  const trimmed = value.trim()
-  // Full Apprise URL (tgram://, discord://, mailto://, etc.)
-  if (trimmed.includes('://')) return true
-  // Plain email address
-  if (isPlainEmail(trimmed)) return true
-  return false
-}
 
 /**
  * Resolves a user's apprise field to a full Apprise URL.

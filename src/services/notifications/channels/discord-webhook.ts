@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto'
 import { isDiscordWebhookUrl } from '@root/schemas/common/discord-webhook-url.schema.js'
+import { splitUrlList } from '@root/schemas/common/url-list.js'
 import type { DiscordWebhookPayload } from '@root/types/discord.types.js'
 import type {
   DeliveryResult,
   NotificationTestOutcome,
 } from '@root/types/notification.types.js'
 import { errorMessage } from '@utils/error-message.js'
-import { splitUrlList } from '@utils/url.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { createTestWebhookPayload } from '../templates/discord-embeds.js'
 import { postJson } from './http.js'

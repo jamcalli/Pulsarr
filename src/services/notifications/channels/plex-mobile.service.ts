@@ -3,6 +3,7 @@ import type {
   MediaNotification,
   NotificationTestResult,
   NotificationUser,
+  PlexMobileStatus,
 } from '@root/types/notification.types.js'
 import { buildPlexGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -14,12 +15,6 @@ import {
   sendPlexMobileTestNotification,
 } from './plex-mobile.js'
 import { timeTest } from './time-test.js'
-
-export type PlexMobileStatus =
-  | 'enabled'
-  | 'disabled'
-  | 'no_plex_pass'
-  | 'not_configured'
 
 interface PendingPlexNotification {
   user: NotificationUser

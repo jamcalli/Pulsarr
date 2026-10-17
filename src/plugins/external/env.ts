@@ -6,9 +6,11 @@ import {
   DEFAULT_LOG_LEVEL,
   DEFAULT_PULSARR_PORT,
   DELETE_SYNC_NOTIFY_OPTIONS,
+  NEW_EPISODE_THRESHOLD_MS,
   NOTIFY_DEFAULTS,
   NOTIFY_OPTIONS,
   PLEX_SERVER_URL_DEFAULT,
+  QUEUE_WAIT_TIME_MS,
 } from '@root/schemas/config/config.schema.js'
 import {
   PLEX_LABEL_SYNC_DEFAULTS,
@@ -210,11 +212,11 @@ const schema = {
     },
     queueWaitTime: {
       type: 'number',
-      default: 120000,
+      default: QUEUE_WAIT_TIME_MS.default,
     },
     newEpisodeThreshold: {
       type: 'number',
-      default: 172800000,
+      default: NEW_EPISODE_THRESHOLD_MS.default,
     },
     plexMobileEnabled: {
       type: 'boolean',
