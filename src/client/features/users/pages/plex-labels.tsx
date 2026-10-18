@@ -1,10 +1,10 @@
 import { PLEX_LABEL_SYNC_DEFAULTS } from '@root/schemas/plex/label-sync-config.schema'
 import { useStore } from '@tanstack/react-form'
 import { useState } from 'react'
+import { ConfigPageGate } from '@/components/config-page-gate'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
-import { RetryAlert } from '@/components/retry-alert'
 import { ActionsSection } from '@/components/settings/actions-section'
 import { SaveBar } from '@/components/settings/save-bar'
 import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
@@ -23,10 +23,8 @@ import {
   type SyncActionCopy,
   syncActionSpecs,
 } from '@/features/users/lib/sync-actions'
-import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
-import { useShowLoading } from '@/hooks/useMinLoading'
-import { type ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
+import type { ScheduleStatus } from '@/hooks/useSchedule'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 
@@ -305,31 +303,20 @@ function PlexLabelsSettings({
 }
 
 export default function PlexLabelsPage() {
-  const { config, error, initialize } = useConfig()
-  const job = useSchedule(SCHEDULE_NAME, {
-    label: 'Full label sync',
-    page: NAV_PAGES.plexLabels,
-  })
-  const loaded = config !== null && job.schedule !== null
-  const showLoading = useShowLoading(!loaded)
-  const loadError =
-    (!config && error) || (!job.schedule && job.errorMessage) || null
-
-  if (loadError) {
-    return (
-      <Page>
-        <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <RetryAlert
-          message={loadError}
-          onRetry={() => {
-            if (!config) initialize(true)
-            if (!job.schedule) job.retry()
-          }}
-        />
-      </Page>
-    )
-  }
-  if (showLoading) return <SettingsPageSkeleton {...PLEX_LABELS_SKELETON} />
-  if (!config || !job.schedule) return null
-  return <PlexLabelsSettings config={config} schedule={job.schedule} />
+  return (
+    <ConfigPageGate
+      section={SECTION}
+      title={TITLE}
+      description={DESCRIPTION}
+      skeleton={<SettingsPageSkeleton {...PLEX_LABELS_SKELETON} />}
+      schedule={{
+        name: SCHEDULE_NAME,
+        meta: { label: 'Full label sync', page: NAV_PAGES.plexLabels },
+      }}
+    >
+      {(config, job) => (
+        <PlexLabelsSettings config={config} schedule={job.schedule} />
+      )}
+    </ConfigPageGate>
+  )
 }

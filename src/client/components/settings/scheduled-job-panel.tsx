@@ -18,6 +18,8 @@ interface ScheduledRun {
   run: () => void
   progress?: ActionProgress[]
   unavailableReason?: string | null
+  /** Locks Run now without a reason, such as while another action on the panel runs. */
+  blocked?: boolean
 }
 
 interface ScheduledJobPanelProps {
@@ -30,6 +32,8 @@ interface ScheduledJobPanelProps {
   /** False when Run now bypasses the scheduler, so a disabled schedule does not lock it. */
   requiresSchedule?: boolean
   result?: ActionState['result']
+  /** Rows above Manual run. With them the schedule-off reason locks only Manual run, not the whole panel. */
+  before?: ReactNode
   children: ReactNode
 }
 
@@ -42,17 +46,7 @@ function jobStatus(schedule: ScheduleStatus, running: boolean): StatusPillView {
   return { tone: 'on', label: 'Enabled' }
 }
 
-function lockReason(
-  schedule: ScheduleStatus,
-  dirty: boolean,
-  requiresSchedule: boolean,
-): string | null {
-  if (dirty) return UNSAVED_CHANGES_REASON
-  if (requiresSchedule && !schedule.enabled) {
-    return 'Turn on the schedule to run it now.'
-  }
-  return null
-}
+const SCHEDULE_OFF_REASON = 'Turn on the schedule to run it now.'
 
 export function ScheduledJobPanel({
   title,
@@ -62,10 +56,17 @@ export function ScheduledJobPanel({
   run,
   requiresSchedule = true,
   result,
+  before,
   children,
 }: ScheduledJobPanelProps) {
   const status = jobStatus(schedule, run.running)
-  const reason = lockReason(schedule, dirty, requiresSchedule)
+  const rowLock = before !== undefined
+  const scheduleOff = requiresSchedule && !schedule.enabled
+  let sectionReason: string | null = null
+  if (dirty) sectionReason = UNSAVED_CHANGES_REASON
+  else if (scheduleOff && !rowLock) sectionReason = SCHEDULE_OFF_REASON
+  let runReason = run.unavailableReason ?? null
+  if (scheduleOff && rowLock) runReason = SCHEDULE_OFF_REASON
   const lastRun = schedule.last_run
   const lastRunFailed = lastRun?.status === 'failed'
   const lastRunText = lastRun
@@ -83,15 +84,18 @@ export function ScheduledJobPanel({
       title={title}
       description={description}
       action={<StatusPill tone={status.tone} label={status.label} />}
-      lock={reason ? { reason } : undefined}
+      lock={sectionReason ? { reason: sectionReason } : undefined}
     >
+      {before}
       <ActionRow
         title="Manual run"
         description="Runs it once now, outside the schedule."
         buttonLabel="Run now"
         busyLabel="Running..."
-        disabled={reason !== null || Boolean(run.unavailableReason)}
-        unavailableReason={run.unavailableReason}
+        disabled={
+          sectionReason !== null || runReason !== null || run.blocked === true
+        }
+        unavailableReason={runReason}
         running={run.running}
         onRun={() => run.run()}
         progress={run.progress}

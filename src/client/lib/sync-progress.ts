@@ -1,8 +1,14 @@
 import type {
   ProgressEvent,
   WatchlistSyncMetadata,
+  WatchlistSyncType,
 } from '@root/types/progress.types'
 import { formatCount, formatNumber } from '@/lib/format'
+
+export const WATCHLIST_SYNC_LABELS: Record<WatchlistSyncType, string> = {
+  'self-watchlist': 'Your watchlist',
+  'others-watchlist': "Friends' watchlists",
+}
 
 type SyncCountUnit = NonNullable<WatchlistSyncMetadata['count']>['unit']
 

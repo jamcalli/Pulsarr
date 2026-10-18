@@ -2,7 +2,7 @@ import { UPDATE_NOTIFY_OPTIONS } from '@root/schemas/config/config.schema'
 import { withStoredOption } from '@/lib/select-options'
 import type { components } from '@/types/api.js'
 
-type NotifyOption = components['schemas']['NotifyOption']
+type DeleteSyncNotifyOption = components['schemas']['DeleteSyncNotifyOption']
 type UpdateNotifyOption = components['schemas']['UpdateNotifyOption']
 
 export const NOTIFY_OPTION_LABELS: Record<UpdateNotifyOption, string> = {
@@ -14,7 +14,10 @@ export const NOTIFY_OPTION_LABELS: Record<UpdateNotifyOption, string> = {
   none: 'None',
 }
 
-const NOTIFY_OPTION_EQUIVALENTS: Record<NotifyOption, UpdateNotifyOption> = {
+const NOTIFY_OPTION_EQUIVALENTS: Record<
+  DeleteSyncNotifyOption,
+  UpdateNotifyOption
+> = {
   none: 'none',
   all: 'all',
   'discord-only': 'discord-only',
@@ -24,6 +27,9 @@ const NOTIFY_OPTION_EQUIVALENTS: Record<NotifyOption, UpdateNotifyOption> = {
   'discord-webhook': 'webhook-only',
   'discord-message': 'dm-only',
   'discord-both': 'discord-only',
+  message: 'dm-only',
+  webhook: 'webhook-only',
+  both: 'discord-only',
 }
 
 export const UPDATE_NOTIFY_SELECT_OPTIONS = UPDATE_NOTIFY_OPTIONS.map(
@@ -31,7 +37,7 @@ export const UPDATE_NOTIFY_SELECT_OPTIONS = UPDATE_NOTIFY_OPTIONS.map(
 )
 
 /** A stored legacy alias stays selectable under the label of the option it routes like, so it saves back unchanged. */
-export function notifyOptions(stored: NotifyOption) {
+export function notifyOptions(stored: DeleteSyncNotifyOption) {
   return withStoredOption(
     UPDATE_NOTIFY_SELECT_OPTIONS,
     stored,

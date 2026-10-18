@@ -4,19 +4,17 @@ import {
   QUOTA_WEEKLY_ROLLING_DAYS,
 } from '@root/schemas/config/config.schema'
 import { useStore } from '@tanstack/react-form'
+import { ConfigPageGate } from '@/components/config-page-gate'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
-import { RetryAlert } from '@/components/retry-alert'
 import { SaveBar } from '@/components/settings/save-bar'
 import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { useQuotaSettingsForm } from '@/features/requests/hooks/quota-settings/useQuotaSettingsForm'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
-import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
-import { useShowLoading } from '@/hooks/useMinLoading'
-import { type ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
+import type { ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
 import { NAV_PAGES } from '@/lib/navigation'
 import { notifyOptions } from '@/lib/notify-labels'
 import type { components } from '@/types/api.js'
@@ -215,33 +213,20 @@ function QuotaSettings({
 }
 
 export default function QuotaSettingsPage() {
-  const { config, error, initialize } = useConfig()
-  const job = useSchedule(SCHEDULE_NAME, {
-    label: 'Quota maintenance',
-    page: NAV_PAGES.quotas,
-  })
-  const loaded = config !== null && job.schedule !== null
-  const showLoading = useShowLoading(!loaded)
-  const loadError =
-    (!config && error) || (!job.schedule && job.errorMessage) || null
-
-  if (loadError) {
-    return (
-      <Page>
-        <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <RetryAlert
-          message={loadError}
-          onRetry={() => {
-            if (!config) initialize(true)
-            if (!job.schedule) job.retry()
-          }}
-        />
-      </Page>
-    )
-  }
-  if (showLoading) {
-    return <SettingsPageSkeleton {...QUOTA_SETTINGS_SKELETON} />
-  }
-  if (!config || !job.schedule) return null
-  return <QuotaSettings config={config} schedule={job.schedule} run={job.run} />
+  return (
+    <ConfigPageGate
+      section={SECTION}
+      title={TITLE}
+      description={DESCRIPTION}
+      skeleton={<SettingsPageSkeleton {...QUOTA_SETTINGS_SKELETON} />}
+      schedule={{
+        name: SCHEDULE_NAME,
+        meta: { label: 'Quota maintenance', page: NAV_PAGES.quotas },
+      }}
+    >
+      {(config, job) => (
+        <QuotaSettings config={config} schedule={job.schedule} run={job.run} />
+      )}
+    </ConfigPageGate>
+  )
 }

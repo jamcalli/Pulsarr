@@ -5,6 +5,7 @@ import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
 import { SessionMonitoringSkeleton } from '@/features/library/components/session-monitoring/session-monitoring-skeleton'
+import { DELETE_SYNC_SKELETON } from '@/features/library/lib/delete-sync/delete-sync-skeleton'
 import { PublicContentSkeleton } from '@/features/notifications/components/public-content/public-content-skeleton'
 import { WebhooksSkeleton } from '@/features/notifications/components/webhooks/webhooks-skeleton'
 import { APPRISE_SKELETON } from '@/features/notifications/lib/apprise-skeleton'
@@ -55,6 +56,9 @@ const ArrInstancesPage = lazy(
 const SessionMonitoringPage = lazy(
   () => import('@/features/library/pages/session-monitoring'),
 )
+const DeleteSyncPage = lazy(
+  () => import('@/features/library/pages/delete-sync'),
+)
 const DiscordPage = lazy(() => import('@/features/notifications/pages/discord'))
 const ApprisePage = lazy(() => import('@/features/notifications/pages/apprise'))
 const DeliveryPage = lazy(
@@ -83,7 +87,7 @@ const NotificationsConfigPage = lazy(
   () => import('@/legacy/features/notifications'),
 )
 const DashboardPage = lazy(() => import('@/legacy/features/home'))
-const DeleteSyncPage = lazy(
+const LegacyDeleteSyncPage = lazy(
   () => import('@/legacy/features/library/pages/delete-sync'),
 )
 const LegacyPlexNotificationsPage = lazy(
@@ -259,6 +263,16 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<ContentRouterSkeleton />}>
                   <ContentRouterPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'library/delete-sync',
+              element: (
+                <Suspense
+                  fallback={<SettingsPageSkeleton {...DELETE_SYNC_SKELETON} />}
+                >
+                  <DeleteSyncPage />
                 </Suspense>
               ),
             },
@@ -481,7 +495,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <DeleteSyncPage />
+                    <LegacyDeleteSyncPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

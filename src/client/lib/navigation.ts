@@ -93,9 +93,10 @@ export const NAV_PAGES = {
   exclusions: page('Exclusions', '/library/exclusions', [
     '/utilities/watchlist-exclusions',
   ]),
-  deleteSync: page('Delete sync', '/library/delete-sync', [
-    '/utilities/delete-sync',
-  ]),
+  deleteSync: {
+    ...page('Delete sync', '/library/delete-sync', ['/utilities/delete-sync']),
+    rebuilt: true,
+  },
   sessionMonitoring: {
     ...page('Session monitoring', '/library/session-monitoring', [
       '/utilities/plex-session-monitoring',

@@ -4,8 +4,8 @@ import {
   ProgressLabel,
   ProgressValue,
 } from '@/components/ui/progress'
-import { useWatchlistSyncEvents } from '@/features/system/hooks/plex-connection/useWatchlistSyncEvents'
-import { formatSyncProgress } from '@/features/system/lib/plex-connection/sync-progress'
+import { useWatchlistSyncEvents } from '@/hooks/useWatchlistSyncEvents'
+import { formatSyncProgress } from '@/lib/sync-progress'
 import { isSyncActive } from '@/lib/watchlist-sync'
 
 export function SyncStepProgress({ type }: { type: WatchlistSyncType }) {

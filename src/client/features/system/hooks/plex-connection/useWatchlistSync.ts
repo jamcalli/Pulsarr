@@ -1,6 +1,5 @@
 import { skipToken, useQuery } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
-import { useWatchlistSyncEvents } from '@/features/system/hooks/plex-connection/useWatchlistSyncEvents'
 import {
   fetchHasPlexPass,
   generateFeeds,
@@ -18,6 +17,7 @@ import {
 import { withMinDuration } from '@/hooks/useMinLoading'
 import { useOperation } from '@/hooks/useOperation'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
+import { useWatchlistSyncEvents } from '@/hooks/useWatchlistSyncEvents'
 import { OPERATION_RESULT_TTL } from '@/lib/constants'
 import { formatCount } from '@/lib/format'
 import { NAV_PAGES } from '@/lib/navigation'

@@ -24,6 +24,9 @@ describe('notify labels', () => {
     ['discord-both', 'discord-only'],
     ['discord-webhook', 'webhook-only'],
     ['discord-message', 'dm-only'],
+    ['message', 'dm-only'],
+    ['webhook', 'webhook-only'],
+    ['both', 'discord-only'],
   ] as const)(
     'keeps the stored alias %s under the label of %s',
     (alias, equivalent) => {
