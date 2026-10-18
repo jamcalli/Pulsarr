@@ -214,21 +214,22 @@ export function EnrollmentCredenza({ enrollment }: { enrollment: Enrollment }) {
   )
   const touched = count > 0 || values.mode !== null
   const ready = count > 0 && values.mode !== null
-  const listFooter = touched ? (
-    <SaveBar
-      dirty
-      isSubmitting={enrollment.pending && !values.startOver}
-      saved={false}
-      errorMessage={values.startOver ? null : enrollment.errorMessage}
-      onDiscard={close}
-      message={footerMessage(values, shows)}
-      saveLabel={ready ? applyLabel : 'Apply'}
-      saveDisabled={!ready}
-      discardLabel="Cancel"
-    />
-  ) : (
-    closeButton
-  )
+  const listFooter = (discard: () => void) =>
+    touched ? (
+      <SaveBar
+        dirty
+        isSubmitting={enrollment.pending && !values.startOver}
+        saved={false}
+        errorMessage={values.startOver ? null : enrollment.errorMessage}
+        onDiscard={discard}
+        message={footerMessage(values, shows)}
+        saveLabel={ready ? applyLabel : 'Apply'}
+        saveDisabled={!ready}
+        discardLabel="Cancel"
+      />
+    ) : (
+      closeButton
+    )
 
   const body = nothingSent ? (
     <EmptyState
@@ -269,11 +270,13 @@ export function EnrollmentCredenza({ enrollment }: { enrollment: Enrollment }) {
       <EnrollmentList enrollment={enrollment} />
     </>
   )
-  const footer = nothingSent
-    ? closeButton
-    : enrollment.result
-      ? resultFooter
-      : listFooter
+  const dirty = !nothingSent && !enrollment.result && touched
+  const footer = (discard: () => void) =>
+    nothingSent
+      ? closeButton
+      : enrollment.result
+        ? resultFooter
+        : listFooter(discard)
 
   return (
     <>
@@ -283,6 +286,8 @@ export function EnrollmentCredenza({ enrollment }: { enrollment: Enrollment }) {
         form={form}
         title={TITLE}
         description={DESCRIPTION}
+        dirty={dirty}
+        busy={enrollment.pending}
         footer={footer}
       >
         {body}

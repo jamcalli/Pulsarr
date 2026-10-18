@@ -672,6 +672,49 @@ describe('PlexConnectionPage', () => {
     expect(await accountPill()).toHaveTextContent('Not linked')
   })
 
+  it('asks before closing the token credenza with a typed token', async () => {
+    const user = userEvent.setup()
+    mockEndpoints({ config: NOT_LINKED })
+    renderPage()
+    const account = await findSection('Plex account')
+
+    await user.click(account.getByRole('button', { name: 'Paste token' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Paste a token' })
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Paste a token' }),
+      ).toBeNull(),
+    )
+    expect(
+      screen.queryByRole('dialog', { name: 'Leave without saving?' }),
+    ).toBeNull()
+
+    await user.click(account.getByRole('button', { name: 'Paste token' }))
+    const reopened = await screen.findByRole('dialog', {
+      name: 'Paste a token',
+    })
+    await user.type(within(reopened).getByLabelText('Plex token'), NEW_TOKEN)
+    await user.click(within(reopened).getByRole('button', { name: 'Cancel' }))
+    const leave = await screen.findByRole('dialog', {
+      name: 'Leave without saving?',
+    })
+    await user.click(within(leave).getByRole('button', { name: 'Stay' }))
+    expect(within(reopened).getByLabelText('Plex token')).toHaveValue(NEW_TOKEN)
+
+    await user.click(within(reopened).getByRole('button', { name: 'Cancel' }))
+    await user.click(
+      within(
+        await screen.findByRole('dialog', { name: 'Leave without saving?' }),
+      ).getByRole('button', { name: 'Leave' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Paste a token' }),
+      ).toBeNull(),
+    )
+  })
+
   it('accepts a different token after one is rejected', async () => {
     mockEndpoints({
       config: NOT_LINKED,

@@ -16,6 +16,7 @@ import {
   BLANK_QUOTA_MESSAGES,
   QUOTA_REMOVAL_DESCRIPTION,
 } from '@/features/users/lib/quota-fields'
+import { useFormDirty } from '@/hooks/useFormDirty'
 import { useAppForm } from '@/lib/form'
 import { formatCount } from '@/lib/format'
 
@@ -43,6 +44,7 @@ export function BulkQuotaCredenza({ page }: { page: PlexUsersPage }) {
   const blankField = useStore(form.store, (state) =>
     blankBulkQuotaField(state.values),
   )
+  const dirty = useFormDirty(form)
 
   useEffect(() => {
     if (!page.quotasOpen) setConfirmOpen(false)
@@ -63,19 +65,21 @@ export function BulkQuotaCredenza({ page }: { page: PlexUsersPage }) {
         form={form}
         title={`Edit quotas for ${users}`}
         description="Replaces the quotas of every selected user."
-        footer={
+        dirty={dirty}
+        busy={busy}
+        footer={(close) => (
           <SaveBar
             dirty
             isSubmitting={busy && !clearing}
             saved={false}
             errorMessage={null}
-            onDiscard={() => page.setQuotasOpen(false)}
+            onDiscard={close}
             message={saveMessage}
             saveLabel={clearing ? 'Remove quotas' : `Apply to ${users}`}
             saveDisabled={blankField !== null}
             discardLabel="Cancel"
           />
-        }
+        )}
       >
         <form.AppField name="action">
           {(field) => (

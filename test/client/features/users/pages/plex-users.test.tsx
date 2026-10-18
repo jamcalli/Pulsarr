@@ -447,6 +447,86 @@ describe('PlexUsersPage', () => {
     )
   })
 
+  it('asks before closing the bulk settings with changes', async () => {
+    const user = userEvent.setup()
+    mockUsers()
+    renderPage()
+    await findTable()
+    await user.click(screen.getByRole('checkbox', { name: 'Select Maya R.' }))
+    const open = async () => {
+      await user.click(
+        within(selectionBar()).getByRole('button', { name: 'Edit settings' }),
+      )
+      return screen.findByRole('dialog', { name: 'Edit settings for 1 user' })
+    }
+
+    await user.click(
+      within(await open()).getByRole('button', { name: 'Cancel' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Edit settings for 1 user' }),
+      ).toBeNull(),
+    )
+    expect(
+      screen.queryByRole('dialog', { name: 'Leave without saving?' }),
+    ).toBeNull()
+
+    const dialog = await open()
+    await user.click(
+      within(dialog).getByRole('switch', { name: 'Clear Discord user ID' }),
+    )
+    await user.keyboard('{Escape}')
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Leave without saving?' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('dialog', {
+        name: 'Edit settings for 1 user',
+        hidden: true,
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('asks before closing the bulk quotas with changes', async () => {
+    const user = userEvent.setup()
+    mockUsers()
+    renderPage()
+    await findTable()
+    await user.click(screen.getByRole('checkbox', { name: 'Select Maya R.' }))
+    const open = async () => {
+      await user.click(
+        within(selectionBar()).getByRole('button', { name: 'Edit quotas' }),
+      )
+      return screen.findByRole('dialog', { name: 'Edit quotas for 1 user' })
+    }
+
+    await user.click(
+      within(await open()).getByRole('button', { name: 'Cancel' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Edit quotas for 1 user' }),
+      ).toBeNull(),
+    )
+    expect(
+      screen.queryByRole('dialog', { name: 'Leave without saving?' }),
+    ).toBeNull()
+
+    const dialog = await open()
+    await user.click(
+      fieldSection(dialog, 'Shows').getByRole('switch', {
+        name: 'Limit requests',
+      }),
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Leave without saving?' }),
+    ).toBeInTheDocument()
+  })
+
   it('keeps the users that failed selected and shows the alert', async () => {
     const user = userEvent.setup()
     mockUsers({ failedIds: [3] })
