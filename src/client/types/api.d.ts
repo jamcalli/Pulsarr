@@ -4756,7 +4756,7 @@ export interface components {
             guids: string[];
             excluded_at: string;
         };
-        /** @description Watchlist items to exclude in one request */
+        /** @description Watchlist items to exclude in one request. Under the users scope the item and user pairs count against the cap */
         WatchlistExclusionBulkCreatePayload: {
             items: components["schemas"]["WatchlistExclusionCreatePayload"][];
             scope: components["schemas"]["WatchlistExclusionScope"];
@@ -13844,7 +13844,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description Watchlist items to exclude in one request */
+        /** @description Watchlist items to exclude in one request. Under the users scope the item and user pairs count against the cap */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WatchlistExclusionBulkCreatePayload"];

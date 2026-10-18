@@ -125,6 +125,30 @@ describe('watchlist exclusion routes', () => {
       })
     })
 
+    it('rejects more user rows than one page holds', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/watchlist-exclusions/bulk',
+        payload: {
+          scope: 'users',
+          items: [
+            {
+              key: 'wide',
+              title: 'Wide',
+              type: 'movie',
+              guids: [],
+              userIds: Array.from(
+                { length: WATCHLIST_EXCLUSION_BULK_MAX + 1 },
+                (_, i) => i + 1,
+              ),
+            },
+          ],
+        },
+      })
+
+      expect(res.statusCode).toBe(400)
+    })
+
     it('rejects a type outside movie and show', async () => {
       const res = await app.inject({
         method: 'POST',

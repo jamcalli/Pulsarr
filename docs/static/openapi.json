@@ -6143,7 +6143,7 @@
           "items",
           "scope"
         ],
-        "description": "Watchlist items to exclude in one request"
+        "description": "Watchlist items to exclude in one request. Under the users scope the item and user pairs count against the cap"
       },
       "WatchlistExclusionBulkCreateResponse": {
         "type": "object",
@@ -21982,7 +21982,7 @@
               }
             }
           },
-          "description": "Watchlist items to exclude in one request"
+          "description": "Watchlist items to exclude in one request. Under the users scope the item and user pairs count against the cap"
         },
         "responses": {
           "200": {

@@ -189,9 +189,20 @@ export const WatchlistExclusionBulkCreateSchema = z
       }),
     scope: WatchlistExclusionScopeSchema,
   })
+  .refine(
+    ({ items, scope }) =>
+      scope === 'global' ||
+      items.reduce((rows, item) => rows + item.userIds.length, 0) <=
+        WATCHLIST_EXCLUSION_BULK_MAX,
+    {
+      error: `Up to ${WATCHLIST_EXCLUSION_BULK_MAX} exclusions per request`,
+      path: ['items'],
+    },
+  )
   .meta({
     id: 'WatchlistExclusionBulkCreatePayload',
-    description: 'Watchlist items to exclude in one request',
+    description:
+      'Watchlist items to exclude in one request. Under the users scope the item and user pairs count against the cap',
   })
 
 export const WatchlistExclusionBulkCreateResponseSchema = z
