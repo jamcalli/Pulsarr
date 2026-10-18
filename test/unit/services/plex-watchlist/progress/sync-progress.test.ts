@@ -33,14 +33,14 @@ describe('plex-watchlist/progress/sync-progress', () => {
 
     progress.readingPages({ done: 1, total: 4 })
     expect(lastEvent()).toMatchObject({
-      progress: 12,
+      progress: 22,
       metadata: { count: { done: 1, total: 4, unit: 'pages' } },
     })
 
     progress.processingItems(1, 3)
     expect(lastEvent()).toMatchObject({
       phase: 'processing',
-      progress: 65,
+      progress: 92,
       message: 'Processing items',
       metadata: {
         stage: 'processing',
@@ -51,7 +51,7 @@ describe('plex-watchlist/progress/sync-progress', () => {
     progress.saving(2)
     expect(lastEvent()).toMatchObject({
       phase: 'saving',
-      progress: 95,
+      progress: 98,
       message: 'Saving 2 items',
       metadata: { stage: 'saving', count: null },
     })
@@ -101,7 +101,7 @@ describe('plex-watchlist/progress/sync-progress', () => {
     progress.processingItems(2, 2)
     progress.readingPages({ done: 1, total: 2 })
 
-    expect(lastEvent()?.progress).toBe(95)
+    expect(lastEvent()?.progress).toBe(98)
   })
 
   it('names every friend in flight in start order', () => {
@@ -118,7 +118,7 @@ describe('plex-watchlist/progress/sync-progress', () => {
 
     expect(lastEvent()).toMatchObject({
       phase: 'reading',
-      progress: 12,
+      progress: 22,
       message: 'Alice page 3, Bob page 1',
       metadata: { count: { done: 1, total: 4, unit: 'friends' } },
     })
@@ -138,7 +138,7 @@ describe('plex-watchlist/progress/sync-progress', () => {
 
     expect(lastEvent()).toMatchObject({
       phase: 'rate-limited',
-      progress: 72,
+      progress: 94,
       message: 'Paused by a Plex rate limit, resuming in 5s',
       metadata: {
         stage: 'rate-limited',
@@ -160,7 +160,7 @@ describe('plex-watchlist/progress/sync-progress', () => {
     connected = true
     progress.rateLimited(1000)
     expect(lastEvent()).toMatchObject({
-      progress: 72,
+      progress: 94,
       metadata: { count: { done: 1, total: 2, unit: 'items' } },
     })
   })
@@ -172,10 +172,10 @@ describe('plex-watchlist/progress/sync-progress', () => {
     )
 
     progress.readingFriends(0, 0, new Map())
-    expect(lastEvent()?.progress).toBe(50)
+    expect(lastEvent()?.progress).toBe(90)
 
     progress.processingItems(0, 0)
-    expect(lastEvent()?.progress).toBe(95)
+    expect(lastEvent()?.progress).toBe(98)
   })
 
   it('reports a failure at the percent it reached', () => {
@@ -189,7 +189,7 @@ describe('plex-watchlist/progress/sync-progress', () => {
 
     expect(lastEvent()).toMatchObject({
       phase: 'failed',
-      progress: 72,
+      progress: 94,
       message: 'Sync failed',
       metadata: { stage: 'failed', count: null },
     })
@@ -234,7 +234,7 @@ describe('plex-watchlist/progress/sync-progress', () => {
     expect(progressService.emit).not.toHaveBeenCalled()
     expect(progress.lastEvent()).toMatchObject({
       phase: 'reading',
-      progress: 25,
+      progress: 45,
       message: 'Alice page 2',
       metadata: { count: { done: 1, total: 2, unit: 'friends' } },
     })
