@@ -28,7 +28,7 @@ interface ActionRowButton {
 
 interface ActionRowActions {
   /** Buttons the caller draws itself, for a primary action or more than one. */
-  actions: ReactElement
+  actions: ReactElement | ReactElement[]
   buttonLabel?: never
   busyLabel?: never
   variant?: never

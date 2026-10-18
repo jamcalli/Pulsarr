@@ -2,6 +2,8 @@ import { useStore } from '@tanstack/react-form'
 import { FieldRow } from '@/components/form/field-row'
 import { SettingsSectionSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
+import { UserTestRow } from '@/features/users/components/user/user-test-row'
+import type { UserPageData } from '@/features/users/hooks/user/useUserPage'
 import type { UserSettingsForm } from '@/features/users/hooks/user/useUserSettingsForm'
 import {
   DISCORD_ID_REQUIRED,
@@ -11,11 +13,15 @@ import {
 interface UserSettingsSectionsProps {
   form: UserSettingsForm
   username: string
+  user: UserPageData['user']
+  dirty: boolean
 }
 
 export function UserSettingsSections({
   form,
   username,
+  user,
+  dirty,
 }: UserSettingsSectionsProps) {
   const discordIdBlank = useStore(
     form.store,
@@ -120,6 +126,7 @@ export function UserSettingsSections({
             />
           )}
         </form.AppField>
+        <UserTestRow user={user} dirty={dirty} />
       </SettingsSection>
       <SettingsSection title="Access">
         <form.AppField name="can_sync">
@@ -148,7 +155,15 @@ export function UserSettingsSectionsSkeleton() {
     <>
       <SettingsSectionSkeleton rows={['text', 'input']} description={false} />
       <SettingsSectionSkeleton
-        rows={['input', 'switch', 'switch', 'input', 'switch', 'switch']}
+        rows={[
+          'input',
+          'switch',
+          'switch',
+          'input',
+          'switch',
+          'switch',
+          'input',
+        ]}
       />
       <SettingsSectionSkeleton
         rows={['switch', 'switch']}
