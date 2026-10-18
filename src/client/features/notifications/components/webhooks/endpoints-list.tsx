@@ -164,14 +164,14 @@ export function EndpointsList({
       <EmptyState
         icon={<Webhook />}
         title="No endpoints yet"
-        description="Add one to send events to Home Assistant, n8n or your own service."
+        description="Add one to send events to Home Assistant, n8n or your own service. Each event posts a documented JSON payload, tried up to three times."
       >
         <Button type="button" onClick={onAdd}>
           Add endpoint
         </Button>
-        <div className="w-full text-left">
-          <PayloadsInfoLine />
-        </div>
+        <ExternalLink href={WEBHOOK_PAYLOADS_DOCS_URL}>
+          Webhook payloads
+        </ExternalLink>
       </EmptyState>
     ) : (
       <Card>

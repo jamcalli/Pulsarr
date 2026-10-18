@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useMatches } from 'react-router-dom'
 import planetDesktop from '@/assets/images/planet.webp'
 import planetMobile from '@/assets/images/planet-m.webp'
 import AsteroidsBackground from '@/components/backdrop/asteroids'
@@ -13,29 +13,26 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
 import { useSettings } from '@/hooks/useSettings'
 import { AspectRatio } from '@/legacy/components/ui/aspect-ratio'
+import { routeHasBackdrop } from '@/lib/route-handle'
 
 interface RootLayoutProps {
   children: ReactNode
+  /** Draws the backdrop on phones too, for content rendered outside any matched route. */
+  backdrop?: boolean
 }
 
-/**
- * Renders the animated background layer with branding and visual effects when appropriate for the device type, fullscreen mode, and current route.
- *
- * The background is shown on desktop devices only if fullscreen mode is disabled, and on mobile devices only on the login route. It features a CRT overlay, parallax starfield, responsive planet image, pulsar graphic, optional asteroids animation, and a centered title and subtitle.
- *
- * @returns The background layer JSX if display conditions are met; otherwise, `null`.
- */
-function BackgroundLayer() {
+/** Phones only get the backdrop on shell-less routes, desktop gets it whenever fullscreen is off. */
+function BackgroundLayer({ backdrop }: { backdrop: boolean }) {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isPageVisible = usePageVisibility()
   const { asteroidsEnabled, fullscreenEnabled } = useSettings()
-  const location = useLocation()
-  const isLoginRoute = location.pathname === '/login'
+  const matches = useMatches()
+  const shellless =
+    backdrop || matches.some((match) => routeHasBackdrop(match.handle))
 
-  // Show background on login route always, or on desktop when fullscreen is disabled
   const shouldShowBackground = useMemo(
-    () => isLoginRoute || (!isMobile && !fullscreenEnabled),
-    [isMobile, fullscreenEnabled, isLoginRoute],
+    () => shellless || (!isMobile && !fullscreenEnabled),
+    [isMobile, fullscreenEnabled, shellless],
   )
 
   if (!shouldShowBackground) return null
@@ -115,10 +112,13 @@ function BackgroundLayer() {
  *
  * @param children - The main content to display above the background.
  */
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({
+  children,
+  backdrop = false,
+}: RootLayoutProps) {
   return (
     <div className="relative min-h-svh">
-      <BackgroundLayer />
+      <BackgroundLayer backdrop={backdrop} />
       <main className="relative z-10 flex min-h-svh items-center justify-center">
         {children}
       </main>
