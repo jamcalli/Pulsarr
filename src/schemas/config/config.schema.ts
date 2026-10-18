@@ -134,6 +134,19 @@ export const NOTIFY_DEFAULTS = {
   deleteSyncNotifyOnlyOnDeletion: boolean
 }
 
+export const MAINTAINERR_EXCLUSION_MODES = ['watchlisters', 'global'] as const
+
+export const MAINTAINERR_EXCLUSION_MODE_DEFAULT =
+  'watchlisters' satisfies (typeof MAINTAINERR_EXCLUSION_MODES)[number]
+
+export const MaintainerrExclusionModeSchema = z
+  .enum(MAINTAINERR_EXCLUSION_MODES)
+  .meta({
+    id: 'MaintainerrExclusionMode',
+    description:
+      'Exclude Maintainerr-handled media for its current watchlisters, or globally for every user',
+  })
+
 const NotifyOptionEnum = z.enum(NOTIFY_OPTIONS).meta({
   id: 'NotifyOption',
   description:
@@ -202,12 +215,6 @@ const PlexTokensSchema = z
 const ApprovalExpirationActionSchema = z.enum(['expire', 'auto_approve']).meta({
   id: 'ApprovalExpirationAction',
   description: 'What happens to a pending approval request when it expires',
-})
-
-const MaintainerrExclusionModeSchema = z.enum(['watchlisters', 'global']).meta({
-  id: 'MaintainerrExclusionMode',
-  description:
-    'Whether a Maintainerr exclusion applies to the watchlisting users or everyone',
 })
 
 const RemovedTagModeSchema = z.enum(['remove', 'keep', 'special-tag']).meta({

@@ -155,6 +155,14 @@ Ensure your network is secure when using `requiredExceptLocal`.
 | `deleteSyncCleanupApprovals` | Cleanup approvals after deletion | `false` |
 | `maxDeletionPrevention` | Max % of library to delete | `10` |
 
+## Maintainerr
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `maintainerrEnabled` | Enable the Maintainerr integration | `false` |
+| `maintainerrUrl` | Maintainerr server URL | None |
+| `maintainerrExclusionMode` | `watchlisters` excludes handled media for its current watchlisters, `global` excludes it for every user | `watchlisters` |
+
 ## New User Defaults
 
 | Variable | Description | Default |

@@ -5,7 +5,13 @@ import {
   GetUserWatchlistExclusionsResponseSchema,
   GetWatchlistExclusionsResponseSchema,
   RemoveWatchlistExclusionParamsSchema,
+  WatchlistExclusionBulkCreateResponseSchema,
+  WatchlistExclusionBulkCreateSchema,
+  WatchlistExclusionBulkRemoveResponseSchema,
+  WatchlistExclusionBulkRemoveSchema,
   WatchlistExclusionErrorSchema,
+  WatchlistExclusionItemsQuerySchema,
+  WatchlistExclusionItemsResponseSchema,
 } from '@schemas/watchlist-exclusions/watchlist-exclusions.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -84,6 +90,125 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Failed to retrieve exclusions',
         })
         return reply.internalServerError('Failed to retrieve exclusions')
+      }
+    },
+  )
+
+  // List watchlist items with their exclusion state
+  fastify.get(
+    '/items',
+    {
+      schema: {
+        summary: 'List watchlist items with their exclusion state',
+        operationId: 'getWatchlistExclusionItems',
+        description:
+          'Page through watchlisted and excluded titles, one row per title with its watchlisters and own exclusions attached',
+        querystring: WatchlistExclusionItemsQuerySchema,
+        response: {
+          200: WatchlistExclusionItemsResponseSchema,
+          400: WatchlistExclusionErrorSchema,
+          500: WatchlistExclusionErrorSchema,
+        },
+        tags: ['Watchlist Exclusions'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const [items, total] = await Promise.all([
+          fastify.db.getWatchlistExclusionItems(request.query),
+          fastify.db.getWatchlistExclusionItemsCount(request.query),
+        ])
+
+        return {
+          success: true,
+          message: 'Watchlist exclusion items retrieved successfully',
+          items,
+          total,
+          limit: request.query.limit,
+          offset: request.query.offset,
+        }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to retrieve watchlist exclusion items',
+        })
+        return reply.internalServerError(
+          'Failed to retrieve watchlist exclusion items',
+        )
+      }
+    },
+  )
+
+  // Bulk create watchlist exclusions
+  fastify.post(
+    '/bulk',
+    {
+      schema: {
+        summary: 'Bulk create watchlist exclusions',
+        operationId: 'bulkCreateWatchlistExclusions',
+        description:
+          'Exclude several watchlist items for their users, or globally for every user',
+        body: WatchlistExclusionBulkCreateSchema,
+        response: {
+          200: WatchlistExclusionBulkCreateResponseSchema,
+          400: WatchlistExclusionErrorSchema,
+          500: WatchlistExclusionErrorSchema,
+        },
+        tags: ['Watchlist Exclusions'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { items, scope } = request.body
+        const result = await fastify.db.bulkExcludeWatchlistItems(items, scope)
+
+        return {
+          success: true,
+          message: `Bulk exclude completed: ${result.created} created, ${result.skipped} skipped, ${result.failed.length} failed`,
+          result: { ...result, total: items.length },
+        }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to bulk create exclusions',
+          itemCount: request.body.items.length,
+        })
+        return reply.internalServerError('Failed to bulk create exclusions')
+      }
+    },
+  )
+
+  // Bulk remove watchlist exclusions
+  fastify.post(
+    '/bulk/remove',
+    {
+      schema: {
+        summary: 'Bulk remove watchlist exclusions',
+        operationId: 'bulkRemoveWatchlistExclusions',
+        description: 'Remove several watchlist exclusions by ID',
+        body: WatchlistExclusionBulkRemoveSchema,
+        response: {
+          200: WatchlistExclusionBulkRemoveResponseSchema,
+          400: WatchlistExclusionErrorSchema,
+          500: WatchlistExclusionErrorSchema,
+        },
+        tags: ['Watchlist Exclusions'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { ids } = request.body
+        const result = await fastify.db.bulkRemoveExclusions(ids)
+
+        return {
+          success: true,
+          message: `Bulk remove completed: ${result.removed} removed, ${result.failed.length} failed`,
+          result,
+        }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to bulk remove exclusions',
+          idCount: request.body.ids.length,
+        })
+        return reply.internalServerError('Failed to bulk remove exclusions')
       }
     },
   )

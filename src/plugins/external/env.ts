@@ -7,6 +7,8 @@ import {
   DEFAULT_PULSARR_PORT,
   DELETE_SYNC_NOTIFY_OPTIONS,
   DELETION_MODES,
+  MAINTAINERR_EXCLUSION_MODE_DEFAULT,
+  MAINTAINERR_EXCLUSION_MODES,
   NEW_EPISODE_THRESHOLD_MS,
   NOTIFY_DEFAULTS,
   NOTIFY_OPTIONS,
@@ -157,8 +159,8 @@ const schema = {
     },
     maintainerrExclusionMode: {
       type: 'string',
-      enum: ['watchlisters', 'global'],
-      default: 'watchlisters',
+      enum: MAINTAINERR_EXCLUSION_MODES,
+      default: MAINTAINERR_EXCLUSION_MODE_DEFAULT,
     },
     logLevel: {
       type: 'string',

@@ -1,3 +1,4 @@
+import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { Knex } from 'knex'
 
 /**
@@ -124,4 +125,9 @@ export async function seedUsers(knex: Knex): Promise<void> {
     `INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('users', ?), ('admin_users', ?)`,
     [maxUserId, maxAdminId],
   )
+}
+
+/** Id 0 sits below every seeded id, so the users sqlite_sequence needs no bump. */
+export async function seedSystemUser(knex: Knex): Promise<void> {
+  await knex('users').insert({ id: SYSTEM_USER_ID, name: 'System' })
 }

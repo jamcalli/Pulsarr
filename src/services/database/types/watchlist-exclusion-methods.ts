@@ -1,3 +1,10 @@
+import type {
+  CreateWatchlistExclusion,
+  WatchlistExclusionItem,
+  WatchlistExclusionItemsFilter,
+  WatchlistExclusionItemsQuery,
+  WatchlistExclusionScope,
+} from '@root/schemas/watchlist-exclusions/watchlist-exclusions.schema.js'
 import type { WatchlistExclusion } from '@root/types/watchlist-exclusion.types.js'
 
 declare module '@services/database.service.js' {
@@ -14,6 +21,17 @@ declare module '@services/database.service.js' {
       type: string,
       guids: string[],
     ): Promise<number>
+
+    /** Global scope writes one SYSTEM_USER_ID row per item, and a failing item rolls back alone. */
+    bulkExcludeWatchlistItems(
+      items: CreateWatchlistExclusion[],
+      scope: WatchlistExclusionScope,
+    ): Promise<{
+      created: number
+      skipped: number
+      failed: string[]
+      errors: string[]
+    }>
 
     /**
      * Removes exclusion rows for the user across the given keys.
@@ -43,6 +61,24 @@ declare module '@services/database.service.js' {
     getAllExclusions(): Promise<
       Array<WatchlistExclusion & { username: string }>
     >
+
+    /** One row per title with its users attached, plus exclusions whose watchlist item is gone. */
+    getWatchlistExclusionItems(
+      query: WatchlistExclusionItemsQuery,
+    ): Promise<WatchlistExclusionItem[]>
+
+    /** Total titles getWatchlistExclusionItems matches across all pages. */
+    getWatchlistExclusionItemsCount(
+      filter: WatchlistExclusionItemsFilter,
+    ): Promise<number>
+
+    /** Ids are deduped, so `total` counts distinct ids and ids that matched no row come back in `failed`. */
+    bulkRemoveExclusions(ids: number[]): Promise<{
+      removed: number
+      failed: number[]
+      errors: string[]
+      total: number
+    }>
 
     /**
      * Removes a single exclusion by id.
