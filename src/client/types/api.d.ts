@@ -2784,6 +2784,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/watchlist-exclusions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk create watchlist exclusions
+         * @description Exclude several watchlist items for their users, or globally for every user
+         */
+        post: operations["bulkCreateWatchlistExclusions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-exclusions/bulk/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk remove watchlist exclusions
+         * @description Remove several watchlist exclusions by ID
+         */
+        post: operations["bulkRemoveWatchlistExclusions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-exclusions/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List watchlist items with their exclusion state
+         * @description Page through every watchlist item joined to its own and global exclusions, plus exclusions whose watchlist item is gone
+         */
+        get: operations["getWatchlistExclusionItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/watchlist-exclusions/user/{userId}": {
         parameters: {
             query?: never;
@@ -3362,8 +3422,7 @@ export interface components {
             queueProcessDelaySeconds: number;
             maintainerrEnabled: boolean;
             maintainerrUrl?: string;
-            /** @enum {string} */
-            maintainerrExclusionMode?: "watchlisters" | "global";
+            maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
             discordWebhookUrl?: string;
             discordBotToken?: string;
             discordClientId?: string;
@@ -3546,8 +3605,7 @@ export interface components {
             queueProcessDelaySeconds?: number;
             maintainerrEnabled?: boolean;
             maintainerrUrl?: string | "";
-            /** @enum {string} */
-            maintainerrExclusionMode?: "watchlisters" | "global";
+            maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
             discordWebhookUrl?: string;
             discordBotToken?: string;
             discordClientId?: string;
@@ -3820,10 +3878,19 @@ export interface components {
          * @enum {string}
          */
         InstanceType: "radarr" | "sonarr";
+        /**
+         * @description Exclude Maintainerr-handled media for its current watchlisters, or globally for every user
+         * @enum {string}
+         */
+        MaintainerrExclusionMode: "watchlisters" | "global";
+        /**
+         * @description Outcome of the last Maintainerr reconcile. unsupported_version means Maintainerr is below the minimum version
+         * @enum {string}
+         */
+        MaintainerrReconcileStatus: "disabled" | "unsupported_version" | "error" | "ok";
         /** @description Result of the most recent Maintainerr reconcile */
         MaintainerrStatus: {
-            /** @enum {string} */
-            status: "disabled" | "unsupported_version" | "error" | "ok";
+            status: components["schemas"]["MaintainerrReconcileStatus"];
             version?: string;
             configId?: number;
             connectedGroups?: number;
@@ -4319,6 +4386,11 @@ export interface components {
             rollingShowId: number | null;
             monitoringType: components["schemas"]["SonarrRollingMonitoring"] | null;
         };
+        /**
+         * @description Sort direction, asc for ascending and desc for descending
+         * @enum {string}
+         */
+        SortOrder: "asc" | "desc";
         /** @description Watchlist item count for one status */
         StatusDistribution: {
             status: string;
@@ -4674,6 +4746,106 @@ export interface components {
              */
             channel: "apprise" | "discord-dm" | "plex-mobile";
         };
+        /** @description A watchlist exclusion row. user_id 0 is the global exclusion */
+        WatchlistExclusion: {
+            id: number;
+            user_id: number;
+            key: string;
+            title: string;
+            type: string;
+            guids: string[];
+            excluded_at: string;
+        };
+        /** @description Watchlist items to exclude in one request */
+        WatchlistExclusionBulkCreatePayload: {
+            items: components["schemas"]["WatchlistExclusionCreatePayload"][];
+            scope: components["schemas"]["WatchlistExclusionScope"];
+        };
+        /** @description created and skipped count exclusion rows (skipped already existed), failed lists item keys */
+        WatchlistExclusionBulkCreateResponse: {
+            success: boolean;
+            message: string;
+            result: {
+                created: number;
+                skipped: number;
+                failed: string[];
+                errors: string[];
+                total: number;
+            };
+        };
+        /** @description Exclusion ids to remove in one request */
+        WatchlistExclusionBulkRemovePayload: {
+            ids: number[];
+        };
+        /** @description removed counts deleted rows, failed lists ids that were not found */
+        WatchlistExclusionBulkRemoveResponse: {
+            success: boolean;
+            message: string;
+            result: {
+                removed: number;
+                failed: number[];
+                errors: string[];
+                total: number;
+            };
+        };
+        /** @description A watchlist item key to exclude for the given users. userIds is ignored under global scope */
+        WatchlistExclusionCreatePayload: {
+            key: string;
+            userIds: number[];
+            title: string;
+            type: components["schemas"]["ContentType"];
+            /** @default [] */
+            guids?: string[];
+        };
+        /**
+         * @description excluded has an own or global exclusion, not-excluded has neither, orphan is an exclusion with no watchlist item
+         * @enum {string}
+         */
+        WatchlistExclusionFilter: "excluded" | "not-excluded" | "orphan";
+        /** @description A watchlist item with its exclusion state, or an exclusion whose watchlist item is gone (status null). userId is null for a global exclusion no one has watchlisted */
+        WatchlistExclusionItem: {
+            key: string;
+            title: string;
+            type: components["schemas"]["ContentType"];
+            guids: string[];
+            thumb: string | null;
+            userId: number | null;
+            userName: string | null;
+            status: components["schemas"]["WatchlistStatus"] | null;
+            added: string | null;
+            ownExclusion: components["schemas"]["WatchlistExclusionRef"] | null;
+            globalExclusion: components["schemas"]["WatchlistExclusionRef"] | null;
+        };
+        /** @description One page of watchlist items with their exclusion state */
+        WatchlistExclusionItemsResponse: {
+            success: boolean;
+            message: string;
+            items: components["schemas"]["WatchlistExclusionItem"][];
+            total: number;
+            limit: number;
+            offset: number;
+        };
+        /** @description The id and time of an exclusion row */
+        WatchlistExclusionRef: {
+            id: number;
+            excludedAt: string;
+        };
+        /**
+         * @description users excludes each item for its userIds, global excludes it for every user and ignores userIds
+         * @enum {string}
+         */
+        WatchlistExclusionScope: "users" | "global";
+        /** @description A watchlist exclusion row with the owning user name */
+        WatchlistExclusionWithUser: {
+            id: number;
+            user_id: number;
+            key: string;
+            title: string;
+            type: string;
+            guids: string[];
+            excluded_at: string;
+            username: string;
+        };
         /**
          * @description Routing state of a watchlist item or one of its instance rows: pending (not routed), requested (sent to the arr, no file), grabbed (the arr has the file), notified (in Plex and the user was told)
          * @enum {string}
@@ -4929,7 +5101,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
                 sortBy?: "contentTitle" | "userName" | "status" | "triggeredBy" | "createdAt" | "expiresAt";
-                sortOrder?: "asc" | "desc";
+                sortOrder?: components["schemas"]["SortOrder"];
             };
             header?: never;
             path?: never;
@@ -13579,16 +13751,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        exclusions: {
-                            id: number;
-                            user_id: number;
-                            key: string;
-                            title: string;
-                            type: string;
-                            guids: string[];
-                            excluded_at: string;
-                            username: string;
-                        }[];
+                        exclusions: components["schemas"]["WatchlistExclusionWithUser"][];
                     };
                 };
             };
@@ -13619,16 +13782,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description A watchlist item key to exclude for the given users. userIds is ignored under global scope */
         requestBody: {
             content: {
-                "application/json": {
-                    key: string;
-                    userIds: number[];
-                    title: string;
-                    type: string;
-                    /** @default [] */
-                    guids?: string[];
-                };
+                "application/json": components["schemas"]["WatchlistExclusionCreatePayload"];
             };
         };
         responses: {
@@ -13643,6 +13800,167 @@ export interface operations {
                         message: string;
                         created: number;
                     };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    bulkCreateWatchlistExclusions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Watchlist items to exclude in one request */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistExclusionBulkCreatePayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistExclusionBulkCreateResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    bulkRemoveWatchlistExclusions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Exclusion ids to remove in one request */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistExclusionBulkRemovePayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistExclusionBulkRemoveResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWatchlistExclusionItems: {
+        parameters: {
+            query?: {
+                search?: string;
+                userId?: number;
+                type?: components["schemas"]["ContentType"];
+                status?: components["schemas"]["WatchlistStatus"];
+                exclusion?: components["schemas"]["WatchlistExclusionFilter"];
+                limit?: number;
+                offset?: number;
+                sortBy?: "title" | "userName" | "status" | "added" | "excludedAt";
+                sortOrder?: components["schemas"]["SortOrder"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistExclusionItemsResponse"];
                 };
             };
             /** @description Default Response */
@@ -13694,15 +14012,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        exclusions: {
-                            id: number;
-                            user_id: number;
-                            key: string;
-                            title: string;
-                            type: string;
-                            guids: string[];
-                            excluded_at: string;
-                        }[];
+                        exclusions: components["schemas"]["WatchlistExclusion"][];
                     };
                 };
             };

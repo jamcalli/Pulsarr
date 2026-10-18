@@ -789,11 +789,7 @@
             "type": "string"
           },
           "maintainerrExclusionMode": {
-            "type": "string",
-            "enum": [
-              "watchlisters",
-              "global"
-            ]
+            "$ref": "#/components/schemas/MaintainerrExclusionMode"
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -1507,11 +1503,7 @@
             ]
           },
           "maintainerrExclusionMode": {
-            "type": "string",
-            "enum": [
-              "watchlisters",
-              "global"
-            ]
+            "$ref": "#/components/schemas/MaintainerrExclusionMode"
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -2538,17 +2530,29 @@
         ],
         "description": "Arr instance kind, radarr or sonarr"
       },
+      "MaintainerrExclusionMode": {
+        "type": "string",
+        "enum": [
+          "watchlisters",
+          "global"
+        ],
+        "description": "Exclude Maintainerr-handled media for its current watchlisters, or globally for every user"
+      },
+      "MaintainerrReconcileStatus": {
+        "type": "string",
+        "enum": [
+          "disabled",
+          "unsupported_version",
+          "error",
+          "ok"
+        ],
+        "description": "Outcome of the last Maintainerr reconcile. unsupported_version means Maintainerr is below the minimum version"
+      },
       "MaintainerrStatus": {
         "type": "object",
         "properties": {
           "status": {
-            "type": "string",
-            "enum": [
-              "disabled",
-              "unsupported_version",
-              "error",
-              "ok"
-            ]
+            "$ref": "#/components/schemas/MaintainerrReconcileStatus"
           },
           "version": {
             "type": "string"
@@ -4608,6 +4612,14 @@
         "additionalProperties": false,
         "description": "Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status"
       },
+      "SortOrder": {
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ],
+        "description": "Sort direction, asc for ascending and desc for descending"
+      },
       "StatusDistribution": {
         "type": "object",
         "properties": {
@@ -6072,6 +6084,422 @@
         ],
         "description": "Saved user notification channel to test"
       },
+      "WatchlistExclusion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "user_id": {
+            "type": "number"
+          },
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "guids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excluded_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "key",
+          "title",
+          "type",
+          "guids",
+          "excluded_at"
+        ],
+        "additionalProperties": false,
+        "description": "A watchlist exclusion row. user_id 0 is the global exclusion"
+      },
+      "WatchlistExclusionBulkCreatePayload": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchlistExclusionCreatePayload"
+            }
+          },
+          "scope": {
+            "$ref": "#/components/schemas/WatchlistExclusionScope"
+          }
+        },
+        "required": [
+          "items",
+          "scope"
+        ],
+        "description": "Watchlist items to exclude in one request"
+      },
+      "WatchlistExclusionBulkCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "skipped": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "created",
+              "skipped",
+              "failed",
+              "errors",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "result"
+        ],
+        "additionalProperties": false,
+        "description": "created and skipped count exclusion rows (skipped already existed), failed lists item keys"
+      },
+      "WatchlistExclusionBulkRemovePayload": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "description": "Exclusion ids to remove in one request"
+      },
+      "WatchlistExclusionBulkRemoveResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "removed": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "removed",
+              "failed",
+              "errors",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "result"
+        ],
+        "additionalProperties": false,
+        "description": "removed counts deleted rows, failed lists ids that were not found"
+      },
+      "WatchlistExclusionCreatePayload": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "userIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "guids": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "userIds",
+          "title",
+          "type"
+        ],
+        "description": "A watchlist item key to exclude for the given users. userIds is ignored under global scope"
+      },
+      "WatchlistExclusionFilter": {
+        "type": "string",
+        "enum": [
+          "excluded",
+          "not-excluded",
+          "orphan"
+        ],
+        "description": "excluded has an own or global exclusion, not-excluded has neither, orphan is an exclusion with no watchlist item"
+      },
+      "WatchlistExclusionItem": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "guids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "userId": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "userName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WatchlistStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "added": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownExclusion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WatchlistExclusionRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "globalExclusion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WatchlistExclusionRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "type",
+          "guids",
+          "thumb",
+          "userId",
+          "userName",
+          "status",
+          "added",
+          "ownExclusion",
+          "globalExclusion"
+        ],
+        "additionalProperties": false,
+        "description": "A watchlist item with its exclusion state, or an exclusion whose watchlist item is gone (status null). userId is null for a global exclusion no one has watchlisted"
+      },
+      "WatchlistExclusionItemsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchlistExclusionItem"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "additionalProperties": false,
+        "description": "One page of watchlist items with their exclusion state"
+      },
+      "WatchlistExclusionRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "excludedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "excludedAt"
+        ],
+        "additionalProperties": false,
+        "description": "The id and time of an exclusion row"
+      },
+      "WatchlistExclusionScope": {
+        "type": "string",
+        "enum": [
+          "users",
+          "global"
+        ],
+        "description": "users excludes each item for its userIds, global excludes it for every user and ignores userIds"
+      },
+      "WatchlistExclusionWithUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "user_id": {
+            "type": "number"
+          },
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "guids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excluded_at": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "key",
+          "title",
+          "type",
+          "guids",
+          "excluded_at",
+          "username"
+        ],
+        "additionalProperties": false,
+        "description": "A watchlist exclusion row with the owning user name"
+      },
       "WatchlistStatus": {
         "type": "string",
         "enum": [
@@ -6729,11 +7157,7 @@
           {
             "schema": {
               "default": "desc",
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
+              "$ref": "#/components/schemas/SortOrder"
             },
             "in": "query",
             "name": "sortOrder"
@@ -21393,44 +21817,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "userIds": {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  "title": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "type": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "guids": {
-                    "default": [],
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "key",
-                  "userIds",
-                  "title",
-                  "type"
-                ]
+                "$ref": "#/components/schemas/WatchlistExclusionCreatePayload"
               }
             }
-          }
+          },
+          "description": "A watchlist item key to exclude for the given users. userIds is ignored under global scope"
         },
         "responses": {
           "201": {
@@ -21516,47 +21907,7 @@
                     "exclusions": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "user_id": {
-                            "type": "number"
-                          },
-                          "key": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          },
-                          "guids": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          },
-                          "excluded_at": {
-                            "type": "string"
-                          },
-                          "username": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "user_id",
-                          "key",
-                          "title",
-                          "type",
-                          "guids",
-                          "excluded_at",
-                          "username"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/WatchlistExclusionWithUser"
                       }
                     }
                   },
@@ -21566,6 +21917,263 @@
                     "exclusions"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/watchlist-exclusions/bulk": {
+      "post": {
+        "operationId": "bulkCreateWatchlistExclusions",
+        "summary": "Bulk create watchlist exclusions",
+        "tags": [
+          "Watchlist Exclusions"
+        ],
+        "description": "Exclude several watchlist items for their users, or globally for every user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistExclusionBulkCreatePayload"
+              }
+            }
+          },
+          "description": "Watchlist items to exclude in one request"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistExclusionBulkCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/watchlist-exclusions/bulk/remove": {
+      "post": {
+        "operationId": "bulkRemoveWatchlistExclusions",
+        "summary": "Bulk remove watchlist exclusions",
+        "tags": [
+          "Watchlist Exclusions"
+        ],
+        "description": "Remove several watchlist exclusions by ID",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistExclusionBulkRemovePayload"
+              }
+            }
+          },
+          "description": "Exclusion ids to remove in one request"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistExclusionBulkRemoveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/watchlist-exclusions/items": {
+      "get": {
+        "operationId": "getWatchlistExclusionItems",
+        "summary": "List watchlist items with their exclusion state",
+        "tags": [
+          "Watchlist Exclusions"
+        ],
+        "description": "Page through every watchlist item joined to its own and global exclusions, plus exclusions whose watchlist item is gone",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "search"
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "userId"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/ContentType"
+            },
+            "in": "query",
+            "name": "type"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/WatchlistStatus"
+            },
+            "in": "query",
+            "name": "status"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/WatchlistExclusionFilter"
+            },
+            "in": "query",
+            "name": "exclusion"
+          },
+          {
+            "schema": {
+              "default": 20,
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "in": "query",
+            "name": "limit"
+          },
+          {
+            "schema": {
+              "default": 0,
+              "type": "number",
+              "minimum": 0
+            },
+            "in": "query",
+            "name": "offset"
+          },
+          {
+            "schema": {
+              "default": "excludedAt",
+              "type": "string",
+              "enum": [
+                "title",
+                "userName",
+                "status",
+                "added",
+                "excludedAt"
+              ]
+            },
+            "in": "query",
+            "name": "sortBy"
+          },
+          {
+            "schema": {
+              "default": "desc",
+              "$ref": "#/components/schemas/SortOrder"
+            },
+            "in": "query",
+            "name": "sortOrder"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistExclusionItemsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -21628,43 +22236,7 @@
                     "exclusions": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "user_id": {
-                            "type": "number"
-                          },
-                          "key": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          },
-                          "guids": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          },
-                          "excluded_at": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "user_id",
-                          "key",
-                          "title",
-                          "type",
-                          "guids",
-                          "excluded_at"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/WatchlistExclusion"
                       }
                     }
                   },
