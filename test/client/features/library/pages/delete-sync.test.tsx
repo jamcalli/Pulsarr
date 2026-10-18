@@ -598,6 +598,47 @@ describe('DeleteSyncPage', () => {
     ])
   })
 
+  it('keeps the schedule off when the settings save fails', async () => {
+    const user = userEvent.setup()
+    const calls = mockEndpoints({ schedule: makeSchedule({ enabled: false }) })
+    server.use(
+      http.put('/v1/config', async ({ request }) => {
+        calls.config.push(await request.json())
+        return HttpResponse.json(
+          {
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Settings were rejected',
+          },
+          { status: 400 },
+        )
+      }),
+    )
+    renderPage()
+
+    const scheduleSwitch = await screen.findByRole('switch', {
+      name: 'Run on a schedule',
+    })
+    await user.click(scheduleSwitch)
+    await user.click(
+      screen.getByRole('switch', { name: 'Delete continuing shows' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Save and turn on',
+      }),
+    )
+
+    expect(
+      await screen.findByText('Settings were rejected'),
+    ).toBeInTheDocument()
+    expect(calls.config).toHaveLength(1)
+    expect(calls.schedule).toEqual([])
+    expect(scheduleSwitch).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled()
+  })
+
   it('names the matching dry run when a save turns the schedule on', async () => {
     const user = userEvent.setup()
     mockEndpoints({ schedule: makeSchedule({ enabled: false }) })

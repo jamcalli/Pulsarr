@@ -30,7 +30,7 @@ function toScheduleValues(schedule: ScheduleStatus): ScheduleValues {
   }
 }
 
-/** One save for a config slice and its job's cron schedule, each write resetting only its own fields. */
+/** One save for a config slice and its job's cron schedule, writing the schedule only after the config saved. */
 export function useScheduledConfigForm<Values extends ConfigUpdate>({
   config,
   toValues,
@@ -59,10 +59,10 @@ export function useScheduledConfigForm<Values extends ConfigUpdate>({
       configForm.discard()
       scheduleForm.discard()
     },
-    submit: () => {
-      if (configForm.dirty) configForm.form.handleSubmit()
+    submit: async () => {
+      if (configForm.dirty && !(await configForm.submit())) return
       if (scheduleForm.dirty && !scheduleForm.form.state.isSubmitting) {
-        scheduleForm.form.handleSubmit()
+        await scheduleForm.submit()
       }
     },
   }

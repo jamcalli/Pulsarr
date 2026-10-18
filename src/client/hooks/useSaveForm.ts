@@ -1,5 +1,6 @@
 import type { StandardSchemaV1 } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
+import { useRef } from 'react'
 import { useFormDirty } from '@/hooks/useFormDirty'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useTransientFlag } from '@/hooks/useTransientFlag'
@@ -34,6 +35,8 @@ export function useSaveForm<Source, Values>({
     }),
   )
 
+  const savedThisSubmit = useRef(false)
+
   const form = useAppForm({
     defaultValues: toValues(source),
     validationLogic: liveValidation,
@@ -43,6 +46,7 @@ export function useSaveForm<Source, Values>({
       mutation
         .mutateAsync(value)
         .then(() => {
+          savedThisSubmit.current = true
           form.reset(toValues(latest() ?? source))
           onSaved?.()
         })
@@ -69,6 +73,13 @@ export function useSaveForm<Source, Values>({
     discard: () => {
       mutation.reset()
       form.reset(toValues(source))
+    },
+    /** Resolves true only when this call saved, so a clean form, a blocked validation or a failed save all resolve false. */
+    submit: async () => {
+      if (!dirty) return false
+      savedThisSubmit.current = false
+      await form.handleSubmit()
+      return savedThisSubmit.current
     },
   }
 }

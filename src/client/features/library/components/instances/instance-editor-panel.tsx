@@ -14,7 +14,8 @@ import type { components } from '@/types/api.js'
 type Config = components['schemas']['Config']
 
 interface EditorActions {
-  submit: () => void
+  /** Resolves true only when the editor saved in this call. */
+  submit: () => Promise<boolean>
   discard: () => void
   runTest: () => void
 }
@@ -66,9 +67,7 @@ export function InstanceEditorPanel({
 
   useLayoutEffect(() => {
     actions.current = {
-      submit: () => {
-        if (editor.dirty && !editor.saveDisabled) editor.form.handleSubmit()
-      },
+      submit: async () => !editor.saveDisabled && editor.submit(),
       discard: editor.discard,
       runTest: editor.test.run,
     }

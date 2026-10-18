@@ -396,6 +396,39 @@ describe('UserPage', () => {
     )
   })
 
+  it('writes no quotas when the settings save fails', async () => {
+    const user = userEvent.setup()
+    const bodies = mockUser()
+    server.use(
+      http.patch('/v1/users/:id', () =>
+        HttpResponse.json(
+          {
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Settings were rejected',
+          },
+          { status: 400 },
+        ),
+      ),
+    )
+    renderPage()
+    await findTitle()
+
+    const alias = screen.getByRole('textbox', { name: 'Alias' })
+    await user.clear(alias)
+    await user.type(alias, 'Maya Rivera')
+    const limit = cardByTitle('Movies').getByLabelText('Requests per period')
+    await user.clear(limit)
+    await user.type(limit, '6')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(
+      await screen.findByText('Settings were rejected'),
+    ).toBeInTheDocument()
+    expect(bodies.separate).toEqual([])
+    expect(bodies.deleteQuery).toEqual([])
+  })
+
   it('turns on a Discord mention while Discord messages are off', async () => {
     const user = userEvent.setup()
     const bodies = mockUser({ user: makeUser({ notify_discord: false }) })

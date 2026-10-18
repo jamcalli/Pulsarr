@@ -44,10 +44,11 @@ export function InstancesBody({ page, config, webhook }: InstancesBodyProps) {
   const showEmpty = list.isPlaceholderOnly && !isNew
   const openValue = page.openKey === null ? [] : [page.openKey]
 
-  const submit = () => {
-    session?.actions.current?.submit()
+  const submit = async () => {
+    const editor = session?.actions.current
+    if (editorDirty && editor && !(await editor.submit())) return
     if (webhook.dirty && !webhook.form.state.isSubmitting) {
-      webhook.form.handleSubmit()
+      await webhook.submit()
     }
   }
 
