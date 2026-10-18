@@ -1612,11 +1612,7 @@
             "type": "boolean"
           },
           "deletionMode": {
-            "type": "string",
-            "enum": [
-              "watchlist",
-              "tag-based"
-            ]
+            "$ref": "#/components/schemas/DeletionMode"
           },
           "queueWaitTime": {
             "type": "number",
@@ -1679,21 +1675,7 @@
             "type": "boolean"
           },
           "deleteSyncNotify": {
-            "type": "string",
-            "enum": [
-              "none",
-              "message",
-              "webhook",
-              "both",
-              "all",
-              "discord-only",
-              "apprise-only",
-              "webhook-only",
-              "dm-only",
-              "discord-webhook",
-              "discord-message",
-              "discord-both"
-            ]
+            "$ref": "#/components/schemas/DeleteSyncNotifyOption"
           },
           "approvalNotify": {
             "$ref": "#/components/schemas/NotifyOption"
@@ -2097,21 +2079,7 @@
             "type": "boolean"
           },
           "deleteSyncNotify": {
-            "type": "string",
-            "enum": [
-              "none",
-              "message",
-              "webhook",
-              "both",
-              "all",
-              "discord-only",
-              "apprise-only",
-              "webhook-only",
-              "dm-only",
-              "discord-webhook",
-              "discord-message",
-              "discord-both"
-            ]
+            "$ref": "#/components/schemas/DeleteSyncNotifyOption"
           },
           "approvalNotify": {
             "$ref": "#/components/schemas/NotifyOption"
@@ -2134,11 +2102,7 @@
             "maximum": 100
           },
           "deletionMode": {
-            "type": "string",
-            "enum": [
-              "watchlist",
-              "tag-based"
-            ]
+            "$ref": "#/components/schemas/DeletionMode"
           },
           "removedTagPrefix": {
             "type": "string",
@@ -2498,6 +2462,149 @@
         ],
         "additionalProperties": false,
         "description": "Every dashboard statistic in one response"
+      },
+      "DeleteSyncDryRunResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "results": {
+            "$ref": "#/components/schemas/DeleteSyncResult"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "results"
+        ],
+        "additionalProperties": false,
+        "description": "Outcome of a delete sync dry run"
+      },
+      "DeleteSyncNotifyOption": {
+        "type": "string",
+        "enum": [
+          "none",
+          "message",
+          "webhook",
+          "both",
+          "all",
+          "discord-only",
+          "apprise-only",
+          "webhook-only",
+          "dm-only",
+          "discord-webhook",
+          "discord-message",
+          "discord-both"
+        ],
+        "description": "Channels the delete sync run summary goes to, legacy aliases included"
+      },
+      "DeleteSyncResult": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "object",
+            "properties": {
+              "deleted": {
+                "type": "number"
+              },
+              "skipped": {
+                "type": "number"
+              },
+              "processed": {
+                "type": "number"
+              },
+              "protected": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "deleted",
+              "skipped",
+              "processed"
+            ],
+            "additionalProperties": false
+          },
+          "movies": {
+            "$ref": "#/components/schemas/DeleteSyncTypeResult"
+          },
+          "shows": {
+            "$ref": "#/components/schemas/DeleteSyncTypeResult"
+          },
+          "safetyTriggered": {
+            "type": "boolean"
+          },
+          "safetyMessage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "total",
+          "movies",
+          "shows"
+        ],
+        "additionalProperties": false,
+        "description": "Totals and per-type results of a delete sync run"
+      },
+      "DeleteSyncResultItem": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "guid",
+          "instance"
+        ],
+        "additionalProperties": false,
+        "description": "One item a delete sync run deleted or would delete"
+      },
+      "DeleteSyncTypeResult": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "number"
+          },
+          "skipped": {
+            "type": "number"
+          },
+          "protected": {
+            "type": "number"
+          },
+          "items": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeleteSyncResultItem"
+            }
+          }
+        },
+        "required": [
+          "deleted",
+          "skipped",
+          "items"
+        ],
+        "additionalProperties": false,
+        "description": "Delete sync counts and items for one content type"
+      },
+      "DeletionMode": {
+        "type": "string",
+        "enum": [
+          "watchlist",
+          "tag-based"
+        ],
+        "description": "Whether delete sync targets content off every watchlist or content carrying the removal tag"
       },
       "DiscordBotControlResponse": {
         "type": "object",
@@ -2879,6 +2986,261 @@
           "sonarr"
         ],
         "description": "Arr instance kind, radarr or sonarr"
+      },
+      "JobStatus": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "interval"
+              },
+              "config": {
+                "type": "object",
+                "properties": {
+                  "days": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 365
+                  },
+                  "hours": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 8760
+                  },
+                  "minutes": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 525600
+                  },
+                  "seconds": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 31536000
+                  },
+                  "runImmediately": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "last_run": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "time": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "completed",
+                          "failed",
+                          "pending"
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "estimated": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "time",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "next_run": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "time": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "completed",
+                          "failed",
+                          "pending"
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "estimated": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "time",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "config",
+              "enabled",
+              "last_run",
+              "next_run",
+              "created_at",
+              "updated_at"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "const": "cron"
+              },
+              "config": {
+                "type": "object",
+                "properties": {
+                  "expression": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "expression"
+                ],
+                "additionalProperties": false
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "last_run": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "time": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "completed",
+                          "failed",
+                          "pending"
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "estimated": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "time",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "next_run": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "time": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "completed",
+                          "failed",
+                          "pending"
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "estimated": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "time",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "config",
+              "enabled",
+              "last_run",
+              "next_run",
+              "created_at",
+              "updated_at"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "A scheduled job and its run state"
       },
       "MaintainerrExclusionMode": {
         "type": "string",
@@ -15038,258 +15400,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "interval"
-                          },
-                          "config": {
-                            "type": "object",
-                            "properties": {
-                              "days": {
-                                "type": "integer",
-                                "exclusiveMinimum": 0,
-                                "maximum": 365
-                              },
-                              "hours": {
-                                "type": "integer",
-                                "exclusiveMinimum": 0,
-                                "maximum": 8760
-                              },
-                              "minutes": {
-                                "type": "integer",
-                                "exclusiveMinimum": 0,
-                                "maximum": 525600
-                              },
-                              "seconds": {
-                                "type": "integer",
-                                "exclusiveMinimum": 0,
-                                "maximum": 31536000
-                              },
-                              "runImmediately": {
-                                "type": "boolean"
-                              }
-                            },
-                            "additionalProperties": false
-                          },
-                          "enabled": {
-                            "type": "boolean"
-                          },
-                          "last_run": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "time": {
-                                    "type": "string"
-                                  },
-                                  "status": {
-                                    "type": "string",
-                                    "enum": [
-                                      "completed",
-                                      "failed",
-                                      "pending"
-                                    ]
-                                  },
-                                  "error": {
-                                    "type": "string"
-                                  },
-                                  "estimated": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "time",
-                                  "status"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "next_run": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "time": {
-                                    "type": "string"
-                                  },
-                                  "status": {
-                                    "type": "string",
-                                    "enum": [
-                                      "completed",
-                                      "failed",
-                                      "pending"
-                                    ]
-                                  },
-                                  "error": {
-                                    "type": "string"
-                                  },
-                                  "estimated": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "time",
-                                  "status"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "updated_at": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "type",
-                          "config",
-                          "enabled",
-                          "last_run",
-                          "next_run",
-                          "created_at",
-                          "updated_at"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "cron"
-                          },
-                          "config": {
-                            "type": "object",
-                            "properties": {
-                              "expression": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            },
-                            "required": [
-                              "expression"
-                            ],
-                            "additionalProperties": false
-                          },
-                          "enabled": {
-                            "type": "boolean"
-                          },
-                          "last_run": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "time": {
-                                    "type": "string"
-                                  },
-                                  "status": {
-                                    "type": "string",
-                                    "enum": [
-                                      "completed",
-                                      "failed",
-                                      "pending"
-                                    ]
-                                  },
-                                  "error": {
-                                    "type": "string"
-                                  },
-                                  "estimated": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "time",
-                                  "status"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "next_run": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "time": {
-                                    "type": "string"
-                                  },
-                                  "status": {
-                                    "type": "string",
-                                    "enum": [
-                                      "completed",
-                                      "failed",
-                                      "pending"
-                                    ]
-                                  },
-                                  "error": {
-                                    "type": "string"
-                                  },
-                                  "estimated": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "time",
-                                  "status"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "updated_at": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "type",
-                          "config",
-                          "enabled",
-                          "last_run",
-                          "next_run",
-                          "created_at",
-                          "updated_at"
-                        ],
-                        "additionalProperties": false
-                      }
-                    ]
+                    "$ref": "#/components/schemas/JobStatus"
                   }
                 }
               }
@@ -15481,149 +15592,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "object",
-                          "properties": {
-                            "deleted": {
-                              "type": "number"
-                            },
-                            "skipped": {
-                              "type": "number"
-                            },
-                            "processed": {
-                              "type": "number"
-                            },
-                            "protected": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "deleted",
-                            "skipped",
-                            "processed"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "movies": {
-                          "type": "object",
-                          "properties": {
-                            "deleted": {
-                              "type": "number"
-                            },
-                            "skipped": {
-                              "type": "number"
-                            },
-                            "protected": {
-                              "type": "number"
-                            },
-                            "items": {
-                              "readOnly": true,
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "title": {
-                                    "type": "string"
-                                  },
-                                  "guid": {
-                                    "type": "string"
-                                  },
-                                  "instance": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "title",
-                                  "guid",
-                                  "instance"
-                                ],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": [
-                            "deleted",
-                            "skipped",
-                            "items"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "shows": {
-                          "type": "object",
-                          "properties": {
-                            "deleted": {
-                              "type": "number"
-                            },
-                            "skipped": {
-                              "type": "number"
-                            },
-                            "protected": {
-                              "type": "number"
-                            },
-                            "items": {
-                              "readOnly": true,
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "title": {
-                                    "type": "string"
-                                  },
-                                  "guid": {
-                                    "type": "string"
-                                  },
-                                  "instance": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "title",
-                                  "guid",
-                                  "instance"
-                                ],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": [
-                            "deleted",
-                            "skipped",
-                            "items"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "safetyTriggered": {
-                          "type": "boolean"
-                        },
-                        "safetyMessage": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "total",
-                        "movies",
-                        "shows"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/DeleteSyncDryRunResponse"
                 }
               }
             }
@@ -15685,258 +15654,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "interval"
-                        },
-                        "config": {
-                          "type": "object",
-                          "properties": {
-                            "days": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 365
-                            },
-                            "hours": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 8760
-                            },
-                            "minutes": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 525600
-                            },
-                            "seconds": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 31536000
-                            },
-                            "runImmediately": {
-                              "type": "boolean"
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "last_run": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "time": {
-                                  "type": "string"
-                                },
-                                "status": {
-                                  "type": "string",
-                                  "enum": [
-                                    "completed",
-                                    "failed",
-                                    "pending"
-                                  ]
-                                },
-                                "error": {
-                                  "type": "string"
-                                },
-                                "estimated": {
-                                  "type": "boolean"
-                                }
-                              },
-                              "required": [
-                                "time",
-                                "status"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "next_run": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "time": {
-                                  "type": "string"
-                                },
-                                "status": {
-                                  "type": "string",
-                                  "enum": [
-                                    "completed",
-                                    "failed",
-                                    "pending"
-                                  ]
-                                },
-                                "error": {
-                                  "type": "string"
-                                },
-                                "estimated": {
-                                  "type": "boolean"
-                                }
-                              },
-                              "required": [
-                                "time",
-                                "status"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "created_at": {
-                          "type": "string"
-                        },
-                        "updated_at": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "type",
-                        "config",
-                        "enabled",
-                        "last_run",
-                        "next_run",
-                        "created_at",
-                        "updated_at"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "cron"
-                        },
-                        "config": {
-                          "type": "object",
-                          "properties": {
-                            "expression": {
-                              "type": "string",
-                              "minLength": 1
-                            }
-                          },
-                          "required": [
-                            "expression"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "last_run": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "time": {
-                                  "type": "string"
-                                },
-                                "status": {
-                                  "type": "string",
-                                  "enum": [
-                                    "completed",
-                                    "failed",
-                                    "pending"
-                                  ]
-                                },
-                                "error": {
-                                  "type": "string"
-                                },
-                                "estimated": {
-                                  "type": "boolean"
-                                }
-                              },
-                              "required": [
-                                "time",
-                                "status"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "next_run": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "time": {
-                                  "type": "string"
-                                },
-                                "status": {
-                                  "type": "string",
-                                  "enum": [
-                                    "completed",
-                                    "failed",
-                                    "pending"
-                                  ]
-                                },
-                                "error": {
-                                  "type": "string"
-                                },
-                                "estimated": {
-                                  "type": "boolean"
-                                }
-                              },
-                              "required": [
-                                "time",
-                                "status"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "created_at": {
-                          "type": "string"
-                        },
-                        "updated_at": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "type",
-                        "config",
-                        "enabled",
-                        "last_run",
-                        "next_run",
-                        "created_at",
-                        "updated_at"
-                      ],
-                      "additionalProperties": false
-                    }
-                  ]
+                  "$ref": "#/components/schemas/JobStatus"
                 }
               }
             }

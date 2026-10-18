@@ -20,6 +20,10 @@
  * await fastify.deleteSync.run();
  */
 
+import {
+  MAX_DELETION_PREVENTION,
+  PLEX_PROTECTION_PLAYLIST_DEFAULT,
+} from '@root/schemas/shared/delete-sync-limits.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
@@ -815,7 +819,9 @@ export class DeleteSyncService {
           deleteEndedShow: this.config.deleteEndedShow,
           deleteContinuingShow: this.config.deleteContinuingShow,
           deleteFiles: this.config.deleteFiles,
-          maxDeletionPrevention: this.config.maxDeletionPrevention ?? 10,
+          maxDeletionPrevention:
+            this.config.maxDeletionPrevention ??
+            MAX_DELETION_PREVENTION.default,
           deleteSyncRequiredTagRegex: this.config.deleteSyncRequiredTagRegex,
         },
         sonarrManager: this.sonarrManager,
@@ -853,7 +859,9 @@ export class DeleteSyncService {
    * @returns The protection playlist name to use
    */
   private getProtectionPlaylistName(): string {
-    return this.config.plexProtectionPlaylistName || 'Do Not Delete'
+    return (
+      this.config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT
+    )
   }
 
   /**

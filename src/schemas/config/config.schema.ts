@@ -11,6 +11,7 @@ import {
   PlexSessionMonitoringConfigPayloadSchema,
   PlexSessionMonitoringConfigSchema,
 } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import { MAX_DELETION_PREVENTION } from '@root/schemas/shared/delete-sync-limits.js'
 import { PORT_RANGE } from '@root/schemas/shared/port.js'
 import {
   RemovedTagPrefixSchema,
@@ -144,12 +145,19 @@ const UpdateNotifyEnum = z.enum(UPDATE_NOTIFY_OPTIONS).meta({
   description: 'Channels an admin notification goes to',
 })
 
-const DeleteSyncNotifyOptionEnum = z.enum(DELETE_SYNC_NOTIFY_OPTIONS)
+const DeleteSyncNotifyOptionEnum = z.enum(DELETE_SYNC_NOTIFY_OPTIONS).meta({
+  id: 'DeleteSyncNotifyOption',
+  description:
+    'Channels the delete sync run summary goes to, legacy aliases included',
+})
 
-const DeletionModeEnum = z.enum([
-  'watchlist', // Remove content when it's no longer on any watchlist
-  'tag-based', // Only remove content that has a specific tag
-])
+export const DELETION_MODES = ['watchlist', 'tag-based'] as const
+
+const DeletionModeEnum = z.enum(DELETION_MODES).meta({
+  id: 'DeletionMode',
+  description:
+    'Whether delete sync targets content off every watchlist or content carrying the removal tag',
+})
 
 /**
  * Schema for validating regex patterns used in delete sync tag matching.
@@ -557,7 +565,11 @@ export const ConfigUpdateSchema = z
     watchlistCapNotifyUser: z.boolean().optional(),
     watchlistAddNotify: NotifyOptionEnum.optional(),
     deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
-    maxDeletionPrevention: z.number().min(1).max(100).optional(),
+    maxDeletionPrevention: z
+      .number()
+      .min(MAX_DELETION_PREVENTION.min)
+      .max(MAX_DELETION_PREVENTION.max)
+      .optional(),
     // Deletion mode
     deletionMode: DeletionModeEnum.optional(),
     removedTagPrefix: RemovedTagPrefixSchema.optional(),
