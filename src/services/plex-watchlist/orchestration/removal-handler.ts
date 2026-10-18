@@ -104,6 +104,13 @@ export async function handleRemovedItems(
 
     await db.deleteWatchlistItems(userId, removedKeys)
   }
+
+  // Delete sync may have dropped the row already, so the exclusion is cleared from the Plex side
+  const exclusions = await db.getExclusionsForUser(userId)
+  const staleKeys = exclusions
+    .filter((exclusion) => !fetchedKeys.has(exclusion.key))
+    .map((exclusion) => exclusion.key)
+  await db.clearExclusions(userId, staleKeys)
 }
 
 /**

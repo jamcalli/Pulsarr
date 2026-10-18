@@ -157,24 +157,6 @@ export async function getExclusionMap(
 }
 
 /**
- * Returns the subset of given keys that the user currently has excluded.
- */
-export async function findExcludedKeys(
-  this: DatabaseService,
-  userId: number,
-  keys: string[],
-): Promise<string[]> {
-  if (keys.length === 0) return []
-
-  const rows = await this.knex('watchlist_exclusions')
-    .where('user_id', userId)
-    .whereIn('key', keys)
-    .select('key')
-
-  return rows.map((r) => r.key)
-}
-
-/**
  * Returns all exclusions for a user, most recent first.
  */
 export async function getExclusionsForUser(
@@ -565,10 +547,8 @@ export async function removeExclusion(
  * that key. A global exclusion (user_id = SYSTEM_USER_ID) covers every user
  * and short-circuits the check, so any item with a global exclusion qualifies.
  *
- * This mirrors how watchlist-mode handles exclusions
- * (cleanupExcludedWatchlistItems removes per-user rows and the standard prune
- * deletes items with zero remaining wanters), but expressed as a single read
- * so tag-based delete sync can consult it without mutating watchlist_items.
+ * Watchlist mode applies the same rule as a read-side filter, so tag-based
+ * delete sync can consult it without mutating watchlist_items.
  *
  * @returns Set of GUIDs covered by exclusion-driven deletion candidates
  */
@@ -604,29 +584,4 @@ export async function getExclusionDrivenDeletionGuids(
     }
   }
   return guids
-}
-
-/**
- * Deletes routed (status != 'pending') watchlist_items rows whose key is
- * excluded for the same user or globally. Pending rows are already vetoed at
- * the routing gate and left in place to avoid RSS-recreate churn. Exclusion
- * rows themselves are preserved.
- *
- * @returns Number of watchlist_items rows deleted
- */
-export async function cleanupExcludedWatchlistItems(
-  this: DatabaseService,
-): Promise<number> {
-  return await this.knex('watchlist_items')
-    .whereExists(function () {
-      this.select(1)
-        .from('watchlist_exclusions')
-        .whereRaw(
-          '(watchlist_exclusions.user_id = watchlist_items.user_id OR watchlist_exclusions.user_id = ?)',
-          [SYSTEM_USER_ID],
-        )
-        .whereRaw('watchlist_exclusions.key = watchlist_items.key')
-    })
-    .whereNot('status', 'pending')
-    .delete()
 }

@@ -99,10 +99,7 @@ export async function validateTagBasedDeletion(
     logger,
   )
 
-  // Exclusions are a parallel deletion signal in tag-based mode. A GUID lands
-  // in exclusionDrivenGuids when every watchlister for its key is covered by
-  // an exclusion (per-user or global) — same semantic as watchlist mode's
-  // cleanupExcludedWatchlistItems, expressed as a read instead of a mutation.
+  // A GUID is exclusion driven when every watchlister for its key is excluded, per user or globally
   const isExclusionDriven = config.exclusionDrivenGuids
     ? itemGuids.some((g) => config.exclusionDrivenGuids?.has(g))
     : false
