@@ -1,3 +1,4 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { PageError } from '@/components/page-error'
@@ -262,7 +263,7 @@ export function WatchlistExclusionsPage() {
         key: pendingExclude.key,
         userIds: [pendingExclude.userId],
         title: pendingExclude.title,
-        type: pendingExclude.type,
+        type: ContentTypeSchema.parse(pendingExclude.type),
         guids: pendingExclude.guids,
       })
       setExcludeStatus('success')
@@ -344,12 +345,12 @@ export function WatchlistExclusionsPage() {
 
     const results = await Promise.allSettled(
       Array.from(byKey.entries()).map(
-        ([key, { title, type, guids, userIds }]) =>
+        async ([key, { title, type, guids, userIds }]) =>
           createExclusionMutation.mutateAsync({
             key,
             userIds: Array.from(userIds),
             title,
-            type,
+            type: ContentTypeSchema.parse(type),
             guids,
           }),
       ),

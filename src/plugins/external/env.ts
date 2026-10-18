@@ -3,6 +3,8 @@ import { resolve } from 'node:path'
 import env from '@fastify/env'
 import {
   DELETE_SYNC_NOTIFY_OPTIONS,
+  MAINTAINERR_EXCLUSION_MODE_DEFAULT,
+  MAINTAINERR_EXCLUSION_MODES,
   NOTIFY_DEFAULTS,
   NOTIFY_OPTIONS,
   PLEX_SERVER_URL_DEFAULT,
@@ -168,8 +170,8 @@ const schema = {
     },
     maintainerrExclusionMode: {
       type: 'string',
-      enum: ['watchlisters', 'global'],
-      default: 'watchlisters',
+      enum: MAINTAINERR_EXCLUSION_MODES,
+      default: MAINTAINERR_EXCLUSION_MODE_DEFAULT,
     },
     logLevel: {
       type: 'string',

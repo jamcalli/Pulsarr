@@ -1,5 +1,6 @@
 import {
   type ConfigFull,
+  MAINTAINERR_EXCLUSION_MODE_DEFAULT,
   NOTIFY_DEFAULTS,
 } from '@root/schemas/config/config.schema.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
@@ -253,7 +254,8 @@ export async function getConfig(
     // Maintainerr configuration
     maintainerrEnabled: Boolean(config.maintainerrEnabled),
     maintainerrUrl: config.maintainerrUrl || '',
-    maintainerrExclusionMode: config.maintainerrExclusionMode || 'watchlisters',
+    maintainerrExclusionMode:
+      config.maintainerrExclusionMode || MAINTAINERR_EXCLUSION_MODE_DEFAULT,
     _isReady: Boolean(config._isReady),
   }
 }
@@ -300,7 +302,7 @@ export async function createConfig(
       maintainerrEnabled: config.maintainerrEnabled ?? false,
       maintainerrUrl: config.maintainerrUrl ?? '',
       maintainerrExclusionMode:
-        config.maintainerrExclusionMode ?? 'watchlisters',
+        config.maintainerrExclusionMode ?? MAINTAINERR_EXCLUSION_MODE_DEFAULT,
       // Out-of-app update notifications
       notifyOnUpdate: config.notifyOnUpdate ?? NOTIFY_DEFAULTS.notifyOnUpdate,
       notifyOnAvailability:

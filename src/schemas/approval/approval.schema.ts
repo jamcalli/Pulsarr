@@ -10,6 +10,7 @@ import {
   RoutingSeriesTypeSchema,
   RoutingTagsSchema,
 } from '@root/schemas/common/routing-target.schema.js'
+import { SortOrderSchema } from '@root/schemas/common/sort-order.schema.js'
 import { RadarrMinimumAvailabilitySchema } from '@root/schemas/radarr/add-options.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { RouterDecision } from '@root/types/approval.types.js'
@@ -214,8 +215,8 @@ export const GetApprovalRequestsQuerySchema = z.object({
   // Content title search (case-insensitive partial match)
   search: z.string().optional(),
   // Server-side pagination
-  limit: z.coerce.number().min(1).max(1000).default(20),
-  offset: z.coerce.number().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(1000).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
   // Server-side sorting
   sortBy: z
     .enum([
@@ -228,7 +229,7 @@ export const GetApprovalRequestsQuerySchema = z.object({
     ])
     .optional()
     .default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+  sortOrder: SortOrderSchema.optional().default('desc'),
 })
 
 export const ApprovalRequestsListResponseSchema = z.object({

@@ -1,3 +1,4 @@
+import type { MaintainerrExclusionMode } from '@root/types/config.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
@@ -22,7 +23,7 @@ export interface MaintainerrWebhookDeps {
   logger: FastifyBaseLogger
   // 'watchlisters' excludes current holders only; 'global' writes a
   // system-user veto that blocks everyone
-  mode: 'watchlisters' | 'global'
+  mode: MaintainerrExclusionMode
 }
 
 function toGuids(providerIds: MaintainerrMediaItem['providerIds']): string[] {

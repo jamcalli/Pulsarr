@@ -9,36 +9,9 @@ import type {
   UserApprovalStats,
 } from '@root/types/approval.types.js'
 import { normalizeGuid } from '@root/utils/guid-handler.js'
+import { applySearchFilter } from '@services/database/search-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
-
-/**
- * Escapes SQL LIKE wildcard characters in a search string.
- * Prevents %, _, and \ from being interpreted as wildcards.
- */
-function escapeLikePattern(search: string): string {
-  return search.replace(/[%_\\]/g, '\\$&')
-}
-
-/**
- * Applies a case-insensitive search filter to a query.
- * Handles both Postgres (ILIKE) and SQLite (LIKE) with proper escaping.
- */
-function applySearchFilter<T>(
-  query: T,
-  search: string,
-  column: string,
-  isPostgres: boolean,
-): T {
-  const escaped = escapeLikePattern(search)
-  const knexQuery = query as T & {
-    whereRaw: (sql: string, bindings: string[]) => T
-  }
-  if (isPostgres) {
-    return knexQuery.whereRaw(`${column} ILIKE ? ESCAPE '\\'`, [`%${escaped}%`])
-  }
-  return knexQuery.whereRaw(`${column} LIKE ? ESCAPE '\\'`, [`%${escaped}%`])
-}
 
 type ApprovalRequestJoinedRow = ApprovalRequestRow & {
   user_name: string | null
