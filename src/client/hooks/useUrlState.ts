@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 export function useUrlState<T extends { page: number }>(
@@ -5,7 +6,7 @@ export function useUrlState<T extends { page: number }>(
   serialize: (state: T) => URLSearchParams,
 ) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const state = parse(searchParams)
+  const state = useMemo(() => parse(searchParams), [parse, searchParams])
 
   return {
     state,

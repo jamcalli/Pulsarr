@@ -15,6 +15,7 @@ type TextFieldProps = {
   preview?: (value: string) => ReactNode
   /** A control drawn beside the input, such as the form's submit button. */
   action?: ReactNode
+  mono?: boolean
 } & Pick<
   ComponentProps<typeof Input>,
   'type' | 'autoComplete' | 'autoFocus' | 'placeholder' | 'required'
@@ -28,6 +29,7 @@ export function TextField({
   orientation = 'responsive',
   preview,
   action,
+  mono = false,
   ...inputProps
 }: TextFieldProps) {
   const field = useFieldContext<string>()
@@ -45,7 +47,7 @@ export function TextField({
       onChange={(event) => field.handleChange(event.target.value)}
       aria-invalid={isInvalid}
       aria-describedby={isInvalid ? errorId : undefined}
-      className={cn(action && 'min-w-0 flex-1')}
+      className={cn(action && 'min-w-0 flex-1', mono && 'font-mono')}
     />
   )
 

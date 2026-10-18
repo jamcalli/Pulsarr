@@ -1,5 +1,6 @@
 import {
   compareSortValues,
+  compareText,
   formatCount,
   formatCurrency,
   formatDateTime,
@@ -176,6 +177,13 @@ describe('format', () => {
     setFormatLocale('en-US')
     expect(formatDuration(386)).toBe('386 ms')
     expect(formatDuration(1204.4)).toBe('1,204 ms')
+  })
+
+  it('sorts text with the locale set after the first comparison', () => {
+    setFormatLocale('de-DE')
+    expect(['z', 'ä'].sort(compareText)).toEqual(['ä', 'z'])
+    setFormatLocale('sv-SE')
+    expect(['ä', 'z'].sort(compareText)).toEqual(['z', 'ä'])
   })
 })
 

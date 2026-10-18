@@ -6,6 +6,7 @@ interface NoMatchesEmptyProps {
   title: string
   description: string
   onClear: () => void
+  clearLabel?: string
   className?: string
 }
 
@@ -13,6 +14,7 @@ export function NoMatchesEmpty({
   title,
   description,
   onClear,
+  clearLabel = 'Clear filters',
   className,
 }: NoMatchesEmptyProps) {
   return (
@@ -23,7 +25,7 @@ export function NoMatchesEmpty({
       className={className}
     >
       <Button type="button" variant="outline" onClick={onClear}>
-        Clear filters
+        {clearLabel}
       </Button>
     </EmptyState>
   )

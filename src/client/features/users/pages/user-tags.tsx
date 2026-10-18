@@ -28,6 +28,7 @@ import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useShowLoading } from '@/hooks/useMinLoading'
 import { formatCount } from '@/lib/format'
 import { NAV_PAGES } from '@/lib/navigation'
+import { REMOVED_TAG_MODE_LABELS } from '@/lib/removed-tag-labels'
 import type { components } from '@/types/api.js'
 
 const SECTION = 'Users'
@@ -74,20 +75,20 @@ const ACTION_ROWS: SyncActionCopy<TagActionId>[] = [
 ]
 
 const REMOVED_TAG_OPTIONS = [
-  { value: 'remove', label: 'Remove the tag' },
+  { value: 'remove', label: REMOVED_TAG_MODE_LABELS.remove },
   {
     value: 'keep',
-    label: 'Keep the tag',
+    label: REMOVED_TAG_MODE_LABELS.keep,
     description: 'The tag stays as a record of who asked.',
   },
   {
     value: 'special-tag',
-    label: 'Swap for a removed tag',
+    label: REMOVED_TAG_MODE_LABELS['special-tag'],
     description:
       "The user's tag comes off and a marker tag goes on, so you can find leftovers.",
   },
 ] as const satisfies Array<{
-  value: string
+  value: components['schemas']['RemovedTagMode']
   label: string
   description?: string
 }>

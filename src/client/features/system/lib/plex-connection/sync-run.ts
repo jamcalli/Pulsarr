@@ -1,5 +1,6 @@
 import type { WatchlistSyncType } from '@root/types/progress.types'
 import type { StatusPillView } from '@/components/status-pill'
+import { WATCHLIST_SYNC_LABELS } from '@/lib/sync-progress'
 import { isSyncActive, type WatchlistSyncCache } from '@/lib/watchlist-sync'
 
 export type SyncStepId = 'verify' | 'self' | 'friends' | 'feeds'
@@ -24,8 +25,8 @@ export interface SyncRun {
 
 export const SYNC_STEP_LABELS: Record<SyncStepId, string> = {
   verify: 'Verify the token',
-  self: 'Your watchlist',
-  friends: "Friends' watchlists",
+  self: WATCHLIST_SYNC_LABELS['self-watchlist'],
+  friends: WATCHLIST_SYNC_LABELS['others-watchlist'],
   feeds: 'Watchlist feeds',
 }
 

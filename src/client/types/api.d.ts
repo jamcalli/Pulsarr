@@ -3647,8 +3647,7 @@ export interface components {
                 appriseUrlsShows: string;
             };
             plexMobileEnabled: boolean;
-            /** @enum {string} */
-            deletionMode: "watchlist" | "tag-based";
+            deletionMode: components["schemas"]["DeletionMode"];
             /** @description Notification queue wait time in milliseconds */
             queueWaitTime: number;
             /** @description New episode notification threshold in milliseconds */
@@ -3672,8 +3671,7 @@ export interface components {
             deleteContinuingShow: boolean;
             deleteFiles: boolean;
             respectUserSyncSetting: boolean;
-            /** @enum {string} */
-            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotify: components["schemas"]["DeleteSyncNotifyOption"];
             approvalNotify: components["schemas"]["NotifyOption"];
             watchlistCapNotify: components["schemas"]["NotifyOption"];
             watchlistCapNotifyUser: boolean;
@@ -3779,16 +3777,14 @@ export interface components {
             deleteContinuingShow?: boolean;
             deleteFiles?: boolean;
             respectUserSyncSetting?: boolean;
-            /** @enum {string} */
-            deleteSyncNotify?: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotify?: components["schemas"]["DeleteSyncNotifyOption"];
             approvalNotify?: components["schemas"]["NotifyOption"];
             watchlistCapNotify?: components["schemas"]["NotifyOption"];
             watchlistCapNotifyUser?: boolean;
             watchlistAddNotify?: components["schemas"]["NotifyOption"];
             deleteSyncNotifyOnlyOnDeletion?: boolean;
             maxDeletionPrevention?: number;
-            /** @enum {string} */
-            deletionMode?: "watchlist" | "tag-based";
+            deletionMode?: components["schemas"]["DeletionMode"];
             removedTagPrefix?: string;
             deleteSyncRequiredTagRegex?: string;
             deleteSyncTrackedOnly?: boolean;
@@ -3876,6 +3872,48 @@ export interface components {
             notification_stats?: components["schemas"]["NotificationStats"];
             instance_content_breakdown?: components["schemas"]["InstanceBreakdown"][];
         };
+        /** @description Outcome of a delete sync dry run */
+        DeleteSyncDryRunResponse: {
+            success: boolean;
+            message: string;
+            results: components["schemas"]["DeleteSyncResult"];
+        };
+        /**
+         * @description Channels the delete sync run summary goes to, legacy aliases included
+         * @enum {string}
+         */
+        DeleteSyncNotifyOption: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+        /** @description Totals and per-type results of a delete sync run */
+        DeleteSyncResult: {
+            total: {
+                deleted: number;
+                skipped: number;
+                processed: number;
+                protected?: number;
+            };
+            movies: components["schemas"]["DeleteSyncTypeResult"];
+            shows: components["schemas"]["DeleteSyncTypeResult"];
+            safetyTriggered?: boolean;
+            safetyMessage?: string;
+        };
+        /** @description One item a delete sync run deleted or would delete */
+        DeleteSyncResultItem: {
+            title: string;
+            guid: string;
+            instance: string;
+        };
+        /** @description Delete sync counts and items for one content type */
+        DeleteSyncTypeResult: {
+            deleted: number;
+            skipped: number;
+            protected?: number;
+            readonly items: components["schemas"]["DeleteSyncResultItem"][];
+        };
+        /**
+         * @description Whether delete sync targets content off every watchlist or content carrying the removal tag
+         * @enum {string}
+         */
+        DeletionMode: "watchlist" | "tag-based";
         /** @description Discord bot status after a start or stop request */
         DiscordBotControlResponse: {
             success: boolean;
@@ -3981,6 +4019,62 @@ export interface components {
          * @enum {string}
          */
         InstanceType: "radarr" | "sonarr";
+        /** @description A scheduled job and its run state */
+        JobStatus: {
+            id: number;
+            name: string;
+            /** @constant */
+            type: "interval";
+            config: {
+                days?: number;
+                hours?: number;
+                minutes?: number;
+                seconds?: number;
+                runImmediately?: boolean;
+            };
+            enabled: boolean;
+            last_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            next_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            created_at: string;
+            updated_at: string;
+        } | {
+            id: number;
+            name: string;
+            /** @constant */
+            type: "cron";
+            config: {
+                expression: string;
+            };
+            enabled: boolean;
+            last_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            next_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            created_at: string;
+            updated_at: string;
+        };
         /**
          * @description Whether a Maintainerr exclusion applies to the watchlisting users or everyone
          * @enum {string}
@@ -10024,61 +10118,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": ({
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "interval";
-                        config: {
-                            days?: number;
-                            hours?: number;
-                            minutes?: number;
-                            seconds?: number;
-                            runImmediately?: boolean;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    } | {
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "cron";
-                        config: {
-                            expression: string;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    })[];
+                    "application/json": components["schemas"]["JobStatus"][];
                 };
             };
             /** @description Rate limit exceeded */
@@ -10183,40 +10223,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            total: {
-                                deleted: number;
-                                skipped: number;
-                                processed: number;
-                                protected?: number;
-                            };
-                            movies: {
-                                deleted: number;
-                                skipped: number;
-                                protected?: number;
-                                readonly items: {
-                                    title: string;
-                                    guid: string;
-                                    instance: string;
-                                }[];
-                            };
-                            shows: {
-                                deleted: number;
-                                skipped: number;
-                                protected?: number;
-                                readonly items: {
-                                    title: string;
-                                    guid: string;
-                                    instance: string;
-                                }[];
-                            };
-                            safetyTriggered?: boolean;
-                            safetyMessage?: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["DeleteSyncDryRunResponse"];
                 };
             };
             /** @description Default Response */
@@ -10265,61 +10272,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "interval";
-                        config: {
-                            days?: number;
-                            hours?: number;
-                            minutes?: number;
-                            seconds?: number;
-                            runImmediately?: boolean;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    } | {
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "cron";
-                        config: {
-                            expression: string;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    };
+                    "application/json": components["schemas"]["JobStatus"];
                 };
             };
             /** @description Default Response */

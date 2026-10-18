@@ -102,12 +102,14 @@ export function savedUrlsPill(count: number): StatusPillView {
   }
 }
 
-/** The first row error across every list, prefixed with its tab label when that tab is not active. */
+/** The first row error across every unlocked list, prefixed with its tab label when that tab is not active. */
 export function publicContentSaveError(
   values: PublicContent,
   activeTab: PublicContentTab,
+  locked: readonly PublicChannel[] = [],
 ): string | null {
   for (const channel of PUBLIC_CHANNELS) {
+    if (locked.includes(channel)) continue
     for (const tab of PUBLIC_CONTENT_TABS) {
       const list = channel.lists[tab.value]
       const error = firstRowError(values[list.name], channel.validateRow)

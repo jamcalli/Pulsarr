@@ -2,13 +2,13 @@ import { ErrorAlert } from '@/components/error-alert'
 import { SeparatedList, SeparatedListRow } from '@/components/separated-list'
 import { ActionResults } from '@/components/settings/action-results'
 import { StatusPill } from '@/components/status-pill'
+import { SyncStepProgress } from '@/components/sync-step-progress'
 import {
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemTitle,
 } from '@/components/ui/item'
-import { SyncStepProgress } from '@/features/system/components/plex-connection/sync-step-progress'
 import {
   SYNC_ERROR_TITLES,
   SYNC_STATUS_PILLS,

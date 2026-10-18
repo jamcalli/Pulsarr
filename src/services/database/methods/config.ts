@@ -9,6 +9,10 @@ import {
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema.js'
 import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import {
+  MAX_DELETION_PREVENTION,
+  PLEX_PROTECTION_PLAYLIST_DEFAULT,
+} from '@root/schemas/shared/delete-sync-limits.js'
 import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
@@ -188,7 +192,7 @@ export async function getConfig(
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
-      config.plexProtectionPlaylistName || 'Do Not Delete',
+      config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
     plexServerUrl: config.plexServerUrl || undefined,
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
     plexLabelSync: (() => {
@@ -322,12 +326,13 @@ export async function createConfig(
         config.watchlistCapNotifyUser ?? NOTIFY_DEFAULTS.watchlistCapNotifyUser,
       watchlistAddNotify:
         config.watchlistAddNotify || NOTIFY_DEFAULTS.watchlistAddNotify,
-      maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
+      maxDeletionPrevention:
+        config.maxDeletionPrevention ?? MAX_DELETION_PREVENTION.default,
       // Plex playlist protection
       enablePlexPlaylistProtection:
         config.enablePlexPlaylistProtection || false,
       plexProtectionPlaylistName:
-        config.plexProtectionPlaylistName || 'Do Not Delete',
+        config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
       plexServerUrl: config.plexServerUrl,
       skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
       // RSS fields

@@ -1,4 +1,5 @@
 import { keepPreviousData } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import {
   groupRollingShows,
   inactiveShowKeys,
@@ -23,19 +24,19 @@ export function useRollingShows(inactivityDays: number | null) {
   )
   const instances = useArrInstances('sonarr')
 
-  const inactiveKeys = inactive.data
-    ? inactiveShowKeys(inactive.data.shows)
-    : null
-  const rows: RollingShowRow[] | null =
-    rolling.data && inactiveKeys
-      ? groupRollingShows(rolling.data.shows).map((show) => ({
-          ...show,
-          instanceName:
-            instances.findTarget(show.record.sonarr_instance_id)?.instance
-              .name ?? '',
-          inactive: isInactive(show, inactiveKeys),
-        }))
-      : null
+  const { targets } = instances
+  const rows = useMemo<RollingShowRow[] | null>(() => {
+    if (!rolling.data || !inactive.data) return null
+    const inactiveKeys = inactiveShowKeys(inactive.data.shows)
+    return groupRollingShows(rolling.data.shows).map((show) => ({
+      ...show,
+      instanceName:
+        targets.find(
+          ({ instance }) => instance.id === show.record.sonarr_instance_id,
+        )?.instance.name ?? '',
+      inactive: isInactive(show, inactiveKeys),
+    }))
+  }, [rolling.data, inactive.data, targets])
 
   const failed = [rolling, inactive].find((query) => query.isError)?.error
 

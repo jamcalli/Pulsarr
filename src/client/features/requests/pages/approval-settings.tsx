@@ -3,19 +3,17 @@ import {
   EXPIRED_APPROVAL_CLEANUP_DAYS,
 } from '@root/schemas/config/config.schema'
 import { useStore } from '@tanstack/react-form'
+import { ConfigPageGate } from '@/components/config-page-gate'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
-import { RetryAlert } from '@/components/retry-alert'
 import { SaveBar } from '@/components/settings/save-bar'
 import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { useApprovalSettingsForm } from '@/features/requests/hooks/approval-settings/useApprovalSettingsForm'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
-import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
-import { useShowLoading } from '@/hooks/useMinLoading'
-import { type ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
+import type { ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
 import { NAV_PAGES } from '@/lib/navigation'
 import { notifyOptions } from '@/lib/notify-labels'
 import { intervalOptions } from '@/lib/schedule'
@@ -197,35 +195,27 @@ function ApprovalSettings({
 }
 
 export default function ApprovalSettingsPage() {
-  const { config, error, initialize } = useConfig()
-  const job = useSchedule(SCHEDULE_NAME, {
-    label: 'Approval maintenance',
-    page: NAV_PAGES.approvalSettings,
-  })
-  const loaded = config !== null && job.schedule !== null
-  const showLoading = useShowLoading(!loaded)
-  const loadError =
-    (!config && error) || (!job.schedule && job.errorMessage) || null
-
-  if (loadError) {
-    return (
-      <Page>
-        <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
-        <RetryAlert
-          message={loadError}
-          onRetry={() => {
-            if (!config) initialize(true)
-            if (!job.schedule) job.retry()
-          }}
-        />
-      </Page>
-    )
-  }
-  if (showLoading) {
-    return <SettingsPageSkeleton {...APPROVAL_SETTINGS_SKELETON} />
-  }
-  if (!config || !job.schedule) return null
   return (
-    <ApprovalSettings config={config} schedule={job.schedule} run={job.run} />
+    <ConfigPageGate
+      section={SECTION}
+      title={TITLE}
+      description={DESCRIPTION}
+      skeleton={<SettingsPageSkeleton {...APPROVAL_SETTINGS_SKELETON} />}
+      schedule={{
+        name: SCHEDULE_NAME,
+        meta: {
+          label: 'Approval maintenance',
+          page: NAV_PAGES.approvalSettings,
+        },
+      }}
+    >
+      {(config, job) => (
+        <ApprovalSettings
+          config={config}
+          schedule={job.schedule}
+          run={job.run}
+        />
+      )}
+    </ConfigPageGate>
   )
 }

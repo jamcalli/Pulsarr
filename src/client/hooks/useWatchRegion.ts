@@ -1,6 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { useMinLoadingMutation } from '@/hooks/useMinLoading'
+import { compareText } from '@/lib/format'
 import { DEFAULT_REGION } from '@/lib/media-detail-query'
 import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
 
@@ -20,11 +22,15 @@ export function useWatchRegion(enabled: boolean) {
     ? (save.variables ?? DEFAULT_REGION)
     : (config?.tmdbRegion ?? DEFAULT_REGION)
   const loaded = regions.data?.regions
-  const options = loaded
-    ? [...loaded]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((entry) => ({ value: entry.code, label: entry.name }))
-    : [{ value: region, label: region }]
+  const loadedOptions = useMemo(
+    () =>
+      loaded &&
+      [...loaded]
+        .sort((a, b) => compareText(a.name, b.name))
+        .map((entry) => ({ value: entry.code, label: entry.name })),
+    [loaded],
+  )
+  const options = loadedOptions ?? [{ value: region, label: region }]
 
   return {
     region,

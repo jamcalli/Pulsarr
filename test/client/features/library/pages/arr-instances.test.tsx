@@ -571,6 +571,30 @@ describe('ArrInstancesPage', () => {
     expect(await screen.findByText('Changes saved')).toBeInTheDocument()
   })
 
+  it('keeps the webhook address unsaved when the instance save fails', async () => {
+    const user = userEvent.setup()
+    const calls = mockEndpoints({ callbackBroken: true, conflictOnSave: true })
+    renderPage()
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Edit Sonarr 4K' }),
+    )
+    const name = screen.getByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, 'Sonarr UHD')
+    const address = screen.getByLabelText('Address')
+    await user.clear(address)
+    await user.type(address, 'http://192.168.1.9')
+    await user.click(saveButton('Save changes'))
+
+    await waitFor(() => expect(calls.put).toHaveLength(1))
+    expect(
+      await screen.findByRole('button', { name: 'Fix the address' }),
+    ).toBeInTheDocument()
+    expect(calls.config).toEqual([])
+    expect(screen.getByLabelText('Address')).toHaveValue('http://192.168.1.9')
+  })
+
   it('shows a webhook callback failure on the card health pill', async () => {
     mockEndpoints({ callbackBroken: true })
     renderPage()

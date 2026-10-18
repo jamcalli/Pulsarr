@@ -32,8 +32,8 @@ const describeInFlight = (inFlight: ReadonlyMap<string, number>): string =>
     ', ',
   )
 
-const READING_END = 50
-const PROCESSING_END = 95
+const READING_END = 90
+const PROCESSING_END = 98
 
 const FIRST_STAGE: Record<
   WatchlistSyncType,

@@ -1,6 +1,6 @@
 import type { WatchlistSyncMetadata } from '@root/types/progress.types'
-import { formatSyncProgress } from '@/features/system/lib/plex-connection/sync-progress'
 import { setFormatLocale } from '@/lib/format'
+import { formatSyncProgress } from '@/lib/sync-progress'
 
 function counted(
   done: number,

@@ -1,4 +1,5 @@
 import { PLEX_DEFAULT_PORT } from '@root/schemas/plex/configure-notifications.schema.js'
+import { PLEX_PROTECTION_PLAYLIST_DEFAULT } from '@root/schemas/shared/delete-sync-limits.js'
 import type { User } from '@root/types/config.types.js'
 import type { Item } from '@root/types/plex.types.js'
 import type {
@@ -213,7 +214,9 @@ export class PlexServerService {
   }
 
   private getProtectionPlaylistName(): string {
-    return this.config.plexProtectionPlaylistName || 'Do Not Delete'
+    return (
+      this.config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT
+    )
   }
 
   private initialized = false

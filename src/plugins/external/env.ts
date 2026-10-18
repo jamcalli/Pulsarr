@@ -6,6 +6,7 @@ import {
   DEFAULT_LOG_LEVEL,
   DEFAULT_PULSARR_PORT,
   DELETE_SYNC_NOTIFY_OPTIONS,
+  DELETION_MODES,
   NEW_EPISODE_THRESHOLD_MS,
   NOTIFY_DEFAULTS,
   NOTIFY_OPTIONS,
@@ -17,6 +18,10 @@ import {
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema.js'
 import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import {
+  MAX_DELETION_PREVENTION,
+  PLEX_PROTECTION_PLAYLIST_DEFAULT,
+} from '@root/schemas/shared/delete-sync-limits.js'
 import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
@@ -326,7 +331,7 @@ const schema = {
     },
     plexProtectionPlaylistName: {
       type: 'string',
-      default: 'Do Not Delete',
+      default: PLEX_PROTECTION_PLAYLIST_DEFAULT,
     },
     deleteMovie: {
       type: 'boolean',
@@ -375,7 +380,7 @@ const schema = {
     },
     maxDeletionPrevention: {
       type: 'number',
-      default: 10,
+      default: MAX_DELETION_PREVENTION.default,
     },
     selfRss: {
       type: 'string',
@@ -415,7 +420,7 @@ const schema = {
     },
     deletionMode: {
       type: 'string',
-      enum: ['watchlist', 'tag-based'],
+      enum: DELETION_MODES,
       default: 'watchlist',
     },
     tagMigration: {

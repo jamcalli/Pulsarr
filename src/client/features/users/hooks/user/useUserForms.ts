@@ -27,8 +27,8 @@ export function useUserForms(data: UserPageData) {
     },
     submit: async () => {
       if (saveBlocked) return
-      if (settings.dirty) await settings.form.handleSubmit()
-      if (quotas.dirty) await quotas.form.handleSubmit()
+      if (settings.dirty && !(await settings.submit())) return
+      if (quotas.dirty) await quotas.submit()
     },
   }
 }
