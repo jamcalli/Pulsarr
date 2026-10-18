@@ -18,7 +18,7 @@ export const MAINTAINERR_EXCLUSION_MODE_HELP: Record<
 > = {
   watchlisters:
     'One exclusion per user watching it when Maintainerr deletes it.',
-  global: 'One exclusion for every user.',
+  global: 'One global exclusion that blocks it for everyone.',
 }
 
 export const MAINTAINERR_EXCLUSION_MODE_OPTIONS: ReadonlyArray<{

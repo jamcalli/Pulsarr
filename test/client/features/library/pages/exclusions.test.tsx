@@ -695,7 +695,7 @@ describe('ExclusionsPage', () => {
     renderPage()
 
     const section = await findSection('Maintainerr')
-    expect(await section.findByText('Test failed')).toBeInTheDocument()
+    expect(await section.findByText('Test not delivered')).toBeInTheDocument()
     expect(section.getByText('Not delivered')).toBeInTheDocument()
   })
 

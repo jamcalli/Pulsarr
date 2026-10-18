@@ -240,10 +240,13 @@ export async function handleLinkedItemsForLabelSync(
 export async function checkForRemovedItems(
   userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   deps: RemovalHandlerDeps,
+  fallbackUserIds: ReadonlySet<number> = new Set(),
 ): Promise<void> {
   const { db } = deps
 
   for (const [user, items] of userWatchlistMap.entries()) {
+    // a fallback set is the stored rows, not Plex, so nothing can be judged removed from it
+    if (fallbackUserIds.has(user.userId)) continue
     const currentItems = await db.getAllWatchlistItemsForUser(user.userId)
 
     const currentKeys = new Set(currentItems.map((item) => item.key))

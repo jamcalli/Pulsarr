@@ -1,6 +1,8 @@
 import type { Friend, TokenWatchlistItem } from '@root/types/plex.types.js'
+import { getWatchlistForUser } from '@services/plex-watchlist/api/graphql.js'
 import { checkForRemovedItems } from '@services/plex-watchlist/orchestration/removal-handler.js'
 import type { FastifyInstance } from 'fastify'
+import { HttpResponse, http } from 'msw'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../../../helpers/database.js'
@@ -8,9 +10,11 @@ import { seedConfig } from '../../../../helpers/seeds/config.js'
 import { seedInstances } from '../../../../helpers/seeds/instances.js'
 import { seedSystemUser, seedUsers } from '../../../../helpers/seeds/users.js'
 import { createMockLogger } from '../../../../mocks/logger.js'
+import { server } from '../../../../setup/msw-setup.js'
 
 const USER_ID = 1
 const KEY = 'plex://movie/dune'
+const ORPHAN_KEY = 'plex://show/severance'
 const NOW = '2026-10-01T00:00:00.000Z'
 
 const user: Friend = {
@@ -45,6 +49,17 @@ async function seedExcludedGrabbedItem() {
 
 async function exclusionsFor(userId: number) {
   return getTestDatabase()('watchlist_exclusions').where('user_id', userId)
+}
+
+async function seedOrphanExclusion() {
+  await getTestDatabase()('watchlist_exclusions').insert({
+    user_id: USER_ID,
+    key: ORPHAN_KEY,
+    title: 'Severance',
+    type: 'show',
+    guids: JSON.stringify(['tvdb:371980']),
+    excluded_at: NOW,
+  })
 }
 
 describe('removal handler clears exclusions', () => {
@@ -94,5 +109,38 @@ describe('removal handler clears exclusions', () => {
     })
 
     expect(await exclusionsFor(USER_ID)).toHaveLength(0)
+  })
+
+  it('keeps every exclusion when the Plex fetch fell back to stored rows', async () => {
+    await seedOrphanExclusion()
+    server.use(
+      http.post('https://community.plex.tv/api', () =>
+        HttpResponse.json(
+          { errors: [{ message: 'unauthorized' }] },
+          { status: 401 },
+        ),
+      ),
+    )
+    const fallbackUserIds = new Set<number>()
+    const fallback = await getWatchlistForUser({
+      token: 'token',
+      log: createMockLogger(),
+      user,
+      userId: USER_ID,
+      getAllWatchlistItemsForUser: (userId) =>
+        fastify.db.getAllWatchlistItemsForUser(userId),
+      onFallback: () => fallbackUserIds.add(USER_ID),
+    })
+    const plexWatchlist = new Map<Friend, Set<TokenWatchlistItem>>([
+      [user, fallback],
+    ])
+
+    await checkForRemovedItems(
+      plexWatchlist,
+      { db: fastify.db, logger: createMockLogger() },
+      fallbackUserIds,
+    )
+
+    expect(await exclusionsFor(USER_ID)).toHaveLength(2)
   })
 })

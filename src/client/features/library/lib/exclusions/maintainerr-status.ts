@@ -16,8 +16,8 @@ export function maintainerrPill(
   if (result === null) return { tone: 'pending', label: 'Checking' }
   switch (result.status) {
     case 'ok':
-      return result.error
-        ? { tone: 'warning', label: 'Test failed' }
+      return result.error || result.testDelivered === false
+        ? { tone: 'warning', label: 'Test not delivered' }
         : { tone: 'on', label: 'Connected' }
     case 'error':
       return { tone: 'failed', label: 'Error' }

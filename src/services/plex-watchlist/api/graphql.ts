@@ -304,6 +304,8 @@ export interface GetWatchlistForUserOptions {
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>
   onWait?: (remainingMs: number) => void
   onPage?: (page: number) => void
+  /** Called when the result is the stored DB items instead of a complete Plex snapshot. */
+  onFallback?: () => void
 }
 
 /** Falls back to stored DB items on fetch failure when a DB getter is given; otherwise rethrows. */
@@ -316,6 +318,7 @@ export const getWatchlistForUser = async ({
   getAllWatchlistItemsForUser,
   onWait,
   onPage,
+  onFallback,
 }: GetWatchlistForUserOptions): Promise<Set<TokenWatchlistItem>> => {
   if (!user?.watchlistId) {
     const error = 'Invalid user object provided to getWatchlistForUser'
@@ -411,6 +414,7 @@ export const getWatchlistForUser = async ({
       log.info(
         `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
       )
+      onFallback?.()
       return allItems
     } catch (dbError) {
       log.error(

@@ -558,6 +558,10 @@ export const router = createBrowserRouter(
               ),
             },
             {
+              path: 'watchlist-exclusions',
+              element: <Navigate to={pageHref(NAV_PAGES.exclusions)} replace />,
+            },
+            {
               path: 'api-keys',
               element: (
                 <AuthenticatedLayout>

@@ -248,6 +248,7 @@ export class PlexWatchlistService {
     }
 
     const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
+    const fallbackUserIds = new Set<number>()
 
     const token = this.config.plexTokens[0]
     const tokenConfig = {
@@ -261,6 +262,7 @@ export class PlexWatchlistService {
       primaryUser.id,
       (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
       progress,
+      (userId) => fallbackUserIds.add(userId),
     )
 
     const tokenUser: Friend = {
@@ -299,7 +301,11 @@ export class PlexWatchlistService {
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
 
-    await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
+    await checkForRemovedItems(
+      userWatchlistMap,
+      this.removalHandlerDeps,
+      fallbackUserIds,
+    )
 
     return buildResponse(
       userWatchlistMap,
@@ -404,11 +410,13 @@ export class PlexWatchlistService {
         .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
     )
 
+    const fallbackUserIds = new Set<number>()
     const userWatchlistMap = await getOthersWatchlist(
       this.log,
       friendsWithIds,
       (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
       progress,
+      (userId) => fallbackUserIds.add(userId),
     )
 
     if (userWatchlistMap.size === 0 && friendsWithIds.size > 0) {
@@ -450,7 +458,11 @@ export class PlexWatchlistService {
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
 
-    await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
+    await checkForRemovedItems(
+      userWatchlistMap,
+      this.removalHandlerDeps,
+      fallbackUserIds,
+    )
 
     return buildResponse(
       userWatchlistMap,
