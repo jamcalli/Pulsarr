@@ -8,7 +8,8 @@ export type TypedRecipient<Id> = { id: Id } | { error: string | null }
 export interface RecipientTest<Id> {
   text: string
   picked: Id | null
-  type: (next: string, pickedLabel: string | null) => void
+  /** `edited` false keeps the pick, for the label the picker writes on an item press. */
+  type: (next: string, pickedLabel: string | null, edited?: boolean) => void
   pick: (id: Id | null) => void
   clear: () => void
   blur: () => void
@@ -38,9 +39,9 @@ export function useRecipientTest<Id>(
   return {
     text,
     picked,
-    type: (next, pickedLabel) => {
+    type: (next, pickedLabel, edited = true) => {
       setText(next)
-      if (picked !== null && next !== pickedLabel) setPicked(null)
+      if (edited && picked !== null && next !== pickedLabel) setPicked(null)
     },
     pick: setPicked,
     clear: () => {

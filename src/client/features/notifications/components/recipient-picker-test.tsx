@@ -85,7 +85,7 @@ export function RecipientPickerTest<Id extends string | number>({
             inputValue={test.text}
             onInputValueChange={(next, details) => {
               if (!typedIds || TEXT_CHANGE_REASONS.has(details.reason)) {
-                test.type(next, pickedLabel)
+                test.type(next, pickedLabel, details.reason !== 'item-press')
               }
             }}
             disabled={blocked}

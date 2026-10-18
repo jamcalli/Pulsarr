@@ -230,6 +230,24 @@ describe('PlexMobilePage', () => {
     expect(pushes).toEqual([{ userId: '7', body: { channel: 'plex-mobile' } }])
   })
 
+  it('keeps the second pick when the recipient changes', async () => {
+    const user = userEvent.setup()
+    setPlexMobileStatus('enabled')
+    const { pushes } = mockEndpoints({ plexMobileEnabled: true })
+    renderPage()
+
+    const input = await screen.findByLabelText('Send to')
+    await user.click(input)
+    await user.click(await screen.findByRole('option', { name: 'Riley' }))
+    await user.click(input)
+    await user.click(await screen.findByRole('option', { name: 'sam' }))
+    expect(input).toHaveValue('sam')
+    await user.click(screen.getByRole('button', { name: 'Send test' }))
+
+    expect(await screen.findByText('in 418 ms')).toBeInTheDocument()
+    expect(pushes).toEqual([{ userId: '8', body: { channel: 'plex-mobile' } }])
+  })
+
   it('shows the server error when the push is refused', async () => {
     const user = userEvent.setup()
     setPlexMobileStatus('enabled')
