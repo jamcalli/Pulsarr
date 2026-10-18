@@ -1,5 +1,6 @@
 import { PROBE_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import {
+  MAINTAINERR_MIN_VERSION,
   MaintainerrStatusResponseSchema,
   MaintainerrWebhookErrorSchema,
   MaintainerrWebhookPayloadSchema,
@@ -32,8 +33,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         security: [{ maintainerrWebhookAuth: [] }],
         summary: 'Process Maintainerr webhook',
         operationId: 'processMaintainerrWebhook',
-        description:
-          'Process MEDIA_HANDLED webhooks from Maintainerr (3.23.0+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header.',
+        description: `Process MEDIA_HANDLED webhooks from Maintainerr (${MAINTAINERR_MIN_VERSION}+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header.`,
         body: MaintainerrWebhookPayloadSchema,
         response: {
           200: MaintainerrWebhookResponseSchema,

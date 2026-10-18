@@ -2,6 +2,7 @@ import { Badge, type BadgeVariant } from '@/components/ui/badge'
 
 export type StatusTone =
   | 'pending'
+  | 'warning'
   | 'requested'
   | 'available'
   | 'failed'
@@ -10,6 +11,7 @@ export type StatusTone =
 
 const TONE_VARIANTS: Record<StatusTone, BadgeVariant> = {
   pending: 'warn',
+  warning: 'warn',
   requested: 'info',
   available: 'ok',
   failed: 'destructive',

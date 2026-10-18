@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { compareText } from '@/lib/format'
 
-export function useRequesterOptions(): Array<{ value: number; label: string }> {
+export function useUserOptions(): Array<{ value: number; label: string }> {
   const { users } = useUserDirectory()
   return useMemo(
     () =>

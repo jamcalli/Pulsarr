@@ -1,16 +1,16 @@
 import { FilterToolbar } from '@/components/filter-toolbar'
 import type { ApprovalQueuePage } from '@/features/requests/hooks/approval-queue/useApprovalQueuePage'
-import { useRequesterOptions } from '@/features/requests/hooks/approval-queue/useRequesterOptions'
 import {
-  CONTENT_TYPE_FILTER_OPTIONS,
   filterCount,
   QUEUE_FILTER_WIDTHS,
   TRIGGER_FILTER_OPTIONS,
 } from '@/features/requests/lib/approval-queue/queue-state'
+import { useUserOptions } from '@/hooks/useUserOptions'
+import { CONTENT_TYPE_FILTER_OPTIONS } from '@/lib/content-type'
 import { toolbarFilter } from '@/lib/filter-toolbar'
 
 export function ApprovalQueueFilters({ page }: { page: ApprovalQueuePage }) {
-  const requesters = useRequesterOptions()
+  const requesters = useUserOptions()
   const { state } = page
   const filters = [
     toolbarFilter({

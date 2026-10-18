@@ -188,7 +188,7 @@ export const InstanceFields = withFieldGroup({
           {(field) => (
             <field.SwitchField
               label="Bypass ignored"
-              description="Ignore Pulsarr's watchlist exclusions and process all content."
+              description="Add content even when it is on this instance's import list exclusions."
               disabled={disabled}
             />
           )}

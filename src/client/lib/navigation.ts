@@ -90,9 +90,12 @@ export const NAV_PAGES = {
     ]),
     rebuilt: true,
   },
-  exclusions: page('Exclusions', '/library/exclusions', [
-    '/utilities/watchlist-exclusions',
-  ]),
+  exclusions: {
+    ...page('Exclusions', '/library/exclusions', [
+      '/utilities/watchlist-exclusions',
+    ]),
+    rebuilt: true,
+  },
   deleteSync: {
     ...page('Delete sync', '/library/delete-sync', ['/utilities/delete-sync']),
     rebuilt: true,

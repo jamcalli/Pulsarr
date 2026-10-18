@@ -13,6 +13,9 @@ export const MaintainerrWebhookResponseSchema = z.object({
   created: z.number(),
 })
 
+/** Older releases send webhooks without provider ids. */
+export const MAINTAINERR_MIN_VERSION = '3.23.0'
+
 export const MaintainerrReconcileStatusSchema = z
   .enum(['disabled', 'unsupported_version', 'error', 'ok'])
   .meta({
