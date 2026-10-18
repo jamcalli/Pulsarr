@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
+import { ExclusionsSkeleton } from '@/features/library/components/exclusions/exclusions-skeleton'
 import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
 import { SessionMonitoringSkeleton } from '@/features/library/components/session-monitoring/session-monitoring-skeleton'
 import { DELETE_SYNC_SKELETON } from '@/features/library/lib/delete-sync/delete-sync-skeleton'
@@ -59,6 +60,7 @@ const SessionMonitoringPage = lazy(
 const DeleteSyncPage = lazy(
   () => import('@/features/library/pages/delete-sync'),
 )
+const ExclusionsPage = lazy(() => import('@/features/library/pages/exclusions'))
 const DiscordPage = lazy(() => import('@/features/notifications/pages/discord'))
 const ApprisePage = lazy(() => import('@/features/notifications/pages/apprise'))
 const DeliveryPage = lazy(
@@ -107,9 +109,6 @@ const LegacyPlexLabelsPage = lazy(
 )
 const LegacyApiKeysPage = lazy(
   () => import('@/legacy/features/system/pages/api-keys'),
-)
-const WatchlistExclusionsPage = lazy(
-  () => import('@/legacy/features/users/pages/watchlist-exclusions'),
 )
 const LogViewerPage = lazy(
   () => import('@/legacy/features/system/pages/log-viewer'),
@@ -263,6 +262,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<ContentRouterSkeleton />}>
                   <ContentRouterPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'library/exclusions',
+              element: (
+                <Suspense fallback={<ExclusionsSkeleton />}>
+                  <ExclusionsPage />
                 </Suspense>
               ),
             },
@@ -551,21 +558,15 @@ export const router = createBrowserRouter(
               ),
             },
             {
+              path: 'watchlist-exclusions',
+              element: <Navigate to={pageHref(NAV_PAGES.exclusions)} replace />,
+            },
+            {
               path: 'api-keys',
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
                     <LegacyApiKeysPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'watchlist-exclusions',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <WatchlistExclusionsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

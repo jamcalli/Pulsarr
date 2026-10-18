@@ -304,18 +304,6 @@ export class DeleteSyncService {
           )
         }
 
-        // Step 6.5: Persist the row removal on real runs. The protected set
-        // above already reflects exclusions, so this is just DB cleanup.
-        if (!dryRun) {
-          const cleanedExcluded =
-            await this.dbService.cleanupExcludedWatchlistItems()
-          if (cleanedExcluded > 0) {
-            this.log.info(
-              `Removed ${cleanedExcluded} routed watchlist item(s) for excluded content`,
-            )
-          }
-        }
-
         this.log.info(
           `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
         )

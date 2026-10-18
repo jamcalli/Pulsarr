@@ -1,3 +1,4 @@
+import { MAINTAINERR_MIN_VERSION } from '@root/schemas/notifications/maintainerr-webhook.schema.js'
 import { normalizeBasePath } from '@utils/url.js'
 import { normaliseVersion } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -11,8 +12,6 @@ const DELETE_ACTIONS = new Set([0, 1, 2, 5])
 
 // MEDIA_HANDLED notification type bit
 const MEDIA_HANDLED = 16
-
-const MIN_VERSION = '3.23.0'
 
 const CONFIG_NAME = 'Pulsarr'
 
@@ -257,10 +256,10 @@ export class MaintainerrService {
     try {
       const version = await this.fetchVersion(run.base)
       const normalised = normaliseVersion(version)
-      if (!normalised || semver.lt(normalised, MIN_VERSION)) {
+      if (!normalised || semver.lt(normalised, MAINTAINERR_MIN_VERSION)) {
         this.log.warn(
           { version },
-          'Maintainerr version does not include provider ids in webhooks; upgrade to 3.23.0 or later',
+          `Maintainerr version does not include provider ids in webhooks; upgrade to ${MAINTAINERR_MIN_VERSION} or later`,
         )
         return this.finish({ status: 'unsupported_version', version })
       }

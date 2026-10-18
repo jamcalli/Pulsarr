@@ -1,8 +1,7 @@
 import { ApprovalTriggerSchema } from '@root/schemas/approval/approval.schema'
-import { ContentTypeSchema } from '@root/schemas/common/content-type.schema'
 import { type PageSize, pageSizePref } from '@/components/data-table/page-size'
 import { APPROVAL_STATUS_LABELS, TRIGGER_LABELS } from '@/lib/approval'
-import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
+import { CONTENT_TYPE_FILTER_OPTIONS } from '@/lib/content-type'
 import { APPROVAL_QUEUE_USER_PARAM } from '@/lib/navigation'
 import {
   oneOf,
@@ -67,14 +66,6 @@ export const HISTORY_STATUS_OPTIONS: ReadonlyArray<{
   value: HistoryStatus
   label: string
 }> = [{ value: 'all', label: 'All' }, ...DECIDED_STATUS_OPTIONS]
-
-export const CONTENT_TYPE_FILTER_OPTIONS: ReadonlyArray<{
-  value: ContentType
-  label: string
-}> = ContentTypeSchema.options.map((value) => ({
-  value,
-  label: CONTENT_TYPE_PLURAL_LABELS[value],
-}))
 
 export const TRIGGER_FILTER_OPTIONS: ReadonlyArray<{
   value: ApprovalTrigger

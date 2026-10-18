@@ -129,9 +129,8 @@ export function extractGuidsFromWatchlistItems(
 }
 
 /**
- * Drops routed (non-pending) rows excluded for the owning user or globally,
- * mirroring cleanupExcludedWatchlistItems. Pending rows are kept since they
- * never reached Sonarr/Radarr.
+ * Drops routed (non-pending) rows excluded for the owning user or globally.
+ * Pending rows are kept since they never reached Sonarr/Radarr.
  */
 export function filterExcludedRoutedItems(
   items: DeleteSyncWatchlistItem[],

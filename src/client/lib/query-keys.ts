@@ -114,3 +114,12 @@ export const plexConnectionKeys = {
 export const webhookEndpointsKeys = {
   all: $api.queryOptions('get', '/v1/webhooks/endpoints').queryKey,
 }
+
+/** `items` is a prefix matching every params variant. */
+export const watchlistExclusionKeys = {
+  items: $api.queryOptions('get', '/v1/watchlist-exclusions/items').queryKey,
+  maintainerrStatus: $api.queryOptions(
+    'get',
+    '/v1/notifications/maintainerr/status',
+  ).queryKey,
+}

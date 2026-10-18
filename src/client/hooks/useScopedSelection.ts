@@ -43,7 +43,10 @@ export function useScopedSelection(scope: string) {
       })),
     clear: () => updateInVisit((prev) => emptySelection(prev.scope, visit)),
     /** Keeps exactly `ids` selected, such as the rows a bulk action failed on. */
-    settle: (ids: ReadonlyArray<number>, failure: BulkFailure | null) =>
+    settle: (
+      ids: ReadonlyArray<string | number>,
+      failure: BulkFailure | null,
+    ) =>
       updateInVisit((prev) => ({
         ...prev,
         rows: Object.fromEntries(ids.map((id) => [String(id), true])),
