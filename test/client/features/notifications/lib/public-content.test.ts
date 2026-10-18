@@ -1,4 +1,7 @@
-import { publicContentSaveError } from '@/features/notifications/lib/public-content'
+import {
+  PUBLIC_APPRISE,
+  publicContentSaveError,
+} from '@/features/notifications/lib/public-content'
 
 const EMPTY = {
   enabled: true,
@@ -52,5 +55,10 @@ describe('public-content', () => {
     expect(
       publicContentSaveError({ ...EMPTY, appriseUrls: 'not a url' }, 'shows'),
     ).toBe('All content: Enter an Apprise URL with :// or an email address.')
+  })
+
+  it('skips the lists of a locked channel', () => {
+    const values = { ...EMPTY, appriseUrls: 'not a url' }
+    expect(publicContentSaveError(values, 'all', [PUBLIC_APPRISE])).toBeNull()
   })
 })

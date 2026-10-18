@@ -30,7 +30,7 @@ export const NOTIFICATION_CHANNELS: ChannelLabel[] = [
   },
   {
     channel: 'plex_mobile',
-    label: 'Plex Mobile',
+    label: 'Plex mobile',
     color: 'chart-plex-mobile',
   },
   {

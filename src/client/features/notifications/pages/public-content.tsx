@@ -54,9 +54,6 @@ function PublicContentSettings({ config }: { config: Config }) {
   const guard = useLeaveGuard(dirty)
   const enabled = useStore(form.store, (state) => state.values.enabled)
   const [activeTab, setActiveTab] = useState<PublicContentTab>('all')
-  const saveError = useStore(form.store, (state) =>
-    publicContentSaveError(state.values, activeTab),
-  )
   const appriseStatus = useAppriseStatus() ?? appriseStatusFromConfig(config)
   const appriseReason = appriseLockReason(appriseStatus, 'lists')
   const discordLock = enabled ? undefined : OFF_LOCK
@@ -68,6 +65,13 @@ function PublicContentSettings({ config }: { config: Config }) {
           action: <NavPageButton page={NAV_PAGES.apprise} />,
         }
       : undefined
+  const lockedChannels = [
+    ...(discordLock ? [PUBLIC_DISCORD] : []),
+    ...(appriseLock ? [PUBLIC_APPRISE] : []),
+  ]
+  const saveError = useStore(form.store, (state) =>
+    publicContentSaveError(state.values, activeTab, lockedChannels),
+  )
   const savedLists = config.publicContentNotifications
 
   const channelSection = (
