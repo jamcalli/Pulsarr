@@ -711,6 +711,41 @@ describe('SessionMonitoringPage', () => {
     expect(calls.config).toEqual([])
   })
 
+  it('asks before closing the enrollment once a show is picked', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    renderPage()
+    await findTable()
+    const open = async () => {
+      await user.click(
+        screen.getByRole('button', { name: 'Manage enrollment' }),
+      )
+      return screen.findByRole('dialog', { name: 'Manage enrollment' })
+    }
+
+    const first = await open()
+    await within(first).findByRole('checkbox', { name: 'Select Ted Lasso' })
+    await user.keyboard('{Escape}')
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Manage enrollment' }),
+      ).toBeNull(),
+    )
+    expect(
+      screen.queryByRole('dialog', { name: 'Leave without saving?' }),
+    ).toBeNull()
+
+    const dialog = await open()
+    await user.click(
+      await within(dialog).findByRole('checkbox', { name: 'Select Ted Lasso' }),
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Leave without saving?' }),
+    ).toBeInTheDocument()
+  })
+
   it('shows the apply bar once touched and flags the missing mode', async () => {
     const user = userEvent.setup()
     mockEndpoints()

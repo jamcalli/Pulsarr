@@ -116,6 +116,10 @@ For Gmail, you'll need an [App Password](https://myaccount.google.com/apppasswor
 
 For the full list, see the [Apprise documentation](https://appriseit.com/).
 
+### Saved Apprise configs
+
+The Docker Compose example above runs Apprise with stateful mode on, so you can save configs in Apprise itself. To use a saved config, add `apprise://apprise:8000/<config-key>` anywhere Pulsarr accepts an Apprise URL. Use `apprises://` instead when your Apprise server is behind HTTPS. Add `?tags=` to the URL to send to only part of the config. Reference a saved config by its key URL. The email sender setting only applies to plain email addresses.
+
 ## Troubleshooting
 
 ### Apprise Not Detected

@@ -6,13 +6,13 @@ import type { components } from '@/types/api.js'
 
 type SendFailure = { success: false; error: string }
 
-/** A result only holds for the value it tested, so changing the value returns the test to idle. */
+/** A result only holds for the value it tested, so changing the value, or clearing it to null, returns the test to idle. */
 export function useSendTest<
   Value,
   Result = components['schemas']['TestResult'],
 >(
   send: (value: Value) => Promise<Result>,
-  current: Value,
+  current: Value | null,
   equal: (a: Value, b: Value) => boolean = Object.is,
 ) {
   const [tested, setTested] = useState<{
@@ -42,7 +42,8 @@ export function useSendTest<
     })
   }
 
-  const result = tested && equal(tested.value, current) ? tested : null
+  const result =
+    tested && current !== null && equal(tested.value, current) ? tested : null
 
   return {
     testing: mutation.isPending,

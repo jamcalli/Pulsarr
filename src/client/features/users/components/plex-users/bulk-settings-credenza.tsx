@@ -1,9 +1,6 @@
 import { useStore } from '@tanstack/react-form'
 import { BulkFormCredenza } from '@/components/bulk-form-credenza'
-import { CredenzaClose } from '@/components/credenza'
 import { FieldSection } from '@/components/field-section'
-import { SaveBar } from '@/components/settings/save-bar'
-import { Button } from '@/components/ui/button'
 import type { PlexUsersPage } from '@/features/users/hooks/plex-users/usePlexUsersPage'
 import {
   BULK_CHOICE_OPTIONS,
@@ -31,27 +28,7 @@ export function BulkSettingsCredenza({ page }: { page: PlexUsersPage }) {
     bulkSettingsChangeCount(state.values),
   )
 
-  const footer =
-    changes > 0 || busy ? (
-      <SaveBar
-        dirty={changes > 0}
-        isSubmitting={busy}
-        saved={false}
-        errorMessage={null}
-        onDiscard={() => page.setSettingsOpen(false)}
-        message={`${formatCount(changes, 'change')} for ${users}`}
-        saveLabel={`Apply to ${users}`}
-        discardLabel="Cancel"
-      />
-    ) : (
-      <CredenzaClose
-        render={
-          <Button type="button" variant="outline" className="sm:self-end" />
-        }
-      >
-        Cancel
-      </CredenzaClose>
-    )
+  const dirty = changes > 0
 
   return (
     <BulkFormCredenza
@@ -60,7 +37,12 @@ export function BulkSettingsCredenza({ page }: { page: PlexUsersPage }) {
       form={form}
       title={`Edit settings for ${users}`}
       description="Fields left as is keep each user's current value."
-      footer={footer}
+      dirty={dirty}
+      busy={busy}
+      saveBar={{
+        message: `${formatCount(changes, 'change')} for ${users}`,
+        saveLabel: `Apply to ${users}`,
+      }}
     >
       <FieldSection title="Notifications">
         <form.AppField name="notify_discord">

@@ -4,6 +4,7 @@ import { DOCS_ROOT } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 
 export const APPRISE_DOCS_URL = `${DOCS_ROOT}/notifications/apprise`
+export const APPRISE_URL_FORMATS_URL = 'https://appriseit.com/'
 
 export const APPRISE_STATUS_PILLS: Record<AppriseStatus, StatusPillView> = {
   enabled: { tone: 'on', label: 'Enabled' },
@@ -19,9 +20,12 @@ export function appriseStatusFromConfig(
   return config.enableApprise ? 'enabled' : 'disabled'
 }
 
-export function appriseLockReason(status: AppriseStatus): string | null {
+export function appriseLockReason(
+  status: AppriseStatus,
+  covers: 'settings' | 'lists' = 'settings',
+): string | null {
   if (status === 'enabled') return null
   return status === 'disabled'
-    ? 'Apprise is disabled, so these settings do nothing until it is reachable.'
-    : 'Set up an Apprise server to use these settings.'
+    ? `Apprise is disabled, so these ${covers} do nothing until it is reachable.`
+    : `Set up an Apprise server to use these ${covers}.`
 }

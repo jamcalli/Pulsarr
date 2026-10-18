@@ -47,6 +47,8 @@ function UserBody({ data }: { data: UserPageData }) {
           <UserSettingsSections
             form={forms.settingsForm}
             username={user.name}
+            user={user}
+            dirty={forms.dirty}
           />
           <UserQuotasSection
             form={forms.quotasForm}

@@ -23,7 +23,7 @@ import type { components } from '@/types/api.js'
 
 const SECTION = 'Notifications'
 const TITLE = NAV_PAGES.apprise.label
-const DESCRIPTION = 'Send notifications through your Apprise server.'
+const DESCRIPTION = 'Choose where admin notifications go through Apprise.'
 
 function AppriseSettings({
   config,
@@ -58,12 +58,15 @@ function AppriseSettings({
           >
             <form.AppField name="appriseEmailSender">
               {(field) => (
-                <field.TextField
+                <field.SecretField
                   label="Email sender"
                   description="A mailtos:// URL so targets can be plain email addresses."
                   placeholder="mailtos://user:password@gmail.com"
                   orientation="vertical"
-                  autoComplete="off"
+                  revealLabel={{
+                    show: 'Show email sender',
+                    hide: 'Hide email sender',
+                  }}
                   disabled={lockReason !== null}
                 />
               )}
@@ -74,6 +77,7 @@ function AppriseSettings({
                   label="Apprise URLs"
                   description="Apprise URLs or email addresses for admin notifications."
                   placeholder="tgram://... or name@example.com"
+                  masked
                   disabled={lockReason !== null}
                   saved={config.systemAppriseUrl ?? ''}
                   validateRow={appriseRowError}

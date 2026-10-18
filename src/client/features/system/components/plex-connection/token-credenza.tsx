@@ -1,9 +1,6 @@
 import { useStore } from '@tanstack/react-form'
 import { useState } from 'react'
 import { BulkFormCredenza } from '@/components/bulk-form-credenza'
-import { CredenzaClose } from '@/components/credenza'
-import { SaveBar } from '@/components/settings/save-bar'
-import { Button } from '@/components/ui/button'
 import { useLinkAccount } from '@/features/system/hooks/plex-connection/useAccountToken'
 import {
   TOKEN_FAILURE_MESSAGES,
@@ -46,40 +43,12 @@ export function TokenCredenza({
   const isRejected = failure === 'rejected'
   const busy = link.pending
 
-  const footer =
-    token !== '' || busy ? (
-      <SaveBar
-        dirty
-        isSubmitting={busy}
-        saved={false}
-        errorMessage={link.errorMessage}
-        onDiscard={() => onOpenChange(false)}
-        message={
-          busy
-            ? 'Verifying with Plex...'
-            : failure
-              ? TOKEN_FAILURE_MESSAGES[failure]
-              : 'Ready to link'
-        }
-        saveLabel="Link account"
-        saveDisabled={isRejected}
-        discardLabel="Cancel"
-      />
-    ) : (
-      <CredenzaClose
-        render={
-          <Button type="button" variant="outline" className="sm:self-end" />
-        }
-      >
-        Cancel
-      </CredenzaClose>
-    )
+  const dirty = token !== ''
 
   return (
     <BulkFormCredenza
       open={open}
       onOpenChange={(next) => {
-        if (busy) return
         if (next) {
           link.reset()
           setFailed(null)
@@ -89,7 +58,18 @@ export function TokenCredenza({
       form={form}
       title="Paste a token"
       description="Pulsarr checks the token with Plex before linking."
-      footer={footer}
+      dirty={dirty}
+      busy={busy}
+      saveBar={{
+        errorMessage: link.errorMessage,
+        message: busy
+          ? 'Verifying with Plex...'
+          : failure
+            ? TOKEN_FAILURE_MESSAGES[failure]
+            : 'Ready to link',
+        saveLabel: 'Link account',
+        saveDisabled: isRejected,
+      }}
     >
       <form.AppField name="token">
         {(field) => (

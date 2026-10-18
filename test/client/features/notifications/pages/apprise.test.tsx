@@ -60,8 +60,15 @@ describe('ApprisePage', () => {
 
     expect(await screen.findByText('Enabled')).toBeInTheDocument()
     expect(screen.getByText('http://apprise:8000')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Apprise URL formats' }),
+    ).toHaveAttribute('href', 'https://appriseit.com/')
     expect(screen.getByLabelText('Apprise URLs, URL 2')).toHaveValue(
       'admin@example.com',
+    )
+    expect(screen.getByLabelText('Apprise URLs, URL 2')).toHaveAttribute(
+      'type',
+      'password',
     )
 
     await user.click(screen.getByRole('button', { name: 'Remove URL 1' }))
@@ -74,6 +81,18 @@ describe('ApprisePage', () => {
         systemAppriseUrl: 'admin@example.com',
       },
     ])
+  })
+
+  it('masks the email sender until revealed', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    renderPage()
+
+    const sender = await screen.findByLabelText('Email sender')
+    expect(sender).toHaveAttribute('type', 'password')
+    await user.click(screen.getByRole('button', { name: 'Show email sender' }))
+    expect(sender).toHaveAttribute('type', 'text')
+    expect(sender).toHaveValue(savedConfig.appriseEmailSender)
   })
 
   it('locks the system settings while Apprise is unreachable', async () => {

@@ -17,6 +17,7 @@ type RecentRequest = components['schemas']['RecentRequestItem']
 type UserUpdate =
   paths['/v1/users/{id}']['patch']['requestBody']['content']['application/json']
 type SeparateQuotas = components['schemas']['UserQuotasUpdatePayload']
+type UserTestPayload = components['schemas']['UserTestPayload']
 type FriendRequestPayload =
   paths['/v1/plex/cancel-friend-request']['post']['requestBody']['content']['application/json']
 
@@ -131,6 +132,7 @@ function mockUser({
     deleteQuery: [] as string[],
     separate: [] as SeparateQuotas[],
     cancel: [] as FriendRequestPayload[],
+    tests: [] as { userId: string; body: UserTestPayload }[],
   }
   server.use(
     http.get('/v1/config', () =>
@@ -210,6 +212,13 @@ function mockUser({
       async ({ request }) => {
         bodies.cancel.push(await request.json())
         return HttpResponse.json({ success: true, message: 'ok' })
+      },
+    ),
+    http.post<{ userId: string }, UserTestPayload>(
+      '/v1/notifications/test/users/:userId',
+      async ({ params, request }) => {
+        bodies.tests.push({ userId: params.userId, body: await request.json() })
+        return HttpResponse.json({ success: true, responseTime: 418 })
       },
     ),
     http.get('/v1/tmdb/regions', () =>
@@ -680,6 +689,47 @@ describe('UserPage', () => {
           },
         },
       ]),
+    )
+  })
+
+  it('sends a Discord DM test to the saved user', async () => {
+    const user = userEvent.setup()
+    const bodies = mockUser()
+    renderPage()
+    await findTitle()
+
+    await user.click(screen.getByRole('button', { name: 'Discord DM' }))
+
+    expect(await screen.findByText('in 418 ms')).toBeInTheDocument()
+    expect(bodies.tests).toEqual([
+      { userId: '2', body: { channel: 'discord-dm' } },
+    ])
+  })
+
+  it('locks the Apprise test without a saved Apprise URL', async () => {
+    mockUser()
+    renderPage()
+    await findTitle()
+
+    expect(screen.getByRole('button', { name: 'Apprise' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Discord DM' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Plex mobile' })).toBeEnabled()
+  })
+
+  it('locks every test while a change is unsaved', async () => {
+    const user = userEvent.setup()
+    mockUser({ user: makeUser({ apprise: 'mailto://maya@example.com' }) })
+    renderPage()
+    await findTitle()
+
+    expect(screen.getByRole('button', { name: 'Apprise' })).toBeEnabled()
+    await user.type(screen.getByRole('textbox', { name: 'Alias' }), 'x')
+
+    for (const name of ['Discord DM', 'Apprise', 'Plex mobile']) {
+      expect(screen.getByRole('button', { name })).toBeDisabled()
+    }
+    expect(screen.getByText('Send a test').parentElement).toHaveTextContent(
+      'Save or discard your changes first.',
     )
   })
 })

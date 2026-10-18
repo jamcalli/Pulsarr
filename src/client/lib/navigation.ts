@@ -114,15 +114,24 @@ export const NAV_PAGES = {
     ]),
     rebuilt: true,
   },
-  webhooks: page('Webhooks', '/notifications/webhooks', [
-    '/notifications#native-webhooks',
-  ]),
-  plexMobile: page('Plex Mobile', '/notifications/plex-mobile', [
-    '/notifications#plex-mobile-notifications',
-  ]),
-  publicContent: page('Public content', '/notifications/public-content', [
-    '/notifications#public-content-notifications',
-  ]),
+  webhooks: {
+    ...page('Webhooks', '/notifications/webhooks', [
+      '/notifications#native-webhooks',
+    ]),
+    rebuilt: true,
+  },
+  plexMobile: {
+    ...page('Plex mobile', '/notifications/plex-mobile', [
+      '/notifications#plex-mobile-notifications',
+    ]),
+    rebuilt: true,
+  },
+  publicContent: {
+    ...page('Public content', '/notifications/public-content', [
+      '/notifications#public-content-notifications',
+    ]),
+    rebuilt: true,
+  },
   delivery: {
     ...page('Delivery', '/notifications/delivery', [
       '/notifications#general-notifications',

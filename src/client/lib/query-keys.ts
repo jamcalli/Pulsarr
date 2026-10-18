@@ -110,3 +110,7 @@ export const plexConnectionKeys = {
     .queryKey,
   syncRun: ['plex-connection', 'sync-run'] as const,
 }
+
+export const webhookEndpointsKeys = {
+  all: $api.queryOptions('get', '/v1/webhooks/endpoints').queryKey,
+}

@@ -31,4 +31,14 @@ describe('apprise', () => {
       'Set up an Apprise server to use these settings.',
     )
   })
+
+  it('names the lists when a page locks lists', () => {
+    expect(appriseLockReason('enabled', 'lists')).toBeNull()
+    expect(appriseLockReason('disabled', 'lists')).toBe(
+      'Apprise is disabled, so these lists do nothing until it is reachable.',
+    )
+    expect(appriseLockReason('not_configured', 'lists')).toBe(
+      'Set up an Apprise server to use these lists.',
+    )
+  })
 })

@@ -1,8 +1,11 @@
 import { useStore } from '@tanstack/react-form'
 import { TriangleAlert } from 'lucide-react'
 import { ConfigPageGate } from '@/components/config-page-gate'
+import { ExternalLink } from '@/components/external-link'
+import { InlineCode } from '@/components/inline-code'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
+import { InfoLine } from '@/components/settings/info-line'
 import { SaveBar } from '@/components/settings/save-bar'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
@@ -10,7 +13,10 @@ import { Alert, AlertTitle } from '@/components/ui/alert'
 import { BotControl } from '@/features/notifications/components/discord/bot-control'
 import { TestDirectMessage } from '@/features/notifications/components/discord/test-direct-message'
 import { useDiscordForm } from '@/features/notifications/hooks/discord/useDiscordForm'
-import { botRestartNeeded } from '@/features/notifications/lib/discord-bot'
+import {
+  botRestartNeeded,
+  DISCORD_DOCS_URL,
+} from '@/features/notifications/lib/discord-bot'
 import { DISCORD_SKELETON } from '@/features/notifications/lib/discord-skeleton'
 import { useDiscordBotStatus } from '@/hooks/useDiscordBotStatus'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
@@ -21,7 +27,7 @@ import type { components } from '@/types/api.js'
 
 const SECTION = 'Notifications'
 const TITLE = NAV_PAGES.discord.label
-const DESCRIPTION = 'Admin webhooks and the bot that messages users.'
+const DESCRIPTION = 'Admin channels and the bot that messages users.'
 
 function DiscordSettings({
   config,
@@ -98,6 +104,16 @@ function DiscordSettings({
               </Alert>
             )}
             <TestDirectMessage />
+            <InfoLine
+              action={
+                <ExternalLink href={DISCORD_DOCS_URL}>
+                  Discord setup
+                </ExternalLink>
+              }
+            >
+              Run <InlineCode>/notifications</InlineCode> in your server to link
+              your Plex username, then have your users do the same.
+            </InfoLine>
           </SettingsSection>
           <SaveBar
             dirty={dirty}

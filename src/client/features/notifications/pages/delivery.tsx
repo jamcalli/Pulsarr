@@ -26,7 +26,7 @@ import type { components } from '@/types/api.js'
 
 const SECTION = 'Notifications'
 const TITLE = NAV_PAGES.delivery.label
-const DESCRIPTION = 'When notifications go out and who hears about what.'
+const DESCRIPTION = 'Grouping, admin notices and user alerts.'
 
 function DeliverySettings({
   config,
@@ -83,7 +83,7 @@ function DeliverySettings({
           </SettingsSection>
           <SettingsSection
             title="Admin notifications"
-            description="What you hear about Pulsarr and your users."
+            description="Where notices about Pulsarr itself and your users' activity go."
           >
             <form.AppField name="notifyOnUpdate">
               {(field) => (
@@ -106,7 +106,7 @@ function DeliverySettings({
           </SettingsSection>
           <SettingsSection
             title="User notifications"
-            description="What users hear from Pulsarr."
+            description="Whether users are told when their content is ready."
           >
             <form.AppField name="notifyOnAvailability">
               {(field) => (

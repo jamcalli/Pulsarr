@@ -1,9 +1,9 @@
 import { Server } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { BusyLabel } from '@/components/busy-label'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorAlert } from '@/components/error-alert'
+import { NavPageButton } from '@/components/nav-page-button'
 import { ActionResults } from '@/components/settings/action-results'
 import { ActionRow } from '@/components/settings/action-row'
 import {
@@ -23,7 +23,7 @@ import {
   type RefreshRow,
 } from '@/features/system/lib/plex-connection/library-refresh'
 import { formatCount, formatNumber } from '@/lib/format'
-import { NAV_PAGES, pageHref } from '@/lib/navigation'
+import { NAV_PAGES } from '@/lib/navigation'
 
 const TITLE = 'Plex library refresh'
 const DESCRIPTION =
@@ -39,15 +39,7 @@ function NoInstances() {
     >
       <div className="flex flex-wrap justify-center gap-2">
         {[NAV_PAGES.sonarr, NAV_PAGES.radarr].map((navPage) => (
-          <Button
-            key={navPage.to}
-            variant="neutral"
-            size="sm"
-            nativeButton={false}
-            render={<Link to={pageHref(navPage)} />}
-          >
-            {navPage.label}
-          </Button>
+          <NavPageButton key={navPage.to} page={navPage} />
         ))}
       </div>
     </EmptyState>

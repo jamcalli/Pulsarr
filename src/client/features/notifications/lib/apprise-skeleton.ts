@@ -4,5 +4,5 @@ import type { SettingsPageSkeleton } from '@/components/settings/settings-page-s
 export const APPRISE_SKELETON = {
   pill: true,
   sectionLabel: true,
-  sections: [{ rows: ['text'] }, { rows: ['input', 'input'] }],
+  sections: [{ rows: ['text', 'text'] }, { rows: ['input', 'input'] }],
 } as const satisfies ComponentProps<typeof SettingsPageSkeleton>
