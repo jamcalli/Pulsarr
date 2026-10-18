@@ -62,12 +62,12 @@ declare module '@services/database.service.js' {
       Array<WatchlistExclusion & { username: string }>
     >
 
-    /** Watchlist items with their own and global exclusions, plus exclusion rows whose item is gone. */
+    /** One row per title with its users attached, plus exclusions whose watchlist item is gone. */
     getWatchlistExclusionItems(
       query: WatchlistExclusionItemsQuery,
     ): Promise<WatchlistExclusionItem[]>
 
-    /** Total rows getWatchlistExclusionItems matches across all pages. */
+    /** Total titles getWatchlistExclusionItems matches across all pages. */
     getWatchlistExclusionItemsCount(
       filter: WatchlistExclusionItemsFilter,
     ): Promise<number>

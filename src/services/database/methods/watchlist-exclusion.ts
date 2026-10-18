@@ -5,6 +5,7 @@ import type {
   WatchlistExclusionItemsFilter,
   WatchlistExclusionItemsQuery,
   WatchlistExclusionScope,
+  WatchlistExclusionUser,
 } from '@root/schemas/watchlist-exclusions/watchlist-exclusions.schema.js'
 import type { WatchlistExclusion } from '@root/types/watchlist-exclusion.types.js'
 import { applySearchFilter } from '@services/database/search-filter.js'
@@ -211,32 +212,40 @@ export async function getAllExclusions(
   return rows.map((row) => ({ ...row, guids: parseGuids(row.guids) }))
 }
 
-interface ExclusionItemRow {
+interface GroupedExclusionRow {
   key: string
   title: string
   type: string
   guids: string | null
   thumb: string | null
-  user_id: number | null
-  user_name: string | null
+  global_id: number | null
+  global_excluded_at: string | null
+  watchlister_count: number | string
+  excluded_count: number | string
+}
+
+interface ExclusionUserRow {
+  key: string
+  user_id: number
+  user_name: string
   status: WatchlistStatus | null
   added: string | null
   own_id: number | null
   own_excluded_at: string | null
-  global_id: number | null
-  global_excluded_at: string | null
 }
 
 const EXCLUSION_ITEM_SORT_COLUMNS: Record<
   WatchlistExclusionItemsQuery['sortBy'],
   string
 > = {
-  title: 'items.title',
-  userName: 'items.user_name',
-  status: 'items.status',
-  added: 'items.added',
-  excludedAt: 'items.excluded_at',
+  title: 'grouped.title',
+  watchlisters: 'grouped.watchlister_count',
+  excluded: 'grouped.excluded_count',
+  excludedAt: 'grouped.excluded_at',
 }
+
+const exclusionRef = (id: number | null, excludedAt: string | null) =>
+  id === null || excludedAt === null ? null : { id, excludedAt }
 
 function exclusionItemsUnion(db: DatabaseService): Knex.QueryBuilder {
   const { knex } = db
@@ -249,14 +258,6 @@ function exclusionItemsUnion(db: DatabaseService): Knex.QueryBuilder {
     column === null
       ? knex.raw(`CAST(NULL AS ${type}) AS ??`, [alias])
       : knex.raw(`CAST(?? AS ${type}) AS ??`, [column, alias])
-  const excludedAt = (own: string | null, global: string) =>
-    own === null
-      ? cast(global, 'TEXT', 'excluded_at')
-      : knex.raw('CAST(COALESCE(??, ??) AS TEXT) AS ??', [
-          own,
-          global,
-          'excluded_at',
-        ])
   const joinGlobal = (keyColumn: string) =>
     function (this: Knex.JoinClause) {
       this.on('glob.key', '=', keyColumn).andOnVal(
@@ -287,7 +288,6 @@ function exclusionItemsUnion(db: DatabaseService): Knex.QueryBuilder {
       cast('own.excluded_at', 'TEXT', 'own_excluded_at'),
       cast('glob.id', 'INTEGER', 'global_id'),
       cast('glob.excluded_at', 'TEXT', 'global_excluded_at'),
-      excludedAt('own.excluded_at', 'glob.excluded_at'),
     )
 
   const orphanOwn = knex('watchlist_exclusions as own')
@@ -315,7 +315,6 @@ function exclusionItemsUnion(db: DatabaseService): Knex.QueryBuilder {
       cast('own.excluded_at', 'TEXT', 'own_excluded_at'),
       cast('glob.id', 'INTEGER', 'global_id'),
       cast('glob.excluded_at', 'TEXT', 'global_excluded_at'),
-      excludedAt('own.excluded_at', 'glob.excluded_at'),
     )
 
   const orphanGlobal = knex('watchlist_exclusions as glob')
@@ -347,43 +346,82 @@ function exclusionItemsUnion(db: DatabaseService): Knex.QueryBuilder {
       cast(null, 'TEXT', 'own_excluded_at'),
       cast('glob.id', 'INTEGER', 'global_id'),
       cast('glob.excluded_at', 'TEXT', 'global_excluded_at'),
-      excludedAt(null, 'glob.excluded_at'),
     )
 
   return knex.from(watchlisted.unionAll([orphanOwn, orphanGlobal]).as('items'))
 }
 
-function filterExclusionItems(
+function groupedExclusionItems(
   db: DatabaseService,
   filter: WatchlistExclusionItemsFilter,
 ): Knex.QueryBuilder {
-  let query = exclusionItemsUnion(db)
+  const { knex } = db
+  const preferWatchlisted = (column: string, alias: string) =>
+    knex.raw(
+      'COALESCE(MAX(CASE WHEN items.status IS NOT NULL THEN ?? END), MAX(??)) AS ??',
+      [column, column, alias],
+    )
+
+  let grouped = exclusionItemsUnion(db)
+    .select(
+      'items.key as key',
+      preferWatchlisted('items.title', 'title'),
+      preferWatchlisted('items.type', 'type'),
+      preferWatchlisted('items.guids', 'guids'),
+      knex.raw('MAX(items.thumb) AS thumb'),
+      knex.raw('MAX(items.global_id) AS global_id'),
+      knex.raw('MAX(items.global_excluded_at) AS global_excluded_at'),
+      knex.raw('COUNT(items.status) AS watchlister_count'),
+      knex.raw('COUNT(items.own_id) AS excluded_count'),
+      // Text timestamps share one format per driver, so MAX and < order them on both
+      knex.raw(`CASE
+        WHEN MAX(items.global_excluded_at) IS NULL THEN MAX(items.own_excluded_at)
+        WHEN MAX(items.own_excluded_at) IS NULL
+          OR MAX(items.own_excluded_at) < MAX(items.global_excluded_at)
+          THEN MAX(items.global_excluded_at)
+        ELSE MAX(items.own_excluded_at)
+      END AS excluded_at`),
+    )
+    .groupBy('items.key')
+
+  if (filter.userId !== undefined) {
+    grouped = grouped.havingRaw(
+      'COUNT(CASE WHEN items.user_id = ? THEN 1 END) > 0',
+      [filter.userId],
+    )
+  }
+  if (filter.status) {
+    grouped = grouped.havingRaw(
+      'COUNT(CASE WHEN items.status = ? THEN 1 END) > 0',
+      [filter.status],
+    )
+  }
+
+  let query = knex.from(grouped.as('grouped'))
 
   if (filter.search) {
     query = applySearchFilter(
       query,
       filter.search,
-      'items.title',
+      'grouped.title',
       db.isPostgres,
     )
   }
-  if (filter.userId !== undefined) {
-    query = query.where('items.user_id', filter.userId)
-  }
   if (filter.type) {
-    query = query.where('items.type', filter.type)
-  }
-  if (filter.status) {
-    query = query.where('items.status', filter.status)
+    query = query.where('grouped.type', filter.type)
   }
   if (filter.exclusion === 'excluded') {
     query = query.where((q) =>
-      q.whereNotNull('items.own_id').orWhereNotNull('items.global_id'),
+      q
+        .whereNotNull('grouped.global_id')
+        .orWhere('grouped.excluded_count', '>', 0),
     )
   } else if (filter.exclusion === 'not-excluded') {
-    query = query.whereNull('items.own_id').whereNull('items.global_id')
+    query = query
+      .whereNull('grouped.global_id')
+      .where('grouped.excluded_count', 0)
   } else if (filter.exclusion === 'orphan') {
-    query = query.whereNull('items.status')
+    query = query.where('grouped.watchlister_count', 0)
   }
 
   return query
@@ -400,24 +438,55 @@ function orderNullsLast(
     .orderBy(column, direction)
 }
 
-/** Watchlist items with their own and global exclusions, plus exclusion rows whose item is gone. */
+/** One row per title with its users attached, plus exclusions whose watchlist item is gone. */
 export async function getWatchlistExclusionItems(
   this: DatabaseService,
   query: WatchlistExclusionItemsQuery,
 ): Promise<WatchlistExclusionItem[]> {
-  let builder = filterExclusionItems(this, query).select<ExclusionItemRow[]>(
-    'items.*',
-  )
+  let builder = groupedExclusionItems(this, query).select<
+    GroupedExclusionRow[]
+  >('grouped.*')
   builder = orderNullsLast(
     builder,
     EXCLUSION_ITEM_SORT_COLUMNS[query.sortBy],
     query.sortOrder,
-  )
-  builder = orderNullsLast(builder.orderBy('items.key'), 'items.user_id', 'asc')
+  ).orderBy('grouped.key')
 
-  const rows: ExclusionItemRow[] = await builder
+  const rows: GroupedExclusionRow[] = await builder
     .limit(query.limit)
     .offset(query.offset)
+  if (rows.length === 0) return []
+
+  const userRows: ExclusionUserRow[] = await exclusionItemsUnion(this)
+    .whereIn(
+      'items.key',
+      rows.map((row) => row.key),
+    )
+    .whereNotNull('items.user_id')
+    .orderBy('items.user_name')
+    .orderBy('items.user_id')
+    .select<ExclusionUserRow[]>(
+      'items.key',
+      'items.user_id',
+      'items.user_name',
+      'items.status',
+      'items.added',
+      'items.own_id',
+      'items.own_excluded_at',
+    )
+
+  const usersByKey = new Map<string, WatchlistExclusionUser[]>()
+  for (const user of userRows) {
+    const users = usersByKey.get(user.key) ?? []
+    users.push({
+      userId: user.user_id,
+      userName: user.user_name,
+      status: user.status,
+      added: user.added,
+      ownExclusion: exclusionRef(user.own_id, user.own_excluded_at),
+    })
+    usersByKey.set(user.key, users)
+  }
 
   return rows.map((row) => ({
     key: row.key,
@@ -425,27 +494,19 @@ export async function getWatchlistExclusionItems(
     type: toContentType(row.type),
     guids: parseGuids(row.guids ?? undefined),
     thumb: row.thumb,
-    userId: row.user_id,
-    userName: row.user_name,
-    status: row.status,
-    added: row.added,
-    ownExclusion:
-      row.own_id === null || row.own_excluded_at === null
-        ? null
-        : { id: row.own_id, excludedAt: row.own_excluded_at },
-    globalExclusion:
-      row.global_id === null || row.global_excluded_at === null
-        ? null
-        : { id: row.global_id, excludedAt: row.global_excluded_at },
+    globalExclusion: exclusionRef(row.global_id, row.global_excluded_at),
+    watchlisterCount: Number(row.watchlister_count),
+    excludedCount: Number(row.excluded_count),
+    users: usersByKey.get(row.key) ?? [],
   }))
 }
 
-/** Total rows getWatchlistExclusionItems matches across all pages. */
+/** Total titles getWatchlistExclusionItems matches across all pages. */
 export async function getWatchlistExclusionItemsCount(
   this: DatabaseService,
   filter: WatchlistExclusionItemsFilter,
 ): Promise<number> {
-  const result = await filterExclusionItems(this, filter)
+  const result = await groupedExclusionItems(this, filter)
     .count('* as count')
     .first()
   return Number.parseInt(String(result?.count), 10) || 0

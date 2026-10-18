@@ -53,11 +53,28 @@ describe('watchlist exclusion routes', () => {
       })
       expect(body.items[0]).toMatchObject({
         key: SEEDED_MOVIE.key,
-        userId: SEEDED_MOVIE.user_id,
-        status: SEEDED_MOVIE.status,
         globalExclusion: null,
+        excludedCount: 1,
       })
-      expect(body.items[0].ownExclusion.id).toEqual(expect.any(Number))
+      expect(body.items[0].users).toContainEqual(
+        expect.objectContaining({
+          userId: SEEDED_MOVIE.user_id,
+          status: SEEDED_MOVIE.status,
+          ownExclusion: {
+            id: expect.any(Number),
+            excludedAt: expect.any(String),
+          },
+        }),
+      )
+    })
+
+    it('rejects a fractional page size', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/watchlist-exclusions/items?limit=1.5',
+      })
+
+      expect(res.statusCode).toBe(400)
     })
 
     it('rejects an unknown exclusion filter', async () => {

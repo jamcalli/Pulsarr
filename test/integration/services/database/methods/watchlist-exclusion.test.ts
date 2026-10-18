@@ -49,8 +49,7 @@ const exclusion = (
   excluded_at: excludedAt,
 })
 
-const rowKeys = (items: Array<{ key: string; userId: number | null }>) =>
-  items.map((item) => `${item.key}:${item.userId ?? 'global'}`)
+const rowKeys = (items: Array<{ key: string }>) => items.map((item) => item.key)
 
 describe('watchlist exclusion database methods', () => {
   let fastify: FastifyInstance
@@ -185,22 +184,21 @@ describe('watchlist exclusion database methods', () => {
         ...query,
       })
 
-    it('joins every row shape and sorts by exclusion time with unexcluded rows last', async () => {
+    it('groups by title and sorts by the newest exclusion with unexcluded rows last', async () => {
       const items = await list()
 
       expect(rowKeys(items)).toEqual([
-        'stray:2',
-        'both:1',
-        'never:global',
-        'blocked:2',
-        'gone:2',
-        'own:1',
-        'own:2',
-        'plain:1',
+        'stray',
+        'both',
+        'never',
+        'blocked',
+        'gone',
+        'own',
+        'plain',
       ])
     })
 
-    it('returns a plain item with no exclusion', async () => {
+    it('returns a plain title with its one watchlister', async () => {
       const [plain] = await list({ search: 'plain' })
 
       expect(plain).toEqual({
@@ -209,75 +207,118 @@ describe('watchlist exclusion database methods', () => {
         type: 'movie',
         guids: ['tmdb:plain'],
         thumb: 'https://img/plain',
-        userId: PRIMARY,
-        userName: 'test-user-primary',
-        status: 'pending',
-        added: '2026-01-01',
-        ownExclusion: null,
+        globalExclusion: null,
+        watchlisterCount: 1,
+        excludedCount: 0,
+        users: [
+          {
+            userId: PRIMARY,
+            userName: 'test-user-primary',
+            status: 'pending',
+            added: '2026-01-01',
+            ownExclusion: null,
+          },
+        ],
+      })
+    })
+
+    it('lists every watchlister by name with the own exclusion only on its user', async () => {
+      const [own] = await list({ search: 'own' })
+
+      expect(own).toMatchObject({
+        key: 'own',
+        watchlisterCount: 2,
+        excludedCount: 1,
         globalExclusion: null,
       })
+      expect(own.users).toEqual([
+        {
+          userId: SECOND,
+          userName: 'test-user-discord-apprise',
+          status: 'requested',
+          added: '2026-01-03',
+          ownExclusion: null,
+        },
+        {
+          userId: PRIMARY,
+          userName: 'test-user-primary',
+          status: 'grabbed',
+          added: '2026-01-02',
+          ownExclusion: {
+            id: expect.any(Number),
+            excludedAt: '2026-02-01T00:00:00.000Z',
+          },
+        },
+      ])
     })
 
-    it('attaches the own exclusion only to the user who made it', async () => {
-      const items = await list({ search: 'own' })
-      const primary = items.find((item) => item.userId === PRIMARY)
-      const second = items.find((item) => item.userId === SECOND)
-
-      expect(primary?.ownExclusion).toEqual({
-        id: expect.any(Number),
-        excludedAt: '2026-02-01T00:00:00.000Z',
-      })
-      expect(primary?.status).toBe('grabbed')
-      expect(second?.ownExclusion).toBeNull()
-    })
-
-    it('repeats the global exclusion on the watchlisted row', async () => {
+    it('puts the global exclusion on the title row', async () => {
       const [blocked] = await list({ search: 'blocked' })
 
-      expect(blocked.userId).toBe(SECOND)
-      expect(blocked.ownExclusion).toBeNull()
       expect(blocked.globalExclusion?.excludedAt).toBe(
         '2026-02-03T00:00:00.000Z',
       )
+      expect(blocked.excludedCount).toBe(0)
+      expect(blocked.users).toMatchObject([
+        { userId: SECOND, status: 'notified', ownExclusion: null },
+      ])
     })
 
-    it('returns an orphan own exclusion with no watchlist fields', async () => {
+    it('returns an orphan own exclusion as a user with no watchlist fields', async () => {
       const [gone] = await list({ search: 'gone' })
 
-      expect(gone).toMatchObject({
+      expect(gone).toEqual({
         key: 'gone',
-        userId: SECOND,
-        userName: 'test-user-discord-apprise',
-        status: null,
-        added: null,
-        thumb: null,
+        title: 'Gone Movie',
+        type: 'movie',
         guids: ['tvdb:gone'],
+        thumb: null,
         globalExclusion: null,
+        watchlisterCount: 0,
+        excludedCount: 1,
+        users: [
+          {
+            userId: SECOND,
+            userName: 'test-user-discord-apprise',
+            status: null,
+            added: null,
+            ownExclusion: {
+              id: expect.any(Number),
+              excludedAt: '2026-02-02T00:00:00.000Z',
+            },
+          },
+        ],
       })
-      expect(gone.ownExclusion).not.toBeNull()
     })
 
-    it('takes excludedAt from the own exclusion when a watchlisted row has both', async () => {
+    it('carries both exclusions when a title has own and global', async () => {
       const [both] = await list({ search: 'both' })
 
-      expect(both.userId).toBe(PRIMARY)
-      expect(both.ownExclusion).toEqual({
-        id: expect.any(Number),
-        excludedAt: '2026-02-05T00:00:00.000Z',
-      })
       expect(both.globalExclusion).toEqual({
         id: expect.any(Number),
         excludedAt: '2026-02-06T00:00:00.000Z',
       })
+      expect(both.excludedCount).toBe(1)
+      expect(both.users[0].ownExclusion).toEqual({
+        id: expect.any(Number),
+        excludedAt: '2026-02-05T00:00:00.000Z',
+      })
     })
 
-    it('attaches the global exclusion to an orphan own row and still emits the global row', async () => {
+    it('folds an orphan own exclusion and the global one into one title row', async () => {
       const items = await list({ search: 'stray' })
-      const own = items.find((item) => item.userId === SECOND)
 
-      expect(rowKeys(items)).toEqual(['stray:2'])
-      expect(own?.ownExclusion?.excludedAt).toBe('2026-02-07T00:00:00.000Z')
-      expect(own?.globalExclusion?.excludedAt).toBe('2026-02-08T00:00:00.000Z')
+      expect(rowKeys(items)).toEqual(['stray'])
+      expect(items[0].globalExclusion?.excludedAt).toBe(
+        '2026-02-08T00:00:00.000Z',
+      )
+      expect(items[0].users).toMatchObject([
+        {
+          userId: SECOND,
+          status: null,
+          ownExclusion: { excludedAt: '2026-02-07T00:00:00.000Z' },
+        },
+      ])
     })
 
     it.each(['%', '_'])(
@@ -290,31 +331,45 @@ describe('watchlist exclusion database methods', () => {
       },
     )
 
-    it('returns an orphan global exclusion with no user', async () => {
+    it('returns a global exclusion no one has watchlisted with no users', async () => {
       const [never] = await list({ search: 'never' })
 
       expect(never).toMatchObject({
         key: 'never',
         type: 'show',
-        userId: null,
-        userName: null,
-        status: null,
-        ownExclusion: null,
+        watchlisterCount: 0,
+        excludedCount: 0,
+        users: [],
       })
       expect(never.globalExclusion).not.toBeNull()
     })
 
+    it('keeps every user on a title matched by one user or status', async () => {
+      const [bySecond] = await list({ userId: SECOND, search: 'own' })
+      const [byGrabbed] = await list({ status: 'grabbed' })
+
+      expect(bySecond.users.map((user) => user.userId)).toEqual([
+        SECOND,
+        PRIMARY,
+      ])
+      expect(byGrabbed.users.map((user) => user.status)).toEqual([
+        'requested',
+        'grabbed',
+      ])
+    })
+
     it.each([
-      [{ search: 'MOVIE' }, ['both:1', 'blocked:2', 'gone:2', 'plain:1']],
-      [{ userId: SECOND }, ['stray:2', 'blocked:2', 'gone:2', 'own:2']],
-      [{ type: 'show' }, ['stray:2', 'never:global', 'own:1', 'own:2']],
-      [{ status: 'grabbed' }, ['own:1']],
+      [{ search: 'MOVIE' }, ['both', 'blocked', 'gone', 'plain']],
+      [{ userId: SECOND }, ['stray', 'blocked', 'gone', 'own']],
+      [{ type: 'show' }, ['stray', 'never', 'own']],
+      [{ status: 'grabbed' }, ['own']],
+      [{ status: 'requested' }, ['both', 'own']],
       [
         { exclusion: 'excluded' },
-        ['stray:2', 'both:1', 'never:global', 'blocked:2', 'gone:2', 'own:1'],
+        ['stray', 'both', 'never', 'blocked', 'gone', 'own'],
       ],
-      [{ exclusion: 'not-excluded' }, ['own:2', 'plain:1']],
-      [{ exclusion: 'orphan' }, ['stray:2', 'never:global', 'gone:2']],
+      [{ exclusion: 'not-excluded' }, ['plain']],
+      [{ exclusion: 'orphan' }, ['stray', 'never', 'gone']],
     ] as const)('filters by %j', async (filter, expected) => {
       const items = await list(filter)
       const total = await fastify.db.getWatchlistExclusionItemsCount(filter)
@@ -326,74 +381,29 @@ describe('watchlist exclusion database methods', () => {
     it.each([
       [
         { sortBy: 'title', sortOrder: 'asc' },
-        [
-          'blocked:2',
-          'both:1',
-          'gone:2',
-          'never:global',
-          'own:1',
-          'own:2',
-          'plain:1',
-          'stray:2',
-        ],
+        ['blocked', 'both', 'gone', 'never', 'own', 'plain', 'stray'],
       ],
       [
-        { sortBy: 'userName', sortOrder: 'asc' },
-        [
-          'blocked:2',
-          'gone:2',
-          'own:2',
-          'stray:2',
-          'both:1',
-          'own:1',
-          'plain:1',
-          'never:global',
-        ],
+        { sortBy: 'watchlisters', sortOrder: 'desc' },
+        ['own', 'blocked', 'both', 'plain', 'gone', 'never', 'stray'],
       ],
       [
-        { sortBy: 'status', sortOrder: 'asc' },
-        [
-          'own:1',
-          'blocked:2',
-          'plain:1',
-          'both:1',
-          'own:2',
-          'gone:2',
-          'never:global',
-          'stray:2',
-        ],
+        { sortBy: 'watchlisters', sortOrder: 'asc' },
+        ['gone', 'never', 'stray', 'blocked', 'both', 'plain', 'own'],
       ],
       [
-        { sortBy: 'added', sortOrder: 'desc' },
-        [
-          'both:1',
-          'blocked:2',
-          'own:2',
-          'own:1',
-          'plain:1',
-          'gone:2',
-          'never:global',
-          'stray:2',
-        ],
+        { sortBy: 'excluded', sortOrder: 'desc' },
+        ['both', 'gone', 'own', 'stray', 'blocked', 'never', 'plain'],
       ],
       [
         { sortBy: 'excludedAt', sortOrder: 'asc' },
-        [
-          'own:1',
-          'gone:2',
-          'blocked:2',
-          'never:global',
-          'both:1',
-          'stray:2',
-          'own:2',
-          'plain:1',
-        ],
+        ['own', 'gone', 'blocked', 'never', 'both', 'stray', 'plain'],
       ],
     ] as const)('sorts by %j', async (sort, expected) => {
       expect(rowKeys(await list(sort))).toEqual(expected)
     })
 
-    it('pages over the filtered set while the count covers every page', async () => {
+    it('pages over titles while the count covers every page', async () => {
       const page = await list({
         sortBy: 'title',
         sortOrder: 'asc',
@@ -402,8 +412,8 @@ describe('watchlist exclusion database methods', () => {
       })
       const total = await fastify.db.getWatchlistExclusionItemsCount({})
 
-      expect(rowKeys(page)).toEqual(['gone:2', 'never:global'])
-      expect(total).toBe(8)
+      expect(rowKeys(page)).toEqual(['gone', 'never'])
+      expect(total).toBe(7)
     })
   })
 

@@ -86,7 +86,7 @@ export const WatchlistExclusionFilterSchema = z
   .meta({
     id: 'WatchlistExclusionFilter',
     description:
-      'excluded has an own or global exclusion, not-excluded has neither, orphan is an exclusion with no watchlist item',
+      'excluded has a global or at least one own exclusion, not-excluded has neither, orphan has no watchlister left',
   })
 
 export const WatchlistExclusionItemsQuerySchema = z.object({
@@ -97,15 +97,17 @@ export const WatchlistExclusionItemsQuerySchema = z.object({
   exclusion: WatchlistExclusionFilterSchema.optional(),
   limit: z.coerce
     .number()
+    .int()
     .min(WATCHLIST_EXCLUSION_ITEMS_LIMIT.min)
     .max(WATCHLIST_EXCLUSION_ITEMS_LIMIT.max)
     .default(WATCHLIST_EXCLUSION_ITEMS_DEFAULTS.limit),
   offset: z.coerce
     .number()
+    .int()
     .min(0)
     .default(WATCHLIST_EXCLUSION_ITEMS_DEFAULTS.offset),
   sortBy: z
-    .enum(['title', 'userName', 'status', 'added', 'excludedAt'])
+    .enum(['title', 'watchlisters', 'excluded', 'excludedAt'])
     .default(WATCHLIST_EXCLUSION_ITEMS_DEFAULTS.sortBy),
   sortOrder: SortOrderSchema.default(
     WATCHLIST_EXCLUSION_ITEMS_DEFAULTS.sortOrder,
@@ -122,6 +124,20 @@ const WatchlistExclusionRefSchema = z
     description: 'The id and time of an exclusion row',
   })
 
+const WatchlistExclusionUserSchema = z
+  .object({
+    userId: z.number(),
+    userName: z.string(),
+    status: WatchlistStatusSchema.nullable(),
+    added: z.string().nullable(),
+    ownExclusion: WatchlistExclusionRefSchema.nullable(),
+  })
+  .meta({
+    id: 'WatchlistExclusionUser',
+    description:
+      'A user on a watchlist exclusion row. status is null for an own exclusion whose watchlist item is gone',
+  })
+
 export const WatchlistExclusionItemSchema = z
   .object({
     key: z.string(),
@@ -129,17 +145,15 @@ export const WatchlistExclusionItemSchema = z
     type: ContentTypeSchema,
     guids: z.array(z.string()),
     thumb: z.string().nullable(),
-    userId: z.number().nullable(),
-    userName: z.string().nullable(),
-    status: WatchlistStatusSchema.nullable(),
-    added: z.string().nullable(),
-    ownExclusion: WatchlistExclusionRefSchema.nullable(),
     globalExclusion: WatchlistExclusionRefSchema.nullable(),
+    watchlisterCount: z.number(),
+    excludedCount: z.number(),
+    users: z.array(WatchlistExclusionUserSchema),
   })
   .meta({
     id: 'WatchlistExclusionItem',
     description:
-      'A watchlist item with its exclusion state, or an exclusion whose watchlist item is gone (status null). userId is null for a global exclusion no one has watchlisted',
+      'One title with its watchlisters and own exclusions sorted by user name. users is empty for a global exclusion no one has watchlisted',
   })
 
 export const WatchlistExclusionItemsResponseSchema = z
@@ -249,6 +263,9 @@ export type WatchlistExclusionItemsFilter = Pick<
 >
 export type WatchlistExclusionItem = z.infer<
   typeof WatchlistExclusionItemSchema
+>
+export type WatchlistExclusionUser = z.infer<
+  typeof WatchlistExclusionUserSchema
 >
 export type WatchlistExclusionScope = z.infer<
   typeof WatchlistExclusionScopeSchema

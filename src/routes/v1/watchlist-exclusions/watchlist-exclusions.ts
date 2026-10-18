@@ -102,7 +102,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'List watchlist items with their exclusion state',
         operationId: 'getWatchlistExclusionItems',
         description:
-          'Page through every watchlist item joined to its own and global exclusions, plus exclusions whose watchlist item is gone',
+          'Page through watchlisted and excluded titles, one row per title with its watchlisters and own exclusions attached',
         querystring: WatchlistExclusionItemsQuerySchema,
         response: {
           200: WatchlistExclusionItemsResponseSchema,

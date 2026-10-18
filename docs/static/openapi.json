@@ -6304,7 +6304,7 @@
           "not-excluded",
           "orphan"
         ],
-        "description": "excluded has an own or global exclusion, not-excluded has neither, orphan is an exclusion with no watchlist item"
+        "description": "excluded has a global or at least one own exclusion, not-excluded has neither, orphan has no watchlister left"
       },
       "WatchlistExclusionItem": {
         "type": "object",
@@ -6330,44 +6330,6 @@
               "null"
             ]
           },
-          "userId": {
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "userName": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "status": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/WatchlistStatus"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "added": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "ownExclusion": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/WatchlistExclusionRef"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "globalExclusion": {
             "anyOf": [
               {
@@ -6377,6 +6339,18 @@
                 "type": "null"
               }
             ]
+          },
+          "watchlisterCount": {
+            "type": "number"
+          },
+          "excludedCount": {
+            "type": "number"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchlistExclusionUser"
+            }
           }
         },
         "required": [
@@ -6385,15 +6359,13 @@
           "type",
           "guids",
           "thumb",
-          "userId",
-          "userName",
-          "status",
-          "added",
-          "ownExclusion",
-          "globalExclusion"
+          "globalExclusion",
+          "watchlisterCount",
+          "excludedCount",
+          "users"
         ],
         "additionalProperties": false,
-        "description": "A watchlist item with its exclusion state, or an exclusion whose watchlist item is gone (status null). userId is null for a global exclusion no one has watchlisted"
+        "description": "One title with its watchlisters and own exclusions sorted by user name. users is empty for a global exclusion no one has watchlisted"
       },
       "WatchlistExclusionItemsResponse": {
         "type": "object",
@@ -6455,6 +6427,52 @@
           "global"
         ],
         "description": "users excludes each item for its userIds, global excludes it for every user and ignores userIds"
+      },
+      "WatchlistExclusionUser": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WatchlistStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "added": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownExclusion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WatchlistExclusionRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "userName",
+          "status",
+          "added",
+          "ownExclusion"
+        ],
+        "additionalProperties": false,
+        "description": "A user on a watchlist exclusion row. status is null for an own exclusion whose watchlist item is gone"
       },
       "WatchlistExclusionWithUser": {
         "type": "object",
@@ -7122,7 +7140,7 @@
           {
             "schema": {
               "default": 20,
-              "type": "number",
+              "type": "integer",
               "minimum": 1,
               "maximum": 1000
             },
@@ -7132,8 +7150,9 @@
           {
             "schema": {
               "default": 0,
-              "type": "number",
-              "minimum": 0
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "offset"
@@ -22077,7 +22096,7 @@
         "tags": [
           "Watchlist Exclusions"
         ],
-        "description": "Page through every watchlist item joined to its own and global exclusions, plus exclusions whose watchlist item is gone",
+        "description": "Page through watchlisted and excluded titles, one row per title with its watchlisters and own exclusions attached",
         "parameters": [
           {
             "schema": {
@@ -22117,7 +22136,7 @@
           {
             "schema": {
               "default": 20,
-              "type": "number",
+              "type": "integer",
               "minimum": 1,
               "maximum": 1000
             },
@@ -22127,8 +22146,9 @@
           {
             "schema": {
               "default": 0,
-              "type": "number",
-              "minimum": 0
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "offset"
@@ -22139,9 +22159,8 @@
               "type": "string",
               "enum": [
                 "title",
-                "userName",
-                "status",
-                "added",
+                "watchlisters",
+                "excluded",
                 "excludedAt"
               ]
             },

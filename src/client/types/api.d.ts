@@ -2833,7 +2833,7 @@ export interface paths {
         };
         /**
          * List watchlist items with their exclusion state
-         * @description Page through every watchlist item joined to its own and global exclusions, plus exclusions whose watchlist item is gone
+         * @description Page through watchlisted and excluded titles, one row per title with its watchlisters and own exclusions attached
          */
         get: operations["getWatchlistExclusionItems"];
         put?: never;
@@ -4798,23 +4798,21 @@ export interface components {
             guids?: string[];
         };
         /**
-         * @description excluded has an own or global exclusion, not-excluded has neither, orphan is an exclusion with no watchlist item
+         * @description excluded has a global or at least one own exclusion, not-excluded has neither, orphan has no watchlister left
          * @enum {string}
          */
         WatchlistExclusionFilter: "excluded" | "not-excluded" | "orphan";
-        /** @description A watchlist item with its exclusion state, or an exclusion whose watchlist item is gone (status null). userId is null for a global exclusion no one has watchlisted */
+        /** @description One title with its watchlisters and own exclusions sorted by user name. users is empty for a global exclusion no one has watchlisted */
         WatchlistExclusionItem: {
             key: string;
             title: string;
             type: components["schemas"]["ContentType"];
             guids: string[];
             thumb: string | null;
-            userId: number | null;
-            userName: string | null;
-            status: components["schemas"]["WatchlistStatus"] | null;
-            added: string | null;
-            ownExclusion: components["schemas"]["WatchlistExclusionRef"] | null;
             globalExclusion: components["schemas"]["WatchlistExclusionRef"] | null;
+            watchlisterCount: number;
+            excludedCount: number;
+            users: components["schemas"]["WatchlistExclusionUser"][];
         };
         /** @description One page of watchlist items with their exclusion state */
         WatchlistExclusionItemsResponse: {
@@ -4835,6 +4833,14 @@ export interface components {
          * @enum {string}
          */
         WatchlistExclusionScope: "users" | "global";
+        /** @description A user on a watchlist exclusion row. status is null for an own exclusion whose watchlist item is gone */
+        WatchlistExclusionUser: {
+            userId: number;
+            userName: string;
+            status: components["schemas"]["WatchlistStatus"] | null;
+            added: string | null;
+            ownExclusion: components["schemas"]["WatchlistExclusionRef"] | null;
+        };
         /** @description A watchlist exclusion row with the owning user name */
         WatchlistExclusionWithUser: {
             id: number;
@@ -13945,7 +13951,7 @@ export interface operations {
                 exclusion?: components["schemas"]["WatchlistExclusionFilter"];
                 limit?: number;
                 offset?: number;
-                sortBy?: "title" | "userName" | "status" | "added" | "excludedAt";
+                sortBy?: "title" | "watchlisters" | "excluded" | "excludedAt";
                 sortOrder?: components["schemas"]["SortOrder"];
             };
             header?: never;
