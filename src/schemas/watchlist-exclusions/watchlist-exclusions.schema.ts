@@ -6,6 +6,9 @@ import { z } from 'zod'
 
 export const WATCHLIST_EXCLUSION_ITEMS_LIMIT = { min: 1, max: 1000 } as const
 
+/** A bulk request covers at most one page of rows. */
+export const WATCHLIST_EXCLUSION_BULK_MAX = WATCHLIST_EXCLUSION_ITEMS_LIMIT.max
+
 export const WATCHLIST_EXCLUSION_ITEMS_DEFAULTS = {
   limit: 20,
   offset: 0,
@@ -180,7 +183,10 @@ export const WatchlistExclusionBulkCreateSchema = z
   .object({
     items: z
       .array(CreateWatchlistExclusionSchema)
-      .min(1, { error: 'At least one item is required' }),
+      .min(1, { error: 'At least one item is required' })
+      .max(WATCHLIST_EXCLUSION_BULK_MAX, {
+        error: `Up to ${WATCHLIST_EXCLUSION_BULK_MAX} items per request`,
+      }),
     scope: WatchlistExclusionScopeSchema,
   })
   .meta({
@@ -210,7 +216,10 @@ export const WatchlistExclusionBulkRemoveSchema = z
   .object({
     ids: z
       .array(z.number())
-      .min(1, { error: 'At least one exclusion ID is required' }),
+      .min(1, { error: 'At least one exclusion ID is required' })
+      .max(WATCHLIST_EXCLUSION_BULK_MAX, {
+        error: `Up to ${WATCHLIST_EXCLUSION_BULK_MAX} ids per request`,
+      }),
   })
   .meta({
     id: 'WatchlistExclusionBulkRemovePayload',

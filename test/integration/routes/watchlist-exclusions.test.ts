@@ -1,3 +1,4 @@
+import { WATCHLIST_EXCLUSION_BULK_MAX } from '@root/schemas/watchlist-exclusions/watchlist-exclusions.schema.js'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
@@ -156,6 +157,21 @@ describe('watchlist exclusion routes', () => {
         errors: ['Exclusion 9999 not found'],
         total: 2,
       })
+    })
+
+    it('rejects more ids than one page holds', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/watchlist-exclusions/bulk/remove',
+        payload: {
+          ids: Array.from(
+            { length: WATCHLIST_EXCLUSION_BULK_MAX + 1 },
+            (_, i) => i + 1,
+          ),
+        },
+      })
+
+      expect(res.statusCode).toBe(400)
     })
 
     it('rejects an empty id list', async () => {
