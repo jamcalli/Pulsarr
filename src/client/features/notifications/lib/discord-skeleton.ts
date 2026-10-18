@@ -6,6 +6,6 @@ export const DISCORD_SKELETON = {
   sectionLabel: true,
   sections: [
     { rows: ['input'] },
-    { rows: ['input', 'input', 'input'], pill: true },
+    { rows: ['input', 'input', 'input', 'text'], pill: true },
   ],
 } as const satisfies ComponentProps<typeof SettingsPageSkeleton>

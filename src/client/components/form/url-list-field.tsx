@@ -1,8 +1,9 @@
 import { splitUrlList } from '@root/schemas/common/url-list'
 import { X } from 'lucide-react'
-import { useState } from 'react'
+import { type ChangeEvent, useState } from 'react'
 import { BusyLabel } from '@/components/busy-label'
 import { ConnectionTest } from '@/components/connection-test'
+import { SecretInput } from '@/components/form/secret-input'
 import { ActionResults } from '@/components/settings/action-results'
 import { LockLine } from '@/components/settings/lock-line'
 import { Button } from '@/components/ui/button'
@@ -63,6 +64,7 @@ interface UrlRowProps {
   url: string
   placeholder?: string
   disabled: boolean
+  masked: boolean
   validateRow: (url: string) => string | null
   testUrl: (url: string) => Promise<TestResult>
   onChange: (url: string) => void
@@ -77,6 +79,7 @@ function UrlRow({
   url,
   placeholder,
   disabled,
+  masked,
   validateRow,
   testUrl,
   onChange,
@@ -91,25 +94,42 @@ function UrlRow({
   const errorId = `${name}-${position}-error`
   const canTest =
     !disabled && value !== '' && formatError === null && !test.testing
+  const inputProps = {
+    'aria-label': `${label}, URL ${position}`,
+    value: url,
+    placeholder,
+    disabled,
+    autoComplete: 'off',
+    onChange: (event: ChangeEvent<HTMLInputElement>) =>
+      onChange(event.target.value),
+    onBlur: () => {
+      setBlurred(true)
+      onBlur()
+    },
+    'aria-invalid': shownError !== null,
+    'aria-describedby': shownError ? errorId : undefined,
+  }
 
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
-        <Input
-          aria-label={`${label}, URL ${position}`}
-          value={url}
-          placeholder={placeholder}
-          disabled={disabled}
-          autoComplete="off"
-          className="min-w-0 flex-1 truncate"
-          onChange={(event) => onChange(event.target.value)}
-          onBlur={() => {
-            setBlurred(true)
-            onBlur()
-          }}
-          aria-invalid={shownError !== null}
-          aria-describedby={shownError ? errorId : undefined}
-        />
+        {masked ? (
+          <SecretInput
+            {...inputProps}
+            groupClassName="min-w-0 flex-1"
+            className="min-w-0 truncate"
+            revealLabel={{
+              show: `Show ${label} URL ${position}`,
+              hide: `Hide ${label} URL ${position}`,
+            }}
+          />
+        ) : (
+          <Input
+            {...inputProps}
+            type="text"
+            className="min-w-0 flex-1 truncate"
+          />
+        )}
         <Button
           type="button"
           variant="neutral"
@@ -150,6 +170,8 @@ interface UrlListFieldProps {
   description?: string
   disabled?: boolean
   placeholder?: string
+  /** Hides each row behind a reveal toggle, for URLs that carry credentials. */
+  masked?: boolean
   /** The saved list, which the saved test sends to. */
   saved: string
   /** The row's format error, or null when the row may be tested and saved. */
@@ -163,6 +185,7 @@ export function UrlListField({
   description,
   disabled = false,
   placeholder,
+  masked = false,
   saved,
   validateRow,
   testUrl,
@@ -186,11 +209,8 @@ export function UrlListField({
   }
 
   const atCap = rows.length >= MAX_ROWS
-  const savedReason = !sameList(value, saved)
-    ? UNSAVED_CHANGES_REASON
-    : splitUrlList(saved).length === 0
-      ? 'Nothing saved yet.'
-      : null
+  const hasSaved = splitUrlList(saved).length > 0
+  const savedReason = sameList(value, saved) ? null : UNSAVED_CHANGES_REASON
   const labelId = `${field.name}-label`
 
   return (
@@ -205,22 +225,24 @@ export function UrlListField({
           <FieldTitle id={labelId}>{label}</FieldTitle>
           {description && <FieldDescription>{description}</FieldDescription>}
         </FieldContent>
-        <div className="flex flex-col items-start gap-1 md:items-end">
-          <Button
-            type="button"
-            variant="neutral"
-            size="sm"
-            disabled={disabled || savedReason !== null || savedTest.testing}
-            onClick={() => savedTest.run(saved)}
-          >
-            <BusyLabel
-              busy={savedTest.testing}
-              label="Test saved URLs"
-              busyLabel="Testing..."
-            />
-          </Button>
-          {savedReason && <LockLine reason={savedReason} />}
-        </div>
+        {hasSaved && (
+          <div className="flex flex-col items-start gap-1 md:items-end">
+            <Button
+              type="button"
+              variant="neutral"
+              size="sm"
+              disabled={disabled || savedReason !== null || savedTest.testing}
+              onClick={() => savedTest.run(saved)}
+            >
+              <BusyLabel
+                busy={savedTest.testing}
+                label="Test saved URLs"
+                busyLabel="Testing..."
+              />
+            </Button>
+            {savedReason && <LockLine reason={savedReason} />}
+          </div>
+        )}
       </div>
       {rows.map((row, index) => (
         <UrlRow
@@ -231,6 +253,7 @@ export function UrlListField({
           url={row.url}
           placeholder={placeholder}
           disabled={disabled}
+          masked={masked}
           validateRow={validateRow}
           testUrl={testUrl}
           onChange={(url) =>

@@ -105,6 +105,10 @@ describe('DiscordPage', () => {
     expect(await screen.findByLabelText('Webhook URLs, URL 1')).toHaveValue(
       URL_A,
     )
+    expect(screen.getByLabelText('Webhook URLs, URL 1')).toHaveAttribute(
+      'type',
+      'text',
+    )
     expect(screen.getByText('Running')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Stop bot' })).toBeEnabled()
     expect(screen.getByLabelText('Bot token')).toHaveValue('saved-token')
@@ -114,6 +118,10 @@ describe('DiscordPage', () => {
     expect(
       screen.getByRole('button', { name: 'Test saved URLs' }),
     ).toBeEnabled()
+    expect(screen.getByRole('link', { name: 'Discord setup' })).toHaveAttribute(
+      'href',
+      'https://jamcalli.github.io/Pulsarr/docs/notifications/discord#user-notification-setup',
+    )
   })
 
   it('sends a test direct message to a typed Discord ID', async () => {

@@ -1,5 +1,8 @@
 import type { DiscordBotStatus } from '@root/types/notification.types'
 import type { StatusPillView } from '@/components/status-pill'
+import { DOCS_ROOT } from '@/lib/navigation'
+
+export const DISCORD_DOCS_URL = `${DOCS_ROOT}/notifications/discord#user-notification-setup`
 
 export const BOT_STATUS_PILLS: Record<DiscordBotStatus, StatusPillView> = {
   running: { tone: 'on', label: 'Running' },
@@ -23,21 +26,4 @@ export function botRestartNeeded(
   credentialsDirty: boolean,
 ): boolean {
   return credentialsDirty && (status === 'running' || status === 'starting')
-}
-
-/** Recipients whose name or Discord ID contains the query, or all of them while a user is picked or the query is empty. */
-export function matchRecipients<
-  Recipient extends { discordId: string; name: string },
->(
-  recipients: readonly Recipient[],
-  query: string,
-  picked: boolean,
-): Recipient[] {
-  const needle = query.trim().toLowerCase()
-  if (picked || needle === '') return [...recipients]
-  return recipients.filter(
-    (recipient) =>
-      recipient.name.toLowerCase().includes(needle) ||
-      recipient.discordId.includes(needle),
-  )
 }

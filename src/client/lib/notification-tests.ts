@@ -39,3 +39,34 @@ export async function testSystemTarget(
   if (error) throw error
   return data
 }
+
+export async function testWebhookEndpoint(id: number): Promise<TestResult> {
+  const { data, error } = await apiFetch.POST(
+    '/v1/webhooks/endpoints/{id}/test',
+    { params: { path: { id } } },
+  )
+  if (error) throw error
+  return data
+}
+
+export async function testWebhookUrl(
+  body: components['schemas']['WebhookEndpointTestPayload'],
+): Promise<TestResult> {
+  const { data, error } = await apiFetch.POST('/v1/webhooks/endpoints/test', {
+    body,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function testUserChannel(
+  userId: number,
+  channel: components['schemas']['UserTestPayload']['channel'],
+): Promise<TestResult> {
+  const { data, error } = await apiFetch.POST(
+    '/v1/notifications/test/users/{userId}',
+    { params: { path: { userId } }, body: { channel } },
+  )
+  if (error) throw error
+  return data
+}

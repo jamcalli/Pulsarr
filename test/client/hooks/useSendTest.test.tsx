@@ -27,6 +27,21 @@ describe('useSendTest', () => {
     expect(result.current.ranAt).toBeNull()
   })
 
+  it('drops the result once the value clears to null', async () => {
+    const wrapper = wrapperFor(new QueryClient())
+    const initialProps: { value: number | null } = { value: 7 }
+    const { result, rerender } = renderHook(
+      ({ value }) => useSendTest(async (_userId: number) => passed, value),
+      { wrapper, initialProps },
+    )
+
+    act(() => result.current.run(7))
+    await waitFor(() => expect(result.current.outcome).toEqual(passed))
+
+    rerender({ value: null })
+    expect(result.current.outcome).toBeNull()
+  })
+
   it('keeps the result for a new value the equality function matches', async () => {
     const wrapper = wrapperFor(new QueryClient())
     const sameUrl = (a: { url: string }, b: { url: string }) => a.url === b.url

@@ -1,21 +1,17 @@
 import type { AppriseStatus } from '@root/types/notification.types'
-import { Info, TriangleAlert } from 'lucide-react'
+import { TriangleAlert } from 'lucide-react'
+import { ExternalLink } from '@/components/external-link'
 import { FactList } from '@/components/fact-list'
 import { InlineCode } from '@/components/inline-code'
+import { InfoLine } from '@/components/settings/info-line'
 import { SettingsSection } from '@/components/settings/settings-section'
-import { Alert, AlertTitle } from '@/components/ui/alert'
-import { buttonVariants } from '@/components/ui/button'
-import { APPRISE_DOCS_URL } from '@/features/notifications/lib/apprise'
+import {
+  APPRISE_DOCS_URL,
+  APPRISE_URL_FORMATS_URL,
+} from '@/features/notifications/lib/apprise'
 
 const setupLink = (
-  <a
-    href={APPRISE_DOCS_URL}
-    target="_blank"
-    rel="noopener noreferrer"
-    className={buttonVariants({ variant: 'link' })}
-  >
-    Apprise setup
-  </a>
+  <ExternalLink href={APPRISE_DOCS_URL}>Apprise setup</ExternalLink>
 )
 
 export function AppriseServerSection({
@@ -36,23 +32,30 @@ export function AppriseServerSection({
           { label: 'Set by', value: 'Environment, read at startup' },
         ]}
       />
+      {status === 'enabled' && (
+        <InfoLine
+          action={
+            <ExternalLink href={APPRISE_URL_FORMATS_URL}>
+              Apprise URL formats
+            </ExternalLink>
+          }
+        >
+          Pulsarr sends to the stateless notify endpoint, so list full Apprise
+          URLs or a saved config as{' '}
+          <InlineCode>apprise://host:8000/key</InlineCode>.
+        </InfoLine>
+      )}
       {status === 'disabled' && (
-        <Alert variant="warn">
-          <TriangleAlert />
-          <AlertTitle>
-            Pulsarr couldn't reach this server at startup. Restart Pulsarr once
-            it's running. {setupLink}
-          </AlertTitle>
-        </Alert>
+        <InfoLine icon={TriangleAlert} tone="warn" action={setupLink}>
+          Pulsarr couldn't reach this server at startup. Restart Pulsarr once
+          it's running.
+        </InfoLine>
       )}
       {status === 'not_configured' && (
-        <Alert variant="info">
-          <Info />
-          <AlertTitle>
-            Set <InlineCode>appriseUrl</InlineCode> in the environment, then
-            restart Pulsarr. {setupLink}
-          </AlertTitle>
-        </Alert>
+        <InfoLine action={setupLink}>
+          Set <InlineCode>appriseUrl</InlineCode> in the environment, then
+          restart Pulsarr.
+        </InfoLine>
       )}
     </SettingsSection>
   )

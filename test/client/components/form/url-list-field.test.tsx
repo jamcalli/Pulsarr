@@ -20,8 +20,10 @@ function ListForm({
   testUrl = vi.fn<UrlListProps['testUrl']>(),
   testSaved = vi.fn<UrlListProps['testSaved']>(),
   onValue = () => undefined,
+  masked,
 }: {
   initial: string
+  masked?: boolean
   saved?: string
   testUrl?: UrlListProps['testUrl']
   testSaved?: UrlListProps['testSaved']
@@ -38,6 +40,7 @@ function ListForm({
         <field.UrlListField
           label="Webhook URLs"
           saved={saved}
+          masked={masked}
           validateRow={discordWebhookRowError}
           testUrl={testUrl}
           testSaved={testSaved}
@@ -70,10 +73,7 @@ describe('UrlListField', () => {
 
     expect(screen.getByLabelText('Webhook URLs, URL 1')).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Send test' })).toBeDisabled()
-    expect(
-      screen.getByRole('button', { name: 'Test saved URLs' }),
-    ).toBeDisabled()
-    expect(screen.getByText('Nothing saved yet.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Test saved URLs' })).toBeNull()
   })
 
   it('keeps the comma-separated value in step with the rows', async () => {
@@ -167,5 +167,45 @@ describe('UrlListField', () => {
     expect(
       screen.getByText('Save or discard your changes first.'),
     ).toBeInTheDocument()
+  })
+
+  it('renders rows as plain text unless masked', () => {
+    renderList({ initial: URL_A })
+
+    expect(screen.getByLabelText('Webhook URLs, URL 1')).toHaveAttribute(
+      'type',
+      'text',
+    )
+    expect(
+      screen.queryByRole('button', { name: 'Show Webhook URLs URL 1' }),
+    ).toBeNull()
+  })
+
+  it('masks each row and reveals only the toggled one', async () => {
+    const user = userEvent.setup()
+    renderList({ initial: `${URL_A},${URL_B}`, masked: true })
+    const first = screen.getByLabelText('Webhook URLs, URL 1')
+    const second = screen.getByLabelText('Webhook URLs, URL 2')
+    expect(first).toHaveAttribute('type', 'password')
+    expect(second).toHaveAttribute('type', 'password')
+
+    await user.click(
+      screen.getByRole('button', { name: 'Show Webhook URLs URL 2' }),
+    )
+    expect(second).toHaveAttribute('type', 'text')
+    expect(first).toHaveAttribute('type', 'password')
+
+    await user.click(
+      screen.getByRole('button', { name: 'Hide Webhook URLs URL 2' }),
+    )
+    expect(second).toHaveAttribute('type', 'password')
+  })
+
+  it('disables the reveal toggle on an empty row', () => {
+    renderList({ initial: '', masked: true })
+
+    expect(
+      screen.getByRole('button', { name: 'Show Webhook URLs URL 1' }),
+    ).toBeDisabled()
   })
 })

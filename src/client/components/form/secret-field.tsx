@@ -1,13 +1,9 @@
 import { cn } from 'cn'
-import { type ComponentProps, useState } from 'react'
+import type { ComponentProps } from 'react'
 import { FieldRow } from '@/components/form/field-row'
-import { SecretRevealButton } from '@/components/form/secret-reveal-button'
+import { SecretInput } from '@/components/form/secret-input'
 import { FieldError } from '@/components/ui/field'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@/components/ui/input-group'
+import type { InputGroupInput } from '@/components/ui/input-group'
 import { useFieldErrors } from '@/hooks/useFieldErrors'
 import { useFieldContext } from '@/lib/form-context'
 
@@ -37,13 +33,10 @@ export function SecretField({
   ...inputProps
 }: SecretFieldProps) {
   const field = useFieldContext<string>()
-  const [revealed, setRevealed] = useState(false)
   const fieldErrors = useFieldErrors()
   const errors = error ? [...fieldErrors, { message: error }] : fieldErrors
   const isInvalid = errors.length > 0
   const errorId = `${field.name}-error`
-  const hasValue = field.state.value !== ''
-  const shown = revealed && hasValue
 
   return (
     <FieldRow
@@ -63,29 +56,19 @@ export function SecretField({
             '@lg/field-group:basis-72',
         )}
       >
-        <InputGroup>
-          <InputGroupInput
-            {...inputProps}
-            id={field.name}
-            name={field.name}
-            type={shown ? 'text' : 'password'}
-            autoComplete="off"
-            value={field.state.value}
-            disabled={disabled}
-            onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
-            aria-invalid={isInvalid}
-            aria-describedby={isInvalid ? errorId : undefined}
-          />
-          <InputGroupAddon align="inline-end">
-            <SecretRevealButton
-              shown={shown}
-              onToggle={() => setRevealed(!shown)}
-              disabled={disabled || !hasValue}
-              revealLabel={revealLabel}
-            />
-          </InputGroupAddon>
-        </InputGroup>
+        <SecretInput
+          {...inputProps}
+          id={field.name}
+          name={field.name}
+          autoComplete="off"
+          value={field.state.value}
+          disabled={disabled}
+          onBlur={field.handleBlur}
+          onChange={(event) => field.handleChange(event.target.value)}
+          aria-invalid={isInvalid}
+          aria-describedby={isInvalid ? errorId : undefined}
+          revealLabel={revealLabel}
+        />
         <FieldError id={errorId} errors={errors} />
       </div>
     </FieldRow>

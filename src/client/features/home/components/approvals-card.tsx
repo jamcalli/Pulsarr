@@ -1,13 +1,12 @@
 import { CircleCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CardTitleCount } from '@/components/card-title-count'
 import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
+import { NavPageButton } from '@/components/nav-page-button'
 import { ItemRowsSkeleton } from '@/components/request-list/item-rows-skeleton'
-import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader } from '@/components/ui/card'
 import { ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,7 +23,7 @@ import {
 import type { ApprovalSort } from '@/features/home/lib/home-prefs'
 import { invalidateDashboard } from '@/lib/dashboard-invalidation'
 import { formatCount, formatNumber } from '@/lib/format'
-import { NAV_PAGES, pageHref } from '@/lib/navigation'
+import { NAV_PAGES } from '@/lib/navigation'
 
 const SORT_OPTIONS = [
   { value: 'oldest', label: 'Oldest first' },
@@ -120,14 +119,7 @@ export function ApprovalsCard() {
           tone="pending"
         />
         <CardAction>
-          <Button
-            variant="neutral"
-            size="sm"
-            nativeButton={false}
-            render={<Link to={pageHref(NAV_PAGES.approvalQueue)} />}
-          >
-            {NAV_PAGES.approvalQueue.label}
-          </Button>
+          <NavPageButton page={NAV_PAGES.approvalQueue} />
         </CardAction>
       </CardHeader>
       <CardContent className="flex-1 gap-4">

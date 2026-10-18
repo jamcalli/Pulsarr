@@ -5,9 +5,12 @@ import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
 import { SessionMonitoringSkeleton } from '@/features/library/components/session-monitoring/session-monitoring-skeleton'
+import { PublicContentSkeleton } from '@/features/notifications/components/public-content/public-content-skeleton'
+import { WebhooksSkeleton } from '@/features/notifications/components/webhooks/webhooks-skeleton'
 import { APPRISE_SKELETON } from '@/features/notifications/lib/apprise-skeleton'
 import { DELIVERY_SKELETON } from '@/features/notifications/lib/delivery-skeleton'
 import { DISCORD_SKELETON } from '@/features/notifications/lib/discord-skeleton'
+import { PLEX_MOBILE_SKELETON } from '@/features/notifications/lib/plex-mobile-skeleton'
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
@@ -56,6 +59,15 @@ const DiscordPage = lazy(() => import('@/features/notifications/pages/discord'))
 const ApprisePage = lazy(() => import('@/features/notifications/pages/apprise'))
 const DeliveryPage = lazy(
   () => import('@/features/notifications/pages/delivery'),
+)
+const WebhooksPage = lazy(
+  () => import('@/features/notifications/pages/webhooks'),
+)
+const PlexMobilePage = lazy(
+  () => import('@/features/notifications/pages/plex-mobile'),
+)
+const PublicContentPage = lazy(
+  () => import('@/features/notifications/pages/public-content'),
 )
 const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
 const LogsPage = lazy(() => import('@/features/system/pages/logs'))
@@ -285,6 +297,32 @@ export const router = createBrowserRouter(
                   fallback={<SettingsPageSkeleton {...DELIVERY_SKELETON} />}
                 >
                   <DeliveryPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'notifications/webhooks',
+              element: (
+                <Suspense fallback={<WebhooksSkeleton />}>
+                  <WebhooksPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'notifications/plex-mobile',
+              element: (
+                <Suspense
+                  fallback={<SettingsPageSkeleton {...PLEX_MOBILE_SKELETON} />}
+                >
+                  <PlexMobilePage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'notifications/public-content',
+              element: (
+                <Suspense fallback={<PublicContentSkeleton />}>
+                  <PublicContentPage />
                 </Suspense>
               ),
             },

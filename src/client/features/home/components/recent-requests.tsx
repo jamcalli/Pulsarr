@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CompactSelect } from '@/components/compact-select'
 import { ErrorAlert } from '@/components/error-alert'
+import { NavPageButton } from '@/components/nav-page-button'
 import {
   RequestBrowserDetail,
   RequestBrowserItems,
@@ -12,7 +12,6 @@ import {
   ViewToggleSkeleton,
 } from '@/components/request-list/view-toggle'
 import { StatusFilter, StatusFilterSkeleton } from '@/components/status-filter'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardAction,
@@ -24,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { RecentRequestsState } from '@/features/home/hooks/useRecentRequests'
 import { useRequestBrowser } from '@/hooks/useRequestBrowser'
 import { formatCount } from '@/lib/format'
-import { NAV_PAGES, pageHref } from '@/lib/navigation'
+import { NAV_PAGES } from '@/lib/navigation'
 import { usePref } from '@/lib/prefs'
 import { REQUEST_STATUS_OPTIONS } from '@/lib/request-labels'
 import {
@@ -77,14 +76,7 @@ export function RecentRequests({ recent }: { recent: RecentRequestsState }) {
       <CardHeader>
         <CardTitle>Recent requests</CardTitle>
         <CardAction>
-          <Button
-            variant="neutral"
-            size="sm"
-            nativeButton={false}
-            render={<Link to={pageHref(NAV_PAGES.approvalQueue)} />}
-          >
-            {NAV_PAGES.approvalQueue.label}
-          </Button>
+          <NavPageButton page={NAV_PAGES.approvalQueue} />
         </CardAction>
       </CardHeader>
       <CardContent className="gap-4">
