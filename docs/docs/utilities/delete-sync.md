@@ -6,27 +6,27 @@ Automatically removes content from Sonarr/Radarr instances when it's no longer o
 
 ## Quick Setup
 
-1. Navigate to **Utilities → Delete Sync**
+1. Open **Library**, then **Delete sync**
 2. Select deletion mode (watchlist-based or tag-based)
 3. Choose content types to manage (movies, ended shows, continuing shows)
 4. Configure safety threshold and file management options
-5. Run a **Dry Run** to preview deletions
-6. Enable automatic scheduling or run manually
+5. Run a **Dry run** to preview deletions
+6. Turn on the schedule or run it manually
 
 ## Deletion Modes
 
-**Watchlist-based** (default): Removes content when no longer on any synced user's watchlist.
+**Watchlist-based** (default): Removes content when no longer on any user's watchlist. With **Respect user sync settings** on, only the watchlists of users with sync enabled protect content.
 
 **Tag-based**: Uses removal tags for granular control:
-- Adds removal tags when content leaves watchlists
-- Configurable tag behavior: keep, remove, or prefix existing tags
-- Optional regex filter: require additional tag matching for deletion
+- Deletes content carrying the removal tag set on **User tags** (matching ignores case)
+- User tags only adds that tag when its removal behavior is "Swap for a removed tag"
+- An optional required tag pattern makes deletion also need a matching tag (tag mode only)
 - Allows delayed deletion based on tag presence
 
 ## Plex Playlist Protection
 
 Protect content from deletion by adding it to designated Plex playlists:
-- Automatic playlist creation for all users (default: "Do Not Delete")
+- Every run with protection on, dry or real, creates the playlist for Plex users who lack it (default: "Do Not Delete")
 - Content in protection playlists is excluded from deletion
 - Works with both deletion modes
 
@@ -35,35 +35,33 @@ Protect content from deletion by adding it to designated Plex playlists:
 | Setting | Description |
 |---------|-------------|
 | **Mode** | Watchlist-based or tag-based deletion |
-| **Content Types** | Movies, ended shows, continuing shows |
+| **Content Types** | Movies, ended shows, continuing shows. Continuing shows are any shows Sonarr does not mark as ended |
 | **File Management** | Delete or retain media files from disk |
 | **Playlist Protection** | Configure protection playlist names |
 | **Safety Threshold** | Prevent mass deletion with configurable limits |
 | **Scheduling** | Set automatic cleanup timing |
-| **Notifications** | Discord, Apprise, or both (optional: notify only on deletion) |
+| **Tracked Content Only** | Only delete content requested through Pulsarr, in both modes |
+| **Notifications** | Where each run's summary goes, dry runs included. **Only when something was deleted** skips summaries for runs that delete nothing, dry runs too |
 
 ### Tag-Based Options
 
 | Setting | Description |
 |---------|-------------|
-| **Required Tag Regex** | Optional pattern - content must match to be deleted |
-| **Tracked Content Only** | Only delete content tracked in approval system |
+| **Required Tag Pattern** | Optional regex. Content must also carry a tag matching it to be deleted |
 
 ## Running Delete Sync
 
-- **Enable Automatic**: Run on configured schedule
-- **Run Now**: Manual immediate execution  
-- **Dry Run**: Preview deletions without changes
+- **Run on a schedule**: Run at the chosen day and time
+- **Run now**: Run once immediately with the saved settings
+- **Dry run**: Preview deletions without changes. The result shows on the page with per-type totals, and **View items** lists every movie and show that would be deleted
 
-:::info Playlist Creation
-Dry runs will create protection playlists if they don't exist - this is safe and doesn't delete content.
-:::
+A dry run still refreshes watchlists.
 
 <img src={useBaseUrl('/img/Delete-Sync-Dry.png')} alt="Delete Sync Dry Run Notification" />
 
 ## Advanced Tag Filtering
 
-The **Required Tag Regex** requires content to have both the removal tag AND a matching tag pattern. Patterns are validated for safety (max 1024 characters, no catastrophic backtracking).
+The **Required Tag Pattern** requires content to have both the removal tag AND a matching tag pattern. Patterns are validated for safety (max 1024 characters, no catastrophic backtracking).
 
 ### Use Cases
 
