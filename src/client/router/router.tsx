@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { RouteError } from '@/components/route-error'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
@@ -29,9 +30,11 @@ import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
 import { BASE_PATH } from '@/lib/basePath.js'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
+import { BACKDROP_ROUTE } from '@/lib/route-handle'
 
 const LoginPage = lazy(() => import('@/features/auth'))
 const HomePage = lazy(() => import('@/features/home'))
+const NotFoundPage = lazy(() => import('@/features/not-found'))
 const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
 const NewUserDefaultsPage = lazy(
   () => import('@/features/users/pages/new-user-defaults'),
@@ -131,7 +134,6 @@ const RadarrInstancesPage = lazy(
 const RadarrContentRouterPage = lazy(
   () => import('@/legacy/features/library/pages/radarr-content-router'),
 )
-const NotFoundPage = lazy(() => import('@/legacy/features/not-found'))
 const AccountSettingsPage = lazy(() => import('@/legacy/features/account'))
 
 const LoadingFallback = () => null
@@ -153,228 +155,251 @@ export const router = createBrowserRouter(
           <Outlet />
         </RootLayout>
       ),
+      errorElement: (
+        <RootLayout backdrop>
+          <RouteError />
+        </RootLayout>
+      ),
       children: [
         {
           element: <AppLayout />,
           children: [
             {
-              index: true,
-              element: (
-                <Suspense fallback={<HomeSkeleton />}>
-                  <HomePage />
-                </Suspense>
+              errorElement: (
+                <div className="flex flex-1 items-center justify-center py-12">
+                  <RouteError />
+                </div>
               ),
-            },
-            {
-              path: 'users',
-              element: (
-                <Suspense fallback={<PlexUsersSkeleton />}>
-                  <PlexUsersPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'users/:id',
-              element: (
-                <Suspense fallback={<UserPageSkeleton />}>
-                  <UserPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'users/tags',
-              element: (
-                <Suspense
-                  fallback={<SettingsPageSkeleton {...USER_TAGS_SKELETON} />}
-                >
-                  <UserTagsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'users/new-user-defaults',
-              element: (
-                <Suspense fallback={<NewUserDefaultsSkeleton />}>
-                  <NewUserDefaultsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'users/plex-labels',
-              element: (
-                <Suspense
-                  fallback={<SettingsPageSkeleton {...PLEX_LABELS_SKELETON} />}
-                >
-                  <PlexLabelsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'requests',
-              element: (
-                <Suspense fallback={<ApprovalQueueSkeleton />}>
-                  <ApprovalQueuePage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'requests/settings',
-              element: (
-                <Suspense
-                  fallback={
-                    <SettingsPageSkeleton {...APPROVAL_SETTINGS_SKELETON} />
-                  }
-                >
-                  <ApprovalSettingsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'requests/quotas',
-              element: (
-                <Suspense
-                  fallback={
-                    <SettingsPageSkeleton {...QUOTA_SETTINGS_SKELETON} />
-                  }
-                >
-                  <QuotaSettingsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'library/radarr',
-              element: (
-                <Suspense fallback={<ArrInstancesSkeleton />}>
-                  <ArrInstancesPage key="radarr" type="radarr" />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'library/sonarr',
-              element: (
-                <Suspense fallback={<ArrInstancesSkeleton />}>
-                  <ArrInstancesPage key="sonarr" type="sonarr" />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'library/content-router',
-              element: (
-                <Suspense fallback={<ContentRouterSkeleton />}>
-                  <ContentRouterPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'library/exclusions',
-              element: (
-                <Suspense fallback={<ExclusionsSkeleton />}>
-                  <ExclusionsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'library/delete-sync',
-              element: (
-                <Suspense
-                  fallback={<SettingsPageSkeleton {...DELETE_SYNC_SKELETON} />}
-                >
-                  <DeleteSyncPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'library/session-monitoring',
-              element: (
-                <Suspense fallback={<SessionMonitoringSkeleton />}>
-                  <SessionMonitoringPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'notifications/discord',
-              element: (
-                <Suspense
-                  fallback={<SettingsPageSkeleton {...DISCORD_SKELETON} />}
-                >
-                  <DiscordPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'notifications/apprise',
-              element: (
-                <Suspense
-                  fallback={<SettingsPageSkeleton {...APPRISE_SKELETON} />}
-                >
-                  <ApprisePage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'notifications/delivery',
-              element: (
-                <Suspense
-                  fallback={<SettingsPageSkeleton {...DELIVERY_SKELETON} />}
-                >
-                  <DeliveryPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'notifications/webhooks',
-              element: (
-                <Suspense fallback={<WebhooksSkeleton />}>
-                  <WebhooksPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'notifications/plex-mobile',
-              element: (
-                <Suspense
-                  fallback={<SettingsPageSkeleton {...PLEX_MOBILE_SKELETON} />}
-                >
-                  <PlexMobilePage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'notifications/public-content',
-              element: (
-                <Suspense fallback={<PublicContentSkeleton />}>
-                  <PublicContentPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'system/plex',
-              element: (
-                <Suspense fallback={<PlexConnectionSkeleton />}>
-                  <PlexConnectionPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'system/api-keys',
-              element: (
-                <Suspense fallback={<ApiKeysSkeleton />}>
-                  <ApiKeysPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'system/logs',
-              element: (
-                <Suspense fallback={<LogsSkeleton />}>
-                  <LogsPage />
-                </Suspense>
-              ),
+              children: [
+                {
+                  index: true,
+                  element: (
+                    <Suspense fallback={<HomeSkeleton />}>
+                      <HomePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users',
+                  element: (
+                    <Suspense fallback={<PlexUsersSkeleton />}>
+                      <PlexUsersPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/:id',
+                  element: (
+                    <Suspense fallback={<UserPageSkeleton />}>
+                      <UserPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/tags',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...USER_TAGS_SKELETON} />
+                      }
+                    >
+                      <UserTagsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/new-user-defaults',
+                  element: (
+                    <Suspense fallback={<NewUserDefaultsSkeleton />}>
+                      <NewUserDefaultsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/plex-labels',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...PLEX_LABELS_SKELETON} />
+                      }
+                    >
+                      <PlexLabelsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'requests',
+                  element: (
+                    <Suspense fallback={<ApprovalQueueSkeleton />}>
+                      <ApprovalQueuePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'requests/settings',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...APPROVAL_SETTINGS_SKELETON} />
+                      }
+                    >
+                      <ApprovalSettingsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'requests/quotas',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...QUOTA_SETTINGS_SKELETON} />
+                      }
+                    >
+                      <QuotaSettingsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/radarr',
+                  element: (
+                    <Suspense fallback={<ArrInstancesSkeleton />}>
+                      <ArrInstancesPage key="radarr" type="radarr" />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/sonarr',
+                  element: (
+                    <Suspense fallback={<ArrInstancesSkeleton />}>
+                      <ArrInstancesPage key="sonarr" type="sonarr" />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/content-router',
+                  element: (
+                    <Suspense fallback={<ContentRouterSkeleton />}>
+                      <ContentRouterPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/exclusions',
+                  element: (
+                    <Suspense fallback={<ExclusionsSkeleton />}>
+                      <ExclusionsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/delete-sync',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...DELETE_SYNC_SKELETON} />
+                      }
+                    >
+                      <DeleteSyncPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/session-monitoring',
+                  element: (
+                    <Suspense fallback={<SessionMonitoringSkeleton />}>
+                      <SessionMonitoringPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/discord',
+                  element: (
+                    <Suspense
+                      fallback={<SettingsPageSkeleton {...DISCORD_SKELETON} />}
+                    >
+                      <DiscordPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/apprise',
+                  element: (
+                    <Suspense
+                      fallback={<SettingsPageSkeleton {...APPRISE_SKELETON} />}
+                    >
+                      <ApprisePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/delivery',
+                  element: (
+                    <Suspense
+                      fallback={<SettingsPageSkeleton {...DELIVERY_SKELETON} />}
+                    >
+                      <DeliveryPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/webhooks',
+                  element: (
+                    <Suspense fallback={<WebhooksSkeleton />}>
+                      <WebhooksPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/plex-mobile',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...PLEX_MOBILE_SKELETON} />
+                      }
+                    >
+                      <PlexMobilePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/public-content',
+                  element: (
+                    <Suspense fallback={<PublicContentSkeleton />}>
+                      <PublicContentPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'system/plex',
+                  element: (
+                    <Suspense fallback={<PlexConnectionSkeleton />}>
+                      <PlexConnectionPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'system/api-keys',
+                  element: (
+                    <Suspense fallback={<ApiKeysSkeleton />}>
+                      <ApiKeysPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'system/logs',
+                  element: (
+                    <Suspense fallback={<LogsSkeleton />}>
+                      <LogsPage />
+                    </Suspense>
+                  ),
+                },
+              ],
             },
           ],
         },
         {
           path: 'login',
+          handle: BACKDROP_ROUTE,
           element: (
             <Suspense fallback={<LoadingFallback />}>
               <LoginPage />
@@ -620,6 +645,7 @@ export const router = createBrowserRouter(
         },
         {
           path: '*',
+          handle: BACKDROP_ROUTE,
           element: (
             <Suspense fallback={<LoadingFallback />}>
               <NotFoundPage />
