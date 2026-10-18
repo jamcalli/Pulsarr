@@ -103,6 +103,19 @@ export const NOTIFY_DEFAULTS = {
   deleteSyncNotifyOnlyOnDeletion: boolean
 }
 
+export const MAINTAINERR_EXCLUSION_MODES = ['watchlisters', 'global'] as const
+
+export const MAINTAINERR_EXCLUSION_MODE_DEFAULT =
+  'watchlisters' satisfies (typeof MAINTAINERR_EXCLUSION_MODES)[number]
+
+export const MaintainerrExclusionModeSchema = z
+  .enum(MAINTAINERR_EXCLUSION_MODES)
+  .meta({
+    id: 'MaintainerrExclusionMode',
+    description:
+      'Exclude Maintainerr-handled media for its current watchlisters, or globally for every user',
+  })
+
 const NotifyOptionEnum = z.enum(NOTIFY_OPTIONS)
 
 const UpdateNotifyEnum = z.enum(UPDATE_NOTIFY_OPTIONS)
@@ -178,7 +191,7 @@ export const ConfigFullSchema = z
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
     maintainerrEnabled: z.boolean(),
     maintainerrUrl: z.string().optional(),
-    maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
+    maintainerrExclusionMode: MaintainerrExclusionModeSchema.optional(),
     // Discord Config
     discordWebhookUrl: z.string().optional(),
     discordBotToken: z.string().optional(),
@@ -348,7 +361,7 @@ export const ConfigUpdateSchema = z
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
     maintainerrEnabled: z.boolean().optional(),
     maintainerrUrl: HttpUrlOptionalSchema,
-    maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
+    maintainerrExclusionMode: MaintainerrExclusionModeSchema.optional(),
     // Discord Config
     discordWebhookUrl: DiscordWebhookUrlListSchema,
     discordBotToken: z.string().optional(),

@@ -1,5 +1,6 @@
 import type {
   DELETE_SYNC_NOTIFY_OPTIONS,
+  MAINTAINERR_EXCLUSION_MODES,
   NOTIFY_OPTIONS,
   UPDATE_NOTIFY_OPTIONS,
 } from '@root/schemas/config/config.schema.js'
@@ -40,6 +41,9 @@ export type UpdateNotifyOption = (typeof UPDATE_NOTIFY_OPTIONS)[number]
 export type NotifyOption = (typeof NOTIFY_OPTIONS)[number]
 
 export type DeleteSyncNotifyOption = (typeof DELETE_SYNC_NOTIFY_OPTIONS)[number]
+
+export type MaintainerrExclusionMode =
+  (typeof MAINTAINERR_EXCLUSION_MODES)[number]
 
 export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
 
@@ -102,7 +106,7 @@ export interface Config {
   maintainerrEnabled: boolean
   maintainerrUrl: string
   maintainerrWebhookSecret: string
-  maintainerrExclusionMode: 'watchlisters' | 'global'
+  maintainerrExclusionMode: MaintainerrExclusionMode
   // Discord Config
   discordWebhookUrl: string
   discordBotToken: string
