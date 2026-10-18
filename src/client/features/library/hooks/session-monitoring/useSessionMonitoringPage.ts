@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { PageSize } from '@/components/data-table/page-size'
 import { useRollingShowActions } from '@/features/library/hooks/session-monitoring/useRollingShowActions'
 import { useRollingShows } from '@/features/library/hooks/session-monitoring/useRollingShows'
@@ -48,12 +48,18 @@ export function useSessionMonitoringPage() {
   }>({ open: false, target: null })
 
   const all = list.rows
-  const matching = all === null ? null : visibleShows(all, state)
+  const matching = useMemo(
+    () => (all === null ? null : visibleShows(all, state)),
+    [all, state],
+  )
   const total = matching?.length ?? 0
   const paged = paginate(matching ?? [], state.page, pageSize)
   const page = paged.page
   const rows = matching === null ? null : paged.rows
-  const inactive = (all ?? []).filter((row) => row.inactive)
+  const inactive = useMemo(
+    () => (all ?? []).filter((row) => row.inactive),
+    [all],
+  )
 
   return {
     config: config.config,

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { PageSize } from '@/components/data-table/page-size'
 import { useWatchlistView } from '@/features/users/hooks/user/useWatchlistView'
 import {
@@ -20,7 +21,7 @@ export function useUserWatchlist(items: readonly RecentRequest[]) {
   const [view, setView] = useWatchlistView()
   const [pageSize, savePageSize] = usePref(watchlistPageSizePref)
 
-  const matching = visibleItems(items, state)
+  const matching = useMemo(() => visibleItems(items, state), [items, state])
   const { page, rows } = paginate(matching, state.page, pageSize)
 
   return {

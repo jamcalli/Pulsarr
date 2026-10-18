@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useInstances } from '@/features/library/hooks/instances/useInstances'
 import {
   type DryRunSort,
@@ -31,11 +31,26 @@ export function useDryRunItems(
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<DryRunSort>({ id: 'title', desc: false })
 
-  const all = {
-    movies: dryRunRows(result.movies.items, nameLookup(radarr.instances)),
-    shows: dryRunRows(result.shows.items, nameLookup(sonarr.instances)),
-  }
-  const rows = visibleDryRunRows(all[tab], search, sort)
+  const radarrName = useMemo(
+    () => nameLookup(radarr.instances),
+    [radarr.instances],
+  )
+  const sonarrName = useMemo(
+    () => nameLookup(sonarr.instances),
+    [sonarr.instances],
+  )
+  const all = useMemo(
+    () => ({
+      movies: dryRunRows(result.movies.items, radarrName),
+      shows: dryRunRows(result.shows.items, sonarrName),
+    }),
+    [result, radarrName, sonarrName],
+  )
+  const tabRows = all[tab]
+  const rows = useMemo(
+    () => visibleDryRunRows(tabRows, search, sort),
+    [tabRows, search, sort],
+  )
 
   return {
     tab,

@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { PageSize } from '@/components/data-table/page-size'
 import { usePlexUsersList } from '@/features/users/hooks/plex-users/usePlexUsersList'
 import {
@@ -69,7 +69,10 @@ export function usePlexUsersPage() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [quotasOpen, setQuotasOpen] = useState(false)
 
-  const matching = list.rows === null ? null : visibleRows(list.rows, state)
+  const matching = useMemo(
+    () => (list.rows === null ? null : visibleRows(list.rows, state)),
+    [list.rows, state],
+  )
   const total = matching?.length ?? 0
   const paged = paginate(matching ?? [], state.page, pageSize)
   const page = paged.page

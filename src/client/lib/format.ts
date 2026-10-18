@@ -1,8 +1,10 @@
 /** Every formatter reads this, so the future language setting changes all of them in one place. */
 let locale: string | undefined
+let collator = new Intl.Collator(locale)
 
 export function setFormatLocale(next: string | undefined): void {
   locale = next
+  collator = new Intl.Collator(next)
 }
 
 export function formatLocale(): string | undefined {
@@ -112,7 +114,7 @@ export function formatLogDateTime(value: Date | number): string {
 }
 
 export function compareText(a: string, b: string): number {
-  return new Intl.Collator(locale).compare(a, b)
+  return collator.compare(a, b)
 }
 
 /** Compares two sort values, text by locale and numbers numerically. */

@@ -2,6 +2,7 @@ import {
   placeholderRadarrInstance,
   placeholderSonarrInstance,
 } from '@root/schemas/common/arr-placeholder'
+import { useMemo } from 'react'
 import {
   type ArrType,
   type InstanceFormValues,
@@ -120,7 +121,10 @@ export async function removeInstance(
 
 export function useInstances(type: ArrType) {
   const list = useArrInstances(type)
-  const instances = [...list.configuredTargets].sort(byDefaultThenName)
+  const instances = useMemo(
+    () => [...list.configuredTargets].sort(byDefaultThenName),
+    [list.configuredTargets],
+  )
   const placeholder =
     list.targets.find((target) => !isConfiguredTarget(target)) ?? null
 
