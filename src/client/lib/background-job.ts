@@ -59,15 +59,29 @@ export function startAndAwaitStatus<Status>(
       clearInterval(poll)
       for (const unsubscribe of unsubscribers) unsubscribe()
     }
+    let inFlight = false
+    let again = false
     const check = () => {
       if (!started || finished) return
+      if (inFlight) {
+        again = true
+        return
+      }
+      inFlight = true
       job.readStatus().then(
         (status) => {
-          if (finished || !job.isSettled(status)) return
-          finish()
-          resolve(status)
+          inFlight = false
+          if (finished) return
+          if (job.isSettled(status)) {
+            finish()
+            resolve(status)
+          } else if (again) {
+            again = false
+            check()
+          }
         },
         (error: unknown) => {
+          inFlight = false
           if (finished) return
           finish()
           reject(error)
