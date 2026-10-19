@@ -1,5 +1,9 @@
 import type { ProgressEvent } from '@root/types/progress.types.js'
-import { type ProgressStream, startAndAwaitStatus } from '@/lib/background-job'
+import {
+  type ProgressStream,
+  STATUS_POLL_INTERVAL_MS,
+  startAndAwaitStatus,
+} from '@/lib/background-job'
 
 interface Status {
   state: 'running' | 'done' | 'failed'
@@ -152,5 +156,48 @@ describe('startAndAwaitStatus', () => {
     })
     expect(readStatus).not.toHaveBeenCalled()
     expect(subscribers()).toBe(0)
+  })
+
+  describe('slow poll', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('settles from the poll with no events or reconnect, then stops polling', async () => {
+      const { stream } = fakeStream()
+      const { options, readStatus } = job([
+        { state: 'running' },
+        { state: 'done' },
+      ])
+
+      const result = startAndAwaitStatus(options, stream)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(readStatus).toHaveBeenCalledTimes(1)
+
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS)
+      await expect(result).resolves.toEqual({ state: 'done' })
+      expect(readStatus).toHaveBeenCalledTimes(2)
+
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS * 3)
+      expect(readStatus).toHaveBeenCalledTimes(2)
+      expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('clears the poll when the start fails', async () => {
+      const { stream } = fakeStream()
+      const { options, readStatus } = job([])
+      options.start.mockRejectedValue({ message: 'already running' })
+
+      await expect(startAndAwaitStatus(options, stream)).rejects.toEqual({
+        message: 'already running',
+      })
+      expect(vi.getTimerCount()).toBe(0)
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS * 2)
+      expect(readStatus).not.toHaveBeenCalled()
+    })
   })
 })

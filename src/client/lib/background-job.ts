@@ -3,6 +3,7 @@ import { useProgressStore } from '@/stores/progressStore'
 import type { components } from '@/types/api.js'
 
 const SETTLED_PHASES: readonly string[] = ['complete', 'failed']
+export const STATUS_POLL_INTERVAL_MS = 20_000
 
 export interface ProgressStream {
   /** Returns the unsubscribe. */
@@ -44,7 +45,7 @@ interface BackgroundJob<Status> {
   isSettled: (status: Status) => boolean
 }
 
-/** Starts the job, then resolves with its status once settled, rereading it after each settled event and each reconnect. */
+/** Starts the job, then resolves with its status once settled, rereading it after each settled event, each reconnect and each slow poll. */
 export function startAndAwaitStatus<Status>(
   job: BackgroundJob<Status>,
   stream: ProgressStream = progressStream,
@@ -55,6 +56,7 @@ export function startAndAwaitStatus<Status>(
     const unsubscribers: Array<() => void> = []
     const finish = () => {
       finished = true
+      clearInterval(poll)
       for (const unsubscribe of unsubscribers) unsubscribe()
     }
     const check = () => {
@@ -73,6 +75,7 @@ export function startAndAwaitStatus<Status>(
       )
     }
 
+    const poll = setInterval(check, STATUS_POLL_INTERVAL_MS)
     unsubscribers.push(
       stream.onEvent(job.eventType, (event) => {
         if (isSettledJobEvent(event, job.isJobEvent)) check()
