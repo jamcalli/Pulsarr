@@ -43,6 +43,10 @@ export const scheduleKeys = {
     }).queryKey,
 }
 
+export const currentUserKeys = {
+  me: $api.queryOptions('get', '/v1/users/me').queryKey,
+}
+
 export const usersKeys = {
   list: $api.queryOptions('get', '/v1/users/list').queryKey,
   withCounts: $api.queryOptions('get', '/v1/users/list/with-counts').queryKey,
