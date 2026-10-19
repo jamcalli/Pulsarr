@@ -1,4 +1,3 @@
-import { hasValidPlexTokens } from '@services/plex-watchlist/api/helpers.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { assignTemporaryAdminUser } from '@utils/temporary-admin.js'
 import { normalizeBasePath } from '@utils/url.js'
@@ -12,10 +11,7 @@ export default async function rootRoute(fastify: FastifyInstance) {
   }
 
   fastify.get('/', async (request, reply) => {
-    if (request.user) {
-      if (hasValidPlexTokens(fastify.config)) return reply.html()
-      return reply.redirect(buildPath('/plex/configuration'))
-    }
+    if (request.user) return reply.html()
 
     const { isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
       fastify,
@@ -27,9 +23,7 @@ export default async function rootRoute(fastify: FastifyInstance) {
 
       if (adminUser) {
         assignTemporaryAdminUser(request, adminUser)
-
-        if (hasValidPlexTokens(fastify.config)) return reply.html()
-        return reply.redirect(buildPath('/plex/configuration'))
+        return reply.html()
       }
 
       return reply.redirect(buildPath('/create-user'))

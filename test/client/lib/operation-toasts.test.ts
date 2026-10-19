@@ -1,4 +1,4 @@
-import { NAV_PAGES, type NavPage } from '@/lib/navigation'
+import { NAV_PAGES } from '@/lib/navigation'
 import {
   type OperationMeta,
   operationToast,
@@ -50,23 +50,14 @@ describe('operationToast', () => {
 })
 
 describe('shouldToast', () => {
-  const legacyPage: NavPage = { ...NAV_PAGES.userTags, rebuilt: false }
-
-  it('stays quiet on the rebuilt page at its new URL', () => {
+  it('stays quiet on the page itself', () => {
     expect(shouldToast(meta, '/users/tags')).toBe(false)
     expect(shouldToast(meta, '/users/tags/')).toBe(false)
-  })
-
-  it('stays quiet on a page not yet rebuilt at its legacy URL', () => {
-    expect(
-      shouldToast({ ...meta, page: legacyPage }, '/utilities/user-tags'),
-    ).toBe(false)
   })
 
   it('toasts anywhere else', () => {
     expect(shouldToast(meta, '/')).toBe(true)
     expect(shouldToast(meta, '/users')).toBe(true)
     expect(shouldToast(meta, '/utilities/user-tags')).toBe(true)
-    expect(shouldToast({ ...meta, page: legacyPage }, '/users/tags')).toBe(true)
   })
 })

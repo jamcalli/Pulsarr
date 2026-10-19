@@ -1,4 +1,3 @@
-import { hasValidPlexTokens } from '@services/plex-watchlist/api/helpers.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { assignTemporaryAdminUser } from '@utils/temporary-admin.js'
 import { normalizeBasePath } from '@utils/url.js'
@@ -52,14 +51,10 @@ export default async function spaRoute(fastify: FastifyInstance) {
         const isCreateUserPage = rawPath === createUserPath
         const isLoginPage = rawPath === loginPath
 
-        const hasPlexTokens = hasValidPlexTokens(fastify.config)
-
         if (isAuthDisabled || isLocalBypass) {
           if (request.user) {
             if (isLoginPage || isCreateUserPage) {
-              return reply.redirect(
-                buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
-              )
+              return reply.redirect(buildPath('/'))
             }
 
             return
@@ -71,9 +66,7 @@ export default async function spaRoute(fastify: FastifyInstance) {
             assignTemporaryAdminUser(request, adminUser)
 
             if (isLoginPage || isCreateUserPage) {
-              return reply.redirect(
-                buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
-              )
+              return reply.redirect(buildPath('/'))
             }
 
             return
@@ -88,9 +81,7 @@ export default async function spaRoute(fastify: FastifyInstance) {
 
         if (request.user) {
           if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(
-              buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
-            )
+            return reply.redirect(buildPath('/'))
           }
 
           return
