@@ -10,6 +10,8 @@ import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import SetupDialog from '@/features/setup'
 import { setFormatLocale } from '@/lib/format'
+import { markDone, type SyncRun, startRun } from '@/lib/plex/sync-run'
+import { plexConnectionKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import { useSetupStore } from '@/stores/setupStore'
@@ -744,6 +746,35 @@ describe('SetupDialog', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Done' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(calls.requests).toEqual([])
+  })
+
+  it('shows only Done when the workflow runs after a finished link run', async () => {
+    const user = userEvent.setup()
+    mockEndpoints({
+      config: { ...LINKED, _isReady: true },
+      sonarrInstances: [sonarr],
+    })
+    setWorkflowStatus('running')
+    const linked = (['self', 'friends', 'feeds'] as const).reduce(
+      (run, id) => markDone(run, id, null),
+      startRun('link'),
+    )
+    queryClient.setQueryData<SyncRun>(plexConnectionKeys.syncRun, {
+      ...linked,
+      ranAt: Date.now(),
+    })
+    renderDialog()
+    act(() => useSetupStore.getState().request())
+
+    const dialog = await findStep('Plex account')
+    await user.click(stepNav().getByRole('tab', { name: 'Start syncing done' }))
+    await findStep('Start syncing')
+
+    expect(within(dialog).getByText('Syncing is on.')).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Done' })).toBeEnabled()
+    expect(
+      within(dialog).queryByRole('button', { name: 'Start workflow' }),
+    ).toBeNull()
   })
 
   it('stays closed for a linked install until the account menu asks for it', async () => {

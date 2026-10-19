@@ -18,7 +18,7 @@ import { invalidateConfig } from '@/hooks/useConfig'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { NAV_PAGES } from '@/lib/navigation'
 import { watchlistFacts } from '@/lib/plex/account-facts'
-import { type SyncRun, startRun } from '@/lib/plex/sync-run'
+import { isRunning, type SyncRun, startRun } from '@/lib/plex/sync-run'
 import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
 import { useSetupStore } from '@/stores/setupStore'
 import type { components } from '@/types/api.js'
@@ -117,7 +117,7 @@ export function FinishStep({ steps, onDirtyChange }: SetupStepProps) {
 
   const phase = finishPhase({
     starting: start.isPending,
-    alreadyOn: workflow.state === 'running' && !launched,
+    alreadyOn: workflow.state === 'running' && !(launched && isRunning(ownRun)),
     launched,
     owner,
     otherRunning: sync.running,
