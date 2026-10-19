@@ -34,6 +34,7 @@ import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { BACKDROP_ROUTE } from '@/lib/route-handle'
 
 const LoginPage = lazy(() => import('@/features/auth'))
+const CreateUserPage = lazy(() => import('@/features/auth/pages/create-user'))
 const AccountPage = lazy(() => import('@/features/account'))
 const HomePage = lazy(() => import('@/features/home'))
 const NotFoundPage = lazy(() => import('@/features/not-found'))
@@ -85,7 +86,6 @@ const LogsPage = lazy(() => import('@/features/system/pages/logs'))
 const PlexConnectionPage = lazy(
   () => import('@/features/system/pages/plex-connection'),
 )
-const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const LegacyPlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),
 )
@@ -417,6 +417,7 @@ export const router = createBrowserRouter(
         },
         {
           path: 'create-user',
+          handle: BACKDROP_ROUTE,
           element: (
             <Suspense fallback={<LoadingFallback />}>
               <CreateUserPage />
