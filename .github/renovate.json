@@ -74,12 +74,13 @@
   ],
   "packageRules": [
     {
-      "description": "Group all Radix UI, Base UI and shadcn",
-      "groupName": "Radix UI",
+      "description": "Group the Base UI kit, shadcn and the libraries its components install",
+      "groupName": "UI kit",
       "matchPackageNames": [
-        "/^@radix-ui//",
         "@base-ui/react",
-        "shadcn"
+        "shadcn",
+        "lucide-react",
+        "embla-carousel-react"
       ]
     },
     {
@@ -88,10 +89,7 @@
       "matchPackageNames": [
         "/^@fastify//",
         "/^fastify/",
-        "!fastify-cli",
-        "!fastify-tsconfig",
-        "!@fastify/vite",
-        "!@fastify/react"
+        "!@fastify/vite"
       ]
     },
     {
@@ -118,11 +116,10 @@
         "vite",
         "@vitejs/plugin-react",
         "@fastify/vite",
-        "@fastify/react",
         "typescript",
         "tsc-alias",
-        "tsx",
-        "@biomejs/biome"
+        "@biomejs/biome",
+        "vite-plugin-compression2"
       ]
     },
     {
@@ -166,9 +163,7 @@
       "matchPackageNames": [
         "react",
         "react-dom",
-        "react-hook-form",
         "react-router-dom",
-        "@hookform/resolvers",
         "zod",
         "@types/react",
         "@types/react-dom"
@@ -182,6 +177,42 @@
       ]
     },
     {
+      "description": "Group the OpenAPI contract tooling (fetch client, query bindings, types, API reference)",
+      "groupName": "OpenAPI",
+      "matchPackageNames": [
+        "openapi-fetch",
+        "openapi-react-query",
+        "openapi-types",
+        "@scalar/fastify-api-reference"
+      ]
+    },
+    {
+      "description": "Group the pino logger and its transports",
+      "groupName": "Logging",
+      "matchPackageNames": [
+        "pino",
+        "pino-pretty",
+        "rotating-file-stream"
+      ]
+    },
+    {
+      "description": "Group the scheduler and cron parsing",
+      "groupName": "Scheduling",
+      "matchPackageNames": [
+        "toad-scheduler",
+        "cron-parser"
+      ]
+    },
+    {
+      "description": "Group husky and commitlint",
+      "groupName": "Git hooks",
+      "matchPackageNames": [
+        "husky",
+        "@commitlint/cli",
+        "@commitlint/config-conventional"
+      ]
+    },
+    {
       "description": "Group Tailwind ecosystem",
       "groupName": "Tailwind CSS",
       "matchPackageNames": [
@@ -189,7 +220,6 @@
         "@tailwindcss/postcss",
         "postcss",
         "autoprefixer",
-        "tailwind-merge",
         "class-variance-authority",
         "tw-animate-css",
         "cn",
@@ -237,19 +267,14 @@
         "!@tailwindcss/postcss",
         "!postcss",
         "!autoprefixer",
-        "!tailwind-merge",
         "!class-variance-authority",
         "!tw-animate-css",
         "!/^@types//",
-        "!/^@radix-ui//",
         "!@base-ui/react",
         "!/^@tanstack//",
         "!react",
         "!react-dom",
-        "!react-hook-form",
         "!react-router-dom",
-        "!@hookform/resolvers",
-        "!recharts",
         "!cn",
         "!vitest",
         "!/^@vitest\\//",
@@ -312,13 +337,6 @@
       "minimumReleaseAge": "7 days"
     },
     {
-      "description": "Pin recharts to v2.x to prevent breaking changes with component library",
-      "matchPackageNames": [
-        "recharts"
-      ],
-      "allowedVersions": "< 3.0.0"
-    },
-    {
       "description": "Pin react-table to v8 until the table components are migrated to the v9 API",
       "matchPackageNames": [
         "@tanstack/react-table"
@@ -376,12 +394,13 @@
       "prPriority": 20
     },
     {
-      "description": "Auto-merge patch updates for Radix UI, Base UI and shadcn",
-      "groupName": "Radix UI",
+      "description": "Auto-merge patch updates for the UI kit",
+      "groupName": "UI kit",
       "matchPackageNames": [
-        "/^@radix-ui//",
         "@base-ui/react",
-        "shadcn"
+        "shadcn",
+        "lucide-react",
+        "embla-carousel-react"
       ],
       "matchUpdateTypes": [
         "patch"
@@ -427,9 +446,7 @@
       "matchPackageNames": [
         "react",
         "react-dom",
-        "react-hook-form",
         "react-router-dom",
-        "@hookform/resolvers",
         "zod",
         "@types/react",
         "@types/react-dom"
@@ -449,7 +466,6 @@
         "@tailwindcss/postcss",
         "postcss",
         "autoprefixer",
-        "tailwind-merge",
         "class-variance-authority",
         "tw-animate-css",
         "cn",
@@ -494,15 +510,72 @@
       "minimumReleaseAge": "2 days"
     },
     {
+      "description": "Auto-merge patch updates for OpenAPI",
+      "groupName": "OpenAPI",
+      "matchPackageNames": [
+        "openapi-fetch",
+        "openapi-react-query",
+        "openapi-types",
+        "@scalar/fastify-api-reference"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for Logging",
+      "groupName": "Logging",
+      "matchPackageNames": [
+        "pino",
+        "pino-pretty",
+        "rotating-file-stream"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for Scheduling",
+      "groupName": "Scheduling",
+      "matchPackageNames": [
+        "toad-scheduler",
+        "cron-parser"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for Git hooks",
+      "groupName": "Git hooks",
+      "matchPackageNames": [
+        "husky",
+        "@commitlint/cli",
+        "@commitlint/config-conventional"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
       "description": "Auto-merge patch updates for Fastify ecosystem",
       "groupName": "Fastify ecosystem",
       "matchPackageNames": [
         "/^@fastify//",
         "/^fastify/",
-        "!fastify-cli",
-        "!fastify-tsconfig",
-        "!@fastify/vite",
-        "!@fastify/react"
+        "!@fastify/vite"
       ],
       "matchUpdateTypes": [
         "patch"
@@ -538,14 +611,12 @@
       "minimumReleaseAge": "3 days",
       "matchPackageNames": [
         "/.*/",
-        "!/^@radix-ui//",
         "!/^@fastify//",
         "!/^fastify/",
         "!/^@types//",
         "!vite",
         "!@vitejs/plugin-react",
         "!@fastify/vite",
-        "!@fastify/react",
         "!typescript",
         "!tsc-alias",
         "!tsx",
@@ -557,9 +628,7 @@
         "!@types/pg",
         "!react",
         "!react-dom",
-        "!react-hook-form",
         "!react-router-dom",
-        "!@hookform/resolvers",
         "!zod",
         "!@types/react",
         "!@types/react-dom",
@@ -567,12 +636,10 @@
         "!@tailwindcss/postcss",
         "!postcss",
         "!autoprefixer",
-        "!tailwind-merge",
         "!class-variance-authority",
         "!tw-animate-css",
         "!/^@tanstack//",
-        "!node",
-        "!recharts"
+        "!node"
       ]
     }
   ],
