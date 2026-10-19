@@ -2,6 +2,7 @@ import { useStore } from '@tanstack/react-form'
 import { BusyLabel } from '@/components/busy-label'
 import { ConnectionTest } from '@/components/connection-test'
 import { ErrorAlert } from '@/components/error-alert'
+import { LiveConnectionRow } from '@/components/plex/live-connection-row'
 import {
   FieldRowSkeleton,
   SettingsSectionSkeleton,
@@ -17,8 +18,10 @@ import {
   CONNECTION_OPTIONS,
   connectionTestView,
   connectionUrl,
+  PLEX_SERVER_DESCRIPTION,
   type ServerFormValues,
 } from '@/lib/plex/server-address'
+import { LIVE_STATE_LINES } from '@/lib/plex-live-status'
 import { UNSAVED_CHANGES_REASON } from '@/lib/settings'
 import type { components } from '@/types/api.js'
 
@@ -80,7 +83,7 @@ export const ServerCard = withFieldGroup({
     return (
       <SettingsSection
         title="Plex server"
-        description="Used for sessions, labels, playlists and existence checks."
+        description={PLEX_SERVER_DESCRIPTION}
         lock={locked ? { reason: LINK_FIRST_REASON } : undefined}
       >
         <group.AppField name="connection">
@@ -140,6 +143,9 @@ export const ServerCard = withFieldGroup({
             )}
           </div>
         )}
+        {!locked && (
+          <LiveConnectionRow describe={(state) => LIVE_STATE_LINES[state]} />
+        )}
         <ConnectionTest
           status={testView.status}
           failure={testView.failure}
@@ -166,6 +172,7 @@ export function ServerCardSkeleton() {
   return (
     <SettingsSectionSkeleton>
       <FieldRowSkeleton control="field" />
+      <FieldRowSkeleton control="text" />
       <FieldRowSkeleton control="field" />
       <FieldRowSkeleton control="switch" />
     </SettingsSectionSkeleton>

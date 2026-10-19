@@ -19,6 +19,7 @@ import {
 } from '@/features/system/components/plex-connection/watchlist-feeds'
 import { useUnlinkAccount } from '@/hooks/plex/useAccountToken'
 import { useWatchlistSync } from '@/hooks/plex/useWatchlistSync'
+import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { accountFacts, hasFeeds } from '@/lib/plex/account-facts'
 import { isRunning, stepFailed } from '@/lib/plex/sync-run'
 import type { components } from '@/types/api.js'
@@ -39,6 +40,7 @@ export function AccountCard({
   linked,
 }: AccountCardProps) {
   const sync = useWatchlistSync()
+  const syncStatus = useSyncStatus()
   const unlink = useUnlinkAccount()
   const [dialog, setDialog] = useState<Dialog>(null)
   const signInLabel = linked ? 'Relink with Plex' : 'Sign in with Plex'
@@ -64,6 +66,7 @@ export function AccountCard({
     friendsSynced: !(
       sync.run?.kind === 'link' && stepFailed(sync.run, 'friends')
     ),
+    sync: syncStatus,
   })
   const generated = hasFeeds(config)
 

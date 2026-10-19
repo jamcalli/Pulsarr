@@ -1,14 +1,6 @@
-import { useStore } from '@tanstack/react-form'
-import { useState } from 'react'
 import { BulkFormCredenza } from '@/components/bulk-form-credenza'
-import { useLinkAccount } from '@/hooks/plex/useAccountToken'
-import { useAppForm } from '@/lib/form'
-import {
-  TOKEN_FAILURE_MESSAGES,
-  type TokenFailure,
-} from '@/lib/plex/plex-requests'
-
-const REVEAL_LABEL = { show: 'Show token', hide: 'Hide token' }
+import { TokenField } from '@/components/plex/token-field'
+import { useTokenLinkForm } from '@/hooks/plex/useTokenLinkForm'
 
 interface TokenCredenzaProps {
   open: boolean
@@ -21,68 +13,28 @@ export function TokenCredenza({
   onOpenChange,
   onLinked,
 }: TokenCredenzaProps) {
-  const link = useLinkAccount()
-  const [failed, setFailed] = useState<{
-    token: string
-    reason: TokenFailure
-  } | null>(null)
-  const form = useAppForm({
-    defaultValues: { token: '' },
-    onSubmit: ({ value }) => {
-      const token = value.token.trim()
-      link.link(token, {
-        onSuccess: (outcome) => {
-          if (outcome.linked) onLinked()
-          else setFailed({ token, reason: outcome.reason })
-        },
-      })
-    },
-  })
-  const token = useStore(form.store, (state) => state.values.token.trim())
-  const failure = failed?.token === token ? failed.reason : null
-  const isRejected = failure === 'rejected'
-  const busy = link.pending
-
-  const dirty = token !== ''
+  const link = useTokenLinkForm(onLinked)
 
   return (
     <BulkFormCredenza
       open={open}
       onOpenChange={(next) => {
-        if (next) {
-          link.reset()
-          setFailed(null)
-        }
+        if (next) link.reset()
         onOpenChange(next)
       }}
-      form={form}
+      form={link.form}
       title="Paste a token"
       description="Pulsarr checks the token with Plex before linking."
-      dirty={dirty}
-      busy={busy}
+      dirty={link.dirty}
+      busy={link.busy}
       saveBar={{
         errorMessage: link.errorMessage,
-        message: busy
-          ? 'Verifying with Plex...'
-          : failure
-            ? TOKEN_FAILURE_MESSAGES[failure]
-            : 'Ready to link',
+        message: link.message,
         saveLabel: 'Link account',
-        saveDisabled: isRejected,
+        saveDisabled: link.isRejected,
       }}
     >
-      <form.AppField name="token">
-        {(field) => (
-          <field.SecretField
-            label="Plex token"
-            orientation="vertical"
-            revealLabel={REVEAL_LABEL}
-            error={failure ? TOKEN_FAILURE_MESSAGES[failure] : null}
-            disabled={busy}
-            autoFocus
-          />
-        )}
-      </form.AppField>
+      <TokenField link={link} />
     </BulkFormCredenza>
   )
 }

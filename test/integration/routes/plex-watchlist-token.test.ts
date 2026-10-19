@@ -65,4 +65,41 @@ describe('Plex watchlist sync routes', () => {
     expect(res.statusCode).toBe(200)
     expect(sync).toHaveBeenCalledOnce()
   })
+
+  it('creates one primary owner when both first syncs start together', async () => {
+    vi.spyOn(app.watchlistWorkflow, 'getStatus').mockReturnValue('running')
+    const db = getTestDatabase()
+    await db('users').delete()
+    const saved = {
+      plexTokens: app.config.plexTokens,
+      movie: app.config.newUserDefaultMovieQuotaEnabled,
+      show: app.config.newUserDefaultShowQuotaEnabled,
+    }
+    app.config.plexTokens = ['test_plex_token_1234567890']
+    app.config.newUserDefaultMovieQuotaEnabled = true
+    app.config.newUserDefaultShowQuotaEnabled = true
+
+    try {
+      const responses = await Promise.all([
+        app.inject({ method: 'GET', url: '/v1/plex/self-watchlist-token' }),
+        app.inject({ method: 'GET', url: '/v1/plex/others-watchlist-token' }),
+      ])
+
+      expect(responses.map((res) => res.statusCode)).toEqual([200, 200])
+      const users = await db('users').select('id', 'is_primary_token')
+      const primary = users.filter((user) => Boolean(user.is_primary_token))
+      expect(primary).toHaveLength(1)
+      const quotas = await db('user_quotas')
+        .where('user_id', primary[0]?.id)
+        .select('content_type')
+      expect(quotas.map((quota) => quota.content_type).sort()).toEqual([
+        'movie',
+        'show',
+      ])
+    } finally {
+      app.config.plexTokens = saved.plexTokens
+      app.config.newUserDefaultMovieQuotaEnabled = saved.movie
+      app.config.newUserDefaultShowQuotaEnabled = saved.show
+    }
+  })
 })

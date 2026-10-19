@@ -10,6 +10,7 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { NAV_SECTIONS } from '@/lib/navigation'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
+import { useSetupStore } from '@/stores/setupStore'
 import { server } from '../../setup.js'
 
 const goToLogin = vi.hoisted(() => vi.fn())
@@ -140,6 +141,7 @@ describe('AppSidebar', () => {
 
   afterEach(() => {
     queryClient.clear()
+    useSetupStore.setState({ requested: false })
     vi.unstubAllGlobals()
     goToLogin.mockClear()
   })
@@ -258,6 +260,17 @@ describe('AppSidebar', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Windowed' }),
     ).toBeInTheDocument()
+  })
+
+  it('asks for the setup dialog from the user menu', async () => {
+    mockApi()
+    const user = userEvent.setup()
+    renderSidebar('/')
+
+    await user.click(await screen.findByText('admin'))
+    await user.click(await screen.findByRole('menuitem', { name: 'Run setup' }))
+
+    expect(useSetupStore.getState().requested).toBe(true)
   })
 
   it('logs out through the confirm dialog, drops the cache and loads the login page', async () => {

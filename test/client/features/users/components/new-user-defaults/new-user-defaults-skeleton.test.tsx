@@ -6,8 +6,6 @@ describe('NewUserDefaultsSkeleton', () => {
     const { container } = render(<NewUserDefaultsSkeleton />)
 
     expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument()
-    expect(
-      container.querySelectorAll('[data-slot="skeleton"]').length,
-    ).toBeGreaterThan(40)
+    expect(container.querySelectorAll('[data-slot="card"]')).toHaveLength(3)
   })
 })

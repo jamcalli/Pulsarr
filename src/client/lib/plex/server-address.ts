@@ -27,6 +27,9 @@ export const CONNECTION_OPTIONS: ReadonlyArray<{
   { value: 'address', label: 'Address' },
 ]
 
+export const PLEX_SERVER_DESCRIPTION =
+  'Used for sessions, labels, playlists and existence checks.'
+
 export const CONNECTION_HELP: Record<ConnectionMode, string> = {
   auto: 'Pulsarr picks the best connection to your server.',
   address: 'Pulsarr uses this one address for everything.',

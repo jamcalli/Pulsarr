@@ -8,7 +8,7 @@ export default function NotFoundPage() {
       title="Page not found"
       description="Nothing lives at this address. It may have moved or never existed."
     >
-      <NavPageButton page={NAV_PAGES.dashboard} />
+      <NavPageButton page={NAV_PAGES.dashboard} variant="outline" />
     </RouteNotice>
   )
 }

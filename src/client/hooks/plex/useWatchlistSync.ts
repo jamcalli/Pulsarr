@@ -5,8 +5,9 @@ import { useOperation } from '@/hooks/useOperation'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { useWatchlistSyncEvents } from '@/hooks/useWatchlistSyncEvents'
 import { OPERATION_RESULT_TTL } from '@/lib/constants'
+import { invalidateDashboard } from '@/lib/dashboard-invalidation'
 import { formatCount } from '@/lib/format'
-import { NAV_PAGES } from '@/lib/navigation'
+import { NAV_PAGES, type NavPage } from '@/lib/navigation'
 import {
   fetchHasPlexPass,
   generateFeeds,
@@ -64,7 +65,7 @@ export function clearSyncRun() {
   queryClient.removeQueries({ queryKey: plexConnectionKeys.syncRun })
 }
 
-export function useWatchlistSync() {
+export function useWatchlistSync(options?: { page?: NavPage }) {
   const { data: run = null } = useQuery<SyncRun>({
     queryKey: plexConnectionKeys.syncRun,
     queryFn: skipToken,
@@ -84,9 +85,15 @@ export function useWatchlistSync() {
       if (finished.error) throw finished.error
       return finished
     },
-    meta: { label: 'Watchlist sync', page: NAV_PAGES.plexConnection },
+    meta: {
+      label: 'Watchlist sync',
+      page: options?.page ?? NAV_PAGES.plexConnection,
+    },
     errorFallback: STEP_FALLBACK,
-    onSettled: () => void invalidateAccount(),
+    onSettled: () => {
+      void invalidateAccount()
+      void invalidateDashboard()
+    },
   })
   const serverRun = serverSyncRun(useWatchlistSyncEvents())
   const serverRunning = serverRun !== null

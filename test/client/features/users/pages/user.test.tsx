@@ -562,13 +562,20 @@ describe('UserPage', () => {
     expect(
       movies.getByRole('switch', { name: 'Limit requests' }),
     ).not.toBeChecked()
-    expect(movies.getByLabelText('Requests per period')).toBeDisabled()
+    expect(movies.queryByLabelText('Quota period')).toBeNull()
+    expect(movies.queryByLabelText('Requests per period')).toBeNull()
+    expect(
+      movies.queryByRole('switch', { name: 'Cap the watchlist' }),
+    ).toBeNull()
     expect(
       shows.getByRole('switch', { name: 'Limit requests' }),
     ).not.toBeChecked()
+    expect(shows.queryByLabelText('Requests per period')).toBeNull()
 
     await user.click(movies.getByRole('switch', { name: 'Limit requests' }))
     const limit = movies.getByLabelText('Requests per period')
+    expect(limit).toBeEnabled()
+    expect(movies.getByLabelText('Quota period')).toBeEnabled()
     await user.clear(limit)
     await user.type(limit, '4')
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
@@ -613,6 +620,7 @@ describe('UserPage', () => {
       movies.getByRole('switch', { name: 'Cap the watchlist' }),
     ).toHaveAttribute('aria-disabled', 'true')
     await user.click(shows.getByRole('switch', { name: 'Limit requests' }))
+    expect(shows.queryByLabelText('Requests per period')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() =>

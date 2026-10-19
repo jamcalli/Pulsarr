@@ -1,5 +1,4 @@
 import { SEASON_MONITORING_LABELS } from '@root/schemas/sonarr/season-monitoring.schema'
-import type { LiveState } from '@/features/library/lib/session-monitoring/live-status'
 import { ROLLING_MODE_START } from '@/features/library/lib/session-monitoring/rolling-labels'
 import {
   formatCount,
@@ -8,6 +7,7 @@ import {
   formatNumber,
   pluralize,
 } from '@/lib/format'
+import { LIVE_STATE_LINES, type LiveState } from '@/lib/plex-live-status'
 import type { components } from '@/types/api.js'
 
 type RollingMode = components['schemas']['SonarrRollingMonitoring']
@@ -25,9 +25,9 @@ export function liveConnectionLine(
 ): string {
   const every = formatCount(pollingMinutes, 'minute')
   const lines: Record<LiveState, string> = {
-    connected: `Hearing Plex live. Polling every ${every} is the fallback.`,
+    connected: `${LIVE_STATE_LINES.connected} Polling every ${every} is the fallback.`,
     disconnected: `Live connection down. Polling every ${every} until it is back.`,
-    connecting: 'Waiting for Plex to report its live connection.',
+    connecting: LIVE_STATE_LINES.connecting,
   }
   return lines[state]
 }
