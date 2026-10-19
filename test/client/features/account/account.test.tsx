@@ -225,15 +225,18 @@ describe('AccountPage', () => {
     await user.clear(email)
     await user.type(email, 'new@example.com')
     await user.type(screen.getByLabelText('Current password'), CURRENT_PASSWORD)
+    let failedRefetches = 0
     server.use(
-      http.get('/v1/users/me', () =>
-        HttpResponse.json({ message: 'down' }, { status: 500 }),
-      ),
+      http.get('/v1/users/me', () => {
+        failedRefetches += 1
+        return HttpResponse.json({ message: 'down' }, { status: 500 })
+      }),
     )
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     expect(await screen.findByText('Changes saved')).toBeInTheDocument()
     expect(bodies.email).toHaveLength(1)
+    expect(failedRefetches).toBeGreaterThan(0)
     expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
     expect(screen.getByLabelText('Current password')).toHaveValue('')
   })
