@@ -1,3 +1,4 @@
+import { ROLLING_BASELINE_SEASON } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import type { FastifyInstance } from 'fastify'
 import {
@@ -31,13 +32,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'
 
-    app.plexSessionMonitor.resetToPilotOnly = vi
-      .fn()
-      .mockResolvedValue(undefined)
-    app.plexSessionMonitor.resetToFirstSeasonOnly = vi
-      .fn()
-      .mockResolvedValue(undefined)
-    app.plexSessionMonitor.resetToAllSeasonPilots = vi
+    app.plexSessionMonitor.resetShowToBaseline = vi
       .fn()
       .mockResolvedValue(undefined)
     app.plexSessionMonitor.monitorAllSeasonPilots = vi
@@ -56,8 +51,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
       sonarr_series_id: seriesId,
       sonarr_instance_id: 1,
       tvdb_id: `${seriesId}456`,
-      current_monitored_season:
-        monitoringType === 'allSeasonPilotRolling' ? 0 : 1,
+      current_monitored_season: ROLLING_BASELINE_SEASON[monitoringType],
     })
     const userId = await insertRollingShow(knex, {
       show_title: `Test Show ${seriesId}`,
@@ -105,7 +99,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
       skipped: 1,
       failed: 0,
     })
-    expect(app.plexSessionMonitor.resetToPilotOnly).not.toHaveBeenCalled()
+    expect(app.plexSessionMonitor.resetShowToBaseline).not.toHaveBeenCalled()
 
     const knex = getTestDatabase()
     const userEntry = await knex('rolling_monitored_shows')
@@ -130,10 +124,13 @@ describe('Session Monitoring Routes - bulk manage', () => {
       skipped: 0,
       failed: 0,
     })
-    expect(app.plexSessionMonitor.resetToPilotOnly).toHaveBeenCalledWith(
-      100,
-      1,
-      'Test Show 100',
+    expect(app.plexSessionMonitor.resetShowToBaseline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        monitoring_type: 'pilotRolling',
+        sonarr_series_id: 100,
+        sonarr_instance_id: 1,
+        show_title: 'Test Show 100',
+      }),
     )
 
     const knex = getTestDatabase()
@@ -160,10 +157,13 @@ describe('Session Monitoring Routes - bulk manage', () => {
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({ modified: 1, failed: 0 })
-    expect(app.plexSessionMonitor.resetToAllSeasonPilots).toHaveBeenCalledWith(
-      100,
-      1,
-      'Test Show 100',
+    expect(app.plexSessionMonitor.resetShowToBaseline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        monitoring_type: 'allSeasonPilotRolling',
+        sonarr_series_id: 100,
+        sonarr_instance_id: 1,
+        show_title: 'Test Show 100',
+      }),
     )
 
     const knex = getTestDatabase()
@@ -222,8 +222,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
       skipped: 0,
       failed: 0,
     })
-    expect(app.plexSessionMonitor.resetToPilotOnly).not.toHaveBeenCalled()
-    expect(app.plexSessionMonitor.resetToFirstSeasonOnly).not.toHaveBeenCalled()
+    expect(app.plexSessionMonitor.resetShowToBaseline).not.toHaveBeenCalled()
 
     const knex = getTestDatabase()
     const master = await knex('rolling_monitored_shows')
@@ -253,7 +252,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
       100,
       1,
     )
-    expect(app.plexSessionMonitor.resetToAllSeasonPilots).not.toHaveBeenCalled()
+    expect(app.plexSessionMonitor.resetShowToBaseline).not.toHaveBeenCalled()
 
     const knex = getTestDatabase()
     const master = await knex('rolling_monitored_shows')
@@ -284,12 +283,15 @@ describe('Session Monitoring Routes - bulk manage', () => {
       skipped: 0,
       failed: 0,
     })
-    expect(app.plexSessionMonitor.resetToFirstSeasonOnly).toHaveBeenCalledWith(
-      100,
-      1,
-      'Test Show 100',
+    expect(app.plexSessionMonitor.resetShowToBaseline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 100,
+        sonarr_instance_id: 1,
+        show_title: 'Test Show 100',
+      }),
     )
-    expect(app.plexSessionMonitor.resetToPilotOnly).not.toHaveBeenCalled()
+    expect(app.plexSessionMonitor.resetShowToBaseline).toHaveBeenCalledTimes(1)
 
     const knex = getTestDatabase()
     const master = await knex('rolling_monitored_shows')
@@ -312,10 +314,13 @@ describe('Session Monitoring Routes - bulk manage', () => {
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({ enrolled: 1, failed: 0 })
-    expect(app.plexSessionMonitor.resetToAllSeasonPilots).toHaveBeenCalledWith(
-      300,
-      1,
-      'Test Show 300',
+    expect(app.plexSessionMonitor.resetShowToBaseline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        monitoring_type: 'allSeasonPilotRolling',
+        sonarr_series_id: 300,
+        sonarr_instance_id: 1,
+        show_title: 'Test Show 300',
+      }),
     )
     expect(app.plexSessionMonitor.monitorAllSeasonPilots).not.toHaveBeenCalled()
   })
@@ -324,7 +329,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
     const showA = await seedEnrolledShow('pilotRolling', 100)
     const showB = await seedEnrolledShow('pilotRolling', 200)
 
-    app.plexSessionMonitor.resetToPilotOnly = vi
+    app.plexSessionMonitor.resetShowToBaseline = vi
       .fn()
       .mockRejectedValueOnce(new Error('Sonarr instance 1 not found'))
       .mockResolvedValueOnce(undefined)

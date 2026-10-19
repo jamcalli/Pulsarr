@@ -314,7 +314,7 @@ export class WebhookQueueService {
     // on each instance, so resolve the type for the instance that sent this.
     let isPilotRolling = false
     if (this.fastify.config.plexSessionMonitoring?.enabled && instance) {
-      const rollingShows =
+      const { shows: rollingShows } =
         await this.fastify.db.getRollingMonitoredShowMatches(tvdbId)
       const match = rollingShows.find(
         (s) => s.sonarr_instance_id === instance.id,

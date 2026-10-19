@@ -47,3 +47,7 @@ tmp/
 # test coverage
 coverage/
 .vitest/
+
+# Patch leftovers
+*.orig
+*.rej
