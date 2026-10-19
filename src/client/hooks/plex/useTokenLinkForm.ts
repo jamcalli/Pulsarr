@@ -13,10 +13,12 @@ export function useTokenLinkForm(onLinked: () => void) {
     token: string
     reason: TokenFailure
   } | null>(null)
+  const [submitted, setSubmitted] = useState<string | null>(null)
   const form = useAppForm({
     defaultValues: { token: '' },
     onSubmit: ({ value }) => {
       const token = value.token.trim()
+      setSubmitted(token)
       link.link(token, {
         onSuccess: (outcome) => {
           if (outcome.linked) onLinked()
@@ -40,10 +42,11 @@ export function useTokenLinkForm(onLinked: () => void) {
       : failure
         ? TOKEN_FAILURE_MESSAGES[failure]
         : 'Ready to link',
-    errorMessage: link.errorMessage,
+    errorMessage: submitted === token ? link.errorMessage : null,
     reset: () => {
       link.reset()
       setFailed(null)
+      setSubmitted(null)
     },
   }
 }

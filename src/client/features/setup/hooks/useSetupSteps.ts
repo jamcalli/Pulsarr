@@ -34,7 +34,9 @@ export function useSetupSteps(
   const [current, setCurrent] = useState<SetupStepId | null>(null)
   const [passed, setPassed] = useState(NONE_PASSED)
 
-  const settled = !facts.linked || (sonarr.hasData && radarr.hasData)
+  const loaded = (list: typeof sonarr) =>
+    list.hasData || list.errorMessage !== null
+  const settled = !facts.linked || (loaded(sonarr) && loaded(radarr))
   if (open && current === null && settled) setCurrent(landingStep(facts))
   if (!open && current !== null) {
     setCurrent(null)

@@ -366,6 +366,55 @@ describe('SetupDialog', () => {
     expect(calls.requests).toEqual([])
   })
 
+  it('hides a failed token save once the token is edited', async () => {
+    const user = userEvent.setup()
+    mockEndpoints({ config: NOT_LINKED })
+    server.use(
+      http.put('/v1/config', () =>
+        HttpResponse.json(
+          {
+            statusCode: 500,
+            error: 'Internal Server Error',
+            message: 'Config write failed',
+          },
+          { status: 500 },
+        ),
+      ),
+    )
+    renderDialog()
+
+    const dialog = await findStep('Plex account')
+    await user.click(within(dialog).getByRole('tab', { name: 'Paste a token' }))
+    const field = within(dialog).getByLabelText('Plex token')
+    await user.type(field, TOKEN)
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Link account' }),
+    )
+
+    expect(
+      await within(dialog).findByText('Config write failed'),
+    ).toBeInTheDocument()
+    await user.click(field)
+    await user.keyboard('x')
+    expect(within(dialog).queryByText('Config write failed')).toBeNull()
+  })
+
+  it('opens on Sonarr with a retry when its instances fail to load', async () => {
+    mockEndpoints()
+    server.use(
+      http.get('/v1/sonarr/instances', () =>
+        HttpResponse.json({}, { status: 500 }),
+      ),
+    )
+    renderDialog()
+    act(() => useSetupStore.getState().request())
+
+    const dialog = await findStep('Sonarr', RUN_TIMEOUT)
+    expect(
+      await within(dialog).findByRole('button', { name: 'Retry' }),
+    ).toBeInTheDocument()
+  })
+
   it('continues past a clean server without saving it', async () => {
     const user = userEvent.setup()
     const calls = mockEndpoints()
