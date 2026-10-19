@@ -16,6 +16,8 @@ export type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
 
 export class WorkflowState {
   status: WorkflowStatus = 'stopped'
+  /** Why the latest start fell back to stopped, cleared when the next start begins. */
+  lastError: string | null = null
   initialized = false
   rssMode = false
   isEtagFallbackActive = false

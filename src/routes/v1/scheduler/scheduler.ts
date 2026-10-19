@@ -1,5 +1,7 @@
+import { MessageResponseSchema } from '@schemas/common/message.schema.js'
 import {
   DeleteSyncDryRunResponseSchema,
+  DeleteSyncDryRunStatusSchema,
   ErrorResponseSchema,
   JobStatusSchema,
   ScheduleConfigSchema,
@@ -29,8 +31,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const schedules = await fastify.db.getAllSchedules()
-        return schedules
+        return await fastify.scheduler.getSchedules()
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch schedules',
@@ -63,7 +64,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { name } = request.params
-        const schedule = await fastify.db.getScheduleByName(name)
+        const schedule = await fastify.scheduler.getSchedule(name)
 
         if (!schedule) {
           return reply.notFound(`Schedule "${name}" not found`)
@@ -272,7 +273,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Run job immediately',
         operationId: 'runJobNow',
-        description: 'Execute a scheduled job immediately',
+        description:
+          'Execute a scheduled job immediately. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/{name}/start instead.',
+        deprecated: true,
         params: z.object({ name: z.string() }),
         response: {
           200: SuccessResponseSchema,
@@ -303,6 +306,55 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           jobName: request.params.name,
         })
         return reply.internalServerError('Unable to run job')
+      }
+    },
+  )
+
+  // Start a job in the background
+  fastify.post<{
+    Params: { name: string }
+  }>(
+    '/schedules/:name/start',
+    {
+      schema: {
+        summary: 'Start job in the background',
+        operationId: 'startJob',
+        description:
+          'Starts a scheduled job outside its schedule and returns at once. The schedule row reports running and the outcome in last_run.',
+        params: z.object({ name: z.string() }),
+        response: {
+          202: MessageResponseSchema,
+          404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
+          500: ErrorResponseSchema,
+        },
+        tags: ['Scheduler'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { name } = request.params
+
+        const existing = await fastify.db.getScheduleByName(name)
+        if (!existing) {
+          return reply.notFound(`Schedule "${name}" not found`)
+        }
+
+        const outcome = fastify.scheduler.startJob(name)
+        if (outcome === 'unknown') {
+          return reply.notFound(`Job "${name}" has no handler`)
+        }
+        if (outcome === 'running') {
+          return reply.conflict(`Job "${name}" is already running`)
+        }
+
+        return reply.status(202).send({ message: `Job "${name}" started` })
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to start job',
+          jobName: request.params.name,
+        })
+        return reply.internalServerError('Unable to start job')
       }
     },
   )
@@ -376,7 +428,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Dry-run delete sync',
         operationId: 'dryRunDeleteSync',
         description:
-          'Perform a dry-run of the delete sync job to preview what would be deleted',
+          'Perform a dry-run of the delete sync job to preview what would be deleted. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/delete-sync/dry-run/start instead.',
+        deprecated: true,
         response: {
           200: DeleteSyncDryRunResponseSchema,
           404: ErrorResponseSchema,
@@ -394,25 +447,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound(`Schedule "${jobName}" not found`)
         }
 
-        const results = await fastify.deleteSync.run(true)
-
-        const safetyTriggered =
-          'safetyTriggered' in results && results.safetyTriggered
-        const safetyMessage =
-          'safetyMessage' in results ? results.safetyMessage : undefined
-
-        let message = ''
-        if (safetyTriggered) {
-          message = `Delete sync dry run aborted: ${safetyMessage || 'Safety check triggered'}`
-        } else {
-          message = `Delete sync dry run completed: Would delete ${results.total.deleted} items (${results.movies.deleted} movies, ${results.shows.deleted} shows)`
-        }
-
-        return {
-          success: true,
-          message,
-          results,
-        }
+        return await fastify.deleteSync.runDryRun()
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to run delete sync dry run',
@@ -420,6 +455,68 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return reply.internalServerError('Failed to run delete sync dry run')
       }
     },
+  )
+
+  // Start a delete sync dry run in the background
+  fastify.post(
+    '/schedules/delete-sync/dry-run/start',
+    {
+      schema: {
+        summary: 'Start delete sync dry run',
+        operationId: 'startDeleteSyncDryRun',
+        description:
+          'Starts a delete sync dry run in the background and returns at once. Read the dry run status route for the outcome.',
+        response: {
+          202: MessageResponseSchema,
+          404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
+          500: ErrorResponseSchema,
+        },
+        tags: ['Scheduler'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const jobName = 'delete-sync'
+        const schedule = await fastify.db.getScheduleByName(jobName)
+
+        if (!schedule) {
+          return reply.notFound(`Schedule "${jobName}" not found`)
+        }
+
+        if (!fastify.deleteSync.startDryRun()) {
+          return reply.conflict('A delete sync is already running')
+        }
+
+        return reply
+          .status(202)
+          .send({ message: 'Delete sync dry run started' })
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to start delete sync dry run',
+        })
+        return reply.internalServerError('Unable to start delete sync dry run')
+      }
+    },
+  )
+
+  // Get the latest delete sync dry run
+  fastify.get(
+    '/schedules/delete-sync/dry-run/status',
+    {
+      schema: {
+        summary: 'Get delete sync dry run status',
+        operationId: 'getDeleteSyncDryRunStatus',
+        description:
+          'Whether a delete sync dry run is running and how the latest one ended. Resets when the server restarts.',
+        response: {
+          200: DeleteSyncDryRunStatusSchema,
+          500: ErrorResponseSchema,
+        },
+        tags: ['Scheduler'],
+      },
+    },
+    async () => fastify.deleteSync.dryRunStatus(),
   )
 }
 

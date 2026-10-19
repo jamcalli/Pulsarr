@@ -1,5 +1,9 @@
+import type { ProgressEvent } from '@root/types/progress.types'
+import { useCallback, useMemo } from 'react'
+import { useJobStatusRefetch } from '@/hooks/useJobStatusRefetch'
 import { useMinLoading, withMinDuration } from '@/hooks/useMinLoading'
 import { useOperation } from '@/hooks/useOperation'
+import { startAndAwaitStatus } from '@/lib/background-job'
 import type { OperationMeta } from '@/lib/operation-toasts'
 import { scheduleKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
@@ -32,6 +36,45 @@ export async function updateSchedule(
   await invalidateSchedule(name)
 }
 
+const RUN_FALLBACK = 'The run did not finish. Try again.'
+
+function isJobEventFor(name: string) {
+  return (event: ProgressEvent) =>
+    event.metadata !== undefined &&
+    'job' in event.metadata &&
+    event.metadata.job === name
+}
+
+function fetchSchedule(name: string) {
+  return queryClient.fetchQuery({
+    ...$api.queryOptions('get', '/v1/scheduler/schedules/{name}', {
+      params: { path: { name } },
+    }),
+    staleTime: 0,
+  })
+}
+
+/** Starts the job and resolves with its row once the run ends, throwing the run's error when it failed. */
+async function runJob(name: string): Promise<ScheduleStatus> {
+  const schedule = await startAndAwaitStatus({
+    eventType: 'scheduled-job',
+    isJobEvent: isJobEventFor(name),
+    start: async () => {
+      const { error } = await apiFetch.POST(
+        '/v1/scheduler/schedules/{name}/start',
+        { params: { path: { name } } },
+      )
+      if (error) throw error
+    },
+    readStatus: () => fetchSchedule(name),
+    isSettled: (row) => !row.running,
+  })
+  if (schedule.last_run?.status === 'failed') {
+    throw { message: schedule.last_run.error ?? RUN_FALLBACK }
+  }
+  return schedule
+}
+
 /** `meta` names the run in the completion toast shown away from its page. */
 export function useSchedule(name: string, meta: OperationMeta) {
   const query = useMinLoading(
@@ -39,27 +82,23 @@ export function useSchedule(name: string, meta: OperationMeta) {
       params: { path: { name } },
     }),
   )
+  const refetch = useCallback(() => invalidateSchedule(name), [name])
+  const isJobEvent = useMemo(() => isJobEventFor(name), [name])
+  useJobStatusRefetch('scheduled-job', refetch, isJobEvent)
   const run = useOperation({
     key: ['schedules', name, 'run'],
-    mutationFn: async () => {
-      const { data, error } = await withMinDuration(
-        apiFetch.POST('/v1/scheduler/schedules/{name}/run', {
-          params: { path: { name } },
-        }),
-      )
-      if (error) throw error
-      return data
-    },
-    onSettled: () => invalidateSchedule(name),
+    mutationFn: () => withMinDuration(runJob(name)),
+    onSettled: () => void refetch(),
     meta,
-    errorFallback: 'The run did not finish. Try again.',
+    errorFallback: RUN_FALLBACK,
   })
+  const schedule = query.data ?? null
 
   return {
-    schedule: query.data ?? null,
+    schedule,
     isLoading: query.isLoading,
     errorMessage: loadErrorMessage(query, 'The schedule failed to load.'),
     retry: () => query.refetch(),
-    run,
+    run: { ...run, running: run.running || schedule?.running === true },
   }
 }

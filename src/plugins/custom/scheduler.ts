@@ -37,6 +37,6 @@ export default fp(
   },
   {
     name: 'scheduler',
-    dependencies: ['database'],
+    dependencies: ['database', 'progress'],
   },
 )

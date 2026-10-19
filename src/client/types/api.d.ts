@@ -905,7 +905,8 @@ export interface paths {
         };
         /**
          * Get others watchlist tokens
-         * @description Retrieve watchlist items from other Plex users
+         * @deprecated
+         * @description Retrieve watchlist items from other Plex users. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/others-watchlist/start and its status route instead.
          */
         get: operations["getOthersWatchlistTokens"];
         put?: never;
@@ -1045,7 +1046,8 @@ export interface paths {
         };
         /**
          * Get self watchlist items
-         * @description Retrieve the current user watchlist items from Plex
+         * @deprecated
+         * @description Retrieve the current user watchlist items from Plex. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/self-watchlist/start and its status route instead.
          */
         get: operations["getSelfWatchlistItems"];
         put?: never;
@@ -1108,6 +1110,46 @@ export interface paths {
          * @description Cross-references friends, server users, and pending requests to classify all known Plex users
          */
         get: operations["getPlexUserStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/watchlist-sync/{type}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a watchlist sync
+         * @description Starts a sync of one watchlist type in the background and returns at once, joining or queueing behind a sync already running. Read the status route for the outcome.
+         */
+        post: operations["startWatchlistSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/watchlist-sync/{type}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get watchlist sync status
+         * @description Whether a sync of one watchlist type is running and how the latest one ended. Resets when the server restarts.
+         */
+        get: operations["getWatchlistSyncStatus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1571,9 +1613,50 @@ export interface paths {
         put?: never;
         /**
          * Dry-run delete sync
-         * @description Perform a dry-run of the delete sync job to preview what would be deleted
+         * @deprecated
+         * @description Perform a dry-run of the delete sync job to preview what would be deleted. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/delete-sync/dry-run/start instead.
          */
         post: operations["dryRunDeleteSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/delete-sync/dry-run/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start delete sync dry run
+         * @description Starts a delete sync dry run in the background and returns at once. Read the dry run status route for the outcome.
+         */
+        post: operations["startDeleteSyncDryRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/delete-sync/dry-run/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get delete sync dry run status
+         * @description Whether a delete sync dry run is running and how the latest one ended. Resets when the server restarts.
+         */
+        get: operations["getDeleteSyncDryRunStatus"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1619,9 +1702,30 @@ export interface paths {
         put?: never;
         /**
          * Run job immediately
-         * @description Execute a scheduled job immediately
+         * @deprecated
+         * @description Execute a scheduled job immediately. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/{name}/start instead.
          */
         post: operations["runJobNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/{name}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start job in the background
+         * @description Starts a scheduled job outside its schedule and returns at once. The schedule row reports running and the outcome in last_run.
+         */
+        post: operations["startJob"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2935,9 +3039,30 @@ export interface paths {
         put?: never;
         /**
          * Start watchlist workflow
-         * @description Start the watchlist processing workflow
+         * @deprecated
+         * @description Start the watchlist processing workflow. Holds the request open until the initial sync finishes, so use POST /v1/watchlist-workflow/start-background instead.
          */
         post: operations["startWatchlistWorkflow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-workflow/start-background": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start watchlist workflow in the background
+         * @description Starts the watchlist processing workflow and returns at once. The status route and the watchlist-workflow-status event report when it runs, or lastError when the start fails.
+         */
+        post: operations["startWatchlistWorkflowInBackground"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3620,6 +3745,11 @@ export interface components {
             radarr: components["schemas"]["ArrWebhookResult"][];
             sonarr: components["schemas"]["ArrWebhookResult"][];
         };
+        /**
+         * @description Where the latest background run stands, idle when none ran since the server started
+         * @enum {string}
+         */
+        BackgroundRunState: "idle" | "running" | "done" | "failed";
         /** @description Shows to enroll in or switch between rolling monitoring types */
         BulkManageRollingPayload: {
             shows: {
@@ -3938,6 +4068,16 @@ export interface components {
             message: string;
             results: components["schemas"]["DeleteSyncResult"];
         };
+        /** @description The latest delete sync dry run */
+        DeleteSyncDryRunStatus: {
+            state: components["schemas"]["BackgroundRunState"];
+            startedAt: string | null;
+            finishedAt: string | null;
+            /** @description Why the latest run failed, null unless state is failed */
+            error: string | null;
+            /** @description The latest dry run outcome, null until a dry run finishes */
+            result: components["schemas"]["DeleteSyncDryRunResponse"] | null;
+        };
         /**
          * @description Channels the delete sync run summary goes to, legacy aliases included
          * @enum {string}
@@ -4109,6 +4249,8 @@ export interface components {
             } | null;
             created_at: string;
             updated_at: string;
+            /** @description True while a run of the job is in progress */
+            running: boolean;
         } | {
             id: number;
             name: string;
@@ -4134,6 +4276,8 @@ export interface components {
             } | null;
             created_at: string;
             updated_at: string;
+            /** @description True while a run of the job is in progress */
+            running: boolean;
         };
         /**
          * @description Exclude Maintainerr-handled media for its current watchlisters, or globally for every user
@@ -5539,6 +5683,32 @@ export interface components {
          * @enum {string}
          */
         WatchlistStatus: "pending" | "requested" | "grabbed" | "notified";
+        /** @description The latest sync of one watchlist type */
+        WatchlistSyncStatus: {
+            state: components["schemas"]["BackgroundRunState"];
+            startedAt: string | null;
+            finishedAt: string | null;
+            /** @description Why the latest run failed, null unless state is failed */
+            error: string | null;
+            /** @description Items read by the latest finished sync */
+            total: number | null;
+            /** @description Friends read by the latest finished sync, always null for your own watchlist */
+            friends: number | null;
+        };
+        /**
+         * @description Your own watchlist or the watchlists of your Plex friends
+         * @enum {string}
+         */
+        WatchlistSyncType: "self-watchlist" | "others-watchlist";
+        /** @description The watchlist workflow state and why its latest start failed */
+        WatchlistWorkflowStatus: {
+            success: boolean;
+            /** @enum {string} */
+            status: "running" | "stopped" | "starting" | "stopping";
+            message?: string;
+            /** @description Why the latest start fell back to stopped, null once the next start begins */
+            lastError: string | null;
+        };
         /** @description Movie or show the event is about */
         WebhookContent: {
             title: string;
@@ -8996,6 +9166,97 @@ export interface operations {
             };
         };
     };
+    startWatchlistSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Your own watchlist or the watchlists of your Plex friends */
+                type: components["schemas"]["WatchlistSyncType"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWatchlistSyncStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Your own watchlist or the watchlists of your Plex friends */
+                type: components["schemas"]["WatchlistSyncType"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistSyncStatus"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     streamProgress: {
         parameters: {
             query?: never;
@@ -10430,6 +10691,100 @@ export interface operations {
             };
         };
     };
+    startDeleteSyncDryRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getDeleteSyncDryRunStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteSyncDryRunStatus"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getScheduleByName: {
         parameters: {
             query?: never;
@@ -10630,6 +10985,64 @@ export interface operations {
             };
             /** @description Default Response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -14300,6 +14713,59 @@ export interface operations {
             };
         };
     };
+    startWatchlistWorkflowInBackground: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    autoStart?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getWatchlistWorkflowStatus: {
         parameters: {
             query?: never;
@@ -14315,12 +14781,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping";
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["WatchlistWorkflowStatus"];
                 };
             };
             /** @description Rate limit exceeded */

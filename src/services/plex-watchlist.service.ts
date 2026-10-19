@@ -23,6 +23,7 @@ import type {
 } from '@schemas/plex/user-status.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { indexPlexUsersByUuid } from '@utils/plex-avatar.js'
+import { createRunRecord, type RunStatus } from '@utils/run-record.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import { type PlexPingResult, pingPlex } from './plex-watchlist/api/client.js'
@@ -81,6 +82,15 @@ import { ensureTokenUsers } from './plex-watchlist/users/token-users.js'
 
 type WatchlistSyncResult = ReturnType<typeof buildResponse>
 
+interface WatchlistSyncCounts {
+  total: number
+  friends: number | null
+}
+
+type WatchlistSyncStatus = Omit<RunStatus<WatchlistSyncCounts>, 'result'> & {
+  [Count in keyof WatchlistSyncCounts]: WatchlistSyncCounts[Count] | null
+}
+
 export const USER_STATUS_CACHE_MS = 60_000
 
 export class PlexWatchlistService {
@@ -88,6 +98,10 @@ export class PlexWatchlistService {
   private readonly syncQueues = {
     'self-watchlist': createSingleFlightQueue<WatchlistSyncResult>(),
     'others-watchlist': createSingleFlightQueue<WatchlistSyncResult>(),
+  }
+  private readonly syncRuns = {
+    'self-watchlist': createRunRecord<WatchlistSyncCounts>(),
+    'others-watchlist': createRunRecord<WatchlistSyncCounts>(),
   }
   private readonly activeSyncs = new Map<
     WatchlistSyncType,
@@ -210,24 +224,52 @@ export class PlexWatchlistService {
     )
   }
 
+  /** Starts a sync without waiting for it, joining or queueing behind one already running. */
+  startSync(type: WatchlistSyncType): void {
+    const sync =
+      type === 'self-watchlist'
+        ? this.getSelfWatchlist()
+        : this.getOthersWatchlists()
+    sync.catch((error) => {
+      this.log.error({ error, type }, 'Background watchlist sync failed')
+    })
+  }
+
+  syncStatus(type: WatchlistSyncType): WatchlistSyncStatus {
+    const { result, ...run } = this.syncRuns[type].read()
+    return {
+      ...run,
+      total: result?.total ?? null,
+      friends: result?.friends ?? null,
+    }
+  }
+
   private async runSync(
     type: WatchlistSyncType,
     forceRefresh: boolean,
     sync: (progress: WatchlistSyncProgress) => Promise<WatchlistSyncResult>,
   ): Promise<WatchlistSyncResult> {
-    if (this.config.plexTokens.length === 0) {
-      throw new Error('No Plex token configured')
-    }
-
     const key = `${forceRefresh}:${this.config.plexTokens[0]}`
+    const run = this.syncRuns[type]
+    // A joined caller shares the queued work, which settles the record once
+    if (!this.syncQueues[type].isPending(key)) run.begin()
     return this.syncQueues[type].run(key, async () => {
       const progress = createWatchlistSyncProgress(this.fastify.progress, type)
       this.activeSyncs.set(type, progress)
       try {
+        if (this.config.plexTokens.length === 0) {
+          throw new Error('No Plex token configured')
+        }
         const result = await sync(progress)
+        // Clients reread the status on the complete event, so record it first
+        run.succeed({
+          total: result.total,
+          friends: type === 'others-watchlist' ? result.users.length : null,
+        })
         progress.complete()
         return result
       } catch (error) {
+        run.fail(error)
         progress.failed()
         throw error
       } finally {

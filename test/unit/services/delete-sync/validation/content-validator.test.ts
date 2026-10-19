@@ -1,4 +1,7 @@
-import type { TagCache, TagService } from '@services/delete-sync/cache/index.js'
+import type {
+  TagCache,
+  TagService,
+} from '@services/delete-sync/cache/tag-cache.js'
 import {
   type ContentValidators,
   type ValidationConfig,
@@ -9,7 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 // Mock the tag operations module
-vi.mock('@services/delete-sync/tag-operations/index.js', () => ({
+vi.mock('@services/delete-sync/tag-operations/tag-matcher.js', () => ({
   hasRemovalTag: vi.fn(),
   hasTagMatchingRegex: vi.fn(),
 }))
@@ -17,7 +20,7 @@ vi.mock('@services/delete-sync/tag-operations/index.js', () => ({
 import {
   hasRemovalTag,
   hasTagMatchingRegex,
-} from '@services/delete-sync/tag-operations/index.js'
+} from '@services/delete-sync/tag-operations/tag-matcher.js'
 
 describe('content-validator', () => {
   let mockLogger: ReturnType<typeof createMockLogger>

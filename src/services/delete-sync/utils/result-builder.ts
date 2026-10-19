@@ -1,4 +1,7 @@
-import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
+import type {
+  DeleteSyncDryRunOutcome,
+  DeleteSyncResult,
+} from '@root/types/delete-sync.types.js'
 
 /**
  * Creates an empty result object for when no deletion operations are performed
@@ -49,4 +52,13 @@ export function createSafetyTriggeredResult(
     safetyTriggered: true,
     safetyMessage: message,
   }
+}
+
+export function createDryRunOutcome(
+  results: DeleteSyncResult,
+): DeleteSyncDryRunOutcome {
+  const message = results.safetyTriggered
+    ? `Delete sync dry run aborted: ${results.safetyMessage || 'Safety check triggered'}`
+    : `Delete sync dry run completed: Would delete ${results.total.deleted} items (${results.movies.deleted} movies, ${results.shows.deleted} shows)`
+  return { success: true, message, results }
 }

@@ -1,8 +1,11 @@
-import type { TagCache, TagService } from '@services/delete-sync/cache/index.js'
+import type {
+  TagCache,
+  TagService,
+} from '@services/delete-sync/cache/tag-cache.js'
 import {
   hasRemovalTag,
   hasTagMatchingRegex,
-} from '@services/delete-sync/tag-operations/index.js'
+} from '@services/delete-sync/tag-operations/tag-matcher.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**

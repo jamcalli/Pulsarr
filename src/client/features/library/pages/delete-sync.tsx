@@ -94,7 +94,6 @@ function DeleteSyncSettings({
     submit,
   } = useDeleteSyncForm(config, schedule)
   const guard = useLeaveGuard(dirty)
-  const dryRun = useDryRun()
   const [confirm, setConfirm] = useState<Confirm>(null)
   const [itemsOpen, setItemsOpen] = useState(false)
   const values = useStore(configForm.store, (state) => state.values)
@@ -103,6 +102,11 @@ function DeleteSyncSettings({
 
   const savedAnyType = anyTypeSelected(config)
   const savedKey = dryRunKey(config)
+  const dryRun = useDryRun({
+    key: savedKey,
+    nothingSelected: !savedAnyType,
+    deleteFiles: config.deleteFiles,
+  })
   const draftKey = dryRunKey({ ...config, ...values })
   const tagMode = values.deletionMode === 'tag-based'
   const swapsTag = config.removedTagMode === 'special-tag'
@@ -117,12 +121,6 @@ function DeleteSyncSettings({
         )
       : null
 
-  const startDryRun = () =>
-    dryRun.run({
-      key: savedKey,
-      nothingSelected: !savedAnyType,
-      deleteFiles: config.deleteFiles,
-    })
   const save = () => {
     if (invalid) return
     if (!schedule.enabled && scheduleValues.enabled) setConfirm('schedule')
@@ -161,7 +159,7 @@ function DeleteSyncSettings({
                 busyLabel="Running..."
                 disabled={dirty || run.running}
                 running={dryRun.running}
-                onRun={startDryRun}
+                onRun={dryRun.run}
                 live={dryRun.running ? <WatchlistSyncSteps /> : undefined}
                 result={
                   latest && (
@@ -408,7 +406,7 @@ function DeleteSyncSettings({
         dryRunLine={latestLine(savedKey)}
         onDryRunFirst={() => {
           setConfirm(null)
-          startDryRun()
+          dryRun.run()
         }}
         onConfirm={() => {
           setConfirm(null)

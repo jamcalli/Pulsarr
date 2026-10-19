@@ -15,10 +15,24 @@ export const WatchlistWorkflowResponseSchema = z.object({
   message: z.string().optional(),
 })
 
+export const WatchlistWorkflowStatusSchema =
+  WatchlistWorkflowResponseSchema.extend({
+    lastError: z.string().nullable().meta({
+      description:
+        'Why the latest start fell back to stopped, null once the next start begins',
+    }),
+  }).meta({
+    id: 'WatchlistWorkflowStatus',
+    description: 'The watchlist workflow state and why its latest start failed',
+  })
+
 // Type exports
 export type StartWorkflowBody = z.infer<typeof StartWorkflowBodySchema>
 export type WatchlistWorkflowResponse = z.infer<
   typeof WatchlistWorkflowResponseSchema
+>
+export type WatchlistWorkflowStatus = z.infer<
+  typeof WatchlistWorkflowStatusSchema
 >
 export type WatchlistWorkflowError = z.infer<typeof ErrorSchema>
 

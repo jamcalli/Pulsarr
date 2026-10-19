@@ -11,6 +11,7 @@ import {
   fetchHasPlexPass,
   generateFeeds,
   invalidateAccount,
+  syncWatchlist,
   verifyToken,
 } from '@/lib/plex/plex-requests'
 import {
@@ -23,7 +24,7 @@ import {
 } from '@/lib/plex/sync-run'
 import { plexConnectionKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
+import { mutationErrorMessage } from '@/lib/tanstackApi'
 
 const STEP_FALLBACK = 'Plex did not answer. Try again.'
 
@@ -33,18 +34,14 @@ const STEP_ACTIONS: StepActions = {
     return { status: 'done', detail: null }
   },
   self: async () => {
-    const { data, error } = await apiFetch.GET('/v1/plex/self-watchlist-token')
-    if (error) throw error
-    return { status: 'done', detail: formatCount(data.total, 'item') }
+    const { total } = await syncWatchlist('self-watchlist')
+    return { status: 'done', detail: formatCount(total ?? 0, 'item') }
   },
   friends: async () => {
-    const { data, error } = await apiFetch.GET(
-      '/v1/plex/others-watchlist-token',
-    )
-    if (error) throw error
+    const { total, friends } = await syncWatchlist('others-watchlist')
     return {
       status: 'done',
-      detail: `${formatCount(data.users.length, 'friend')}, ${formatCount(data.total, 'item')}`,
+      detail: `${formatCount(friends ?? 0, 'friend')}, ${formatCount(total ?? 0, 'item')}`,
     }
   },
   feeds: async () => {

@@ -1,4 +1,7 @@
-import type { TagCache, TagService } from '@services/delete-sync/cache/index.js'
+import type {
+  TagCache,
+  TagService,
+} from '@services/delete-sync/cache/tag-cache.js'
 import {
   getRemovalTagPrefixNormalized,
   hasRemovalTag,

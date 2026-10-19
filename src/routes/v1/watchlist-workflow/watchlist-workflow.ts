@@ -1,24 +1,14 @@
+import { MessageResponseSchema } from '@schemas/common/message.schema.js'
 import {
   ErrorSchema,
   StartWorkflowBodySchema,
   WatchlistWorkflowResponseSchema,
+  type WatchlistWorkflowStatus,
+  WatchlistWorkflowStatusSchema,
 } from '@schemas/watchlist-workflow/watchlist-workflow.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
-
-async function persistIsReady(
-  fastify: FastifyInstance,
-  isReady: boolean,
-): Promise<void> {
-  try {
-    await fastify.updateConfigAndPersist({ _isReady: isReady })
-    fastify.log.info(`Updated config _isReady to ${isReady}`)
-  } catch (err) {
-    fastify.log.warn({ error: err }, 'Failed to update _isReady config value')
-  }
-}
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Start Watchlist Workflow
@@ -31,7 +21,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Start watchlist workflow',
         operationId: 'startWatchlistWorkflow',
-        description: 'Start the watchlist processing workflow',
+        description:
+          'Start the watchlist processing workflow. Holds the request open until the initial sync finishes, so use POST /v1/watchlist-workflow/start-background instead.',
+        deprecated: true,
         body: StartWorkflowBodySchema,
         response: {
           200: WatchlistWorkflowResponseSchema,
@@ -53,27 +45,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         try {
           await fastify.watchlistWorkflow.startWorkflow()
 
-          if (request.body?.autoStart === true) {
-            try {
-              await persistIsReady(fastify, true)
-            } catch (configErr) {
-              // Log config update error but don't fail the workflow start
-              logRouteError(fastify.log, request, configErr, {
-                message: 'Failed to update _isReady config',
-              })
-            }
-          } else if (
-            request.body?.autoStart === false &&
-            fastify.config._isReady
-          ) {
-            try {
-              await persistIsReady(fastify, false)
-            } catch (configErr) {
-              logRouteError(fastify.log, request, configErr, {
-                message: 'Failed to update _isReady config',
-              })
-            }
-          }
+          await fastify.watchlistWorkflow.persistAutoStart(
+            request.body?.autoStart,
+          )
 
           const response: z.infer<typeof WatchlistWorkflowResponseSchema> = {
             success: true,
@@ -96,6 +70,46 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           })
           return reply.internalServerError('Failed to start Watchlist workflow')
         }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to start Watchlist workflow',
+        })
+        return reply.internalServerError('Unable to start Watchlist workflow')
+      }
+    },
+  )
+
+  // Start Watchlist Workflow in the background
+  fastify.post(
+    '/start-background',
+    {
+      schema: {
+        summary: 'Start watchlist workflow in the background',
+        operationId: 'startWatchlistWorkflowInBackground',
+        description:
+          'Starts the watchlist processing workflow and returns at once. The status route and the watchlist-workflow-status event report when it runs, or lastError when the start fails.',
+        body: StartWorkflowBodySchema,
+        response: {
+          202: MessageResponseSchema,
+          400: ErrorSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Watchlist Workflow'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const status = fastify.watchlistWorkflow.getStatus()
+        if (
+          !fastify.watchlistWorkflow.startInBackground(request.body?.autoStart)
+        ) {
+          return reply.badRequest(
+            `Cannot start workflow: current status is ${status}`,
+          )
+        }
+        return reply
+          .status(202)
+          .send({ message: 'Watchlist workflow is starting' })
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to start Watchlist workflow',
@@ -160,7 +174,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Retrieve the current status of the watchlist processing workflow',
         response: {
-          200: WatchlistWorkflowResponseSchema,
+          200: WatchlistWorkflowStatusSchema,
           500: ErrorSchema,
         },
         tags: ['Watchlist Workflow'],
@@ -170,10 +184,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const status = fastify.watchlistWorkflow.getStatus()
 
-        const response: z.infer<typeof WatchlistWorkflowResponseSchema> = {
+        const response: WatchlistWorkflowStatus = {
           success: true,
           status,
           message: `Watchlist workflow is ${status}`,
+          lastError: fastify.watchlistWorkflow.getLastError(),
         }
         return response
       } catch (error) {

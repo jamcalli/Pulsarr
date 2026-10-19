@@ -1,3 +1,4 @@
+import { BackgroundRunStatusSchema } from '@root/schemas/common/background-run.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { CronExpressionParser } from 'cron-parser'
 import { z } from 'zod'
@@ -84,6 +85,10 @@ export const JobRunInfoSchema = z.object({
   estimated: z.boolean().optional(),
 })
 
+const JobRunningSchema = z.boolean().meta({
+  description: 'True while a run of the job is in progress',
+})
+
 // Define specific job types
 const IntervalJobSchema = z.object({
   id: z.number(),
@@ -95,6 +100,7 @@ const IntervalJobSchema = z.object({
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  running: JobRunningSchema,
 })
 
 const CronJobSchema = z.object({
@@ -107,6 +113,7 @@ const CronJobSchema = z.object({
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  running: JobRunningSchema,
 })
 
 // Combine with regular union instead of discriminated union
@@ -175,6 +182,15 @@ export const DeleteSyncDryRunResponseSchema = z
     id: 'DeleteSyncDryRunResponse',
     description: 'Outcome of a delete sync dry run',
   })
+
+export const DeleteSyncDryRunStatusSchema = BackgroundRunStatusSchema.extend({
+  result: DeleteSyncDryRunResponseSchema.nullable().meta({
+    description: 'The latest dry run outcome, null until a dry run finishes',
+  }),
+}).meta({
+  id: 'DeleteSyncDryRunStatus',
+  description: 'The latest delete sync dry run',
+})
 
 // Inferred types for exports
 export type IntervalConfig = z.infer<typeof IntervalConfigSchema>

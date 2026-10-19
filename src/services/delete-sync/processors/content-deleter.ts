@@ -1,7 +1,10 @@
 import { PLEX_PROTECTION_PLAYLIST_DEFAULT } from '@root/schemas/shared/delete-sync-limits.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { TagCache, TagService } from '@services/delete-sync/cache/index.js'
+import type {
+  TagCache,
+  TagService,
+} from '@services/delete-sync/cache/tag-cache.js'
 import type { DeletionCounters } from '@services/delete-sync/utils/deletion-counters.js'
 import type {
   ContentValidators,

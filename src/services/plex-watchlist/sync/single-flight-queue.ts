@@ -1,6 +1,8 @@
 export interface SingleFlightQueue<T> {
   /** Joins a pending run with the same key, otherwise queues work to start after every earlier run settles. */
   run(key: string, work: () => Promise<T>): Promise<T>
+  /** True while a run with this key is queued or running, so a run with it now joins. */
+  isPending(key: string): boolean
 }
 
 export function createSingleFlightQueue<T>(): SingleFlightQueue<T> {
@@ -20,5 +22,6 @@ export function createSingleFlightQueue<T>(): SingleFlightQueue<T> {
       tail = run.then(clear, clear)
       return run
     },
+    isPending: (key) => pending.has(key),
   }
 }

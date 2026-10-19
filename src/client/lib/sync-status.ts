@@ -6,6 +6,8 @@ export interface SyncStatus {
   /** Null until the progress stream has reported the workflow status. */
   state: SyncState | null
   mode: 'rss' | 'polling' | null
+  /** Why the latest start fell back to stopped, null once the next start begins. */
+  lastError: string | null
 }
 
 const SYNC_STATES: readonly SyncState[] = [
@@ -22,11 +24,12 @@ function isSyncState(value: string): value is SyncState {
 export function syncStatusFrom(event: ProgressEvent | undefined): SyncStatus {
   const metadata = event?.metadata
   if (!metadata || !('status' in metadata) || !isSyncState(metadata.status)) {
-    return { state: null, mode: null }
+    return { state: null, mode: null, lastError: null }
   }
   return {
     state: metadata.status,
     mode: 'syncMode' in metadata ? metadata.syncMode : null,
+    lastError: 'lastError' in metadata ? metadata.lastError : null,
   }
 }
 
