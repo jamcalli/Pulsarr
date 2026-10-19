@@ -83,7 +83,7 @@ describe('markFailed', () => {
       {
         verify: 'waiting',
         self: 'failed',
-        friends: 'skipped',
+        friends: 'waiting',
         feeds: 'skipped',
       },
     ],
@@ -114,7 +114,7 @@ describe('markFailed', () => {
 })
 
 describe('runSyncSteps', () => {
-  it('starts each step only after the one before it settles', async () => {
+  it('runs both watchlists together and the feeds only after both settle', async () => {
     const order: string[] = []
     const track = (id: string) => async () => {
       order.push(`${id} start`)
@@ -131,31 +131,26 @@ describe('runSyncSteps', () => {
       }),
     )
 
-    expect(order).toEqual([
-      'self start',
-      'self end',
-      'friends start',
-      'friends end',
-      'feeds start',
-      'feeds end',
-    ])
+    expect(order.slice(0, 2)).toEqual(['self start', 'friends start'])
+    expect(order.slice(2, 4)).toEqual(
+      expect.arrayContaining(['self end', 'friends end']),
+    )
+    expect(order.slice(4)).toEqual(['feeds start', 'feeds end'])
   })
 
-  it('skips friends and feeds when the owner sync fails', async () => {
-    const friends = vi.fn()
+  it('skips only the feeds when the owner sync fails', async () => {
     const feeds = vi.fn()
     const { finished } = await run(
       'link',
-      actions({ self: fail('Plex is down'), friends, feeds }),
+      actions({ self: fail('Plex is down'), feeds }),
     )
 
     expect(statuses(finished)).toEqual({
       verify: 'done',
       self: 'failed',
-      friends: 'skipped',
+      friends: 'done',
       feeds: 'skipped',
     })
-    expect(friends).not.toHaveBeenCalled()
     expect(feeds).not.toHaveBeenCalled()
     expect(finished.error).toEqual({ step: 'self', message: 'Plex is down' })
   })

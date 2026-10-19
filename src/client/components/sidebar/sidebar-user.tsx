@@ -5,6 +5,7 @@ import {
   Minimize2,
   Moon,
   Orbit,
+  Rocket,
   Sun,
   UserCog,
 } from 'lucide-react'
@@ -31,6 +32,7 @@ import { UserAvatar, UserAvatarSkeleton } from '@/components/user-avatar'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useSettings } from '@/hooks/useSettings'
 import { useTheme } from '@/hooks/useTheme'
+import { useSetupStore } from '@/stores/setupStore'
 
 function UserSkeleton() {
   return (
@@ -56,6 +58,7 @@ export function SidebarUser() {
   const { isMobile, setOpenMobile } = useSidebar()
   const navigate = useNavigate()
   const [logOutOpen, setLogOutOpen] = useState(false)
+  const requestSetup = useSetupStore((state) => state.request)
 
   if (isLoading) return <UserSkeleton />
 
@@ -99,6 +102,15 @@ export function SidebarUser() {
           >
             <UserCog />
             Account settings
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setOpenMobile(false)
+              requestSetup()
+            }}
+          >
+            <Rocket />
+            Run setup
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>

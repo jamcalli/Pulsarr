@@ -68,23 +68,33 @@ interface CredenzaContentProps extends CredenzaPartProps {
   fullHeight?: boolean
   /** Lays the mobile swipe handle over the top of the content instead of above it. */
   floatingHandle?: boolean
+  /** Hides the dialog's corner close button, for a credenza that must not close. */
+  hideCloseButton?: boolean
 }
 
 function CredenzaContent({
   fullHeight,
   floatingHandle,
+  hideCloseButton,
   className,
   ...props
 }: CredenzaContentProps) {
   const isMobile = useContext(CredenzaMobileContext)
-  const Content = isMobile ? DrawerContent : DialogContent
+  if (!isMobile) {
+    return (
+      <DialogContent
+        showCloseButton={!hideCloseButton}
+        className={cn('flex flex-col', className)}
+        {...props}
+      />
+    )
+  }
   return (
-    <Content
+    <DrawerContent
       className={cn(
         'flex flex-col',
-        isMobile && fullHeight && '[--drawer-content-height:100dvh]',
-        isMobile &&
-          floatingHandle &&
+        fullHeight && '[--drawer-content-height:100dvh]',
+        floatingHandle &&
           '*:data-[slot=drawer-swipe-handle]:absolute *:data-[slot=drawer-swipe-handle]:inset-x-0 *:data-[slot=drawer-swipe-handle]:top-0 *:data-[slot=drawer-swipe-handle]:z-20',
         className,
       )}
@@ -120,7 +130,7 @@ function CredenzaBody({ className, children }: CredenzaPartProps) {
       ref={edges.ref}
       onScroll={edges.onScroll}
       className={cn(
-        'min-h-0 overflow-y-auto border-y border-transparent',
+        'relative min-h-0 overflow-y-auto border-y border-transparent',
         isMobile ? 'px-4 py-2' : '-mx-6 -my-1 px-6 py-1',
         edges.canScrollUp && 'border-t-divider',
         edges.canScrollDown && 'border-b-divider',

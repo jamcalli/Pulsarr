@@ -1,5 +1,5 @@
 import { cn } from 'cn'
-import { useRef } from 'react'
+import { type ReactNode, useRef } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AppHeader } from '@/components/app-header'
 import { AppSidebar } from '@/components/sidebar/app-sidebar'
@@ -10,7 +10,7 @@ import { useScrollReset } from '@/hooks/useScrollReset'
 import { useSessionExpiryRedirect } from '@/hooks/useSessionExpiryRedirect'
 import { useSettings } from '@/hooks/useSettings'
 
-export default function AppLayout() {
+export default function AppLayout({ children }: { children?: ReactNode }) {
   useProgressConnection()
   useApprovalToasts()
   useSessionExpiryRedirect()
@@ -43,6 +43,7 @@ export default function AppLayout() {
         >
           <AppHeader />
           <Outlet />
+          {children}
         </SidebarInset>
       </SidebarProvider>
     </div>

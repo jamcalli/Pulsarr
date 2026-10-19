@@ -2,10 +2,16 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { type NavPage, pageHref } from '@/lib/navigation'
 
-export function NavPageButton({ page }: { page: NavPage }) {
+export function NavPageButton({
+  page,
+  variant = 'neutral',
+}: {
+  page: NavPage
+  variant?: 'neutral' | 'outline'
+}) {
   return (
     <Button
-      variant="neutral"
+      variant={variant}
       size="sm"
       nativeButton={false}
       render={<Link to={pageHref(page)} />}

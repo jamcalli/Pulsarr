@@ -67,8 +67,9 @@ describe('account facts', () => {
         users,
         hasPlexPass: true,
         friendsSynced: true,
+        sync: { state: 'running', mode: 'rss', lastError: null },
       }).map((fact) => fact.value),
-    ).toEqual(['Yes', '214 items', '2 friends, 1,032 items', 'RSS feeds'])
+    ).toEqual(['Yes', '214 items', '2 friends, 1,032 items', 'RSS'])
   })
 
   it('marks friends not synced and polling without feeds', () => {
@@ -78,7 +79,30 @@ describe('account facts', () => {
         users,
         hasPlexPass: false,
         friendsSynced: false,
+        sync: { state: null, mode: null, lastError: null },
       }).map((fact) => fact.value),
-    ).toEqual(['No', '214 items', 'Not synced', 'Polling Plex'])
+    ).toEqual(['No', '214 items', 'Not synced', 'Polling'])
+  })
+
+  it('reads the sync mode as off while the workflow is stopped', () => {
+    const mode = accountFacts({
+      config: feedConfig('https://rss/self', ''),
+      users,
+      hasPlexPass: true,
+      friendsSynced: true,
+      sync: { state: 'stopped', mode: null, lastError: null },
+    }).at(-1)
+    expect(mode).toEqual({ label: 'Sync mode', value: 'Off' })
+  })
+
+  it('prefers the mode the running workflow reports over the saved feeds', () => {
+    const mode = accountFacts({
+      config: feedConfig('https://rss/self', ''),
+      users,
+      hasPlexPass: true,
+      friendsSynced: true,
+      sync: { state: 'running', mode: 'polling', lastError: null },
+    }).at(-1)
+    expect(mode?.value).toBe('Polling')
   })
 })

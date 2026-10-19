@@ -158,7 +158,7 @@ describe('NewUserDefaultsPage', () => {
     ])
   })
 
-  it('disables the quota fields in place when the quota is off and the cap when its switch is off', async () => {
+  it('hides the quota fields when the quota is off and disables the cap when its switch is off', async () => {
     const user = userEvent.setup()
     mockEndpoints()
     renderPage()
@@ -171,15 +171,17 @@ describe('NewUserDefaultsPage', () => {
     expect(movies.getByLabelText('Requests per period')).toBeEnabled()
 
     await user.click(movies.getByRole('switch', { name: 'Limit requests' }))
-    expect(movies.getByLabelText('Quota period')).toBeDisabled()
-    expect(movies.getByLabelText('Requests per period')).toBeDisabled()
     expect(
-      movies.getByRole('switch', { name: 'Bypass approval over the limit' }),
-    ).toHaveAttribute('aria-disabled', 'true')
+      movies.getByRole('switch', { name: 'Limit requests' }),
+    ).not.toBeChecked()
+    expect(movies.queryByLabelText('Quota period')).toBeNull()
+    expect(movies.queryByLabelText('Requests per period')).toBeNull()
     expect(
-      movies.getByRole('switch', { name: 'Cap the watchlist' }),
-    ).toHaveAttribute('aria-disabled', 'true')
-    expect(movies.getByLabelText('Watchlist cap')).toBeDisabled()
+      movies.queryByRole('switch', { name: 'Cap the watchlist' }),
+    ).toBeNull()
+
+    await user.click(movies.getByRole('switch', { name: 'Limit requests' }))
+    expect(movies.getByLabelText('Requests per period')).toBeEnabled()
   })
 
   it('disables the cap fields while bypass is on', async () => {

@@ -85,6 +85,7 @@ const LogsPage = lazy(() => import('@/features/system/pages/logs'))
 const PlexConnectionPage = lazy(
   () => import('@/features/system/pages/plex-connection'),
 )
+const SetupDialog = lazy(() => import('@/features/setup'))
 /**
  * Get the configured base path for the router.
  * Reads from the <base> tag injected by the server.
@@ -109,7 +110,13 @@ export const router = createBrowserRouter(
       ),
       children: [
         {
-          element: <AppLayout />,
+          element: (
+            <AppLayout>
+              <Suspense fallback={null}>
+                <SetupDialog />
+              </Suspense>
+            </AppLayout>
+          ),
           children: [
             {
               errorElement: (

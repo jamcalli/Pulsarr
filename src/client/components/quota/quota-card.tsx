@@ -1,9 +1,9 @@
-import {
-  QuotaFields,
-  QuotaFieldsSkeleton,
-} from '@/components/quota/quota-fields'
+import { QuotaFields } from '@/components/quota/quota-fields'
 import { QuotaLimitPill } from '@/components/quota/quota-limit-pill'
-import { SettingsSectionSkeleton } from '@/components/settings/settings-page-skeleton'
+import {
+  FieldRowSkeleton,
+  SettingsSectionSkeleton,
+} from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
@@ -52,21 +52,15 @@ export const QuotaCard = withFieldGroup({
   },
 })
 
-export function QuotaCardSkeleton({
-  description = false,
-  usage = false,
-}: {
-  description?: boolean
-  usage?: boolean
-}) {
+export function QuotaCardSkeleton({ usage = false }: { usage?: boolean }) {
   return (
-    <SettingsSectionSkeleton description={description}>
+    <SettingsSectionSkeleton description={false}>
       {usage && (
         <div className={USAGE_ROW}>
           <Skeleton className="h-5 w-56 max-w-full" />
         </div>
       )}
-      <QuotaFieldsSkeleton />
+      <FieldRowSkeleton control="switch" />
     </SettingsSectionSkeleton>
   )
 }

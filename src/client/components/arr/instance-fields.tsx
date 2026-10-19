@@ -2,6 +2,7 @@ import { SonarrMonitorNewItemsSchema } from '@root/schemas/sonarr/sonarr-instanc
 import { useStore } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
 import { RoutingFields } from '@/components/routing-fields'
+import { BlockTitle } from '@/components/settings/block-title'
 import { LockLine } from '@/components/settings/lock-line'
 import { FieldSeparator } from '@/components/ui/field'
 import type { CreatableOption } from '@/hooks/useCreatableOptions'
@@ -55,10 +56,6 @@ const DEFAULT_PROPS: InstanceFieldsProps = {
 const MONITOR_NEW_ITEMS_OPTIONS = SonarrMonitorNewItemsSchema.options.map(
   (value) => ({ value, label: MONITOR_NEW_ITEMS_LABELS[value] }),
 )
-
-function BlockTitle({ children }: { children: ReactNode }) {
-  return <h3 className="font-heading font-bold">{children}</h3>
-}
 
 export const InstanceFields = withFieldGroup({
   defaultValues: editValues(null),

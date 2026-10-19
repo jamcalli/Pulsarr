@@ -438,11 +438,13 @@ function friendsRow(list: HTMLElement) {
   return row
 }
 
-function expectSequential(steps: Array<{ start: number; end: number }>) {
-  for (const [index, entry] of steps.entries()) {
-    const previous = steps[index - 1]
-    if (previous) expect(entry.start).toBeGreaterThanOrEqual(previous.end)
-  }
+function recorded(
+  steps: Array<{ step: Step; start: number; end: number }>,
+  step: Step,
+) {
+  const entry = steps.find((candidate) => candidate.step === step)
+  if (!entry) throw new Error(`No ${step} request`)
+  return entry
 }
 
 async function pasteToken(token: string) {
@@ -481,7 +483,7 @@ describe('PlexConnectionPage', () => {
     const account = await findSection('Plex account')
     expect(account.getByText('214 items')).toBeInTheDocument()
     expect(account.getByText('2 friends, 1,032 items')).toBeInTheDocument()
-    expect(account.getByText('RSS feeds')).toBeInTheDocument()
+    expect(account.getByText('RSS')).toBeInTheDocument()
     expect(account.getByLabelText('Your watchlist feed')).toHaveValue(
       FEEDS.selfRss,
     )
@@ -645,7 +647,7 @@ describe('PlexConnectionPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('links a pasted token and runs the sync in order', async () => {
+  it('links a pasted token, reads both watchlists together, then the feeds', async () => {
     const calls = mockEndpoints({ config: NOT_LINKED })
     renderPage()
     expect(await accountPill()).toHaveTextContent('Not linked')
@@ -658,17 +660,12 @@ describe('PlexConnectionPage', () => {
       RUN_TIMEOUT,
     )
     expect(calls.config[0]).toEqual({ plexTokens: [NEW_TOKEN] })
-    const ordered = calls.steps.slice(
-      calls.steps.findIndex((entry) => entry.step === 'self'),
-      calls.steps.findIndex((entry) => entry.step === 'feeds') + 1,
+    const self = recorded(calls.steps, 'self')
+    const friends = recorded(calls.steps, 'friends')
+    expect(friends.start).toBeLessThan(self.end)
+    expect(recorded(calls.steps, 'feeds').start).toBeGreaterThanOrEqual(
+      Math.max(self.end, friends.end),
     )
-    expect(ordered.map((entry) => entry.step)).toEqual([
-      'self',
-      'friends',
-      'pass',
-      'feeds',
-    ])
-    expectSequential(ordered)
     expect(stepPills()).toEqual([
       'Verify the tokenDone',
       'Your watchlist214 itemsDone',
@@ -678,7 +675,7 @@ describe('PlexConnectionPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
-  it('skips friends and feeds when the owner sync fails', async () => {
+  it('skips only the feeds when the owner sync fails', async () => {
     const calls = mockEndpoints({ config: NOT_LINKED, fail: ['self'] })
     renderPage()
 
@@ -689,7 +686,7 @@ describe('PlexConnectionPage', () => {
         expect(stepPills()).toEqual([
           'Verify the tokenDone',
           'Your watchlistFailed',
-          "Friends' watchlistsSkipped",
+          "Friends' watchlists0 friends, 1,032 itemsDone",
           'Watchlist feedsSkipped',
         ]),
       RUN_TIMEOUT,
@@ -698,7 +695,7 @@ describe('PlexConnectionPage', () => {
       'self failed upstream',
     )
     const steps = calls.steps.map((entry) => entry.step)
-    expect(steps).not.toContain('friends')
+    expect(steps).toContain('friends')
     expect(steps).not.toContain('feeds')
   })
 

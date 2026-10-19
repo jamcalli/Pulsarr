@@ -3,7 +3,6 @@ import {
   WATCHLIST_CAP_ITEMS,
 } from '@root/schemas/shared/quota-limits'
 import { useStore } from '@tanstack/react-form'
-import { FieldRowSkeleton } from '@/components/settings/settings-page-skeleton'
 import { withFieldGroup } from '@/lib/form'
 import { QUOTA_TYPE_OPTIONS } from '@/lib/quota'
 import { QUOTA_FIELD_DEFAULTS } from '@/lib/quota-fields'
@@ -17,30 +16,35 @@ export const QuotaFields = withFieldGroup({
     const on = useStore(group.store, (state) => state.values.on)
     const capOn = useStore(group.store, (state) => state.values.capOn)
     const bypass = useStore(group.store, (state) => state.values.bypassApproval)
-    const quotaOff = disabled || !on
-    const capLocked = quotaOff || bypass
+    const capLocked = disabled || bypass
     const capDescription = bypass
       ? "The cap doesn't apply while bypass is on."
       : 'New watchlist items past the cap are skipped instead of requested.'
 
+    const limitSwitch = (
+      <group.AppField name="on">
+        {(field) => (
+          <field.SwitchField
+            label="Limit requests"
+            description="Requests over the limit wait for your approval."
+            disabled={disabled}
+          />
+        )}
+      </group.AppField>
+    )
+
+    if (!on) return limitSwitch
+
     return (
       <>
-        <group.AppField name="on">
-          {(field) => (
-            <field.SwitchField
-              label="Limit requests"
-              description="Requests over the limit wait for your approval."
-              disabled={disabled}
-            />
-          )}
-        </group.AppField>
+        {limitSwitch}
         <group.AppField name="quotaType">
           {(field) => (
             <field.SelectField
               label="Quota period"
               description="Set rolling days and the monthly reset day on Quotas."
               options={QUOTA_TYPE_OPTIONS}
-              disabled={quotaOff}
+              disabled={disabled}
             />
           )}
         </group.AppField>
@@ -51,7 +55,7 @@ export const QuotaFields = withFieldGroup({
               unit={unit}
               min={QUOTA_REQUEST_LIMIT.min}
               max={QUOTA_REQUEST_LIMIT.max}
-              disabled={quotaOff}
+              disabled={disabled}
             />
           )}
         </group.AppField>
@@ -60,7 +64,7 @@ export const QuotaFields = withFieldGroup({
             <field.SwitchField
               label="Bypass approval over the limit"
               description="Over-limit requests skip approval, and the cap is off."
-              disabled={quotaOff}
+              disabled={disabled}
             />
           )}
         </group.AppField>
@@ -88,16 +92,3 @@ export const QuotaFields = withFieldGroup({
     )
   },
 })
-
-export function QuotaFieldsSkeleton() {
-  return (
-    <>
-      <FieldRowSkeleton control="switch" />
-      <FieldRowSkeleton control="input" />
-      <FieldRowSkeleton control="input" description={false} />
-      <FieldRowSkeleton control="switch" />
-      <FieldRowSkeleton control="switch" />
-      <FieldRowSkeleton control="input" description={false} />
-    </>
-  )
-}

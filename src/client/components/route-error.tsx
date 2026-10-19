@@ -19,7 +19,7 @@ export function RouteError() {
       <Button size="sm" onClick={() => window.location.reload()}>
         Reload
       </Button>
-      <NavPageButton page={NAV_PAGES.dashboard} />
+      <NavPageButton page={NAV_PAGES.dashboard} variant="outline" />
     </RouteNotice>
   )
 }

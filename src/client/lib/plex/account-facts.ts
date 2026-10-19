@@ -1,4 +1,5 @@
 import { formatCount } from '@/lib/format'
+import { SYNC_MODE_LABELS, type SyncStatus } from '@/lib/sync-status'
 import type { components } from '@/types/api.js'
 
 type Config = components['schemas']['Config']
@@ -29,28 +30,45 @@ export function watchlistCounts(users: readonly UserWithCount[]) {
   }
 }
 
-export function accountFacts({
-  config,
-  users,
-  hasPlexPass,
-  friendsSynced,
-}: {
-  config: Pick<Config, 'selfRss' | 'friendsRss'>
-  users: readonly UserWithCount[]
-  hasPlexPass: boolean
-  friendsSynced: boolean
-}): Array<{ label: string; value: string }> {
+/** The two watchlist facts shared by the Plex account card and setup. */
+export function watchlistFacts(
+  users: readonly UserWithCount[],
+  friendsSynced = true,
+): Array<{ label: string; value: string }> {
   const counts = watchlistCounts(users)
   return [
-    { label: 'Plex Pass', value: hasPlexPass ? 'Yes' : 'No' },
     { label: 'Your watchlist', value: counts.owner },
     {
       label: "Friends' watchlists",
       value: friendsSynced ? counts.friends : 'Not synced',
     },
+  ]
+}
+
+export function accountFacts({
+  config,
+  users,
+  hasPlexPass,
+  friendsSynced,
+  sync,
+}: {
+  config: Pick<Config, 'selfRss' | 'friendsRss'>
+  users: readonly UserWithCount[]
+  hasPlexPass: boolean
+  friendsSynced: boolean
+  sync: SyncStatus
+}): Array<{ label: string; value: string }> {
+  return [
+    { label: 'Plex Pass', value: hasPlexPass ? 'Yes' : 'No' },
+    ...watchlistFacts(users, friendsSynced),
     {
       label: 'Sync mode',
-      value: hasFeeds(config) ? 'RSS feeds' : 'Polling Plex',
+      value:
+        sync.state === 'stopped'
+          ? 'Off'
+          : SYNC_MODE_LABELS[
+              sync.mode ?? (hasFeeds(config) ? 'rss' : 'polling')
+            ],
     },
   ]
 }

@@ -53,16 +53,16 @@ export const SYNC_ERROR_TITLES: Record<SyncStepId, string> = {
   feeds: "Couldn't generate the watchlist feeds.",
 }
 
-/** Steps in one group run together, and only the first sync after linking needs the owner's row before friends. */
+/** Steps in one group run together, and a group starts only after the one before it settles. */
 const PLAN: Record<SyncKind, readonly (readonly SyncStepId[])[]> = {
-  link: [['verify'], ['self'], ['friends'], ['feeds']],
+  link: [['verify'], ['self', 'friends'], ['feeds']],
   resync: [['verify'], ['self', 'friends']],
 }
 
 /** A failure skips these steps when they have not started yet. */
 const SKIPPED_BY_FAILURE: Record<SyncStepId, readonly SyncStepId[]> = {
   verify: ['self', 'friends', 'feeds'],
-  self: ['friends', 'feeds'],
+  self: ['feeds'],
   friends: [],
   feeds: [],
 }

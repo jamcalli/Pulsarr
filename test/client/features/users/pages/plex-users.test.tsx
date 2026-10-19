@@ -425,7 +425,11 @@ describe('PlexUsersPage', () => {
     await user.clear(cap)
     await user.type(cap, '30')
     await user.click(shows.getByRole('switch', { name: 'Limit requests' }))
-    expect(shows.getByLabelText('Requests per period')).toBeDisabled()
+    expect(shows.queryByLabelText('Quota period')).toBeNull()
+    expect(shows.queryByLabelText('Requests per period')).toBeNull()
+    expect(
+      shows.queryByRole('switch', { name: 'Cap the watchlist' }),
+    ).toBeNull()
     await user.click(
       within(dialog).getByRole('button', { name: 'Apply to 2 users' }),
     )
