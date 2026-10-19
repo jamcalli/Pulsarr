@@ -2,6 +2,7 @@ import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-mon
 import type {
   NewRollingMonitoredShow,
   RollingMonitoredShow,
+  RollingShowMatches,
 } from '@root/types/plex-session.types.js'
 
 declare module '@services/database.service.js' {
@@ -31,12 +32,12 @@ declare module '@services/database.service.js' {
       id: number,
     ): Promise<RollingMonitoredShow | null>
 
-    /** Matches by tvdbId, else title, returning that viewer's rows or the master rows when plexUserId is omitted. */
+    /** Matches by tvdbId, else by normalized title, returning that viewer's rows or the master rows when plexUserId is omitted. */
     getRollingMonitoredShowMatches(
       tvdbId?: string,
       title?: string,
       plexUserId?: string,
-    ): Promise<RollingMonitoredShow[]>
+    ): Promise<RollingShowMatches>
 
     /** Also stamps last_session_date, which inactivity reset and cleanup read as viewing activity. */
     updateRollingShowProgress(

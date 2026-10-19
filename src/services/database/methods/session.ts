@@ -5,8 +5,10 @@ import {
 import type {
   NewRollingMonitoredShow,
   RollingMonitoredShow,
+  RollingShowMatches,
 } from '@root/types/plex-session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { normalizeTitle } from '@utils/title-normalization.js'
 
 export async function createRollingMonitoredShow(
   this: DatabaseService,
@@ -170,34 +172,55 @@ export async function getRollingMonitoredShowById(
   }
 }
 
-/** Matches by tvdbId, else title, returning that viewer's rows or the master rows when plexUserId is omitted. */
+/** Matches by tvdbId, else by normalized title, returning that viewer's rows or the master rows when plexUserId is omitted. */
 export async function getRollingMonitoredShowMatches(
   this: DatabaseService,
   tvdbId?: string,
   title?: string,
   plexUserId?: string,
-): Promise<RollingMonitoredShow[]> {
-  try {
+): Promise<RollingShowMatches> {
+  const scoped = () => {
     const query = this.knex('rolling_monitored_shows')
-
-    if (tvdbId) {
-      query.where('tvdb_id', tvdbId)
-    } else if (title) {
-      query.where('show_title', title)
-    } else {
-      return []
-    }
-
     if (plexUserId) {
       query.where('plex_user_id', plexUserId)
     } else {
       query.whereNull('plex_user_id')
     }
+    return query.orderBy('sonarr_instance_id', 'asc')
+  }
 
-    return await query.orderBy('sonarr_instance_id', 'asc')
+  try {
+    if (tvdbId) {
+      const shows: RollingMonitoredShow[] = await scoped().where(
+        'tvdb_id',
+        tvdbId,
+      )
+      if (shows.length > 0) return { matchedBy: 'tvdb', shows }
+    }
+
+    if (!title) return { matchedBy: 'none', shows: [] }
+
+    const titleKey = normalizeTitle(title)
+    const rows: RollingMonitoredShow[] = await scoped()
+    const shows = rows.filter(
+      (show) => normalizeTitle(show.show_title) === titleKey,
+    )
+    if (shows.length === 0) return { matchedBy: 'none', shows: [] }
+
+    // One show synced to several instances shares a tvdb id, so only differing ids make a title ambiguous
+    const distinctShows = new Set(
+      shows.map(
+        (show) =>
+          show.tvdb_id || `${show.sonarr_instance_id}-${show.sonarr_series_id}`,
+      ),
+    )
+    if (distinctShows.size > 1)
+      return { matchedBy: 'ambiguousTitle', shows: [] }
+
+    return { matchedBy: 'title', shows }
   } catch (error) {
     this.log.error({ error }, 'Error getting rolling monitored show matches:')
-    return []
+    return { matchedBy: 'none', shows: [] }
   }
 }
 

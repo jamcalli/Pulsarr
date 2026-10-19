@@ -538,18 +538,32 @@ export class PlexSessionMonitorService {
       const tvdbId = await this.getSeriesTvdbId(session)
 
       // Master entries (null plex_user_id) define which shows are enrolled.
-      const globalShows = await this.db.getRollingMonitoredShowMatches(
-        tvdbId,
-        session.grandparentTitle,
-        undefined,
-      )
+      const { matchedBy, shows: globalShows } =
+        await this.db.getRollingMonitoredShowMatches(
+          tvdbId,
+          session.grandparentTitle,
+          undefined,
+        )
+
+      if (matchedBy === 'ambiguousTitle') {
+        this.log.warn(
+          `Not monitoring ${describeViewing(session.grandparentTitle, session)}: several rolling shows are titled "${session.grandparentTitle}" and the TVDB ids do not match, so none was picked`,
+        )
+        return []
+      }
 
       if (globalShows.length === 0) {
         return []
       }
 
+      if (matchedBy === 'title') {
+        this.log.info(
+          `Matched ${describeViewing(globalShows[0].show_title, session)} to its rolling show by title because the TVDB ids differ or are missing`,
+        )
+      }
+
       // Key per-user rows by instance+series so each master resolves to its own.
-      const userShows = await this.db.getRollingMonitoredShowMatches(
+      const { shows: userShows } = await this.db.getRollingMonitoredShowMatches(
         tvdbId,
         session.grandparentTitle,
         session.User.id,

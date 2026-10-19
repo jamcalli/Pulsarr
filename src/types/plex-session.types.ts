@@ -265,6 +265,11 @@ export interface RollingMonitoredShow {
   last_updated_at: string
 }
 
+/** How a rolling show lookup resolved, ambiguousTitle when the title fallback hit several shows and matched none. */
+export type RollingShowMatches =
+  | { matchedBy: 'tvdb' | 'title'; shows: RollingMonitoredShow[] }
+  | { matchedBy: 'ambiguousTitle' | 'none'; shows: [] }
+
 export type NewRollingMonitoredShow = Pick<
   RollingMonitoredShow,
   | 'sonarr_series_id'
