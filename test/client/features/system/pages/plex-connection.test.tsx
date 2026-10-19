@@ -90,6 +90,45 @@ const STATUS = {
 type Step = 'ping' | 'self' | 'friends' | 'pass' | 'feeds'
 
 type ConnectionTest = components['schemas']['PlexTestConnectionResponse']
+type SyncStatus = components['schemas']['WatchlistSyncStatus']
+
+const IDLE_SYNC: SyncStatus = {
+  state: 'idle',
+  startedAt: null,
+  finishedAt: null,
+  error: null,
+  total: null,
+  friends: null,
+}
+
+const SYNC_STEPS: Record<WatchlistSyncType, Step> = {
+  'self-watchlist': 'self',
+  'others-watchlist': 'friends',
+}
+
+const SYNC_COUNTS: Record<
+  WatchlistSyncType,
+  Pick<SyncStatus, 'total' | 'friends'>
+> = {
+  'self-watchlist': { total: 214, friends: null },
+  'others-watchlist': { total: 1032, friends: 0 },
+}
+
+function emitSettled(type: WatchlistSyncType, phase: 'complete' | 'failed') {
+  const event: ProgressEvent = {
+    operationId: `${type}-sync`,
+    type,
+    phase,
+    progress: 100,
+    message: phase,
+    metadata: { stage: phase, count: null },
+  }
+  for (const callback of useProgressStore
+    .getState()
+    .typeSubscribers.get(type) ?? []) {
+    callback(event)
+  }
+}
 
 const REACHED: ConnectionTest = {
   success: true,
@@ -106,6 +145,7 @@ function mockEndpoints({
   connectionTest = REACHED,
   fail = [],
   pins = [{ authToken: TOKEN, expiresIn: 600 }],
+  holdSync = {},
 }: {
   config?: ConfigUpdate
   hasPlexPass?: boolean
@@ -114,6 +154,8 @@ function mockEndpoints({
   connectionTest?: ConnectionTest
   fail?: Step[]
   pins?: Array<{ authToken: string | null; expiresIn: number }>
+  /** Keeps a sync running until the promise resolves. */
+  holdSync?: Partial<Record<WatchlistSyncType, Promise<void>>>
 } = {}) {
   let saved: ConfigUpdate = { ...config }
   let pinIndex = 0
@@ -142,6 +184,32 @@ function mockEndpoints({
       )
     }
     return body()
+  }
+  const syncs: Record<WatchlistSyncType, SyncStatus> = {
+    'self-watchlist': IDLE_SYNC,
+    'others-watchlist': IDLE_SYNC,
+  }
+  const runSync = async (type: WatchlistSyncType) => {
+    const name = SYNC_STEPS[type]
+    const entry = { step: name, start: performance.now(), end: 0 }
+    calls.steps.push(entry)
+    syncs[type] = {
+      ...IDLE_SYNC,
+      state: 'running',
+      startedAt: new Date().toISOString(),
+    }
+    await Promise.all([delay(30), holdSync[type]])
+    entry.end = performance.now()
+    const finishedAt = new Date().toISOString()
+    syncs[type] = fail.includes(name)
+      ? {
+          ...syncs[type],
+          state: 'failed',
+          finishedAt,
+          error: `${name} failed upstream`,
+        }
+      : { ...syncs[type], state: 'done', finishedAt, ...SYNC_COUNTS[type] }
+    emitSettled(type, fail.includes(name) ? 'failed' : 'complete')
   }
   server.use(
     http.get('/v1/config', () =>
@@ -232,11 +300,16 @@ function mockEndpoints({
       calls.connectionTest += 1
       return HttpResponse.json(connectionTest)
     }),
-    http.get('/v1/plex/self-watchlist-token', () =>
-      step('self', () => HttpResponse.json({ total: 214, users: [] })),
+    http.post<{ type: WatchlistSyncType }>(
+      '/v1/plex/watchlist-sync/:type/start',
+      ({ params }) => {
+        void runSync(params.type)
+        return HttpResponse.json({ message: 'started' }, { status: 202 })
+      },
     ),
-    http.get('/v1/plex/others-watchlist-token', () =>
-      step('friends', () => HttpResponse.json({ total: 1032, users: [] })),
+    http.get<{ type: WatchlistSyncType }>(
+      '/v1/plex/watchlist-sync/:type/status',
+      ({ params }) => HttpResponse.json(syncs[params.type]),
     ),
     http.get('/v1/plex/generate-rss-feeds', () =>
       step('feeds', () => {
@@ -473,17 +546,11 @@ describe('PlexConnectionPage', () => {
 
   it("shows the friends' sync progress while it runs", async () => {
     const user = userEvent.setup()
-    mockEndpoints()
     let release = () => {}
     const held = new Promise<void>((resolve) => {
       release = resolve
     })
-    server.use(
-      http.get('/v1/plex/others-watchlist-token', async () => {
-        await held
-        return HttpResponse.json({ total: 1032, users: [] })
-      }),
-    )
+    mockEndpoints({ holdSync: { 'others-watchlist': held } })
     renderPage()
     const account = await findSection('Plex account')
 

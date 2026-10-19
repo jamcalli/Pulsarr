@@ -20,3 +20,9 @@ export type DeleteSyncResult = {
   safetyTriggered?: boolean
   safetyMessage?: string
 }
+
+export type DeleteSyncDryRunOutcome = {
+  success: boolean
+  message: string
+  results: DeleteSyncResult
+}

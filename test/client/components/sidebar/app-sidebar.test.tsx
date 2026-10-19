@@ -34,7 +34,10 @@ function approvalStats(pending: number) {
   })
 }
 
-function syncStatus(status: 'running' | 'stopped') {
+function syncStatus(
+  status: 'running' | 'stopped',
+  lastError: string | null = null,
+) {
   useProgressStore.setState({
     systemStatusCache: {
       'watchlist-workflow-status': {
@@ -43,7 +46,7 @@ function syncStatus(status: 'running' | 'stopped') {
         phase: 'info',
         progress: 0,
         message: 'Watchlist workflow status',
-        metadata: { status, syncMode: 'rss' },
+        metadata: { status, syncMode: 'rss', rssAvailable: true, lastError },
       },
     },
   })
@@ -291,7 +294,7 @@ describe('AppSidebar', () => {
   })
 
   describe('sync popover', () => {
-    function mockSync({ startStatus = 200, isReady = false } = {}) {
+    function mockSync({ startStatus = 202, isReady = false } = {}) {
       const calls = {
         start: 0,
         stop: 0,
@@ -306,10 +309,13 @@ describe('AppSidebar', () => {
           calls.config.push(body)
           return HttpResponse.json({ success: true, config: body })
         }),
-        http.post('/v1/watchlist-workflow/start', () => {
+        http.post('/v1/watchlist-workflow/start-background', () => {
           calls.start++
-          return startStatus === 200
-            ? HttpResponse.json({ success: true, status: 'starting' })
+          return startStatus === 202
+            ? HttpResponse.json(
+                { message: 'Watchlist workflow is starting' },
+                { status: 202 },
+              )
             : HttpResponse.json(
                 {
                   statusCode: 400,
@@ -380,6 +386,23 @@ describe('AppSidebar', () => {
 
       expect(
         await within(panel).findByText('Plex is not configured'),
+      ).toBeInTheDocument()
+    })
+
+    it('shows a start that failed after it was accepted', async () => {
+      mockApi()
+      mockSync()
+      syncStatus('stopped', 'Failed during initial reconciliation')
+      const user = userEvent.setup()
+      renderSidebar('/')
+
+      await user.click(screen.getByRole('button', { name: /Sync stopped/ }))
+      const panel = await screen.findByRole('dialog', {
+        name: 'Watchlist sync',
+      })
+
+      expect(
+        within(panel).getByText('Sync failed to start. Try again.'),
       ).toBeInTheDocument()
     })
 

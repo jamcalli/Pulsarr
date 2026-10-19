@@ -7,6 +7,7 @@ import QuotaSettingsPage from '@/features/requests/pages/quota-settings'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
 import { setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
+import { useProgressStore } from '@/stores/progressStore'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -40,6 +41,7 @@ function makeSchedule({
     },
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
+    running: false,
   }
 }
 
@@ -92,6 +94,8 @@ describe('QuotaSettingsPage', () => {
   beforeEach(() => {
     setFormatLocale('en-US')
     stubViewport({ mobile: false })
+    // keeps subscribers from opening the progress EventSource
+    useProgressStore.setState({ isConnecting: true })
   })
 
   afterEach(() => {

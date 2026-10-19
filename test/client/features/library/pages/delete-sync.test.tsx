@@ -14,6 +14,7 @@ import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
 type DryRunResponse = components['schemas']['DeleteSyncDryRunResponse']
+type DryRunStatus = components['schemas']['DeleteSyncDryRunStatus']
 type RadarrInstance =
   paths['/v1/radarr/instances']['get']['responses'][200]['content']['application/json'][number]
 type SonarrInstance = components['schemas']['SonarrInstance']
@@ -40,6 +41,7 @@ const savedConfig = {
 function makeSchedule({
   enabled = true,
   expression = '0 1 * * 0',
+  running = false,
 } = {}): ScheduleStatus {
   return {
     id: 1,
@@ -57,6 +59,7 @@ function makeSchedule({
     },
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
+    running,
   }
 }
 
@@ -130,12 +133,36 @@ const dryRunAborted: DryRunResponse = {
   },
 }
 
+const IDLE_DRY_RUN: DryRunStatus = {
+  state: 'idle',
+  startedAt: null,
+  finishedAt: null,
+  error: null,
+  result: null,
+}
+
+function emitDryRun(phase: 'complete' | 'failed') {
+  const event: ProgressEvent = {
+    operationId: 'delete-sync-dry-run',
+    type: 'delete-sync-dry-run',
+    phase,
+    progress: 100,
+    message: `Delete sync dry run ${phase}`,
+  }
+  for (const callback of useProgressStore
+    .getState()
+    .typeSubscribers.get('delete-sync-dry-run') ?? []) {
+    callback(event)
+  }
+}
+
 function mockEndpoints({
   saved = savedConfig,
   schedule = makeSchedule(),
   scheduleStatus = 200,
   dryRun = dryRunOk,
   dryRunGate = Promise.resolve(),
+  dryRunStatus = IDLE_DRY_RUN,
 } = {}) {
   const calls = {
     config: [] as unknown[],
@@ -144,6 +171,17 @@ function mockEndpoints({
     dryRun: 0,
   }
   let current: object = saved
+  let dryRunState = dryRunStatus
+  const finishDryRun = (result: DryRunResponse) => {
+    dryRunState = {
+      state: 'done',
+      startedAt: dryRunState.startedAt,
+      finishedAt: new Date().toISOString(),
+      error: null,
+      result,
+    }
+    emitDryRun('complete')
+  }
   server.use(
     http.get('/v1/config', () =>
       HttpResponse.json({ success: true, config: current }),
@@ -170,19 +208,27 @@ function mockEndpoints({
       calls.schedule.push(await request.json())
       return HttpResponse.json({ success: true, message: 'ok' })
     }),
-    http.post('/v1/scheduler/schedules/delete-sync/run', () => {
+    http.post('/v1/scheduler/schedules/delete-sync/start', () => {
       calls.run += 1
-      return HttpResponse.json({ success: true, message: 'ok' })
+      return HttpResponse.json({ message: 'started' }, { status: 202 })
     }),
-    http.post('/v1/scheduler/schedules/delete-sync/dry-run', async () => {
+    http.post('/v1/scheduler/schedules/delete-sync/dry-run/start', () => {
       calls.dryRun += 1
-      await dryRunGate
-      return HttpResponse.json(dryRun)
+      dryRunState = {
+        ...IDLE_DRY_RUN,
+        state: 'running',
+        startedAt: new Date().toISOString(),
+      }
+      void dryRunGate.then(() => finishDryRun(dryRun))
+      return HttpResponse.json({ message: 'started' }, { status: 202 })
     }),
+    http.get('/v1/scheduler/schedules/delete-sync/dry-run/status', () =>
+      HttpResponse.json(dryRunState),
+    ),
     http.get('/v1/radarr/instances', () => HttpResponse.json([radarr])),
     http.get('/v1/sonarr/instances', () => HttpResponse.json([sonarr])),
   )
-  return calls
+  return { calls, finishDryRun }
 }
 
 const SELF_READING: ProgressEvent = {
@@ -382,7 +428,7 @@ describe('DeleteSyncPage', () => {
     const dryRunGate = new Promise<void>((resolve) => {
       release = resolve
     })
-    const calls = mockEndpoints({ dryRunGate })
+    const { calls } = mockEndpoints({ dryRunGate })
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Dry run' }))
@@ -453,7 +499,7 @@ describe('DeleteSyncPage', () => {
     const dryRunGate = new Promise<void>((resolve) => {
       release = resolve
     })
-    const calls = mockEndpoints({ dryRunGate })
+    const { calls } = mockEndpoints({ dryRunGate })
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Dry run' }))
@@ -480,6 +526,54 @@ describe('DeleteSyncPage', () => {
     expect(
       screen.queryByRole('list', { name: 'Watchlist syncs' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows a dry run already running on load and its result once it finishes', async () => {
+    const { calls, finishDryRun } = mockEndpoints({
+      dryRunStatus: {
+        ...IDLE_DRY_RUN,
+        state: 'running',
+        startedAt: new Date().toISOString(),
+      },
+    })
+    renderPage()
+
+    expect(
+      await screen.findByRole('button', { name: 'Running...' }),
+    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled()
+
+    act(() => finishDryRun(dryRunOk))
+
+    expect(await screen.findByText(/^Ran at/)).toBeInTheDocument()
+    expect(
+      screen.getByText('47 processed. Would delete 2 movies and 1 show.'),
+    ).toBeInTheDocument()
+    expect(calls.dryRun).toBe(0)
+  })
+
+  it('shows why a dry run failed', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    renderPage()
+    server.use(
+      http.post('/v1/scheduler/schedules/delete-sync/dry-run/start', () =>
+        HttpResponse.json({ message: 'started' }, { status: 202 }),
+      ),
+      http.get('/v1/scheduler/schedules/delete-sync/dry-run/status', () =>
+        HttpResponse.json({
+          ...IDLE_DRY_RUN,
+          state: 'failed',
+          startedAt: new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+          error: 'Sonarr is unreachable',
+        }),
+      ),
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Dry run' }))
+
+    expect(await screen.findByText('Sonarr is unreachable')).toBeInTheDocument()
   })
 
   it('marks the dry run stale after a settings save but not a schedule change', async () => {
@@ -529,7 +623,7 @@ describe('DeleteSyncPage', () => {
 
   it('offers a dry run first from the Run now confirm, then runs for real', async () => {
     const user = userEvent.setup()
-    const calls = mockEndpoints()
+    const { calls } = mockEndpoints()
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Run now' }))
@@ -567,9 +661,49 @@ describe('DeleteSyncPage', () => {
     await vi.waitFor(() => expect(calls.run).toBe(1))
   })
 
+  it('shows a run already going on load and settles it from the schedule row', async () => {
+    mockEndpoints({ schedule: makeSchedule({ running: true }) })
+    renderPage()
+
+    expect(await screen.findByText('Running')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dry run' })).toBeDisabled()
+
+    server.use(
+      http.get('/v1/scheduler/schedules/delete-sync', () =>
+        HttpResponse.json({
+          ...makeSchedule(),
+          last_run: {
+            time: new Date().toISOString(),
+            status: 'failed',
+            error: 'Radarr is unreachable',
+          },
+        }),
+      ),
+    )
+    act(() => {
+      for (const callback of useProgressStore
+        .getState()
+        .typeSubscribers.get('scheduled-job') ?? []) {
+        callback({
+          operationId: 'scheduled-job-delete-sync',
+          type: 'scheduled-job',
+          phase: 'failed',
+          progress: 100,
+          message: 'Job delete-sync failed',
+          metadata: { job: 'delete-sync' },
+        })
+      }
+    })
+
+    expect(await screen.findByText('Last run failed')).toBeInTheDocument()
+    expect(screen.getByText('Radarr is unreachable')).toBeInTheDocument()
+  })
+
   it('confirms before a save turns the schedule on', async () => {
     const user = userEvent.setup()
-    const calls = mockEndpoints({ schedule: makeSchedule({ enabled: false }) })
+    const { calls } = mockEndpoints({
+      schedule: makeSchedule({ enabled: false }),
+    })
     renderPage()
 
     await user.click(
@@ -600,7 +734,9 @@ describe('DeleteSyncPage', () => {
 
   it('keeps the schedule off when the settings save fails', async () => {
     const user = userEvent.setup()
-    const calls = mockEndpoints({ schedule: makeSchedule({ enabled: false }) })
+    const { calls } = mockEndpoints({
+      schedule: makeSchedule({ enabled: false }),
+    })
     server.use(
       http.put('/v1/config', async ({ request }) => {
         calls.config.push(await request.json())
@@ -658,7 +794,9 @@ describe('DeleteSyncPage', () => {
 
   it('ignores Enter in a field while the form is invalid', async () => {
     const user = userEvent.setup()
-    const calls = mockEndpoints({ schedule: makeSchedule({ enabled: false }) })
+    const { calls } = mockEndpoints({
+      schedule: makeSchedule({ enabled: false }),
+    })
     renderPage()
 
     await user.click(

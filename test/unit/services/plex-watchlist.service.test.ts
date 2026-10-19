@@ -97,4 +97,73 @@ describe('PlexWatchlistService watchlist syncs', () => {
     expect(phases).toEqual(['finding-friends', 'failed'])
     expect(service.syncSnapshots()).toEqual([])
   })
+
+  it('reads running for a start queued behind a forced sync until the start settles', async () => {
+    const statesOnComplete: string[] = []
+    progress.emit.mockImplementation((event) => {
+      if (event.phase === 'complete') {
+        statesOnComplete.push(service.syncStatus('others-watchlist').state)
+      }
+    })
+    const forced = service.getOthersWatchlists(true)
+    await vi.waitFor(() => expect(getFriends).toHaveBeenCalledTimes(1))
+    const queued = createDeferred<FriendsResult>()
+    vi.mocked(getFriends).mockReturnValue(queued.promise)
+
+    service.startSync('others-watchlist')
+    friends.resolve(NO_FRIENDS)
+    await forced
+
+    expect(statesOnComplete).toEqual(['running'])
+
+    await vi.waitFor(() => expect(getFriends).toHaveBeenCalledTimes(2))
+    queued.resolve(NO_FRIENDS)
+
+    await vi.waitFor(() =>
+      expect(service.syncStatus('others-watchlist')).toMatchObject({
+        state: 'done',
+        total: 0,
+        friends: 0,
+        error: null,
+      }),
+    )
+    expect(statesOnComplete).toEqual(['running', 'done'])
+  })
+
+  it('settles a start that joins a running sync together with it', async () => {
+    const running = service.getOthersWatchlists()
+    service.startSync('others-watchlist')
+    friends.resolve(NO_FRIENDS)
+    await running
+
+    await vi.waitFor(() =>
+      expect(service.syncStatus('others-watchlist').state).toBe('done'),
+    )
+    expect(getFriends).toHaveBeenCalledTimes(1)
+  })
+
+  it('reads failed with the error once a started sync throws', async () => {
+    service.startSync('others-watchlist')
+    friends.reject(new Error('plex down'))
+
+    await vi.waitFor(() =>
+      expect(service.syncStatus('others-watchlist')).toMatchObject({
+        state: 'failed',
+        error: 'plex down',
+        total: null,
+        friends: null,
+      }),
+    )
+  })
+
+  it('reads self syncs with no friend count', () => {
+    expect(service.syncStatus('self-watchlist')).toEqual({
+      state: 'idle',
+      startedAt: null,
+      finishedAt: null,
+      error: null,
+      total: null,
+      friends: null,
+    })
+  })
 })

@@ -36,7 +36,9 @@ export const PlexWatchlistSyncSchema = z
 export const selfWatchlistSchema = {
   summary: 'Get self watchlist items',
   operationId: 'getSelfWatchlistItems',
-  description: 'Retrieve the current user watchlist items from Plex',
+  description:
+    'Retrieve the current user watchlist items from Plex. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/self-watchlist/start and its status route instead.',
+  deprecated: true,
   tags: ['Plex'],
   response: {
     200: PlexWatchlistSyncSchema,

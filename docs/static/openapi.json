@@ -1279,6 +1279,16 @@
         "additionalProperties": false,
         "description": "Per-instance webhook outcomes for every Radarr and Sonarr"
       },
+      "BackgroundRunState": {
+        "type": "string",
+        "enum": [
+          "idle",
+          "running",
+          "done",
+          "failed"
+        ],
+        "description": "Where the latest background run stands, idle when none ran since the server started"
+      },
       "BulkManageRollingPayload": {
         "type": "object",
         "properties": {
@@ -2484,6 +2494,65 @@
         "additionalProperties": false,
         "description": "Outcome of a delete sync dry run"
       },
+      "DeleteSyncDryRunStatus": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/BackgroundRunState"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why the latest run failed, null unless state is failed",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeleteSyncDryRunResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The latest dry run outcome, null until a dry run finishes"
+          }
+        },
+        "required": [
+          "state",
+          "startedAt",
+          "finishedAt",
+          "error",
+          "result"
+        ],
+        "additionalProperties": false,
+        "description": "The latest delete sync dry run"
+      },
       "DeleteSyncNotifyOption": {
         "type": "string",
         "enum": [
@@ -3107,6 +3176,10 @@
               },
               "updated_at": {
                 "type": "string"
+              },
+              "running": {
+                "type": "boolean",
+                "description": "True while a run of the job is in progress"
               }
             },
             "required": [
@@ -3118,7 +3191,8 @@
               "last_run",
               "next_run",
               "created_at",
-              "updated_at"
+              "updated_at",
+              "running"
             ],
             "additionalProperties": false
           },
@@ -3224,6 +3298,10 @@
               },
               "updated_at": {
                 "type": "string"
+              },
+              "running": {
+                "type": "boolean",
+                "description": "True while a run of the job is in progress"
               }
             },
             "required": [
@@ -3235,7 +3313,8 @@
               "last_run",
               "next_run",
               "created_at",
-              "updated_at"
+              "updated_at",
+              "running"
             ],
             "additionalProperties": false
           }
@@ -8850,6 +8929,123 @@
         ],
         "description": "Routing state of a watchlist item or one of its instance rows: pending (not routed), requested (sent to the arr, no file), grabbed (the arr has the file), notified (in Plex and the user was told)"
       },
+      "WatchlistSyncStatus": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/BackgroundRunState"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why the latest run failed, null unless state is failed",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Items read by the latest finished sync"
+          },
+          "friends": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Friends read by the latest finished sync, always null for your own watchlist"
+          }
+        },
+        "required": [
+          "state",
+          "startedAt",
+          "finishedAt",
+          "error",
+          "total",
+          "friends"
+        ],
+        "additionalProperties": false,
+        "description": "The latest sync of one watchlist type"
+      },
+      "WatchlistSyncType": {
+        "type": "string",
+        "enum": [
+          "self-watchlist",
+          "others-watchlist"
+        ],
+        "description": "Your own watchlist or the watchlists of your Plex friends"
+      },
+      "WatchlistWorkflowStatus": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "stopped",
+              "starting",
+              "stopping"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "lastError": {
+            "description": "Why the latest start fell back to stopped, null once the next start begins",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "status",
+          "lastError"
+        ],
+        "additionalProperties": false,
+        "description": "The watchlist workflow state and why its latest start failed"
+      },
       "WebhookContent": {
         "type": "object",
         "properties": {
@@ -13034,7 +13230,8 @@
         "tags": [
           "Plex"
         ],
-        "description": "Retrieve watchlist items from other Plex users",
+        "description": "Retrieve watchlist items from other Plex users. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/others-watchlist/start and its status route instead.",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Default Response",
@@ -13587,7 +13784,8 @@
         "tags": [
           "Plex"
         ],
-        "description": "Retrieve the current user watchlist items from Plex",
+        "description": "Retrieve the current user watchlist items from Plex. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/self-watchlist/start and its status route instead.",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Default Response",
@@ -13873,6 +14071,122 @@
                     "untracked"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/watchlist-sync/{type}/start": {
+      "post": {
+        "operationId": "startWatchlistSync",
+        "summary": "Start a watchlist sync",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Starts a sync of one watchlist type in the background and returns at once, joining or queueing behind a sync already running. Read the status route for the outcome.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/WatchlistSyncType"
+            },
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "description": "Your own watchlist or the watchlists of your Plex friends"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/watchlist-sync/{type}/status": {
+      "get": {
+        "operationId": "getWatchlistSyncStatus",
+        "summary": "Get watchlist sync status",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Whether a sync of one watchlist type is running and how the latest one ended. Resets when the server restarts.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/WatchlistSyncType"
+            },
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "description": "Your own watchlist or the watchlists of your Plex friends"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistSyncStatus"
                 }
               }
             }
@@ -16030,7 +16344,8 @@
         "tags": [
           "Scheduler"
         ],
-        "description": "Perform a dry-run of the delete sync job to preview what would be deleted",
+        "description": "Perform a dry-run of the delete sync job to preview what would be deleted. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/delete-sync/dry-run/start instead.",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Default Response",
@@ -16048,6 +16363,110 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/scheduler/schedules/delete-sync/dry-run/start": {
+      "post": {
+        "operationId": "startDeleteSyncDryRun",
+        "summary": "Start delete sync dry run",
+        "tags": [
+          "Scheduler"
+        ],
+        "description": "Starts a delete sync dry run in the background and returns at once. Read the dry run status route for the outcome.",
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/scheduler/schedules/delete-sync/dry-run/status": {
+      "get": {
+        "operationId": "getDeleteSyncDryRunStatus",
+        "summary": "Get delete sync dry run status",
+        "tags": [
+          "Scheduler"
+        ],
+        "description": "Whether a delete sync dry run is running and how the latest one ended. Resets when the server restarts.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteSyncDryRunStatus"
                 }
               }
             }
@@ -16372,7 +16791,7 @@
         "tags": [
           "Scheduler"
         ],
-        "description": "Execute a scheduled job immediately",
+        "description": "Execute a scheduled job immediately. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/{name}/start instead.",
         "parameters": [
           {
             "schema": {
@@ -16383,6 +16802,7 @@
             "required": true
           }
         ],
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Default Response",
@@ -16408,6 +16828,78 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/scheduler/schedules/{name}/start": {
+      "post": {
+        "operationId": "startJob",
+        "summary": "Start job in the background",
+        "tags": [
+          "Scheduler"
+        ],
+        "description": "Starts a scheduled job outside its schedule and returns at once. The schedule row reports running and the outcome in last_run.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "name",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -21818,7 +22310,7 @@
         "tags": [
           "Watchlist Workflow"
         ],
-        "description": "Start the watchlist processing workflow",
+        "description": "Start the watchlist processing workflow. Holds the request open until the initial sync finishes, so use POST /v1/watchlist-workflow/start-background instead.",
         "requestBody": {
           "required": true,
           "content": {
@@ -21835,6 +22327,7 @@
             }
           }
         },
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Default Response",
@@ -21901,6 +22394,74 @@
         }
       }
     },
+    "/v1/watchlist-workflow/start-background": {
+      "post": {
+        "operationId": "startWatchlistWorkflowInBackground",
+        "summary": "Start watchlist workflow in the background",
+        "tags": [
+          "Watchlist Workflow"
+        ],
+        "description": "Starts the watchlist processing workflow and returns at once. The status route and the watchlist-workflow-status event report when it runs, or lastError when the start fails.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "x-fastify-zod-openapi-optional": true,
+                "type": "object",
+                "properties": {
+                  "autoStart": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/watchlist-workflow/status": {
       "get": {
         "operationId": "getWatchlistWorkflowStatus",
@@ -21915,29 +22476,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "running",
-                        "stopped",
-                        "starting",
-                        "stopping"
-                      ]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "status"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/WatchlistWorkflowStatus"
                 }
               }
             }

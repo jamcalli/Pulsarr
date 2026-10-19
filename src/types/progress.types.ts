@@ -2,6 +2,7 @@ export type WorkflowMetadata = {
   status: string
   syncMode: 'polling' | 'rss'
   rssAvailable: boolean
+  lastError: string | null
 }
 
 export type SystemStatusMetadata = {
@@ -45,6 +46,10 @@ export type WatchlistSyncMetadata = {
   } | null
 }
 
+export type ScheduledJobMetadata = {
+  job: string
+}
+
 export type ProgressMetadata =
   | WorkflowMetadata
   | WatchlistSyncMetadata
@@ -52,6 +57,7 @@ export type ProgressMetadata =
   | UsersMetadata
   | WatchlistMetadata
   | SystemStatusMetadata
+  | ScheduledJobMetadata
   | Record<string, never>
 
 export interface ProgressEvent {
@@ -70,6 +76,8 @@ export interface ProgressEvent {
     | 'approval'
     | 'users'
     | 'watchlist'
+    | 'delete-sync-dry-run'
+    | 'scheduled-job'
   phase: string
   progress: number
   message: string

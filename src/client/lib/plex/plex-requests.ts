@@ -1,4 +1,10 @@
+import type { WatchlistSyncType } from '@root/types/progress.types'
 import { invalidateConfig } from '@/hooks/useConfig'
+import {
+  isRunSettled,
+  requireRunDone,
+  startAndAwaitStatus,
+} from '@/lib/background-job'
 import { plexConnectionKeys, usersKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { $api, apiFetch } from '@/lib/tanstackApi'
@@ -58,6 +64,31 @@ export async function generateFeeds(): Promise<void> {
   const { error } = await apiFetch.GET('/v1/plex/generate-rss-feeds')
   if (error) throw error
   await invalidateConfig()
+}
+
+/** Starts a sync in the background and resolves with its status once it finishes, throwing when it failed. */
+export async function syncWatchlist(type: WatchlistSyncType) {
+  const params = { path: { type } }
+  const status = await startAndAwaitStatus({
+    eventType: type,
+    start: async () => {
+      const { error } = await apiFetch.POST(
+        '/v1/plex/watchlist-sync/{type}/start',
+        { params },
+      )
+      if (error) throw error
+    },
+    readStatus: async () => {
+      const { data, error } = await apiFetch.GET(
+        '/v1/plex/watchlist-sync/{type}/status',
+        { params },
+      )
+      if (error) throw error
+      return data
+    },
+    isSettled: isRunSettled,
+  })
+  return requireRunDone(status, 'The sync failed. Try again.')
 }
 
 export async function fetchHasPlexPass(): Promise<boolean> {

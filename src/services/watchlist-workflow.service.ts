@@ -1,5 +1,6 @@
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import { handleLinkedItemsForLabelSync } from '@services/plex-watchlist/orchestration/removal-handler.js'
+import { errorMessage } from '@utils/error-message.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { systemStatusEvent } from '@utils/system-status-event.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -79,6 +80,10 @@ export class WatchlistWorkflowService {
     return this.state.status
   }
 
+  getLastError(): string | null {
+    return this.state.lastError
+  }
+
   statusEvent(): ProgressEvent {
     return systemStatusEvent(
       'watchlist-workflow-status',
@@ -87,6 +92,7 @@ export class WatchlistWorkflowService {
         status: this.state.status,
         syncMode: this.state.isEtagFallbackActive ? 'polling' : 'rss',
         rssAvailable: !this.state.isEtagFallbackActive,
+        lastError: this.state.lastError,
       },
     )
   }
@@ -127,6 +133,7 @@ export class WatchlistWorkflowService {
     const { signal } = this.state
 
     try {
+      this.state.lastError = null
       this.setStatus('starting')
       this.log.debug('Starting watchlist workflow initialization')
 
@@ -228,10 +235,38 @@ export class WatchlistWorkflowService {
           'Error cleaning up after failed workflow start',
         )
       }
+      this.state.lastError = errorMessage(error)
       this.setStatus('stopped')
       this.state.initialized = false
       this.state.rssMode = false
       throw error
+    }
+  }
+
+  /** Starts without waiting, then saves autoStart as _isReady once the workflow runs. False unless it was stopped. */
+  startInBackground(autoStart: boolean | undefined): boolean {
+    if (this.state.status !== 'stopped') return false
+    const persistOnceRunning = () =>
+      this.state.status === 'running'
+        ? this.persistAutoStart(autoStart)
+        : undefined
+    this.startWorkflow().then(persistOnceRunning, (error) => {
+      this.log.error({ error }, 'Background workflow start failed')
+      return persistOnceRunning()
+    })
+    return true
+  }
+
+  /** Saves autoStart as _isReady when it differs, logging rather than throwing a failed write. */
+  async persistAutoStart(autoStart: boolean | undefined): Promise<void> {
+    if (autoStart === undefined || autoStart === this.fastify.config._isReady) {
+      return
+    }
+    try {
+      await this.fastify.updateConfigAndPersist({ _isReady: autoStart })
+      this.log.info(`Updated config _isReady to ${autoStart}`)
+    } catch (error) {
+      this.log.warn({ error }, 'Failed to update _isReady config value')
     }
   }
 

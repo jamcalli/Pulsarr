@@ -1,6 +1,6 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { TagCache } from '@services/delete-sync/cache/index.js'
+import type { TagCache } from '@services/delete-sync/cache/tag-cache.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import { parseGuids } from '@utils/guid-handler.js'

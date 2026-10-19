@@ -71,6 +71,7 @@ export default fp(
       'notification-service',
       'plex-server',
       'plex-watchlist',
+      'progress',
       'radarr-manager',
       'scheduler',
       'sonarr-manager',

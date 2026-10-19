@@ -43,6 +43,13 @@ export const scheduleKeys = {
     }).queryKey,
 }
 
+export const deleteSyncKeys = {
+  dryRunStatus: $api.queryOptions(
+    'get',
+    '/v1/scheduler/schedules/delete-sync/dry-run/status',
+  ).queryKey,
+}
+
 export const currentUserKeys = {
   me: $api.queryOptions('get', '/v1/users/me').queryKey,
 }

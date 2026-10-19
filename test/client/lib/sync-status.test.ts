@@ -22,13 +22,27 @@ describe('syncStatusFrom', () => {
       syncStatusFrom(
         statusEvent({ status: 'running', syncMode: 'rss', rssAvailable: true }),
       ),
-    ).toEqual({ state: 'running', mode: 'rss' })
+    ).toEqual({ state: 'running', mode: 'rss', lastError: null })
+  })
+
+  it('reads why the latest start failed', () => {
+    expect(
+      syncStatusFrom(
+        statusEvent({
+          status: 'stopped',
+          syncMode: 'rss',
+          rssAvailable: true,
+          lastError: 'Plex unavailable',
+        }),
+      ),
+    ).toEqual({ state: 'stopped', mode: 'rss', lastError: 'Plex unavailable' })
   })
 
   it('leaves mode null when the event has none', () => {
     expect(syncStatusFrom(statusEvent({ status: 'stopped' }))).toEqual({
       state: 'stopped',
       mode: null,
+      lastError: null,
     })
   })
 
@@ -38,7 +52,11 @@ describe('syncStatusFrom', () => {
     ['empty metadata', statusEvent({})],
     ['an unknown status', statusEvent({ status: 'exploded' })],
   ])('is unknown with %s', (_, event) => {
-    expect(syncStatusFrom(event)).toEqual({ state: null, mode: null })
+    expect(syncStatusFrom(event)).toEqual({
+      state: null,
+      mode: null,
+      lastError: null,
+    })
   })
 })
 
