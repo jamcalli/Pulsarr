@@ -1,7 +1,7 @@
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { useContentRouterRules } from '@/features/library/hooks/content-router/useContentRouterRules'
-import { INSTANCE_COPY } from '@/features/library/lib/instances/instance-copy'
 import type { ArrTarget } from '@/lib/approval'
+import { INSTANCE_COPY } from '@/lib/arr/instance-copy'
 import { formatCount, formatList, pluralize } from '@/lib/format'
 
 interface RemoveInstanceCredenzaProps {

@@ -8,9 +8,9 @@ import {
   bulkSettingsChangeCount,
   bulkSettingsUpdates,
 } from '@/features/users/lib/plex-users/bulk-actions'
-import { USER_SWITCH_LABELS } from '@/features/users/lib/user-switches'
 import { useAppForm } from '@/lib/form'
 import { formatCount } from '@/lib/format'
+import { USER_SWITCH_LABELS } from '@/lib/user-switches'
 
 export function BulkSettingsCredenza({ page }: { page: PlexUsersPage }) {
   const users = formatCount(page.selected.length, 'user')

@@ -1,4 +1,4 @@
-import { QuotaLimitPill } from '@/features/users/components/quota-limit-pill'
+import { QuotaLimitPill } from '@/components/quota/quota-limit-pill'
 import {
   type PlexUserRow,
   quotaLines,

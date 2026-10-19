@@ -1,14 +1,11 @@
 import { useStore } from '@tanstack/react-form'
 import { type RefObject, useLayoutEffect, useRef } from 'react'
-import { InstanceEditor } from '@/features/library/components/instances/instance-editor'
+import { InstanceEditor } from '@/components/arr/instance-editor'
 import { SyncExistingRow } from '@/features/library/components/instances/sync-existing-row'
-import { useInstanceEditor } from '@/features/library/hooks/instances/useInstanceEditor'
-import type { SaveOutcome } from '@/features/library/hooks/instances/useInstanceForm'
-import type {
-  ArrType,
-  EditTarget,
-} from '@/features/library/lib/instances/instance-form'
+import { useInstanceEditor } from '@/hooks/arr/useInstanceEditor'
+import type { SaveOutcome } from '@/hooks/arr/useInstanceForm'
 import type { ArrTarget } from '@/lib/approval'
+import type { ArrType, EditTarget } from '@/lib/arr/instance-form'
 import type { components } from '@/types/api.js'
 
 type Config = components['schemas']['Config']

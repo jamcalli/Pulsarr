@@ -1,13 +1,11 @@
 import { ConfigPageGate } from '@/components/config-page-gate'
 import { LeaveDialog } from '@/components/leave-dialog'
+import { NewUserDefaultsFields } from '@/components/new-user-defaults-fields'
 import { Page, PageHeader } from '@/components/page-header'
 import { SaveBar } from '@/components/settings/save-bar'
-import { SettingsSection } from '@/components/settings/settings-section'
 import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
-import { QuotaCard } from '@/features/users/components/quota-card'
-import { useNewUserDefaultsForm } from '@/features/users/hooks/new-user-defaults/useNewUserDefaultsForm'
-import { USER_SWITCH_LABELS } from '@/features/users/lib/user-switches'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
+import { useNewUserDefaultsForm } from '@/hooks/useNewUserDefaultsForm'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 
@@ -29,39 +27,7 @@ function NewUserDefaults({
       <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
       <form.AppForm>
         <form.Form className="flex flex-col gap-5">
-          <SettingsSection
-            title="Access"
-            description="Whether new users sync and whether their requests need your approval."
-          >
-            <form.AppField name="newUserDefaultCanSync">
-              {(field) => (
-                <field.SwitchField
-                  label={USER_SWITCH_LABELS.can_sync}
-                  description="Request what new users watchlist. Turn off to add them without syncing."
-                />
-              )}
-            </form.AppField>
-            <form.AppField name="newUserDefaultRequiresApproval">
-              {(field) => (
-                <field.SwitchField
-                  label={USER_SWITCH_LABELS.requires_approval}
-                  description="Every request waits for your approval, whatever their quota."
-                />
-              )}
-            </form.AppField>
-          </SettingsSection>
-          <QuotaCard
-            form={form}
-            fields="movie"
-            type="movie"
-            description="The movie quota new users start with."
-          />
-          <QuotaCard
-            form={form}
-            fields="show"
-            type="show"
-            description="The show quota new users start with."
-          />
+          <NewUserDefaultsFields form={form} />
           <SaveBar
             dirty={dirty}
             isSubmitting={saving}

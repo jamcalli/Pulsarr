@@ -11,8 +11,8 @@ import type {
   PlexUser,
   PlexUserRow,
 } from '@/features/users/lib/plex-users/user-rows'
-import { QUOTA_FIELD_DEFAULTS } from '@/features/users/lib/quota-fields'
 import { setFormatLocale } from '@/lib/format'
+import { QUOTA_FIELD_DEFAULTS } from '@/lib/quota-fields'
 
 function row(id: number, name: string, alias: string | null): PlexUserRow {
   const user: PlexUser = {

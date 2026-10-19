@@ -1,7 +1,7 @@
 import { Page, PageHeaderSkeleton } from '@/components/page-header'
+import { ServerCardSkeleton } from '@/components/plex/server-card'
 import { AccountCardSkeleton } from '@/features/system/components/plex-connection/account-card'
 import { LibraryRefreshCardSkeleton } from '@/features/system/components/plex-connection/library-refresh-card'
-import { ServerCardSkeleton } from '@/features/system/components/plex-connection/server-card'
 
 export function PlexConnectionSkeleton() {
   return (

@@ -3,7 +3,7 @@ import {
   WebhookAddressForm,
   WebhookResults,
 } from '@/components/settings/webhook-address-form'
-import type { WebhookSection } from '@/features/library/hooks/instances/useWebhookAddress'
+import type { WebhookSection } from '@/hooks/arr/useWebhookAddress'
 
 interface WebhooksSectionProps {
   webhook: WebhookSection

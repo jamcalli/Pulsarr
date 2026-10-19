@@ -1,21 +1,21 @@
 import { useStore } from '@tanstack/react-form'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
+import { ServerCard } from '@/components/plex/server-card'
 import { RetryAlert } from '@/components/retry-alert'
 import { SaveBar } from '@/components/settings/save-bar'
 import { AccountCard } from '@/features/system/components/plex-connection/account-card'
 import { LibraryRefreshCard } from '@/features/system/components/plex-connection/library-refresh-card'
 import { PlexConnectionSkeleton } from '@/features/system/components/plex-connection/plex-connection-skeleton'
-import { ServerCard } from '@/features/system/components/plex-connection/server-card'
 import {
   type PlexConnectionPage as ConnectionPage,
   usePlexConnectionPage,
 } from '@/features/system/hooks/plex-connection/usePlexConnectionPage'
-import { useServerSettings } from '@/features/system/hooks/plex-connection/useServerSettings'
-import { linkedToken } from '@/features/system/lib/plex-connection/account-facts'
-import { addressError } from '@/features/system/lib/plex-connection/server-form.schema'
+import { useServerSettings } from '@/hooks/plex/useServerSettings'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { NAV_PAGES } from '@/lib/navigation'
+import { linkedToken } from '@/lib/plex/account-facts'
+import { addressError } from '@/lib/plex/server-form.schema'
 import type { components } from '@/types/api.js'
 
 const SECTION = 'System'

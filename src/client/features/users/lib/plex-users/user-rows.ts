@@ -4,11 +4,11 @@ import type {
   UsersState,
 } from '@/features/users/lib/plex-users/users-state'
 import { RELATIONSHIP_ORDER } from '@/features/users/lib/relationship'
-import { USER_SWITCH_LABELS } from '@/features/users/lib/user-switches'
 import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
 import { compareSortValues, compareText, formatList } from '@/lib/format'
 import { formatQuotaUsage, QUOTA_TYPE_LABELS } from '@/lib/quota'
 import { displayName } from '@/lib/user-naming'
+import { USER_SWITCH_LABELS } from '@/lib/user-switches'
 import type { components } from '@/types/api.js'
 
 type ContentType = components['schemas']['ContentType']

@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react'
 import { BulkFormCredenza } from '@/components/bulk-form-credenza'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { FieldSection } from '@/components/field-section'
+import { QuotaFields } from '@/components/quota/quota-fields'
 import { SaveBar } from '@/components/settings/save-bar'
-import { QuotaFields } from '@/features/users/components/quota-fields'
 import type { PlexUsersPage } from '@/features/users/hooks/plex-users/usePlexUsersPage'
 import {
   BULK_QUOTA_ACTION_OPTIONS,
@@ -12,13 +12,13 @@ import {
   blankBulkQuotaField,
   bulkQuotaPayload,
 } from '@/features/users/lib/plex-users/bulk-actions'
-import {
-  BLANK_QUOTA_MESSAGES,
-  QUOTA_REMOVAL_DESCRIPTION,
-} from '@/features/users/lib/quota-fields'
 import { useFormDirty } from '@/hooks/useFormDirty'
 import { useAppForm } from '@/lib/form'
 import { formatCount } from '@/lib/format'
+import {
+  BLANK_QUOTA_MESSAGES,
+  QUOTA_REMOVAL_DESCRIPTION,
+} from '@/lib/quota-fields'
 
 export function BulkQuotaCredenza({ page }: { page: PlexUsersPage }) {
   const users = formatCount(page.selected.length, 'user')

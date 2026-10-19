@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { FactList, FactListSkeleton } from '@/components/fact-list'
+import { PinCredenza } from '@/components/plex/pin-credenza'
+import { SyncSteps } from '@/components/plex/sync-steps'
+import { TokenCredenza } from '@/components/plex/token-credenza'
 import { ActionRow } from '@/components/settings/action-row'
 import {
   FieldRowSkeleton,
@@ -9,24 +12,15 @@ import {
 import { SettingsSection } from '@/components/settings/settings-section'
 import { StatusPill } from '@/components/status-pill'
 import { Button } from '@/components/ui/button'
-import { PinCredenza } from '@/features/system/components/plex-connection/pin-credenza'
-import { SyncSteps } from '@/features/system/components/plex-connection/sync-steps'
-import { TokenCredenza } from '@/features/system/components/plex-connection/token-credenza'
 import {
   FeedUrls,
   FeedUrlsSkeleton,
   GenerateFeedsRow,
 } from '@/features/system/components/plex-connection/watchlist-feeds'
-import { useUnlinkAccount } from '@/features/system/hooks/plex-connection/useAccountToken'
-import { useWatchlistSync } from '@/features/system/hooks/plex-connection/useWatchlistSync'
-import {
-  accountFacts,
-  hasFeeds,
-} from '@/features/system/lib/plex-connection/account-facts'
-import {
-  isRunning,
-  stepFailed,
-} from '@/features/system/lib/plex-connection/sync-run'
+import { useUnlinkAccount } from '@/hooks/plex/useAccountToken'
+import { useWatchlistSync } from '@/hooks/plex/useWatchlistSync'
+import { accountFacts, hasFeeds } from '@/lib/plex/account-facts'
+import { isRunning, stepFailed } from '@/lib/plex/sync-run'
 import type { components } from '@/types/api.js'
 
 type Dialog = 'pin' | 'token' | 'unlink' | null

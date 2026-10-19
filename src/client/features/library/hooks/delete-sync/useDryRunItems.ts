@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useInstances } from '@/features/library/hooks/instances/useInstances'
 import {
   type DryRunSort,
   type DryRunTab,
   dryRunRows,
   visibleDryRunRows,
 } from '@/features/library/lib/delete-sync/dry-run-items'
+import { useInstances } from '@/hooks/arr/useInstances'
 import type { components } from '@/types/api.js'
 
 type ArrTargets = ReturnType<typeof useInstances>['instances']

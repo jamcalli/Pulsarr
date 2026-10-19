@@ -9,11 +9,11 @@ import {
   type InstancesPage,
   useInstancesPage,
 } from '@/features/library/hooks/instances/useInstancesPage'
-import { useWebhookSection } from '@/features/library/hooks/instances/useWebhookAddress'
-import { INSTANCE_COPY } from '@/features/library/lib/instances/instance-copy'
-import type { ArrType } from '@/features/library/lib/instances/instance-form'
+import { useWebhookSection } from '@/hooks/arr/useWebhookAddress'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useShowLoading } from '@/hooks/useMinLoading'
+import { INSTANCE_COPY } from '@/lib/arr/instance-copy'
+import type { ArrType } from '@/lib/arr/instance-form'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 

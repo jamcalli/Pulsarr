@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
-import { generateFeeds } from '@/features/system/lib/plex-connection/plex-requests'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
+import { generateFeeds } from '@/lib/plex/plex-requests'
 import { mutationErrorMessage } from '@/lib/tanstackApi'
 
 export function useGenerateFeeds() {

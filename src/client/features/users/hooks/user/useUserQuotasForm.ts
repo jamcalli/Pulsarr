@@ -1,5 +1,4 @@
 import { useStore } from '@tanstack/react-form'
-import { blankQuotaField } from '@/features/users/lib/quota-fields'
 import {
   quotaSave,
   toQuotaValues,
@@ -9,6 +8,7 @@ import { invalidateUserQuotas } from '@/features/users/lib/users-queries'
 import { useSaveForm } from '@/hooks/useSaveForm'
 import { userQuotaKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
+import { blankQuotaField } from '@/lib/quota-fields'
 import { apiFetch, requireSuccess } from '@/lib/tanstackApi'
 import type { components, paths } from '@/types/api.js'
 
