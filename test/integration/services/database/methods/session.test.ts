@@ -58,16 +58,27 @@ describe('session database methods', () => {
       expect(result.shows.map((show) => show.id)).toEqual([id])
     })
 
-    it('falls back to a normalized title when Sonarr holds a different tvdb id', async () => {
+    it('falls back to a normalized title when Plex has no tvdb id', async () => {
       const id = await stella({ tvdb_id: '11111', show_title: 'Stella (2023)' })
 
       const result = await fastify.db.getRollingMonitoredShowMatches(
-        '90210',
+        undefined,
         'stella!',
       )
 
       expect(result.matchedBy).toBe('title')
       expect(result.shows.map((show) => show.id)).toEqual([id])
+    })
+
+    it('does not title match a row whose tvdb id differs', async () => {
+      await stella({ tvdb_id: '11111' })
+
+      const result = await fastify.db.getRollingMonitoredShowMatches(
+        '90210',
+        'Stella',
+      )
+
+      expect(result).toEqual({ matchedBy: 'none', shows: [] })
     })
 
     it('scopes the title fallback to the viewer rows', async () => {
@@ -115,7 +126,7 @@ describe('session database methods', () => {
       const second = await stella({ tvdb_id: '371980', sonarr_instance_id: 2 })
 
       const result = await fastify.db.getRollingMonitoredShowMatches(
-        '90210',
+        undefined,
         'Stella',
       )
 

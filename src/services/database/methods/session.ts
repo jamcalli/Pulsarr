@@ -167,7 +167,7 @@ export async function getRollingMonitoredShowById(
   }
 }
 
-/** Matches by tvdbId, else by normalized title, returning that viewer's rows or the master rows when plexUserId is omitted. */
+/** Matches by tvdbId, else by normalized title on rows without a conflicting tvdb id, returning that viewer's rows or the master rows when plexUserId is omitted. */
 export async function getRollingMonitoredShowMatches(
   this: DatabaseService,
   tvdbId?: string,
@@ -197,8 +197,11 @@ export async function getRollingMonitoredShowMatches(
 
     const titleKey = normalizeTitle(title)
     const rows: RollingMonitoredShow[] = await scoped()
+    // A differing stored tvdb id is a different show, which a bare title cannot tell apart
     const shows = rows.filter(
-      (show) => normalizeTitle(show.show_title) === titleKey,
+      (show) =>
+        normalizeTitle(show.show_title) === titleKey &&
+        (!tvdbId || !show.tvdb_id || show.tvdb_id === tvdbId),
     )
     if (shows.length === 0) return { matchedBy: 'none', shows: [] }
 
