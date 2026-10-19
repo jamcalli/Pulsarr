@@ -290,6 +290,7 @@ describe('ApiKeysPage', () => {
     expect(screen.getByLabelText('Key for Overseerr')).toBeInTheDocument()
     expect(screen.getByLabelText('Key for Scripts')).toBeInTheDocument()
     expect(screen.queryByText("Couldn't load the API keys.")).toBeNull()
+    expect(screen.queryByText('down')).toBeNull()
   })
 
   it('shows the skeleton while the list is loading', async () => {

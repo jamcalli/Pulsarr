@@ -792,6 +792,7 @@ describe('PlexUsersPage', () => {
     expect(bodyRows(table)).toHaveLength(4)
     expect(screen.getByRole('table', { name: 'Plex users' })).toBe(table)
     expect(screen.queryByText("Couldn't load the users.")).toBeNull()
+    expect(screen.queryByText('down')).toBeNull()
   })
 
   it('says a resend cancelled the old request when the new one fails', async () => {
