@@ -7,7 +7,7 @@ import type {
 import { invalidatePlexUsers } from '@/features/users/lib/users-queries'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { useProgressEvents } from '@/hooks/useProgressEvents'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, firstLoadError, isSettled } from '@/lib/tanstackApi'
 import type { components, paths } from '@/types/api.js'
 
 type QuotaStatus = components['schemas']['UserQuotaStatus']
@@ -77,7 +77,6 @@ export function usePlexUsersList() {
   )
 
   const queries = [users, movieStatus, showStatus, plexStatus]
-  const failed = queries.find((query) => query.isError)?.error ?? null
 
   return {
     rows,
@@ -87,10 +86,7 @@ export function usePlexUsersList() {
       isSettled(users) &&
       (!hasUsers || (isSettled(movieStatus) && isSettled(showStatus))) &&
       isSettled(plexStatus),
-    errorMessage:
-      failed === null
-        ? null
-        : (apiErrorMessage(failed) ?? "Couldn't load the users."),
+    errorMessage: firstLoadError(queries, "Couldn't load the users."),
     retry: () => void invalidatePlexUsers(),
   }
 }

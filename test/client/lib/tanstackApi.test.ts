@@ -1,4 +1,9 @@
-import { apiErrorMessage, mutationErrorMessage } from '@/lib/tanstackApi'
+import {
+  apiErrorMessage,
+  firstLoadError,
+  loadErrorMessage,
+  mutationErrorMessage,
+} from '@/lib/tanstackApi'
 
 describe('apiErrorMessage', () => {
   it('returns the message of an Error instance', () => {
@@ -48,5 +53,70 @@ describe('mutationErrorMessage', () => {
     expect(mutationErrorMessage({ statusCode: 500 }, 'Fallback')).toBe(
       'Fallback',
     )
+  })
+})
+
+describe('loadErrorMessage', () => {
+  it('returns null while loading', () => {
+    expect(
+      loadErrorMessage(
+        { data: undefined, isError: false, error: null },
+        'Fallback',
+      ),
+    ).toBeNull()
+  })
+
+  it('returns the error message when the load failed with no data', () => {
+    expect(
+      loadErrorMessage(
+        { data: undefined, isError: true, error: { message: 'Down' } },
+        'Fallback',
+      ),
+    ).toBe('Down')
+  })
+
+  it('returns the fallback when the error message is blank', () => {
+    expect(
+      loadErrorMessage(
+        { data: undefined, isError: true, error: { message: ' ' } },
+        'Fallback',
+      ),
+    ).toBe('Fallback')
+  })
+
+  it('returns null when a refetch failed over cached data', () => {
+    expect(
+      loadErrorMessage(
+        { data: { items: [] }, isError: true, error: { message: 'Down' } },
+        'Fallback',
+      ),
+    ).toBeNull()
+  })
+})
+
+describe('firstLoadError', () => {
+  it('returns the message of the first query that failed with no data', () => {
+    expect(
+      firstLoadError(
+        [
+          { data: { items: [] }, isError: true, error: { message: 'Stale' } },
+          { data: undefined, isError: true, error: { message: 'First' } },
+          { data: undefined, isError: true, error: { message: 'Second' } },
+        ],
+        'Fallback',
+      ),
+    ).toBe('First')
+  })
+
+  it('returns null when every query has data', () => {
+    expect(
+      firstLoadError(
+        [
+          { data: { items: [] }, isError: false, error: null },
+          { data: { items: [] }, isError: true, error: { message: 'Down' } },
+        ],
+        'Fallback',
+      ),
+    ).toBeNull()
   })
 })

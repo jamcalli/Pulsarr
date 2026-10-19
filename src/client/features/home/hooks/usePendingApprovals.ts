@@ -3,7 +3,7 @@ import { keepPreviousData } from '@tanstack/react-query'
 import { approvalsSortPref } from '@/features/home/lib/home-prefs'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { usePref } from '@/lib/prefs'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, loadErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 export type PendingApproval = components['schemas']['ApprovalRequest']
@@ -37,8 +37,6 @@ export function usePendingApprovals() {
     requests: query.data?.approvalRequests,
     total: query.data?.total ?? 0,
     isLoading: query.isLoading,
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? 'Approvals failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(query, 'Approvals failed to load.'),
   }
 }

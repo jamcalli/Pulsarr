@@ -1,5 +1,5 @@
 import { useMinLoading } from '@/hooks/useMinLoading'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, loadErrorMessage } from '@/lib/tanstackApi'
 
 export function useApprovalRequest(id: number | null) {
   const query = useMinLoading(
@@ -14,8 +14,6 @@ export function useApprovalRequest(id: number | null) {
   return {
     approval: query.data?.approvalRequest ?? null,
     isLoading: query.isLoading,
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? 'Request failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(query, 'Request failed to load.'),
   }
 }

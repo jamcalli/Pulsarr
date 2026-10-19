@@ -3,7 +3,7 @@ import { useOperation } from '@/hooks/useOperation'
 import type { OperationMeta } from '@/lib/operation-toasts'
 import { scheduleKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { $api, apiFetch, loadErrorMessage } from '@/lib/tanstackApi'
 import type { paths } from '@/types/api.js'
 
 export type ScheduleStatus =
@@ -58,9 +58,7 @@ export function useSchedule(name: string, meta: OperationMeta) {
   return {
     schedule: query.data ?? null,
     isLoading: query.isLoading,
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? 'The schedule failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(query, 'The schedule failed to load.'),
     retry: () => query.refetch(),
     run,
   }

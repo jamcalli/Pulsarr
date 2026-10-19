@@ -57,10 +57,22 @@ export function isSettled<T>(query: {
 }
 
 /** Null while cached data exists, since a failed background refetch keeps the data and reports through the toast instead. */
-export function loadErrorMessage<T>(
-  query: { data: T | undefined; isError: boolean; error: unknown },
+export function loadErrorMessage(
+  query: { data: unknown; isError: boolean; error: unknown },
   fallback: string,
 ): string | null {
   if (query.data !== undefined || !query.isError) return null
   return apiErrorMessage(query.error) ?? fallback
+}
+
+/** The first query that failed with no cached data, for pages that gate on several queries at once. */
+export function firstLoadError(
+  queries: ReadonlyArray<{ data: unknown; isError: boolean; error: unknown }>,
+  fallback: string,
+): string | null {
+  for (const query of queries) {
+    const message = loadErrorMessage(query, fallback)
+    if (message !== null) return message
+  }
+  return null
 }

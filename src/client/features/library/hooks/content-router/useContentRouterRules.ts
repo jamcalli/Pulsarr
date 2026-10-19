@@ -3,8 +3,8 @@ import { useMinLoading } from '@/hooks/useMinLoading'
 import { queryClient } from '@/lib/queryClient'
 import {
   $api,
-  apiErrorMessage,
   apiFetch,
+  loadErrorMessage,
   mutationErrorMessage,
 } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
@@ -110,9 +110,7 @@ export function useContentRouterRules() {
   return {
     rules,
     isLoading: query.isLoading,
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? 'Routes failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(query, 'Routes failed to load.'),
     retry: () => void query.refetch(),
     toggle,
     toggleError: (id: number) => toggleErrors.get(id) ?? null,

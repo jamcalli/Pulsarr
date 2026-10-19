@@ -8,7 +8,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { SEARCH_DEBOUNCE_DELAY } from '@/lib/constants'
 import { watchlistExclusionKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, isSettled, loadErrorMessage } from '@/lib/tanstackApi'
 
 export function invalidateExclusionItems() {
   return queryClient.invalidateQueries({
@@ -30,9 +30,7 @@ export function useExclusionItems(state: ExclusionsState, pageSize: PageSize) {
     total: list.data?.total ?? 0,
     isReady: isSettled(list),
     stale: list.isPlaceholderData,
-    errorMessage: list.isError
-      ? (apiErrorMessage(list.error) ?? "Couldn't load the watchlist items.")
-      : null,
+    errorMessage: loadErrorMessage(list, "Couldn't load the watchlist items."),
     retry: () => void invalidateExclusionItems(),
   }
 }

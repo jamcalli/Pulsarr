@@ -11,7 +11,7 @@ import {
   userWatchlistKeys,
 } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, firstLoadError, isSettled } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 type ContentType = components['schemas']['ContentType']
@@ -108,7 +108,6 @@ export function useUserPage() {
 
   const notFound = !valid || user.error?.statusCode === NOT_FOUND
   const queries = [user, stats, quotas, movieStatus, showStatus, watchlist]
-  const failed = queries.find((query) => query.isError)?.error ?? null
   const isReady =
     notFound ||
     (isSettled(user) &&
@@ -138,10 +137,9 @@ export function useUserPage() {
   return {
     isReady,
     notFound,
-    errorMessage:
-      notFound || failed === null
-        ? null
-        : (apiErrorMessage(failed) ?? "Couldn't load this user."),
+    errorMessage: notFound
+      ? null
+      : firstLoadError(queries, "Couldn't load this user."),
     retry: () => {
       for (const query of queries) {
         if (query.isError) void query.refetch()

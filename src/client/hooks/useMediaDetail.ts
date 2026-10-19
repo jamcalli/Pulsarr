@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useConfig } from '@/hooks/useConfig'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { DEFAULT_REGION, mediaDetailQuery } from '@/lib/media-detail-query'
-import { apiErrorMessage } from '@/lib/tanstackApi'
+import { loadErrorMessage } from '@/lib/tanstackApi'
 
 export function useMediaDetail({
   open,
@@ -31,9 +31,9 @@ export function useMediaDetail({
   const errorMessage =
     guid === null
       ? 'This title has no TMDB or TVDB id to look up.'
-      : query.isError && !notFound
-        ? (apiErrorMessage(query.error) ?? 'Details failed to load.')
-        : null
+      : notFound
+        ? null
+        : loadErrorMessage(query, 'Details failed to load.')
 
   return {
     region,

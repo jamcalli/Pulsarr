@@ -27,7 +27,7 @@ import {
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { compareText } from '@/lib/format'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, loadErrorMessage } from '@/lib/tanstackApi'
 
 interface CatalogNeeds {
   genres: boolean
@@ -110,9 +110,10 @@ export function useConditionCatalog(type: RouteType, needs: CatalogNeeds) {
     valueLabel,
     isLoading: metadata.isLoading,
     hasMetadata: evaluators !== undefined,
-    errorMessage: metadata.isError
-      ? (apiErrorMessage(metadata.error) ?? 'Condition options failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(
+      metadata,
+      'Condition options failed to load.',
+    ),
     retry: () => void metadata.refetch(),
   }
 }

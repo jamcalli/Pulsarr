@@ -4,7 +4,7 @@ import type { ArrType } from '@/features/library/lib/instances/instance-form'
 import { useArrInstanceOptions } from '@/hooks/useArrInstanceOptions'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { toArrOptions } from '@/lib/arr-options'
-import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { apiFetch, loadErrorMessage } from '@/lib/tanstackApi'
 
 /** A saved instance reads by id, a new one by the credentials of its passed test, null until it passes. */
 export type RoutingSource =
@@ -55,9 +55,7 @@ export function useRoutingOptions(type: ArrType, source: RoutingSource) {
       tags: data?.tags,
     }),
     ready: data !== null,
-    errorMessage: probed.isError
-      ? (apiErrorMessage(probed.error) ?? 'Options failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(probed, 'Options failed to load.'),
     retrying: probed.isError && probed.isFetching,
     retry: () => void probed.refetch(),
   }

@@ -12,6 +12,13 @@ import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import { server } from '../../setup.js'
 
+const goToLogin = vi.hoisted(() => vi.fn())
+
+vi.mock('@/lib/session-expiry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/session-expiry')>()),
+  goToLogin,
+}))
+
 function approvalStats(pending: number) {
   return HttpResponse.json({
     success: true,
@@ -42,7 +49,7 @@ function syncStatus(status: 'running' | 'stopped') {
   })
 }
 
-function mockApi({ pending = 0 } = {}) {
+function mockApi({ pending = 0, logoutStatus = 200 } = {}) {
   const logout = { calls: 0 }
   server.use(
     http.get('/v1/users/me', () =>
@@ -77,6 +84,18 @@ function mockApi({ pending = 0 } = {}) {
     ),
     http.post('/v1/users/logout', () => {
       logout.calls++
+      if (logoutStatus !== 200) {
+        return HttpResponse.json(
+          {
+            statusCode: logoutStatus,
+            code: 'BAD_REQUEST',
+            error: 'Bad Request',
+            message:
+              'Logout not available: Authentication is disabled for your IP address.',
+          },
+          { status: logoutStatus },
+        )
+      }
       return HttpResponse.json({ success: true, message: 'Logged out' })
     }),
   )
@@ -119,6 +138,7 @@ describe('AppSidebar', () => {
   afterEach(() => {
     queryClient.clear()
     vi.unstubAllGlobals()
+    goToLogin.mockClear()
   })
 
   it('renders every section from the nav model', () => {
@@ -237,18 +257,37 @@ describe('AppSidebar', () => {
     ).toBeInTheDocument()
   })
 
-  it('logs out through the confirm dialog and goes to the login page', async () => {
+  it('logs out through the confirm dialog, drops the cache and loads the login page', async () => {
     const logout = mockApi()
     const user = userEvent.setup()
-    const router = renderSidebar('/')
+    renderSidebar('/')
 
     await user.click(await screen.findByText('admin'))
     await user.click(await screen.findByRole('menuitem', { name: 'Log out' }))
     const dialog = await screen.findByRole('dialog', { name: 'Log out?' })
     await user.click(within(dialog).getByRole('button', { name: 'Log out' }))
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    await waitFor(() => expect(goToLogin).toHaveBeenCalledOnce())
     expect(logout.calls).toBe(1)
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
+  })
+
+  it('shows the server refusal when logout is unavailable and stays signed in', async () => {
+    mockApi({ logoutStatus: 400 })
+    const user = userEvent.setup()
+    renderSidebar('/')
+
+    await user.click(await screen.findByText('admin'))
+    await user.click(await screen.findByRole('menuitem', { name: 'Log out' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Log out?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Log out' }))
+
+    expect(
+      await within(dialog).findByText(
+        'Logout not available: Authentication is disabled for your IP address.',
+      ),
+    ).toBeInTheDocument()
+    expect(goToLogin).not.toHaveBeenCalled()
   })
 
   describe('sync popover', () => {
