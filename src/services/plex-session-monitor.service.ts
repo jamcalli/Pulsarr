@@ -13,6 +13,7 @@ import {
   collectSeasonsEligibleForCleanup,
   userNeedsSeason,
 } from '@services/plex-session-monitor/cleanup-predicates.js'
+import { EpisodeNotices } from '@services/plex-session-monitor/episode-notices.js'
 import {
   type AllowedUserMatcher,
   allowAllUsers,
@@ -87,6 +88,7 @@ function describeViewing(showTitle: string, session: PlexSession): string {
 
 export class PlexSessionMonitorService {
   private readonly log: FastifyBaseLogger
+  private readonly notices = new EpisodeNotices()
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -112,6 +114,11 @@ export class PlexSessionMonitorService {
     return this.fastify.db
   }
 
+  // Retries and repeated polls reach the same notice, so only its first occurrence per episode logs above debug.
+  private notice(level: 'info' | 'warn', key: string, message: string): void {
+    this.log[this.notices.isNew(key, message) ? level : 'debug'](message)
+  }
+
   private requireSonarr(instanceId: number): SonarrService {
     const sonarr = this.sonarrManager.getSonarrService(instanceId)
     if (!sonarr) {
@@ -131,7 +138,7 @@ export class PlexSessionMonitorService {
         return result
       }
 
-      this.log.info(`Found ${sessions.length} active Plex sessions`)
+      this.log.debug(`Found ${sessions.length} active Plex sessions`)
 
       const isUserAllowed = await this.getAllowedUserMatcher()
 
@@ -155,7 +162,7 @@ export class PlexSessionMonitorService {
         }
       }
 
-      this.log.info(
+      this.log.debug(
         `Session monitoring complete. Processed: ${result.processedSessions}, Triggered: ${result.triggeredSearches}`,
       )
 
@@ -288,7 +295,7 @@ export class PlexSessionMonitorService {
 
     result.processedSessions++
 
-    this.log.info(
+    this.log.debug(
       `Processing session: ${session.grandparentTitle} ${episodeCode(session.parentIndex, session.index)} watched by ${session.User.title} (session ${session.sessionKey}, item ${session.ratingKey})`,
     )
 
@@ -341,6 +348,7 @@ export class PlexSessionMonitorService {
     const currentSeason = session.parentIndex
     const currentEpisode = session.index
     const viewing = describeViewing(rollingShow.show_title, session)
+    const noticeKey = String(rollingShow.id)
 
     // rollingShow was read pre-write, so last_watched_* are the prior values.
     const positionUnchanged =
@@ -416,7 +424,9 @@ export class PlexSessionMonitorService {
       rollingShow.sonarr_instance_id,
     )
     if (!sonarr) {
-      this.log.warn(
+      this.notice(
+        'warn',
+        noticeKey,
         `Not expanding ${viewing}: Sonarr instance ${rollingShow.sonarr_instance_id} not found, reverting progress to retry next poll`,
       )
       await revertProgress()
@@ -432,7 +442,9 @@ export class PlexSessionMonitorService {
       throw error
     }
     if (!series) {
-      this.log.debug(
+      this.notice(
+        'warn',
+        noticeKey,
         `Not expanding ${viewing}: series ${rollingShow.sonarr_series_id} no longer exists in Sonarr instance ${rollingShow.sonarr_instance_id}`,
       )
       return false
@@ -440,7 +452,9 @@ export class PlexSessionMonitorService {
 
     const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
     if (!season?.statistics?.totalEpisodeCount) {
-      this.log.debug(
+      this.notice(
+        'info',
+        noticeKey,
         `Not expanding ${viewing}: Sonarr has no episode statistics for ${episodeCode(currentSeason)}, reverting progress to retry next poll`,
       )
       await revertProgress()
@@ -452,7 +466,9 @@ export class PlexSessionMonitorService {
     const threshold = this.config.plexSessionMonitoring?.remainingEpisodes ?? 2
 
     if (remainingEpisodes < 0) {
-      this.log.debug(
+      this.notice(
+        'info',
+        noticeKey,
         `Not expanding ${viewing}: Sonarr counts only ${totalEpisodes} episodes in ${episodeCode(currentSeason)}`,
       )
       return false
@@ -467,7 +483,9 @@ export class PlexSessionMonitorService {
 
     const nextSeason = currentSeason + 1
     if (!series.seasons?.some((s) => s.seasonNumber === nextSeason)) {
-      this.log.debug(
+      this.notice(
+        'info',
+        noticeKey,
         `Not expanding ${viewing}: Sonarr lists no ${episodeCode(nextSeason)} after ${episodeCode(currentSeason)}`,
       )
       return false
@@ -551,8 +569,11 @@ export class PlexSessionMonitorService {
           undefined,
         )
 
+      const titleNoticeKey = `title:${session.User.id}:${session.grandparentTitle}`
       if (matchedBy === 'ambiguousTitle') {
-        this.log.warn(
+        this.notice(
+          'warn',
+          titleNoticeKey,
           `Not monitoring ${describeViewing(session.grandparentTitle, session)}: several rolling shows are titled "${session.grandparentTitle}" and the TVDB ids do not match, so none was picked`,
         )
         return []
@@ -563,7 +584,9 @@ export class PlexSessionMonitorService {
       }
 
       if (matchedBy === 'title') {
-        this.log.info(
+        this.notice(
+          'info',
+          titleNoticeKey,
           `Matched ${describeViewing(globalShows[0].show_title, session)} to its rolling show by title because the TVDB ids differ or are missing`,
         )
       }
@@ -762,7 +785,9 @@ export class PlexSessionMonitorService {
         rollingShow.sonarr_instance_id,
       )
       if (!sonarr) {
-        this.log.debug(
+        this.notice(
+          'warn',
+          String(rollingShow.id),
           `Not expanding ${describeViewing(rollingShow.show_title, session)}: Sonarr instance ${rollingShow.sonarr_instance_id} not found`,
         )
         return true
