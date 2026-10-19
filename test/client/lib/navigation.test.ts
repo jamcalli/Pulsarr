@@ -2,9 +2,9 @@ import { Bell, House, Inbox, LibraryBig, Settings2, Users } from 'lucide-react'
 import {
   breadcrumbFor,
   findActiveNav,
+  legacyRedirects,
   NAV_PAGES,
   NAV_SECTIONS,
-  type NavPage,
   pageHref,
 } from '@/lib/navigation'
 
@@ -22,40 +22,65 @@ describe('NAV_SECTIONS', () => {
 })
 
 describe('pageHref', () => {
-  it('links to the first legacy URL until the page is rebuilt', () => {
-    const legacy: NavPage = { ...NAV_PAGES.contentRouter, rebuilt: false }
-    expect(pageHref(legacy)).toBe('/radarr/content-router')
-  })
-
-  it('links to the new URL once the page is rebuilt', () => {
-    const rebuilt: NavPage = { ...NAV_PAGES.contentRouter, rebuilt: true }
-    expect(pageHref(rebuilt)).toBe('/library/content-router')
-  })
-
-  it('points rebuilt pages at their new URL and the rest at a legacy URL', () => {
+  it('points every page at its new URL', () => {
     for (const section of NAV_SECTIONS) {
       for (const navPage of section.pages) {
-        expect(pageHref(navPage)).toBe(
-          navPage.rebuilt ? navPage.to : navPage.legacy[0],
-        )
+        expect(pageHref(navPage)).toBe(navPage.to)
       }
     }
   })
 
-  it('links User tags to its rebuilt page', () => {
+  it('links User tags to its page', () => {
     expect(pageHref(NAV_PAGES.userTags)).toBe('/users/tags')
   })
 
-  it('links Approval settings to its rebuilt page', () => {
+  it('links Approval settings to its page', () => {
     expect(pageHref(NAV_PAGES.approvalSettings)).toBe('/requests/settings')
   })
 
-  it('links Content router to its rebuilt page', () => {
+  it('links Content router to its page', () => {
     expect(pageHref(NAV_PAGES.contentRouter)).toBe('/library/content-router')
   })
 
-  it('links the dashboard to the rebuilt home page', () => {
+  it('links the dashboard to the home page', () => {
     expect(pageHref(NAV_PAGES.dashboard)).toBe('/')
+  })
+})
+
+describe('legacyRedirects', () => {
+  const redirects = legacyRedirects()
+  const targetOf = (path: string) =>
+    redirects.find((redirect) => redirect.path === path)?.to
+
+  it('redirects only absolute paths', () => {
+    for (const { path } of redirects) expect(path.startsWith('/')).toBe(true)
+  })
+
+  it('lists each path once', () => {
+    const paths = redirects.map(({ path }) => path)
+    expect(new Set(paths).size).toBe(paths.length)
+  })
+
+  it('never redirects a path to itself', () => {
+    for (const { path, to } of redirects) expect(path).not.toBe(to)
+  })
+
+  it('sends /notifications to the first notifications page in sidebar order', () => {
+    const notifications = NAV_SECTIONS.find(({ id }) => id === 'notifications')
+    expect(notifications).toBeDefined()
+    expect(targetOf('/notifications')).toBe(
+      notifications && pageHref(notifications.pages[0]),
+    )
+  })
+
+  it('sends the old exclusions URL to the exclusions page', () => {
+    expect(targetOf('/utilities/watchlist-exclusions')).toBe(
+      pageHref(NAV_PAGES.exclusions),
+    )
+  })
+
+  it('sends /dashboard to the home page', () => {
+    expect(targetOf('/dashboard')).toBe('/')
   })
 })
 

@@ -279,12 +279,6 @@
 
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 
-  --legacy-chart-1: 196 39% 33%;
-  --legacy-chart-2: 183 37% 49%;
-  --legacy-chart-3: 29 85% 87%;
-  --legacy-chart-4: 19 91% 59%;
-  --legacy-chart-5: 1 54% 50%;
-
   --chart-movie: #3787b5;
   --chart-show: #ca7e58;
   --chart-season: #9a502f;

@@ -16,9 +16,8 @@ export interface NavPage {
   label: string
   /** The page's URL in the new shell. */
   to: string
-  /** Old URLs, the first is the link target until `rebuilt`, and a `#hash` entry matches only with that hash. */
+  /** Old URLs that redirect here, and a `#hash` entry matches only with that hash. */
   legacy: readonly [string, ...string[]]
-  rebuilt: boolean
 }
 
 export interface NavSection {
@@ -40,123 +39,63 @@ function page(
   to: string,
   legacy: readonly [string, ...string[]],
 ): NavPage {
-  return { label, to, legacy, rebuilt: false }
+  return { label, to, legacy }
 }
 
 export const NAV_PAGES = {
-  dashboard: { ...page('Dashboard', '/', ['/dashboard']), rebuilt: true },
-  approvalQueue: {
-    ...page('Approval queue', '/requests', ['/approvals']),
-    rebuilt: true,
-  },
-  approvalSettings: {
-    ...page('Approval settings', '/requests/settings', ['/approvals/settings']),
-    rebuilt: true,
-  },
-  quotas: {
-    ...page('Quotas', '/requests/quotas', ['/approvals/quota-settings']),
-    rebuilt: true,
-  },
-  plexUsers: {
-    ...page('Plex users', '/users', ['/plex/users']),
-    rebuilt: true,
-  },
-  newUserDefaults: {
-    ...page('New user defaults', '/users/new-user-defaults', [
-      '/utilities/new-user-defaults',
-    ]),
-    rebuilt: true,
-  },
-  userTags: {
-    ...page('User tags', '/users/tags', ['/utilities/user-tags']),
-    rebuilt: true,
-  },
-  plexLabels: {
-    ...page('Plex labels', '/users/plex-labels', ['/utilities/plex-labels']),
-    rebuilt: true,
-  },
-  radarr: {
-    ...page('Radarr', '/library/radarr', ['/radarr/instances']),
-    rebuilt: true,
-  },
-  sonarr: {
-    ...page('Sonarr', '/library/sonarr', ['/sonarr/instances']),
-    rebuilt: true,
-  },
-  contentRouter: {
-    ...page('Content router', '/library/content-router', [
-      '/radarr/content-router',
-      '/sonarr/content-router',
-    ]),
-    rebuilt: true,
-  },
-  exclusions: {
-    ...page('Exclusions', '/library/exclusions', [
-      '/utilities/watchlist-exclusions',
-    ]),
-    rebuilt: true,
-  },
-  deleteSync: {
-    ...page('Delete sync', '/library/delete-sync', ['/utilities/delete-sync']),
-    rebuilt: true,
-  },
-  sessionMonitoring: {
-    ...page('Session monitoring', '/library/session-monitoring', [
-      '/utilities/plex-session-monitoring',
-    ]),
-    rebuilt: true,
-  },
-  discord: {
-    ...page('Discord', '/notifications/discord', [
-      '/notifications#discord-notifications',
-    ]),
-    rebuilt: true,
-  },
-  apprise: {
-    ...page('Apprise', '/notifications/apprise', [
-      '/notifications#apprise-notifications',
-    ]),
-    rebuilt: true,
-  },
-  webhooks: {
-    ...page('Webhooks', '/notifications/webhooks', [
-      '/notifications#native-webhooks',
-    ]),
-    rebuilt: true,
-  },
-  plexMobile: {
-    ...page('Plex mobile', '/notifications/plex-mobile', [
-      '/notifications#plex-mobile-notifications',
-    ]),
-    rebuilt: true,
-  },
-  publicContent: {
-    ...page('Public content', '/notifications/public-content', [
-      '/notifications#public-content-notifications',
-    ]),
-    rebuilt: true,
-  },
-  delivery: {
-    ...page('Delivery', '/notifications/delivery', [
-      '/notifications#general-notifications',
-    ]),
-    rebuilt: true,
-  },
-  plexConnection: {
-    ...page('Plex connection', '/system/plex', [
-      '/plex/configuration',
-      '/utilities/plex-notifications',
-    ]),
-    rebuilt: true,
-  },
-  apiKeys: {
-    ...page('API keys', '/system/api-keys', ['/utilities/api-keys']),
-    rebuilt: true,
-  },
-  logs: {
-    ...page('Logs', '/system/logs', ['/utilities/log-viewer']),
-    rebuilt: true,
-  },
+  dashboard: page('Dashboard', '/', ['/dashboard']),
+  approvalQueue: page('Approval queue', '/requests', ['/approvals']),
+  approvalSettings: page('Approval settings', '/requests/settings', [
+    '/approvals/settings',
+  ]),
+  quotas: page('Quotas', '/requests/quotas', ['/approvals/quota-settings']),
+  plexUsers: page('Plex users', '/users', ['/plex/users']),
+  newUserDefaults: page('New user defaults', '/users/new-user-defaults', [
+    '/utilities/new-user-defaults',
+  ]),
+  userTags: page('User tags', '/users/tags', ['/utilities/user-tags']),
+  plexLabels: page('Plex labels', '/users/plex-labels', [
+    '/utilities/plex-labels',
+  ]),
+  radarr: page('Radarr', '/library/radarr', ['/radarr/instances']),
+  sonarr: page('Sonarr', '/library/sonarr', ['/sonarr/instances']),
+  contentRouter: page('Content router', '/library/content-router', [
+    '/radarr/content-router',
+    '/sonarr/content-router',
+  ]),
+  exclusions: page('Exclusions', '/library/exclusions', [
+    '/utilities/watchlist-exclusions',
+  ]),
+  deleteSync: page('Delete sync', '/library/delete-sync', [
+    '/utilities/delete-sync',
+  ]),
+  sessionMonitoring: page('Session monitoring', '/library/session-monitoring', [
+    '/utilities/plex-session-monitoring',
+  ]),
+  discord: page('Discord', '/notifications/discord', [
+    '/notifications#discord-notifications',
+  ]),
+  apprise: page('Apprise', '/notifications/apprise', [
+    '/notifications#apprise-notifications',
+  ]),
+  webhooks: page('Webhooks', '/notifications/webhooks', [
+    '/notifications#native-webhooks',
+  ]),
+  plexMobile: page('Plex mobile', '/notifications/plex-mobile', [
+    '/notifications#plex-mobile-notifications',
+  ]),
+  publicContent: page('Public content', '/notifications/public-content', [
+    '/notifications#public-content-notifications',
+  ]),
+  delivery: page('Delivery', '/notifications/delivery', [
+    '/notifications#general-notifications',
+  ]),
+  plexConnection: page('Plex connection', '/system/plex', [
+    '/plex/configuration',
+    '/utilities/plex-notifications',
+  ]),
+  apiKeys: page('API keys', '/system/api-keys', ['/utilities/api-keys']),
+  logs: page('Logs', '/system/logs', ['/utilities/log-viewer']),
 } as const satisfies Record<string, NavPage>
 
 export const NAV_SECTIONS: readonly NavSection[] = [
@@ -249,7 +188,22 @@ export const HELP_LINKS: readonly {
 ]
 
 export function pageHref(navPage: NavPage): string {
-  return navPage.rebuilt ? navPage.to : navPage.legacy[0]
+  return navPage.to
+}
+
+/** One redirect per legacy URL, hash dropped, first page in sidebar order wins a shared path. */
+export function legacyRedirects(): ReadonlyArray<{ path: string; to: string }> {
+  const redirects = new Map<string, string>()
+  for (const section of NAV_SECTIONS) {
+    for (const navPage of section.pages) {
+      for (const entry of navPage.legacy) {
+        const [path = ''] = entry.split('#')
+        if (path === '/' || path === navPage.to || redirects.has(path)) continue
+        redirects.set(path, pageHref(navPage))
+      }
+    }
+  }
+  return [...redirects].map(([path, to]) => ({ path, to }))
 }
 
 /** The approval queue reads its requester filter from this search param. */

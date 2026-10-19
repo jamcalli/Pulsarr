@@ -46,13 +46,8 @@ export default {
               priority: 15,
             },
             {
-              name: 'charts',
-              test: /[\\/]node_modules[\\/]recharts[\\/]/,
-              priority: 15,
-            },
-            {
               name: 'forms',
-              test: /[\\/]node_modules[\\/](react-hook-form|@hookform[\\/]resolvers|zod)[\\/]/,
+              test: /[\\/]node_modules[\\/]zod[\\/]/,
               priority: 15,
             },
           ],

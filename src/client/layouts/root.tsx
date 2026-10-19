@@ -7,12 +7,10 @@ import AsteroidsBackground from '@/components/backdrop/asteroids'
 import CRTOverlay from '@/components/backdrop/crt-overlay'
 import Pulsar from '@/components/backdrop/pulsar'
 import ParallaxStarfield from '@/components/backdrop/starfield'
-import { Toaster as LegacyToaster } from '@/components/ui/sonner'
 import { Toaster } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
 import { useSettings } from '@/hooks/useSettings'
-import { AspectRatio } from '@/legacy/components/ui/aspect-ratio'
 import { routeHasBackdrop } from '@/lib/route-handle'
 
 interface RootLayoutProps {
@@ -61,7 +59,7 @@ function BackgroundLayer({ backdrop }: { backdrop: boolean }) {
               className={`relative ${isMobile ? 'w-150' : 'w-250'}`}
               aria-hidden="true"
             >
-              <AspectRatio ratio={1522 / 1608}>
+              <div className="aspect-[1522/1608]">
                 <picture>
                   <source
                     media={
@@ -81,7 +79,7 @@ function BackgroundLayer({ backdrop }: { backdrop: boolean }) {
                     className="h-full w-full object-cover"
                   />
                 </picture>
-              </AspectRatio>
+              </div>
             </div>
           </div>
           {/* Other background elements */}
@@ -122,7 +120,6 @@ export default function RootLayout({
       <main className="relative z-10 flex min-h-svh items-center justify-center">
         {children}
       </main>
-      <LegacyToaster />
       <Toaster />
     </div>
   )

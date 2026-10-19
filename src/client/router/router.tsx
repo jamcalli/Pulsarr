@@ -28,9 +28,8 @@ import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
 import { USER_TAGS_SKELETON } from '@/features/users/lib/user-tags-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
-import AuthenticatedLayout from '@/legacy/layouts/authenticated'
 import { BASE_PATH } from '@/lib/basePath.js'
-import { NAV_PAGES, pageHref } from '@/lib/navigation'
+import { legacyRedirects } from '@/lib/navigation'
 import { BACKDROP_ROUTE } from '@/lib/route-handle'
 
 const LoginPage = lazy(() => import('@/features/auth'))
@@ -86,59 +85,6 @@ const LogsPage = lazy(() => import('@/features/system/pages/logs'))
 const PlexConnectionPage = lazy(
   () => import('@/features/system/pages/plex-connection'),
 )
-const LegacyPlexConfigurationPage = lazy(
-  () => import('@/legacy/features/system/pages/plex-connection'),
-)
-const ApprovalsPage = lazy(() => import('@/legacy/features/requests'))
-const NotificationsConfigPage = lazy(
-  () => import('@/legacy/features/notifications'),
-)
-const DashboardPage = lazy(() => import('@/legacy/features/home'))
-const LegacyDeleteSyncPage = lazy(
-  () => import('@/legacy/features/library/pages/delete-sync'),
-)
-const LegacyPlexNotificationsPage = lazy(
-  () => import('@/legacy/features/system/pages/plex-notifications'),
-)
-const LegacyNewUserDefaultsPage = lazy(
-  () => import('@/legacy/features/users/pages/new-user-defaults'),
-)
-const LegacySessionMonitoringPage = lazy(
-  () => import('@/legacy/features/library/pages/plex-session-monitoring'),
-)
-const LegacyUserTagsPage = lazy(
-  () => import('@/legacy/features/users/pages/user-tags'),
-)
-const LegacyPlexLabelsPage = lazy(
-  () => import('@/legacy/features/users/pages/plex-labels'),
-)
-const LegacyApiKeysPage = lazy(
-  () => import('@/legacy/features/system/pages/api-keys'),
-)
-const LogViewerPage = lazy(
-  () => import('@/legacy/features/system/pages/log-viewer'),
-)
-const LegacyApprovalSettingsPage = lazy(
-  () => import('@/legacy/features/requests/pages/approval-settings'),
-)
-const LegacyQuotaSettingsPage = lazy(
-  () => import('@/legacy/features/requests/pages/quota-settings'),
-)
-const SonarrInstancesPage = lazy(
-  () => import('@/legacy/features/library/pages/sonarr-instances'),
-)
-const SonarrContentRouterPage = lazy(
-  () => import('@/legacy/features/library/pages/sonarr-content-router'),
-)
-const RadarrInstancesPage = lazy(
-  () => import('@/legacy/features/library/pages/radarr-instances'),
-)
-const RadarrContentRouterPage = lazy(
-  () => import('@/legacy/features/library/pages/radarr-content-router'),
-)
-
-const LoadingFallback = () => null
-
 /**
  * Get the configured base path for the router.
  * Reads from the <base> tag injected by the server.
@@ -410,7 +356,7 @@ export const router = createBrowserRouter(
           path: 'login',
           handle: BACKDROP_ROUTE,
           element: (
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={null}>
               <LoginPage />
             </Suspense>
           ),
@@ -419,235 +365,20 @@ export const router = createBrowserRouter(
           path: 'create-user',
           handle: BACKDROP_ROUTE,
           element: (
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={null}>
               <CreateUserPage />
             </Suspense>
           ),
         },
-        {
-          path: 'plex',
-          children: [
-            {
-              index: true,
-              element: (
-                <Navigate to={pageHref(NAV_PAGES.plexConnection)} replace />
-              ),
-            },
-            {
-              path: 'configuration',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyPlexConfigurationPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'users',
-              element: <Navigate to={pageHref(NAV_PAGES.plexUsers)} replace />,
-            },
-          ],
-        },
-        {
-          path: 'sonarr',
-          children: [
-            {
-              path: 'instances',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <SonarrInstancesPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'content-router',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <SonarrContentRouterPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
-        {
-          path: 'radarr',
-          children: [
-            {
-              path: 'instances',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <RadarrInstancesPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'content-router',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <RadarrContentRouterPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
-        {
-          path: 'notifications',
-          element: (
-            <AuthenticatedLayout>
-              <Suspense fallback={<LoadingFallback />}>
-                <NotificationsConfigPage />
-              </Suspense>
-            </AuthenticatedLayout>
-          ),
-        },
-        {
-          path: 'dashboard',
-          element: (
-            <AuthenticatedLayout>
-              <Suspense fallback={<LoadingFallback />}>
-                <DashboardPage />
-              </Suspense>
-            </AuthenticatedLayout>
-          ),
-        },
-        {
-          path: 'utilities',
-          children: [
-            {
-              path: 'delete-sync',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyDeleteSyncPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'plex-notifications',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyPlexNotificationsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'new-user-defaults',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyNewUserDefaultsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'plex-session-monitoring',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacySessionMonitoringPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'user-tags',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyUserTagsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'plex-labels',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyPlexLabelsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'watchlist-exclusions',
-              element: <Navigate to={pageHref(NAV_PAGES.exclusions)} replace />,
-            },
-            {
-              path: 'api-keys',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyApiKeysPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'log-viewer',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LogViewerPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
-        {
-          path: 'approvals',
-          children: [
-            {
-              index: true,
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <ApprovalsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'settings',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyApprovalSettingsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'quota-settings',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LegacyQuotaSettingsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
+        ...legacyRedirects().map(({ path, to }) => ({
+          path: path.slice(1),
+          element: <Navigate to={to} replace />,
+        })),
         {
           path: '*',
           handle: BACKDROP_ROUTE,
           element: (
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={null}>
               <NotFoundPage />
             </Suspense>
           ),

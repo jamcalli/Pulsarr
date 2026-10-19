@@ -47,8 +47,7 @@ export function operationToast(
 
 /** False on the owning page, which renders the outcome inline. */
 export function shouldToast(meta: OperationMeta, pathname: string): boolean {
-  const [path = ''] = pageHref(meta.page).split('#')
-  return !pathMatches(path, pathname)
+  return !pathMatches(pageHref(meta.page), pathname)
 }
 
 export function notifyOperationSettled(
