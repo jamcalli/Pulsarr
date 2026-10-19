@@ -55,7 +55,8 @@ export async function createOrFindUserRollingMonitoredShow(
     imdb_id: globalShow.imdb_id,
     show_title: globalShow.show_title,
     monitoring_type: globalShow.monitoring_type,
-    current_monitored_season: 1,
+    current_monitored_season:
+      ROLLING_BASELINE_SEASON[globalShow.monitoring_type],
     plex_user_id: plexUserId,
     plex_username: plexUsername,
     plex_user_uuid: plexUserUuid,

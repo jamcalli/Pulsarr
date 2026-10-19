@@ -133,4 +133,39 @@ describe('session database methods', () => {
       expect(result).toEqual({ matchedBy: 'none', shows: [] })
     })
   })
+
+  describe('createOrFindUserRollingMonitoredShow', () => {
+    const createViewerRow = async (
+      monitoringType: RollingMonitoredShow['monitoring_type'],
+    ) => {
+      const masterId = await stella({
+        monitoring_type: monitoringType,
+        current_monitored_season: 3,
+      })
+      const master = await fastify.db.getRollingMonitoredShowById(masterId)
+      if (!master) throw new Error('master row missing')
+      return fastify.db.createOrFindUserRollingMonitoredShow(
+        master,
+        'u_nicole',
+        'nicole3876',
+      )
+    }
+
+    it.each([
+      ['pilotRolling', 1],
+      ['firstSeasonRolling', 1],
+      ['allSeasonPilotRolling', 0],
+    ] as const)(
+      'starts a new %s viewer row at its baseline season',
+      async (monitoringType, baseline) => {
+        const id = await createViewerRow(monitoringType)
+
+        expect(await fastify.db.getRollingMonitoredShowById(id)).toMatchObject({
+          current_monitored_season: baseline,
+          last_watched_season: 0,
+          last_watched_episode: 0,
+        })
+      },
+    )
+  })
 })
