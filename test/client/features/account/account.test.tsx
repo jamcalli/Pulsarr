@@ -151,6 +151,22 @@ describe('AccountPage', () => {
     expect(bodies.password).toEqual([])
   })
 
+  it('blocks a confirmation typed without a new password', async () => {
+    const user = userEvent.setup()
+    const { bodies } = mockEndpoints()
+    renderPage()
+
+    const email = await screen.findByLabelText('Email')
+    await user.clear(email)
+    await user.type(email, 'new@example.com')
+    await user.type(screen.getByLabelText('Confirm new password'), 'stray')
+    await user.type(screen.getByLabelText('Current password'), CURRENT_PASSWORD)
+
+    expect(await screen.findByText("Passwords don't match")).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+    expect(bodies.email).toEqual([])
+  })
+
   it('asks for the current password before saving a changed username', async () => {
     const user = userEvent.setup()
     const { bodies } = mockEndpoints()

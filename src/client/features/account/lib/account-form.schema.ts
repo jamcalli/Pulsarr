@@ -59,6 +59,9 @@ export function accountFormSchema(current: AccountProfile) {
         })
       }
 
+      if (values.confirmPassword !== values.newPassword) {
+        ctx.addIssue({ code: 'custom', ...PasswordMatchRefineParams })
+      }
       if (values.newPassword === '') return
       const password = PasswordSchema.safeParse(values.newPassword)
       if (!password.success) {
@@ -67,9 +70,6 @@ export function accountFormSchema(current: AccountProfile) {
           path: ['newPassword'],
           message: password.error.issues[0]?.message,
         })
-      }
-      if (values.confirmPassword !== values.newPassword) {
-        ctx.addIssue({ code: 'custom', ...PasswordMatchRefineParams })
       }
     })
 }
