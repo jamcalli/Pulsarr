@@ -465,18 +465,14 @@ export class PlexSessionMonitorService {
       return false
     }
 
-    const hasMoreSeasons = series.seasons?.some(
-      (s) => s.seasonNumber > currentSeason,
-    )
-
-    if (!hasMoreSeasons) {
+    const nextSeason = currentSeason + 1
+    if (!series.seasons?.some((s) => s.seasonNumber === nextSeason)) {
       this.log.debug(
-        `Not expanding ${viewing}: ${episodeCode(currentSeason)} is the last season in Sonarr`,
+        `Not expanding ${viewing}: Sonarr lists no ${episodeCode(nextSeason)} after ${episodeCode(currentSeason)}`,
       )
       return false
     }
 
-    const nextSeason = currentSeason + 1
     try {
       await this.monitorAndSearchSeason(
         sonarr,
@@ -700,14 +696,20 @@ export class PlexSessionMonitorService {
     successMessage: string,
   ): Promise<void> {
     const allEpisodes = await sonarr.getEpisodes(rollingShow.sonarr_series_id)
-    const unmonitoredInSeason = allEpisodes.filter(
-      (ep) => ep.seasonNumber === seasonNumber && !ep.monitored,
+    const seasonEpisodes = allEpisodes.filter(
+      (ep) => ep.seasonNumber === seasonNumber,
     )
+    const unmonitoredInSeason = seasonEpisodes.filter((ep) => !ep.monitored)
+    // Sonarr creates new episodes with their season's monitored flag, so an empty season is monitored ahead of them.
+    const monitorsAhead =
+      seasonEpisodes.length === 0 &&
+      seasonNumber > rollingShow.current_monitored_season
 
-    if (unmonitoredInSeason.length === 0) {
-      const reason = allEpisodes.some((ep) => ep.seasonNumber === seasonNumber)
-        ? 'is already fully monitored'
-        : 'has no episodes in Sonarr'
+    if (unmonitoredInSeason.length === 0 && !monitorsAhead) {
+      const reason =
+        seasonEpisodes.length > 0
+          ? 'is already fully monitored'
+          : 'has no episodes in Sonarr and is already monitored ahead of them'
       this.log.debug(
         `Not expanding ${describeViewing(rollingShow.show_title, session)}: ${episodeCode(seasonNumber)} ${reason}`,
       )
@@ -720,11 +722,13 @@ export class PlexSessionMonitorService {
       true,
     )
 
-    await sonarr.updateEpisodesMonitoring(
-      unmonitoredInSeason.map((ep) => ({ id: ep.id, monitored: true })),
-    )
-
-    await sonarr.searchSeason(rollingShow.sonarr_series_id, seasonNumber)
+    if (!monitorsAhead) {
+      await sonarr.updateEpisodesMonitoring(
+        unmonitoredInSeason.map((ep) => ({ id: ep.id, monitored: true })),
+      )
+      await sonarr.searchSeason(rollingShow.sonarr_series_id, seasonNumber)
+      result.triggeredSearches++
+    }
 
     // High-water mark, so watching an earlier season after skipping ahead never regresses it.
     if (seasonNumber > rollingShow.current_monitored_season) {
@@ -738,9 +742,12 @@ export class PlexSessionMonitorService {
       showTitle: session.grandparentTitle,
       ...update,
     })
-    result.triggeredSearches++
 
-    this.log.info(successMessage)
+    this.log.info(
+      monitorsAhead
+        ? `Monitored ${episodeCode(seasonNumber)} of ${rollingShow.show_title} ahead of its episodes for ${session.User.title} because Sonarr has none to search yet`
+        : successMessage,
+    )
   }
 
   /** True when the expansion failed, which repeated E01 events retry because this path sits above the position gate. */

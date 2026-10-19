@@ -78,6 +78,16 @@ const SERIES = {
   })),
 } as unknown as SonarrSeries
 
+function withEmptySeason4(monitored: boolean): SonarrSeries {
+  return {
+    ...SERIES,
+    seasons: [
+      ...(SERIES.seasons ?? []),
+      { seasonNumber: 4, monitored, statistics: { totalEpisodeCount: 0 } },
+    ],
+  }
+}
+
 describe('Session monitoring Sonarr writes', () => {
   let app: FastifyInstance
   let writes: SonarrWrite[]
@@ -97,7 +107,7 @@ describe('Session monitoring Sonarr writes', () => {
     writes = []
   })
 
-  function useSonarr(episodes: SonarrEpisode[]) {
+  function useSonarr(episodes: SonarrEpisode[], series = SERIES) {
     const record =
       (method: string) =>
       async (...args: unknown[]) => {
@@ -105,7 +115,7 @@ describe('Session monitoring Sonarr writes', () => {
       }
     const fakeSonarr = {
       getEpisodes: vi.fn().mockResolvedValue(episodes),
-      getSeriesById: vi.fn().mockResolvedValue(SERIES),
+      getSeriesById: vi.fn().mockResolvedValue(series),
       waitForAddComplete: vi.fn().mockResolvedValue(undefined),
       updateSeriesMonitoring: vi.fn(record('updateSeriesMonitoring')),
       updateSeasonMonitoring: vi.fn(record('updateSeasonMonitoring')),
@@ -437,6 +447,51 @@ describe('Session monitoring Sonarr writes', () => {
       expect(await rowById(viewerId)).toMatchObject({
         current_monitored_season: 1,
       })
+    })
+
+    it('monitors a next season that has no episodes yet without searching', async () => {
+      const { viewerId } = await seedShow('firstSeasonRolling', {
+        last_watched_season: 3,
+        last_watched_episode: 1,
+        current_monitored_season: 3,
+      })
+      useSonarr(makeEpisodes(), withEmptySeason4(false))
+      usePlexSession(3, 2)
+
+      const result = await app.plexSessionMonitor.monitorSessions()
+
+      expect(writes).toMatchInlineSnapshot(`
+        [
+          [
+            "updateSeasonMonitoring",
+            1566,
+            4,
+            true,
+          ],
+        ]
+      `)
+      expect(result.triggeredSearches).toBe(0)
+      expect(result.rollingUpdates).toHaveLength(1)
+      expect(await rowById(viewerId)).toMatchObject({
+        current_monitored_season: 4,
+        last_watched_season: 3,
+        last_watched_episode: 2,
+      })
+    })
+
+    it('tells Sonarr nothing when the empty next season was already monitored ahead', async () => {
+      await seedShow('firstSeasonRolling', {
+        last_watched_season: 3,
+        last_watched_episode: 2,
+        current_monitored_season: 4,
+      })
+      useSonarr(makeEpisodes(), withEmptySeason4(true))
+      usePlexSession(3, 3)
+
+      const result = await app.plexSessionMonitor.monitorSessions()
+
+      expect(writes).toEqual([])
+      expect(result.rollingUpdates).toEqual([])
     })
 
     it('expands season 1 when a pilotRolling viewer watches S01E01', async () => {
