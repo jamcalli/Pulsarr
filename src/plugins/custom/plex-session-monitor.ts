@@ -70,10 +70,7 @@ export default fp(
                   { errors: result.errors },
                   `Session monitoring completed with ${result.errors.length} errors`,
                 )
-              } else if (
-                result.processedSessions > 0 ||
-                result.triggeredSearches > 0
-              ) {
+              } else if (result.triggeredSearches > 0) {
                 // Only log at INFO level if something actually happened
                 fastify.log.info(
                   `Session monitoring completed. Processed: ${result.processedSessions}, Triggered: ${result.triggeredSearches}`,
@@ -134,7 +131,7 @@ export default fp(
               }
 
               const inactivityDays =
-                sessionConfig.inactivityResetDays ||
+                sessionConfig.inactivityResetDays ??
                 PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
               fastify.log.debug(

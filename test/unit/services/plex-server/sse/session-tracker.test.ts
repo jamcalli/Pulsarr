@@ -1,5 +1,8 @@
 import type { PlexPlaySessionNotification } from '@root/types/plex-session.types.js'
-import { SessionTracker } from '@services/plex-server/sse/session-tracker.js'
+import {
+  SESSION_RETRY_INTERVAL_MS,
+  SessionTracker,
+} from '@services/plex-server/sse/session-tracker.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { makeEpisodeSession } from '../../../../helpers/session-monitor-fixtures.js'
 import { createMockLogger } from '../../../../mocks/logger.js'
@@ -177,6 +180,50 @@ describe('SessionTracker', () => {
     expect(
       tracker.handlePlayingEvent(makeNotification({ sessionKey: 'recycled' })),
     ).toBe(true)
+  })
+
+  it('fires the same pair again once the retry interval has passed', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    const tracker = new SessionTracker(createMockLogger())
+    tracker.handlePlayingEvent(makeNotification())
+
+    tracker.retryLater('322')
+
+    vi.advanceTimersByTime(SESSION_RETRY_INTERVAL_MS - 1)
+    expect(tracker.handlePlayingEvent(makeNotification())).toBe(false)
+    vi.advanceTimersByTime(1)
+    expect(
+      tracker.handlePlayingEvent(makeNotification({ state: 'stopped' })),
+    ).toBe(false)
+    expect(tracker.handlePlayingEvent(makeNotification())).toBe(true)
+    expect(tracker.handlePlayingEvent(makeNotification())).toBe(false)
+  })
+
+  it('drops a pending retry when the session moves to a new ratingKey', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    const tracker = new SessionTracker(createMockLogger())
+    tracker.handlePlayingEvent(makeNotification({ ratingKey: '100' }))
+    tracker.retryLater('322')
+
+    tracker.handlePlayingEvent(makeNotification({ ratingKey: '101' }))
+    vi.advanceTimersByTime(SESSION_RETRY_INTERVAL_MS)
+
+    expect(
+      tracker.handlePlayingEvent(makeNotification({ ratingKey: '101' })),
+    ).toBe(false)
+  })
+
+  it('never fires the same pair again without a retry', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    const tracker = new SessionTracker(createMockLogger())
+    tracker.handlePlayingEvent(makeNotification())
+
+    vi.advanceTimersByTime(SESSION_RETRY_INTERVAL_MS * 3)
+
+    expect(tracker.handlePlayingEvent(makeNotification())).toBe(false)
   })
 
   it('sweeps entries older than maxAgeMs and returns their keys', () => {

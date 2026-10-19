@@ -9,10 +9,14 @@
 
 import type { PlexPlaySessionNotification } from '@root/types/plex-session.types.js'
 import type { SonarrEpisode } from '@root/types/sonarr.types.js'
-import { SessionTracker } from '@services/plex-server/sse/session-tracker.js'
+import {
+  SESSION_RETRY_INTERVAL_MS,
+  SessionTracker,
+} from '@services/plex-server/sse/session-tracker.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -1553,6 +1557,75 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
       expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    describe('retry after a failed check', () => {
+      afterEach(() => {
+        vi.useRealTimers()
+      })
+
+      function playS4E7() {
+        app.plexServerService.getSessionTracker = vi
+          .fn()
+          .mockReturnValue(new SessionTracker(app.log))
+        app.plexServerService.getActiveSessions = vi
+          .fn()
+          .mockResolvedValue([makeEpisodeSession({ season: 4, episode: 7 })])
+        return () =>
+          app.plexSessionMonitor.handlePlayingEvent([makePlayingNotification()])
+      }
+
+      it('retries the same item on the next event after the interval and not before', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] })
+        await seedStellaAtS4E6()
+        const mockGetSeriesById = stubSonarr()
+        mockGetSeriesById.mockRejectedValueOnce(new Error('Sonarr down'))
+        const play = playS4E7()
+
+        await play()
+        await play()
+        vi.setSystemTime(Date.now() + SESSION_RETRY_INTERVAL_MS - 1000)
+        await play()
+        expect(mockGetSeriesById).toHaveBeenCalledTimes(1)
+
+        vi.setSystemTime(Date.now() + 1000)
+        await play()
+        expect(mockGetSeriesById).toHaveBeenCalledTimes(2)
+
+        vi.setSystemTime(Date.now() + SESSION_RETRY_INTERVAL_MS)
+        await play()
+        expect(mockGetSeriesById).toHaveBeenCalledTimes(2)
+      })
+
+      it('retries after Sonarr has no statistics for the season', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] })
+        await seedStellaAtS4E6()
+        const mockGetSeriesById = stubSonarr()
+        mockGetSeriesById.mockResolvedValueOnce({
+          ...makeSonarrSeries(1566, 5),
+          seasons: [],
+        })
+        const play = playS4E7()
+
+        await play()
+        vi.setSystemTime(Date.now() + SESSION_RETRY_INTERVAL_MS)
+        await play()
+
+        expect(mockGetSeriesById).toHaveBeenCalledTimes(2)
+      })
+
+      it('does not retry after a successful check', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] })
+        await seedStellaAtS4E6()
+        const mockGetSeriesById = stubSonarr()
+        const play = playS4E7()
+
+        await play()
+        vi.setSystemTime(Date.now() + SESSION_RETRY_INTERVAL_MS * 2)
+        await play()
+
+        expect(mockGetSeriesById).toHaveBeenCalledTimes(1)
+      })
     })
 
     it('keeps a movie session seen after the first fetch', async () => {

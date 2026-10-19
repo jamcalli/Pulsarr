@@ -11,10 +11,14 @@ import type {
 } from '@root/types/plex-session.types.js'
 import type { FastifyBaseLogger } from 'fastify'
 
+/** A failed check on a session fires its item again on the first event after this interval. */
+export const SESSION_RETRY_INTERVAL_MS = 5 * 60 * 1000
+
 interface TrackedSession {
   sessionKey: string
   ratingKey: string
   lastEventTime: number
+  retryAt?: number
 }
 
 export class SessionTracker {
@@ -57,13 +61,18 @@ export class SessionTracker {
       return true
     }
 
-    if (ratingKey === existing.ratingKey) return false
+    if (ratingKey === existing.ratingKey) {
+      if (existing.retryAt === undefined || now < existing.retryAt) return false
+      existing.retryAt = undefined
+      return true
+    }
 
     this.log.debug(
       { sessionKey, from: existing.ratingKey, to: ratingKey },
       'Session media changed',
     )
     existing.ratingKey = ratingKey
+    existing.retryAt = undefined
     return true
   }
 
@@ -94,6 +103,14 @@ export class SessionTracker {
     }
 
     return added
+  }
+
+  /** Caller's check failed, so the session's current item fires again on the first event after SESSION_RETRY_INTERVAL_MS. */
+  retryLater(sessionKey: string): void {
+    const existing = this.sessions.get(sessionKey)
+    if (existing) {
+      existing.retryAt = Date.now() + SESSION_RETRY_INTERVAL_MS
+    }
   }
 
   /** Caller could not act on the fired event, so the next event for this session fires again. */
