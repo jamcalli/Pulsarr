@@ -1,8 +1,8 @@
 import { ActionResults } from '@/components/settings/action-results'
 import { ActionRow } from '@/components/settings/action-row'
 import { useSyncExisting } from '@/features/library/hooks/instances/useSyncExisting'
-import { INSTANCE_COPY } from '@/features/library/lib/instances/instance-copy'
-import type { ArrType } from '@/features/library/lib/instances/instance-form'
+import { INSTANCE_COPY } from '@/lib/arr/instance-copy'
+import type { ArrType } from '@/lib/arr/instance-form'
 import { UNSAVED_CHANGES_REASON } from '@/lib/settings'
 
 interface SyncExistingRowProps {

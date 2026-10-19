@@ -1,22 +1,19 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { SaveOutcome } from '@/features/library/hooks/instances/useInstanceForm'
-import { useInstanceHealth } from '@/features/library/hooks/instances/useInstanceHealth'
+import type { SaveOutcome } from '@/hooks/arr/useInstanceForm'
+import { useInstanceHealth } from '@/hooks/arr/useInstanceHealth'
 import {
   refreshInstances,
   removeInstance,
   useInstances,
-} from '@/features/library/hooks/instances/useInstances'
-import { INSTANCE_COPY } from '@/features/library/lib/instances/instance-copy'
-import type {
-  ArrType,
-  EditTarget,
-} from '@/features/library/lib/instances/instance-form'
+} from '@/hooks/arr/useInstances'
 import { useConfig } from '@/hooks/useConfig'
 import { useDirtyGuard } from '@/hooks/useDirtyGuard'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useQualityProfileNames } from '@/hooks/useQualityProfileNames'
 import type { ArrTarget } from '@/lib/approval'
+import { INSTANCE_COPY } from '@/lib/arr/instance-copy'
+import type { ArrType, EditTarget } from '@/lib/arr/instance-form'
 import { mutationErrorMessage } from '@/lib/tanstackApi'
 
 /** The open card, a saved instance's id or `new` for the one being added. */

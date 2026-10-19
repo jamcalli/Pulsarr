@@ -2,7 +2,7 @@ import {
   type QuotaFieldValues,
   quotaPayload,
   toQuotaFieldValues,
-} from '@/features/users/lib/quota-fields'
+} from '@/lib/quota-fields'
 import type { components } from '@/types/api.js'
 
 type UserQuotas = components['schemas']['UserQuotas']

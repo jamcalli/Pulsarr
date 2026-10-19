@@ -17,13 +17,13 @@ import {
 import { SettingsSection } from '@/components/settings/settings-section'
 import { Button } from '@/components/ui/button'
 import { useLibraryRefresh } from '@/features/system/hooks/plex-connection/useLibraryRefresh'
-import { LINK_FIRST_REASON } from '@/features/system/lib/plex-connection/account-facts'
 import {
   REFRESH_PILLS,
   type RefreshRow,
 } from '@/features/system/lib/plex-connection/library-refresh'
 import { formatCount, formatNumber } from '@/lib/format'
 import { NAV_PAGES } from '@/lib/navigation'
+import { LINK_FIRST_REASON } from '@/lib/plex/account-facts'
 
 const TITLE = 'Plex library refresh'
 const DESCRIPTION =

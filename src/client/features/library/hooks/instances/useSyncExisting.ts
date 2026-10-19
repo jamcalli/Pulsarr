@@ -1,8 +1,8 @@
-import type { ArrType } from '@/features/library/lib/instances/instance-form'
 import { withMinDuration } from '@/hooks/useMinLoading'
 import { useOperation } from '@/hooks/useOperation'
 import { useProgress } from '@/hooks/useProgress'
 import { toActionProgress } from '@/lib/action-state'
+import type { ArrType } from '@/lib/arr/instance-form'
 import { NAV_PAGES } from '@/lib/navigation'
 import { apiFetch } from '@/lib/tanstackApi'
 

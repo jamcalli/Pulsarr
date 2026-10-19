@@ -1,6 +1,6 @@
 import { Page, PageHeaderSkeleton } from '@/components/page-header'
+import { QuotaCardSkeleton } from '@/components/quota/quota-card'
 import { SettingsSectionSkeleton } from '@/components/settings/settings-page-skeleton'
-import { QuotaCardSkeleton } from '@/features/users/components/quota-card'
 
 export function NewUserDefaultsSkeleton() {
   return (

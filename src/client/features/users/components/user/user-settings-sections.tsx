@@ -5,10 +5,7 @@ import { SettingsSection } from '@/components/settings/settings-section'
 import { UserTestRow } from '@/features/users/components/user/user-test-row'
 import type { UserPageData } from '@/features/users/hooks/user/useUserPage'
 import type { UserSettingsForm } from '@/features/users/hooks/user/useUserSettingsForm'
-import {
-  DISCORD_ID_REQUIRED,
-  USER_SWITCH_LABELS,
-} from '@/features/users/lib/user-switches'
+import { DISCORD_ID_REQUIRED, USER_SWITCH_LABELS } from '@/lib/user-switches'
 
 interface UserSettingsSectionsProps {
   form: UserSettingsForm

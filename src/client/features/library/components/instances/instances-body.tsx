@@ -1,5 +1,6 @@
 import { Server } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { WebhookFixCredenza } from '@/components/arr/webhook-fix-credenza'
 import { EmptyState } from '@/components/empty-state'
 import { SaveBar } from '@/components/settings/save-bar'
 import { Accordion } from '@/components/ui/accordion'
@@ -9,13 +10,12 @@ import {
   type EditorSession,
   InstanceEditorPanel,
 } from '@/features/library/components/instances/instance-editor-panel'
-import { WebhookFixCredenza } from '@/features/library/components/instances/webhook-fix-credenza'
 import { WebhooksSection } from '@/features/library/components/instances/webhooks-section'
 import type { InstancesPage } from '@/features/library/hooks/instances/useInstancesPage'
-import type { WebhookSection } from '@/features/library/hooks/instances/useWebhookAddress'
-import { INSTANCE_COPY } from '@/features/library/lib/instances/instance-copy'
-import type { EditTarget } from '@/features/library/lib/instances/instance-form'
-import { instanceSummary } from '@/features/library/lib/instances/instance-summary'
+import type { WebhookSection } from '@/hooks/arr/useWebhookAddress'
+import { INSTANCE_COPY } from '@/lib/arr/instance-copy'
+import type { EditTarget } from '@/lib/arr/instance-form'
+import { instanceSummary } from '@/lib/arr/instance-summary'
 import type { components } from '@/types/api.js'
 
 type Config = components['schemas']['Config']

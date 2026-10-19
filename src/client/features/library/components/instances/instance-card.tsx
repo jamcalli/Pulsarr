@@ -3,7 +3,7 @@ import { FactList } from '@/components/fact-list'
 import { StatusPill } from '@/components/status-pill'
 import { Badge } from '@/components/ui/badge'
 import { AccordionCard } from '@/features/library/components/accordion-card'
-import type { InstanceCardSummary } from '@/features/library/lib/instances/instance-summary'
+import type { InstanceCardSummary } from '@/lib/arr/instance-summary'
 
 interface InstanceCardProps {
   value: number | 'new'

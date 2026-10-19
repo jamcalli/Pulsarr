@@ -1,18 +1,15 @@
 import { useState } from 'react'
 import { SwitchRow } from '@/components/form/switch-row'
+import { QuotaCard, QuotaCardSkeleton } from '@/components/quota/quota-card'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  QuotaCard,
-  QuotaCardSkeleton,
-} from '@/features/users/components/quota-card'
 import { GuardedRemoval } from '@/features/users/components/user/guarded-removal'
 import { useRemoveQuotas } from '@/features/users/hooks/user/useRemoveQuotas'
 import type { UserPageData } from '@/features/users/hooks/user/useUserPage'
 import type { UserQuotasForm } from '@/features/users/hooks/user/useUserQuotasForm'
-import { QUOTA_REMOVAL_DESCRIPTION } from '@/features/users/lib/quota-fields'
-import { quotaUsage } from '@/features/users/lib/quota-usage'
 import { toQuotaValues } from '@/features/users/lib/user/user-quotas-form'
 import { formatCount } from '@/lib/format'
+import { QUOTA_REMOVAL_DESCRIPTION } from '@/lib/quota-fields'
+import { quotaUsage } from '@/lib/quota-usage'
 
 interface UserQuotasSectionProps {
   form: UserQuotasForm

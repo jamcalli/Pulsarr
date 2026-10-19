@@ -1,7 +1,7 @@
 import type { UserPageData } from '@/features/users/hooks/user/useUserPage'
 import { useUserQuotasForm } from '@/features/users/hooks/user/useUserQuotasForm'
 import { useUserSettingsForm } from '@/features/users/hooks/user/useUserSettingsForm'
-import { BLANK_QUOTA_MESSAGES } from '@/features/users/lib/quota-fields'
+import { BLANK_QUOTA_MESSAGES } from '@/lib/quota-fields'
 
 /** One save bar for the settings and quotas forms, each save resetting only its own fields. */
 export function useUserForms(data: UserPageData) {

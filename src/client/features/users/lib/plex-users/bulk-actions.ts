@@ -1,18 +1,15 @@
 import type { PlexUserRow } from '@/features/users/lib/plex-users/user-rows'
+import type { BulkFailure } from '@/hooks/useScopedSelection'
+import { formatCount, formatList, formatNumber, pluralize } from '@/lib/format'
 import {
   type BlankQuotaField,
   blankQuotaField,
   QUOTA_FIELD_DEFAULTS,
   type QuotaFieldValues,
   quotaPayload,
-} from '@/features/users/lib/quota-fields'
-import {
-  USER_SWITCHES,
-  type UserSwitch,
-} from '@/features/users/lib/user-switches'
-import type { BulkFailure } from '@/hooks/useScopedSelection'
-import { formatCount, formatList, formatNumber, pluralize } from '@/lib/format'
+} from '@/lib/quota-fields'
 import { displayName } from '@/lib/user-naming'
+import { USER_SWITCHES, type UserSwitch } from '@/lib/user-switches'
 import type { components, paths } from '@/types/api.js'
 
 type BulkQuotaPayload = components['schemas']['UserQuotaBulkOperationPayload']
