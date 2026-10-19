@@ -215,4 +215,26 @@ describe('AccountPage', () => {
     expect(screen.getByLabelText('Username')).toHaveValue('renamed')
     expect(screen.queryByText("Couldn't load your account.")).toBeNull()
   })
+
+  it('keeps the saved email in the form when the refetch after saving fails', async () => {
+    const user = userEvent.setup()
+    const { bodies } = mockEndpoints()
+    renderPage()
+
+    const email = await screen.findByLabelText('Email')
+    await user.clear(email)
+    await user.type(email, 'new@example.com')
+    await user.type(screen.getByLabelText('Current password'), CURRENT_PASSWORD)
+    server.use(
+      http.get('/v1/users/me', () =>
+        HttpResponse.json({ message: 'down' }, { status: 500 }),
+      ),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(bodies.email).toHaveLength(1)
+    expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
+    expect(screen.getByLabelText('Current password')).toHaveValue('')
+  })
 })

@@ -1,15 +1,21 @@
 import type {
   AccountFormValues,
   AccountProfile,
+  CurrentUserResponse,
 } from '@/features/account/lib/account-form.schema'
 import { currentUserKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { apiFetch } from '@/lib/tanstackApi'
 
-const refreshCurrentUser = () =>
-  queryClient.invalidateQueries({ queryKey: currentUserKeys.me })
+// The update endpoints answer with a message only, so the submitted value is written to the cache before the refetch
+function storeProfile(saved: Partial<AccountProfile>) {
+  queryClient.setQueryData<CurrentUserResponse>(currentUserKeys.me, (prev) =>
+    prev ? { ...prev, user: { ...prev.user, ...saved } } : prev,
+  )
+  return queryClient.invalidateQueries({ queryKey: currentUserKeys.me })
+}
 
-/** Saves each changed part in turn and refreshes the current user after each, so a failure leaves the earlier parts saved. */
+/** Saves each changed part in turn and stores it before the next, so a failure leaves the earlier parts saved. */
 export async function saveAccount(
   values: AccountFormValues,
   current: AccountProfile,
@@ -21,7 +27,7 @@ export async function saveAccount(
       body: { currentPassword, newEmail: values.email },
     })
     if (error) throw error
-    await refreshCurrentUser()
+    await storeProfile({ email: values.email })
   }
 
   if (values.username !== current.username) {
@@ -29,7 +35,7 @@ export async function saveAccount(
       body: { currentPassword, newUsername: values.username },
     })
     if (error) throw error
-    await refreshCurrentUser()
+    await storeProfile({ username: values.username })
   }
 
   if (values.newPassword !== '') {
@@ -37,6 +43,5 @@ export async function saveAccount(
       body: { currentPassword, newPassword: values.newPassword },
     })
     if (error) throw error
-    await refreshCurrentUser()
   }
 }

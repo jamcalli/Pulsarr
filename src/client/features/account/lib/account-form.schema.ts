@@ -7,10 +7,13 @@ import {
 import { z } from 'zod'
 import type { paths } from '@/types/api.js'
 
-type CurrentUser =
-  paths['/v1/users/me']['get']['responses'][200]['content']['application/json']['user']
+export type CurrentUserResponse =
+  paths['/v1/users/me']['get']['responses'][200]['content']['application/json']
 
-export type AccountProfile = Pick<CurrentUser, 'email' | 'username'>
+export type AccountProfile = Pick<
+  CurrentUserResponse['user'],
+  'email' | 'username'
+>
 
 type AccountChanges = Pick<
   AccountFormValues,
