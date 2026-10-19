@@ -15,7 +15,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { currentUserKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { loadErrorMessage } from '@/lib/tanstackApi'
 
 const SECTION = 'Account'
 const TITLE = 'Account settings'
@@ -118,14 +118,14 @@ function Account({ user }: { user: AccountProfile }) {
 export default function AccountPage() {
   useBreadcrumbTail(SECTION)
   const me = useCurrentUser()
+  const loadError = loadErrorMessage(me, "Couldn't load your account.")
 
-  if (!isSettled(me)) return <AccountSkeleton />
-  if (me.isError || !me.data) {
+  if (loadError) {
     return (
       <Page>
         <AccountHeader />
         <RetryAlert
-          message={apiErrorMessage(me.error) ?? "Couldn't load your account."}
+          message={loadError}
           onRetry={() =>
             queryClient.invalidateQueries({ queryKey: currentUserKeys.me })
           }
@@ -133,5 +133,6 @@ export default function AccountPage() {
       </Page>
     )
   }
+  if (!me.data) return <AccountSkeleton />
   return <Account user={me.data.user} />
 }

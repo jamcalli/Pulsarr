@@ -1,9 +1,10 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import AccountPage from '@/features/account'
+import { currentUserKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { server } from '../../setup.js'
 import { stubViewport } from '../../viewport.js'
@@ -190,5 +191,28 @@ describe('AccountPage', () => {
     ])
     expect(bodies.password).toEqual([])
     expect(me.calls).toBeGreaterThan(loads)
+  })
+
+  it('keeps the form and its edits when a background refetch fails', async () => {
+    const user = userEvent.setup()
+    const { me } = mockEndpoints()
+    renderPage()
+
+    const username = await screen.findByLabelText('Username')
+    await user.clear(username)
+    await user.type(username, 'renamed')
+    const loads = me.calls
+    server.use(
+      http.get('/v1/users/me', () =>
+        HttpResponse.json({ message: 'down' }, { status: 500 }),
+      ),
+    )
+    await act(() =>
+      queryClient.invalidateQueries({ queryKey: currentUserKeys.me }),
+    )
+
+    await waitFor(() => expect(me.calls).toBe(loads))
+    expect(screen.getByLabelText('Username')).toHaveValue('renamed')
+    expect(screen.queryByText("Couldn't load your account.")).toBeNull()
   })
 })

@@ -50,3 +50,12 @@ export function isSettled<T>(query: {
 }): boolean {
   return query.data !== undefined || query.isError
 }
+
+/** Null while cached data exists, since a failed background refetch keeps the data and reports through the toast instead. */
+export function loadErrorMessage<T>(
+  query: { data: T | undefined; isError: boolean; error: unknown },
+  fallback: string,
+): string | null {
+  if (query.data !== undefined || !query.isError) return null
+  return apiErrorMessage(query.error) ?? fallback
+}
