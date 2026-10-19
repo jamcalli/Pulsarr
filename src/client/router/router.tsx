@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { RouteError } from '@/components/route-error'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
+import { AccountSkeleton } from '@/features/account/components/account-skeleton'
 import { HomeSkeleton } from '@/features/home/components/home-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { ExclusionsSkeleton } from '@/features/library/components/exclusions/exclusions-skeleton'
@@ -33,6 +34,7 @@ import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { BACKDROP_ROUTE } from '@/lib/route-handle'
 
 const LoginPage = lazy(() => import('@/features/auth'))
+const AccountPage = lazy(() => import('@/features/account'))
 const HomePage = lazy(() => import('@/features/home'))
 const NotFoundPage = lazy(() => import('@/features/not-found'))
 const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
@@ -134,7 +136,6 @@ const RadarrInstancesPage = lazy(
 const RadarrContentRouterPage = lazy(
   () => import('@/legacy/features/library/pages/radarr-content-router'),
 )
-const AccountSettingsPage = lazy(() => import('@/legacy/features/account'))
 
 const LoadingFallback = () => null
 
@@ -393,6 +394,14 @@ export const router = createBrowserRouter(
                     </Suspense>
                   ),
                 },
+                {
+                  path: 'account',
+                  element: (
+                    <Suspense fallback={<AccountSkeleton />}>
+                      <AccountPage />
+                    </Suspense>
+                  ),
+                },
               ],
             },
           ],
@@ -505,16 +514,6 @@ export const router = createBrowserRouter(
             <AuthenticatedLayout>
               <Suspense fallback={<LoadingFallback />}>
                 <DashboardPage />
-              </Suspense>
-            </AuthenticatedLayout>
-          ),
-        },
-        {
-          path: 'account',
-          element: (
-            <AuthenticatedLayout>
-              <Suspense fallback={<LoadingFallback />}>
-                <AccountSettingsPage />
               </Suspense>
             </AuthenticatedLayout>
           ),

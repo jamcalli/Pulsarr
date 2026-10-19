@@ -17,6 +17,11 @@ describe('apiErrorMessage', () => {
     expect(apiErrorMessage(null)).toBeNull()
     expect(apiErrorMessage('oops')).toBeNull()
   })
+
+  it('returns null for a blank message so fallbacks apply', () => {
+    expect(apiErrorMessage(new Error(''))).toBeNull()
+    expect(apiErrorMessage({ statusCode: 500, message: '   ' })).toBeNull()
+  })
 })
 
 describe('mutationErrorMessage', () => {
