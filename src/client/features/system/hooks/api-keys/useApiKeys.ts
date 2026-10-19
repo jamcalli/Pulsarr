@@ -4,9 +4,9 @@ import { apiKeysKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import {
   $api,
-  apiErrorMessage,
   apiFetch,
   isSettled,
+  loadErrorMessage,
   mutationErrorMessage,
   requireSuccess,
 } from '@/lib/tanstackApi'
@@ -36,9 +36,7 @@ export function useApiKeys() {
   return {
     apiKeys: query.data?.apiKeys ?? null,
     isReady: isSettled(query),
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? "Couldn't load the API keys.")
-      : null,
+    errorMessage: loadErrorMessage(query, "Couldn't load the API keys."),
     retry: () => void invalidateApiKeys(),
   }
 }

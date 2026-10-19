@@ -1,7 +1,7 @@
 import { keepPreviousData } from '@tanstack/react-query'
 import { ALL_ROWS } from '@/features/home/lib/ranked-rows'
 import { useMinLoading } from '@/hooks/useMinLoading'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, isSettled, loadErrorMessage } from '@/lib/tanstackApi'
 
 export type TopUsers = ReturnType<typeof useTopUsers>
 
@@ -20,8 +20,6 @@ export function useTopUsers(days: number) {
     data: query.data,
     isLoading: query.isLoading,
     isReady: isSettled(query),
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? 'Most active users failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(query, 'Most active users failed to load.'),
   }
 }

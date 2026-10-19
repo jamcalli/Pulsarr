@@ -1,6 +1,6 @@
 import { webhookEndpointsKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, isSettled, loadErrorMessage } from '@/lib/tanstackApi'
 
 export function useWebhookEndpoints() {
   const query = $api.useQuery('get', '/v1/webhooks/endpoints')
@@ -8,9 +8,10 @@ export function useWebhookEndpoints() {
   return {
     endpoints: query.data?.data ?? null,
     isReady: isSettled(query),
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? "Couldn't load the webhook endpoints.")
-      : null,
+    errorMessage: loadErrorMessage(
+      query,
+      "Couldn't load the webhook endpoints.",
+    ),
     retry: () =>
       void queryClient.invalidateQueries({
         queryKey: webhookEndpointsKeys.all,

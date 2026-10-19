@@ -1,6 +1,6 @@
 import { configuredIds } from '@/features/system/lib/plex-connection/library-refresh'
 import { useConfig } from '@/hooks/useConfig'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, firstLoadError, isSettled } from '@/lib/tanstackApi'
 
 export function usePlexConnectionPage() {
   const config = useConfig()
@@ -9,7 +9,6 @@ export function usePlexConnectionPage() {
   const radarr = $api.useQuery('get', '/v1/radarr/instances')
   const sonarr = $api.useQuery('get', '/v1/sonarr/instances')
   const queries = [users, pass, radarr, sonarr]
-  const failed = queries.find((query) => query.isError)
   const settled =
     isSettled(users) &&
     isSettled(pass) &&
@@ -25,11 +24,9 @@ export function usePlexConnectionPage() {
       sonarr: configuredIds(sonarr.data ?? []),
     },
     isReady: config.isReady && settled,
-    errorMessage: config.isError
-      ? config.error
-      : failed
-        ? apiErrorMessage(failed.error)
-        : null,
+    errorMessage:
+      config.error ??
+      firstLoadError(queries, "Couldn't load the Plex connection."),
     retry: () => {
       if (config.isError) void config.initialize(true)
       for (const query of queries) {

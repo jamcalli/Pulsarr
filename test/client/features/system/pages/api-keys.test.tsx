@@ -1,10 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import ApiKeysPage from '@/features/system/pages/api-keys'
 import { setFormatLocale } from '@/lib/format'
+import { apiKeysKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { paths } from '@/types/api.js'
@@ -268,6 +269,27 @@ describe('ApiKeysPage', () => {
     await user.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await findKeyList()).toBeInTheDocument()
+  })
+
+  it('keeps the key list when a background refetch fails', async () => {
+    mockKeys()
+    renderPage()
+    await findKeyList()
+    let failedLoads = 0
+    server.use(
+      http.get('/v1/api-keys/', () => {
+        failedLoads += 1
+        return HttpResponse.json({ message: 'down' }, { status: 500 })
+      }),
+    )
+    await act(() =>
+      queryClient.invalidateQueries({ queryKey: apiKeysKeys.all }),
+    )
+
+    await waitFor(() => expect(failedLoads).toBeGreaterThan(0))
+    expect(screen.getByLabelText('Key for Overseerr')).toBeInTheDocument()
+    expect(screen.getByLabelText('Key for Scripts')).toBeInTheDocument()
+    expect(screen.queryByText("Couldn't load the API keys.")).toBeNull()
   })
 
   it('shows the skeleton while the list is loading', async () => {

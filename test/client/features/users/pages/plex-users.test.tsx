@@ -1,12 +1,13 @@
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { invalidatePlexUsers } from '@/features/users/lib/users-queries'
 import PlexUsersPage from '@/features/users/pages/plex-users'
 import { setFormatLocale } from '@/lib/format'
+import { usersKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { components, paths } from '@/types/api.js'
@@ -770,6 +771,27 @@ describe('PlexUsersPage', () => {
         within(selectionBar()).getByText('1 selected'),
       ).toBeInTheDocument(),
     )
+  })
+
+  it('keeps the table when a background refetch fails', async () => {
+    mockUsers()
+    renderPage()
+    const table = await findTable()
+    let failedLoads = 0
+    server.use(
+      http.get('/v1/users/list/with-counts', () => {
+        failedLoads += 1
+        return HttpResponse.json({ message: 'down' }, { status: 500 })
+      }),
+    )
+    await act(() =>
+      queryClient.invalidateQueries({ queryKey: usersKeys.withCounts }),
+    )
+
+    await waitFor(() => expect(failedLoads).toBeGreaterThan(0))
+    expect(bodyRows(table)).toHaveLength(4)
+    expect(screen.getByRole('table', { name: 'Plex users' })).toBe(table)
+    expect(screen.queryByText("Couldn't load the users.")).toBeNull()
   })
 
   it('says a resend cancelled the old request when the new one fails', async () => {

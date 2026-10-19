@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiErrorMessage, apiFetch, isSettled } from '@/lib/tanstackApi'
+import { $api, apiFetch, isSettled, loadErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 type ConfigFull = components['schemas']['Config']
@@ -74,7 +74,7 @@ export function useConfig() {
   return {
     config: query.data?.config ?? null,
     loading: query.isLoading,
-    error: apiErrorMessage(query.error),
+    error: loadErrorMessage(query, "Couldn't load the settings."),
     isError: query.isError,
     isInitialized: query.data !== undefined,
     isReady: isSettled(query),

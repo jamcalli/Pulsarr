@@ -8,7 +8,7 @@ import {
 } from '@/features/library/lib/session-monitoring/rolling-shows'
 import { invalidateRollingShows } from '@/features/library/lib/session-monitoring/session-monitoring-queries'
 import { useArrInstances } from '@/hooks/useArrInstances'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, firstLoadError, isSettled } from '@/lib/tanstackApi'
 
 /** `inactivityDays` is the saved setting, or null until the config has loaded. */
 export function useRollingShows(inactivityDays: number | null) {
@@ -38,8 +38,6 @@ export function useRollingShows(inactivityDays: number | null) {
     }))
   }, [rolling.data, inactive.data, targets])
 
-  const failed = [rolling, inactive].find((query) => query.isError)?.error
-
   return {
     rows,
     isReady:
@@ -47,9 +45,10 @@ export function useRollingShows(inactivityDays: number | null) {
       isSettled(inactive) &&
       (instances.hasData || instances.errorMessage !== null),
     errorMessage:
-      failed !== undefined
-        ? (apiErrorMessage(failed) ?? "Couldn't load session monitoring.")
-        : instances.errorMessage,
+      firstLoadError(
+        [rolling, inactive],
+        "Couldn't load session monitoring.",
+      ) ?? instances.errorMessage,
     retry: () => {
       void invalidateRollingShows()
       if (instances.errorMessage) instances.retry()

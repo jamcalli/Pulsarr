@@ -6,7 +6,7 @@ import {
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { refreshDashboardStats } from '@/lib/dashboard-invalidation'
 import { usePref } from '@/lib/prefs'
-import { $api, apiErrorMessage, isSettled } from '@/lib/tanstackApi'
+import { $api, isSettled, loadErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 export type DashboardStatsData = components['schemas']['DashboardStats']
@@ -37,8 +37,6 @@ export function useDashboardStats() {
     isFetching: query.isFetching,
     updatedAt: query.dataUpdatedAt,
     refresh: () => void refreshDashboardStats(),
-    errorMessage: query.isError
-      ? (apiErrorMessage(query.error) ?? 'Dashboard stats failed to load.')
-      : null,
+    errorMessage: loadErrorMessage(query, 'Dashboard stats failed to load.'),
   }
 }
