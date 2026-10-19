@@ -8,6 +8,7 @@ import type {
   RollingShowMatches,
 } from '@root/types/plex-session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { isUniqueViolation } from '@utils/db-errors.js'
 import { normalizeTitle } from '@utils/title-normalization.js'
 
 export async function createRollingMonitoredShow(
@@ -104,14 +105,7 @@ export async function createOrFindUserRollingMonitoredShow(
       }
     }
   } catch (error) {
-    const errorObj = error as Record<string, unknown>
-    const msg = String(errorObj?.message || '')
-    const code = (errorObj && (errorObj.code || errorObj.errno)) || ''
-    const isConflict =
-      code === '23505' || // Postgres unique violation
-      msg.includes('SQLITE_CONSTRAINT') ||
-      msg.includes('UNIQUE constraint failed')
-    if (!isConflict) {
+    if (!isUniqueViolation(error)) {
       this.log.error({ error }, 'Unexpected error inserting per-user entry')
       throw error
     }

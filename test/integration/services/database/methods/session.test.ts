@@ -167,5 +167,24 @@ describe('session database methods', () => {
         })
       },
     )
+
+    it('returns the existing viewer row on a second call', async () => {
+      const masterId = await stella()
+      const master = await fastify.db.getRollingMonitoredShowById(masterId)
+      if (!master) throw new Error('master row missing')
+
+      const first = await fastify.db.createOrFindUserRollingMonitoredShow(
+        master,
+        'u_nicole',
+        'nicole3876',
+      )
+      const second = await fastify.db.createOrFindUserRollingMonitoredShow(
+        master,
+        'u_nicole',
+        'nicole3876',
+      )
+
+      expect(second).toBe(first)
+    })
   })
 })
