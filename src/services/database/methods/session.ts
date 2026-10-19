@@ -1,32 +1,16 @@
-import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
-import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
+import {
+  ROLLING_BASELINE_SEASON,
+  type SonarrRollingMonitorOption,
+} from '@root/schemas/sonarr/season-monitoring.schema.js'
+import type {
+  NewRollingMonitoredShow,
+  RollingMonitoredShow,
+} from '@root/types/plex-session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
-/**
- * Insert a new rolling monitored show record and return its id.
- *
- * Inserts `data` into `rolling_monitored_shows`, initializes progress fields
- * (`last_watched_season` and `last_watched_episode` to 0), sets session and
- * audit timestamps (`last_session_date`, `created_at`, `updated_at`, `last_updated_at`)
- * to the current service timestamp, and returns the new record id.
- *
- * @param data - Show details. `plex_user_id`/`plex_username` may be supplied for per-user entries.
- * @returns The id of the newly created rolling monitored show.
- * @throws Error when the insert fails.
- */
 export async function createRollingMonitoredShow(
   this: DatabaseService,
-  data: {
-    sonarr_series_id: number
-    sonarr_instance_id: number
-    tvdb_id?: string
-    imdb_id?: string
-    show_title: string
-    monitoring_type: SonarrRollingMonitorOption
-    current_monitored_season: number
-    plex_user_id?: string
-    plex_username?: string
-  },
+  data: NewRollingMonitoredShow,
 ): Promise<number> {
   try {
     const result = await this.knex('rolling_monitored_shows')
@@ -53,21 +37,7 @@ export async function createRollingMonitoredShow(
   }
 }
 
-/**
- * Create or locate a per-user rolling monitored show entry derived from a global/master show.
- *
- * Uses a database-level unique constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id)
- * to avoid races and performs an upsert-style insert so concurrent callers will either create
- * the row or return the existing row's id.
- *
- * New per-user entries are initialized with current_monitored_season = 1 and zeroed last-watched progress.
- *
- * @param globalShow - Master/global rolling show used as the template for the per-user entry
- * @param plexUserId - Plex user identifier for the per-user entry
- * @param plexUsername - Plex username (used for logging)
- * @returns The id of the created or existing per-user rolling monitored show
- * @throws If a non-constraint database error occurs or if the function cannot create or locate an entry
- */
+/** Race-safe through the unique (sonarr_series_id, sonarr_instance_id, plex_user_id) constraint, returns the new or existing row id. */
 export async function createOrFindUserRollingMonitoredShow(
   this: DatabaseService,
   globalShow: RollingMonitoredShow,
@@ -83,7 +53,7 @@ export async function createOrFindUserRollingMonitoredShow(
     imdb_id: globalShow.imdb_id,
     show_title: globalShow.show_title,
     monitoring_type: globalShow.monitoring_type,
-    current_monitored_season: 1, // New users always start from season 1
+    current_monitored_season: 1,
     plex_user_id: plexUserId,
     plex_username: plexUsername,
     plex_user_uuid: plexUserUuid,
@@ -97,7 +67,7 @@ export async function createOrFindUserRollingMonitoredShow(
 
   try {
     if (this.isPostgres) {
-      // PostgreSQL: Use DO UPDATE to return existing ID and update last_updated_at
+      // DO UPDATE so Postgres returns the existing id on conflict
       const result = await this.knex('rolling_monitored_shows')
         .insert(values)
         .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
@@ -107,7 +77,6 @@ export async function createOrFindUserRollingMonitoredShow(
         })
         .returning('id')
 
-      // If we got an ID back, return it
       if (result && result.length > 0) {
         const id = this.extractId(result)
         this.log.info(
@@ -116,14 +85,13 @@ export async function createOrFindUserRollingMonitoredShow(
         return id
       }
     } else {
-      // SQLite: Use DO NOTHING and fall back to select
+      // DO NOTHING returns no id on conflict, so the select below finds the existing row
       const result = await this.knex('rolling_monitored_shows')
         .insert(values)
         .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
         .ignore()
         .returning('id')
 
-      // If we got an ID back, return it
       if (result && result.length > 0) {
         const id = this.extractId(result)
         this.log.info(
@@ -133,14 +101,13 @@ export async function createOrFindUserRollingMonitoredShow(
       }
     }
   } catch (error) {
-    // Only swallow expected unique/constraint conflicts; rethrow others
     const errorObj = error as Record<string, unknown>
     const msg = String(errorObj?.message || '')
     const code = (errorObj && (errorObj.code || errorObj.errno)) || ''
     const isConflict =
       code === '23505' || // Postgres unique violation
-      msg.includes('SQLITE_CONSTRAINT') || // SQLite unique
-      msg.includes('UNIQUE constraint failed') // SQLite unique
+      msg.includes('SQLITE_CONSTRAINT') ||
+      msg.includes('UNIQUE constraint failed')
     if (!isConflict) {
       this.log.error({ error }, 'Unexpected error inserting per-user entry')
       throw error
@@ -151,7 +118,6 @@ export async function createOrFindUserRollingMonitoredShow(
     )
   }
 
-  // Insert was ignored due to conflict or we caught a unique violation - find the existing entry
   const existingEntry = await this.knex('rolling_monitored_shows')
     .where({
       sonarr_series_id: globalShow.sonarr_series_id,
@@ -172,11 +138,7 @@ export async function createOrFindUserRollingMonitoredShow(
   )
 }
 
-/**
- * Retrieves all rolling monitored shows ordered by show title.
- *
- * @returns An array of rolling monitored show records, or an empty array if an error occurs.
- */
+/** Empty on a database error. */
 export async function getRollingMonitoredShows(
   this: DatabaseService,
 ): Promise<RollingMonitoredShow[]> {
@@ -191,12 +153,7 @@ export async function getRollingMonitoredShows(
   }
 }
 
-/**
- * Retrieves a rolling monitored show record by its unique ID.
- *
- * @param id - The unique identifier of the rolling monitored show
- * @returns The matching rolling monitored show record, or null if not found or on error
- */
+/** Null when missing or on a database error. */
 export async function getRollingMonitoredShowById(
   this: DatabaseService,
   id: number,
@@ -213,16 +170,7 @@ export async function getRollingMonitoredShowById(
   }
 }
 
-/**
- * Retrieves all rolling monitored shows matching a TVDB ID or title, optionally filtered by Plex user ID.
- *
- * Returns one row per enrolled instance so a show synced across instances resolves fully. When a Plex user ID is provided, returns per-user entries; otherwise the global (legacy) entries. Ordered by instance ID.
- *
- * @param tvdbId - The TVDB ID of the show (optional)
- * @param title - The title of the show (optional)
- * @param plexUserId - The Plex user ID for per-user tracking (optional)
- * @returns The matching rolling monitored shows, or an empty array if none found or on error
- */
+/** Matches by tvdbId, else title, returning that viewer's rows or the master rows when plexUserId is omitted. */
 export async function getRollingMonitoredShowMatches(
   this: DatabaseService,
   tvdbId?: string,
@@ -253,14 +201,7 @@ export async function getRollingMonitoredShowMatches(
   }
 }
 
-/**
- * Updates the last watched season and episode for a rolling monitored show.
- *
- * @param id - The unique identifier of the rolling monitored show
- * @param season - The season number to set as last watched
- * @param episode - The episode number to set as last watched
- * @returns True if the update was successful, false otherwise
- */
+/** Also stamps last_session_date, which inactivity reset and cleanup read as viewing activity. */
 export async function updateRollingShowProgress(
   this: DatabaseService,
   id: number,
@@ -285,11 +226,7 @@ export async function updateRollingShowProgress(
   }
 }
 
-/**
- * Refreshes a per-user row's stored Plex identity. Usernames go stale on
- * account renames; activity timestamps are left alone so an identity
- * refresh never counts as viewing activity.
- */
+/** Leaves activity timestamps alone so an identity refresh never counts as viewing activity. */
 export async function updateRollingShowUserIdentity(
   this: DatabaseService,
   id: number,
@@ -297,7 +234,12 @@ export async function updateRollingShowUserIdentity(
   plexUserUuid: string | null,
 ): Promise<boolean> {
   try {
-    const update: Record<string, string> = {
+    const update: Partial<
+      Pick<
+        RollingMonitoredShow,
+        'plex_username' | 'plex_user_uuid' | 'updated_at'
+      >
+    > = {
       plex_username: plexUsername,
       updated_at: this.timestamp,
     }
@@ -317,13 +259,6 @@ export async function updateRollingShowUserIdentity(
   }
 }
 
-/**
- * Updates the current monitored season for a rolling monitored show.
- *
- * @param id - The unique identifier of the rolling monitored show
- * @param season - The season number to set as the current monitored season
- * @returns True if the update was successful; otherwise, false
- */
 export async function updateRollingShowMonitoredSeason(
   this: DatabaseService,
   id: number,
@@ -345,45 +280,14 @@ export async function updateRollingShowMonitoredSeason(
   }
 }
 
-/**
- * Deletes a rolling monitored show by its ID.
- *
- * @param id - The unique identifier of the rolling monitored show to delete
- * @returns True if a record was deleted; false otherwise
- */
-export async function deleteRollingMonitoredShow(
-  this: DatabaseService,
-  id: number,
-): Promise<boolean> {
-  try {
-    const deleted = await this.knex('rolling_monitored_shows')
-      .where({ id })
-      .delete()
-
-    return deleted > 0
-  } catch (error) {
-    this.log.error({ error }, 'Error deleting rolling monitored show:')
-    return false
-  }
-}
-
-/**
- * Deletes all rolling monitored show entries for a specific show across all users.
- *
- * Removes every entry matching the same `sonarr_series_id` and `sonarr_instance_id` as the provided show ID within a transaction. Returns the number of deleted entries, or 0 if the show is not found or an error occurs.
- *
- * @param id - The ID of any rolling monitored show entry for the target show
- * @returns The number of deleted entries
- */
+/** Deletes the master and every per-user row of the show that row id belongs to, 0 on error. */
 export async function deleteAllRollingMonitoredShowEntries(
   this: DatabaseService,
   id: number,
 ): Promise<number> {
   try {
     return await this.knex.transaction(async (trx) => {
-      // Read without locking, then lock the master first. Locking the caller's
-      // row here while updateRollingShowMonitoringType locks master-first
-      // would deadlock on Postgres.
+      // Lock the master first, since locking the caller's row while updateRollingShowMonitoringType locks master-first deadlocks Postgres.
       const show = await trx('rolling_monitored_shows').where({ id }).first()
 
       if (!show) {
@@ -399,7 +303,6 @@ export async function deleteAllRollingMonitoredShowEntries(
       if (this.isPostgres) masterQuery.forUpdate() // row-level lock only on PG
       await masterQuery.first()
 
-      // Delete all entries for this show (all users)
       const deleted = await trx('rolling_monitored_shows')
         .where({
           sonarr_series_id: show.sonarr_series_id,
@@ -422,30 +325,21 @@ export async function deleteAllRollingMonitoredShowEntries(
   }
 }
 
-/**
- * Reset a show's rolling monitored data to its original (master) state.
- *
- * Deletes all per-user entries for the show identified by `id`'s series/instance and updates the master record (plex_user_id IS NULL) to its type's baseline season (0 for allSeasonPilotRolling, 1 otherwise) with cleared progress and refreshed timestamps. The provided `id` may be any entry (master or user) for the target show.
- *
- * @param id - ID of any rolling monitored show entry for the target show
- * @returns The number of user-specific entries deleted. Returns 0 if the show was not found or an error occurred.
- */
+/** Deletes the per-user rows and resets the master to its baseline season, returning the per-user rows deleted. */
 export async function resetRollingMonitoredShowToOriginal(
   this: DatabaseService,
   id: number,
 ): Promise<number> {
   try {
     return await this.knex.transaction(async (trx) => {
-      // Read without locking, then lock the master first. Locking the caller's
-      // row here while updateRollingShowMonitoringType locks master-first
-      // would deadlock on Postgres.
+      // Lock the master first, since locking the caller's row while updateRollingShowMonitoringType locks master-first deadlocks Postgres.
       const show = await trx('rolling_monitored_shows').where({ id }).first()
 
       if (!show) {
         return 0
       }
 
-      // Master row owns monitoring_type; a user row's copy can be stale.
+      // Master row owns monitoring_type because a user row's copy can be stale.
       const masterQuery = trx('rolling_monitored_shows')
         .where({
           sonarr_series_id: show.sonarr_series_id,
@@ -453,31 +347,29 @@ export async function resetRollingMonitoredShowToOriginal(
         })
         .whereNull('plex_user_id')
       if (this.isPostgres) masterQuery.forUpdate() // row-level lock only on PG
-      const master = await masterQuery.first()
+      const master: RollingMonitoredShow | undefined = await masterQuery.first()
 
       if (!master) {
         return 0
       }
 
-      // Delete all user entries (keep only master record)
       const deletedUserEntries = await trx('rolling_monitored_shows')
         .where({
           sonarr_series_id: show.sonarr_series_id,
           sonarr_instance_id: show.sonarr_instance_id,
         })
-        .whereNotNull('plex_user_id') // Only delete user entries, not master
+        .whereNotNull('plex_user_id')
         .delete()
 
-      // allSeasonPilotRolling tracks full-season expansion from 0, not 1
       await trx('rolling_monitored_shows')
         .where({
           sonarr_series_id: show.sonarr_series_id,
           sonarr_instance_id: show.sonarr_instance_id,
         })
-        .whereNull('plex_user_id') // Only update master record
+        .whereNull('plex_user_id')
         .update({
           current_monitored_season:
-            master.monitoring_type === 'allSeasonPilotRolling' ? 0 : 1,
+            ROLLING_BASELINE_SEASON[master.monitoring_type],
           last_watched_season: 0,
           last_watched_episode: 0,
           updated_at: this.timestamp,
@@ -499,21 +391,7 @@ export async function resetRollingMonitoredShowToOriginal(
   }
 }
 
-/**
- * Deletes all rolling monitored show entries matching any of the provided
- * TVDB IDs or Sonarr series IDs.
- *
- * Removes both master and per-user entries for each matching show.
- * Used by delete sync to clean up orphaned rolling monitor records
- * when a series is deleted from Sonarr.
- *
- * Matches on both identifiers to handle entries created without a TVDB ID
- * (stored as empty string when the show lacks a TVDB GUID).
- *
- * @param tvdbIds - Array of TVDB ID strings to match against
- * @param sonarrSeriesIds - Array of Sonarr series ID numbers to match against
- * @returns The total number of deleted entries
- */
+/** Matches either id because entries enrolled without a TVDB GUID store an empty tvdb_id. */
 export async function deleteRollingMonitoredShowsByIds(
   this: DatabaseService,
   tvdbIds: string[],
@@ -546,14 +424,7 @@ export async function deleteRollingMonitoredShowsByIds(
   }
 }
 
-/**
- * Retrieves rolling monitored shows that have not been updated within the specified number of days.
- * Only returns shows where ALL records (master + all per-user records) are past the inactivity threshold.
- * This prevents cleanup of shows where some users are still actively watching.
- *
- * @param inactivityDays - The minimum number of days since the last update for a show to be considered inactive.
- * @returns An array of rolling monitored shows that are completely inactive (one representative record per show).
- */
+/** One row per show (the master when present) whose master and per-user rows are all past the cutoff. */
 export async function getInactiveRollingMonitoredShows(
   this: DatabaseService,
   inactivityDays: number,
@@ -567,7 +438,6 @@ export async function getInactiveRollingMonitoredShows(
       'asc',
     )
 
-    // Group by unique show identifier
     const showMap = new Map<string, RollingMonitoredShow[]>()
 
     for (const show of allShows) {
@@ -578,7 +448,6 @@ export async function getInactiveRollingMonitoredShows(
       showMap.get(showKey)?.push(show)
     }
 
-    // Find shows where ALL records are inactive
     const inactiveShows: RollingMonitoredShow[] = []
 
     for (const shows of showMap.values()) {
@@ -587,7 +456,6 @@ export async function getInactiveRollingMonitoredShows(
       )
 
       if (!hasActiveRecord) {
-        // All records inactive - prefer master record, fall back to any record
         const masterRecord = shows.find((show) => show.plex_user_id === null)
         inactiveShows.push(masterRecord || shows[0])
       }
@@ -600,18 +468,7 @@ export async function getInactiveRollingMonitoredShows(
   }
 }
 
-/**
- * Updates the monitoring type and initial season for a rolling monitored show.
- *
- * Used when changing an enrolled show's monitoring approach (e.g. pilotRolling
- * to firstSeasonRolling). The type change propagates to per-user entries; the
- * initial season is only written to the master record.
- *
- * @param id - The ID of the master rolling monitored show entry
- * @param monitoringType - The new monitoring type
- * @param currentMonitoredSeason - The initial season for the new type
- * @returns True if the master entry was found and updated
- */
+/** Writes the type to every row of the show but the season to the master only, false when id is not a master. */
 export async function updateRollingShowMonitoringType(
   this: DatabaseService,
   id: number,
@@ -630,8 +487,7 @@ export async function updateRollingShowMonitoringType(
         return false
       }
 
-      // The session monitor reads monitoring_type from per-user rows, so the
-      // type change must reach them too. Per-user season progress is left alone.
+      // The session monitor reads monitoring_type from per-user rows, so the type change must reach them too.
       await trx('rolling_monitored_shows')
         .where({
           sonarr_series_id: master.sonarr_series_id,

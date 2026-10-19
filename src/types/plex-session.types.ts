@@ -265,6 +265,16 @@ export interface RollingMonitoredShow {
   last_updated_at: string
 }
 
+export type NewRollingMonitoredShow = Pick<
+  RollingMonitoredShow,
+  | 'sonarr_series_id'
+  | 'sonarr_instance_id'
+  | 'tvdb_id'
+  | 'show_title'
+  | 'monitoring_type'
+  | 'current_monitored_season'
+>
+
 // Plex SSE playing event payload from /:/eventsource/notifications
 export interface PlexPlaySessionNotification {
   sessionKey: string

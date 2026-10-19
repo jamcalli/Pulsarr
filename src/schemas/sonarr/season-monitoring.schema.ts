@@ -90,6 +90,16 @@ export const SEASON_MONITORING_LABELS: Record<
   allSeasonPilotRolling: 'All seasons pilot rolling',
 }
 
+/** The current_monitored_season a rolling show starts from and resets to. */
+export const ROLLING_BASELINE_SEASON: Record<
+  SonarrRollingMonitorOption,
+  number
+> = {
+  pilotRolling: 1,
+  firstSeasonRolling: 1,
+  allSeasonPilotRolling: 0,
+}
+
 const ROLLING_OPTIONS = new Set<string>(SONARR_ROLLING_MONITOR_OPTIONS)
 
 export function isRollingMonitoringOption(

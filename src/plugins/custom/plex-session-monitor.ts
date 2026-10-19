@@ -131,7 +131,7 @@ export default fp(
                 return
               }
 
-              const inactivityDays = sessionConfig.inactivityResetDays || 7
+              const inactivityDays = sessionConfig.inactivityResetDays ?? 7
 
               fastify.log.debug(
                 `Starting automatic reset of rolling shows inactive for ${inactivityDays} days`,
