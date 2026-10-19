@@ -230,7 +230,12 @@ export class PlexSessionMonitorService {
       }
 
       try {
-        await this.processSession(session, result, isUserAllowed)
+        const checkFailed = await this.processSession(
+          session,
+          result,
+          isUserAllowed,
+        )
+        if (checkFailed) tracker.retryLater(notification.sessionKey)
       } catch (error) {
         tracker.forget(notification.sessionKey)
         this.log.warn(
@@ -265,13 +270,14 @@ export class PlexSessionMonitorService {
     return buildAllowedUserMatcher(filterUsers, users)
   }
 
+  /** True when a rolling show check failed and should run again. */
   private async processSession(
     session: PlexSession,
     result: SessionMonitoringResult,
     isUserAllowed: AllowedUserMatcher,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (session.type !== 'episode') {
-      return
+      return false
     }
 
     const canTriggerActions = isUserAllowed(
@@ -293,19 +299,22 @@ export class PlexSessionMonitorService {
       this.log.debug(
         `Not monitoring ${describeViewing(session.grandparentTitle, session)}: show is not enrolled in rolling monitoring`,
       )
-      return
+      return false
     }
 
+    let checkFailed = false
     // Isolate per instance so one failure does not skip the rest.
     for (const rollingShow of rollingShows) {
       try {
-        await this.handleRollingMonitoredShow(
+        const showCheckFailed = await this.handleRollingMonitoredShow(
           session,
           rollingShow,
           result,
           canTriggerActions,
         )
+        checkFailed ||= showCheckFailed
       } catch (error) {
+        checkFailed = true
         this.log.error(
           {
             error,
@@ -319,14 +328,16 @@ export class PlexSessionMonitorService {
         )
       }
     }
+    return checkFailed
   }
 
+  /** True when the check failed and reverted progress so it can run again. */
   private async handleRollingMonitoredShow(
     session: PlexSession,
     rollingShow: RollingMonitoredShow,
     result: SessionMonitoringResult,
     canTriggerActions: boolean,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const currentSeason = session.parentIndex
     const currentEpisode = session.index
     const viewing = describeViewing(rollingShow.show_title, session)
@@ -347,7 +358,7 @@ export class PlexSessionMonitorService {
       this.log.debug(
         `Not acting on ${viewing}: viewer is not in the user filter, refreshed activity without recording position`,
       )
-      return
+      return false
     }
 
     await this.updateRollingShowProgress(
@@ -362,13 +373,12 @@ export class PlexSessionMonitorService {
       rollingShow.monitoring_type === 'allSeasonPilotRolling' &&
       currentEpisode === 1
     ) {
-      await this.expandPilotToFullSeason(
+      return this.expandPilotToFullSeason(
         rollingShow,
         session,
         result,
         currentSeason,
       )
-      return
     }
 
     if (
@@ -376,15 +386,14 @@ export class PlexSessionMonitorService {
       currentSeason === 1 &&
       currentEpisode === 1
     ) {
-      await this.expandPilotToFullSeason(rollingShow, session, result, 1)
-      return
+      return this.expandPilotToFullSeason(rollingShow, session, result, 1)
     }
 
     if (rollingShow.monitoring_type === 'allSeasonPilotRolling') {
       this.log.debug(
         `Not expanding ${viewing}: allSeasonPilotRolling only expands when an E01 is watched`,
       )
-      return
+      return false
     }
 
     // The next-season check below queries Sonarr, so skip it on no-progress events.
@@ -392,7 +401,7 @@ export class PlexSessionMonitorService {
       this.log.debug(
         `Not expanding ${viewing}: position unchanged since the last event`,
       )
-      return
+      return false
     }
 
     // Progress is already persisted, so a failed check restores it or the positionUnchanged gate blocks every retry.
@@ -411,7 +420,7 @@ export class PlexSessionMonitorService {
         `Not expanding ${viewing}: Sonarr instance ${rollingShow.sonarr_instance_id} not found, reverting progress to retry next poll`,
       )
       await revertProgress()
-      return
+      return true
     }
 
     // Entries enrolled without a TVDB GUID store an empty tvdb_id, so fetch by Sonarr id.
@@ -426,7 +435,7 @@ export class PlexSessionMonitorService {
       this.log.debug(
         `Not expanding ${viewing}: series ${rollingShow.sonarr_series_id} no longer exists in Sonarr instance ${rollingShow.sonarr_instance_id}`,
       )
-      return
+      return false
     }
 
     const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
@@ -435,7 +444,7 @@ export class PlexSessionMonitorService {
         `Not expanding ${viewing}: Sonarr has no episode statistics for ${episodeCode(currentSeason)}, reverting progress to retry next poll`,
       )
       await revertProgress()
-      return
+      return true
     }
 
     const totalEpisodes = season.statistics.totalEpisodeCount
@@ -446,14 +455,14 @@ export class PlexSessionMonitorService {
       this.log.debug(
         `Not expanding ${viewing}: Sonarr counts only ${totalEpisodes} episodes in ${episodeCode(currentSeason)}`,
       )
-      return
+      return false
     }
 
     if (remainingEpisodes > threshold) {
       this.log.debug(
         `Not expanding ${viewing}: ${remainingEpisodes} of ${totalEpisodes} episodes remain in ${episodeCode(currentSeason)}, threshold is ${threshold}`,
       )
-      return
+      return false
     }
 
     const hasMoreSeasons = series.seasons?.some(
@@ -464,7 +473,7 @@ export class PlexSessionMonitorService {
       this.log.debug(
         `Not expanding ${viewing}: ${episodeCode(currentSeason)} is the last season in Sonarr`,
       )
-      return
+      return false
     }
 
     const nextSeason = currentSeason + 1
@@ -489,6 +498,7 @@ export class PlexSessionMonitorService {
       await revertProgress()
       throw error
     }
+    return false
   }
 
   private async getSeriesTvdbId(
@@ -733,12 +743,13 @@ export class PlexSessionMonitorService {
     this.log.info(successMessage)
   }
 
+  /** True when the expansion failed, which repeated E01 events retry because this path sits above the position gate. */
   private async expandPilotToFullSeason(
     rollingShow: RollingMonitoredShow,
     session: PlexSession,
     result: SessionMonitoringResult,
     seasonNumber: number,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const sonarr = this.sonarrManager.getSonarrService(
         rollingShow.sonarr_instance_id,
@@ -747,7 +758,7 @@ export class PlexSessionMonitorService {
         this.log.debug(
           `Not expanding ${describeViewing(rollingShow.show_title, session)}: Sonarr instance ${rollingShow.sonarr_instance_id} not found`,
         )
-        return
+        return true
       }
 
       await this.monitorAndSearchSeason(
@@ -762,11 +773,13 @@ export class PlexSessionMonitorService {
         },
         `Expanded pilot monitoring for ${session.grandparentTitle} to search full Season ${seasonNumber}`,
       )
+      return false
     } catch (error) {
       this.log.error(
         { error },
         `Failed to expand pilot monitoring for ${session.grandparentTitle}:`,
       )
+      return true
     }
   }
 
