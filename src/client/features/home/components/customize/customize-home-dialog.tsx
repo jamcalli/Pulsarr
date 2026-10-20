@@ -19,13 +19,15 @@ import {
 } from '@/features/home/components/customize/layout-row'
 import { LayoutTileFace } from '@/features/home/components/customize/layout-tile'
 import type { HomeLayoutState } from '@/features/home/hooks/useHomeLayout'
-import {
-  NEW_ROW_COLUMN,
-  useLayoutBoard,
-} from '@/features/home/hooks/useLayoutBoard'
+import { useLayoutBoard } from '@/features/home/hooks/useLayoutBoard'
 import { useToggleFocus } from '@/features/home/hooks/useToggleFocus'
 import { HOME_CARDS } from '@/features/home/lib/home-cards'
-import { HOME_CARD_IDS, type HomeCardId } from '@/features/home/lib/home-layout'
+import {
+  HOME_CARD_IDS,
+  type HomeCardId,
+  NEW_ROW_COLUMN,
+} from '@/features/home/lib/home-layout'
+import { layoutAnnouncements } from '@/features/home/lib/layout-announcements'
 
 interface CustomizeHomeDialogProps {
   open: boolean
@@ -63,7 +65,12 @@ export default function CustomizeHomeDialog({
           </DialogDescription>
         </DialogHeader>
         <ScrollBody inset="dialog" className="flex flex-col gap-4">
-          <Kanban value={columns} orientation="vertical" {...boardHandlers}>
+          <Kanban
+            value={columns}
+            orientation="vertical"
+            accessibility={{ announcements: layoutAnnouncements(columns) }}
+            {...boardHandlers}
+          >
             <KanbanBoard className="flex flex-col gap-1">
               {Object.entries(columns).map(([value, cards]) => (
                 <LayoutRow

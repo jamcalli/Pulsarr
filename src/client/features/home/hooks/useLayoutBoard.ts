@@ -2,14 +2,11 @@ import type { DragStartEvent } from '@dnd-kit/core'
 import { useRef, useState } from 'react'
 import type { HomeLayoutState } from '@/features/home/hooks/useHomeLayout'
 import {
+  type BoardColumns,
   fitsRow,
-  type HomeCardId,
   type HomeRow,
+  NEW_ROW_COLUMN,
 } from '@/features/home/lib/home-layout'
-
-export const NEW_ROW_COLUMN = 'new-row'
-
-type BoardColumns = Record<string, HomeCardId[]>
 
 function toColumns(rows: HomeRow[]): BoardColumns {
   const columns: BoardColumns = {}

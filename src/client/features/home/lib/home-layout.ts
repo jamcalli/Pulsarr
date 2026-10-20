@@ -26,6 +26,10 @@ export const HOME_CARD_SPANS: Record<HomeCardId, HomeCardSpan> = {
   'library-mix': 'half',
 }
 
+export const NEW_ROW_COLUMN = 'new-row'
+
+export type BoardColumns = Record<string, HomeCardId[]>
+
 export const HOME_ROW_GRID =
   'grid grid-cols-1 items-start gap-5 md:grid-cols-2 md:items-stretch'
 
