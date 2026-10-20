@@ -53,7 +53,7 @@ describe('sendMediaAvailable Integration Tests', () => {
       await vi.waitFor(() =>
         expect(sendNotificationSpy).toHaveBeenCalledWith('111111111111111111', {
           embed: expect.objectContaining({
-            title: 'Night of the Living Dead',
+            title: 'Movie available: Night of the Living Dead',
           }),
         }),
       )
@@ -197,7 +197,7 @@ describe('sendMediaAvailable Integration Tests', () => {
           embed: expect.objectContaining({
             fields: expect.arrayContaining([
               expect.objectContaining({
-                name: 'Season Added',
+                name: 'Season added',
                 value: 'Season 1',
               }),
             ]),

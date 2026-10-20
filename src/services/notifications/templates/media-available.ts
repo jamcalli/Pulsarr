@@ -26,7 +26,7 @@ export function summarizeMediaAvailable(
     episode.seasonNumber !== undefined &&
     episode.episodeNumber !== undefined
   ) {
-    const episodeTitle = episode.title ? ` - "${episode.title}"` : ''
+    const episodeTitle = episode.title ? ` "${episode.title}"` : ''
     const details: MediaDetail[] = [
       {
         label: 'Episode',
@@ -43,7 +43,7 @@ export function summarizeMediaAvailable(
     }
     if (episode.airDateUtc) {
       details.push({
-        label: 'Air Date',
+        label: 'Air date',
         value: new Date(episode.airDateUtc).toLocaleDateString(),
         inline: true,
       })
@@ -56,7 +56,7 @@ export function summarizeMediaAvailable(
       availability: 'season',
       details: [
         {
-          label: 'Season Added',
+          label: 'Season added',
           value: `Season ${episode.seasonNumber}`,
           inline: true,
         },

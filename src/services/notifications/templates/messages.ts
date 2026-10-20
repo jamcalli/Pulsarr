@@ -30,7 +30,7 @@ import {
   createWatchlistCapEmbed,
   createWebhookPayload,
 } from './discord-embeds.js'
-import { formatTriggerReason, userLabel } from './labels.js'
+import { userLabel } from './labels.js'
 
 type RequestMessage = Omit<NotificationMessage, 'dm'>
 
@@ -58,10 +58,8 @@ export function createApprovalMessages(
           contentTitle: request.contentTitle,
           contentType: request.contentType,
           requestedBy: userLabel(request.userName, request.userId),
-          reason: formatTriggerReason(
-            request.triggeredBy,
-            request.approvalReason,
-          ),
+          trigger: request.triggeredBy,
+          reason: request.approvalReason,
           totalPending,
           posterUrl,
           tmdbUrl: getTmdbUrl(request.contentGuids, request.contentType),
@@ -91,7 +89,7 @@ export function createDeleteSyncMessage(
   return {
     webhook: createWebhookPayload('deleteSync', embed),
     dm: createSystemDm({
-      title: embed.title || 'Delete Sync Results',
+      title: embed.title || 'Delete sync results',
       fields: embed.fields || [],
       safetyTriggered: results.safetyTriggered,
     }),

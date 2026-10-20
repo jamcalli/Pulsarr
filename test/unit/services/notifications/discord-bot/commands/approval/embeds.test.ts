@@ -1,5 +1,8 @@
 import type { ApprovalRequest } from '@root/types/approval.types.js'
-import { createApprovalEmbed } from '@services/notifications/discord-bot/commands/approval/embeds.js'
+import {
+  createApprovalEmbed,
+  createDetailsEmbed,
+} from '@services/notifications/discord-bot/commands/approval/embeds.js'
 import { describe, expect, it } from 'vitest'
 
 function approval(
@@ -31,11 +34,25 @@ function requestInformation(triggeredBy: ApprovalRequest['triggeredBy']) {
 
 describe('createApprovalEmbed', () => {
   it.each([
-    ['quota_exceeded', 'Quota Exceeded'],
-    ['manual_flag', 'Manual Flag'],
-    ['router_rule', 'Router Rule'],
-    ['content_criteria', 'Content Criteria'],
+    ['quota_exceeded', 'Quota exceeded'],
+    ['manual_flag', 'Manual flag'],
+    ['router_rule', 'Router rule'],
+    ['content_criteria', 'Content criteria'],
   ] as const)('labels the %s trigger', (trigger, label) => {
     expect(requestInformation(trigger)).toContain(label)
+  })
+
+  it('titles the card with the event and content', () => {
+    expect(
+      createApprovalEmbed(approval('manual_flag'), 0, 1).toJSON().title,
+    ).toBe('Approval request: Nosferatu')
+  })
+})
+
+describe('createDetailsEmbed', () => {
+  it('titles the detail view with the event and content', () => {
+    expect(createDetailsEmbed(approval('manual_flag')).toJSON().title).toBe(
+      'Approval request: Nosferatu',
+    )
   })
 })
