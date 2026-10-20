@@ -1,9 +1,10 @@
 import { SonarrRollingMonitoringSchema } from '@root/schemas/sonarr/season-monitoring.schema'
+import { seasonName } from '@/features/library/lib/session-monitoring/session-monitoring-copy'
 import type {
   ShowsSortKey,
   ShowsState,
 } from '@/features/library/lib/session-monitoring/shows-state'
-import { compareSortValues, compareText, formatNumber } from '@/lib/format'
+import { compareSortValues, compareText } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
 export type RollingRecord = components['schemas']['RollingMonitoredShow']
@@ -77,7 +78,7 @@ export function isPilotsOnly(record: RollingRecord): boolean {
 export function seasonLabel(record: RollingRecord): string {
   return isPilotsOnly(record)
     ? 'Pilots only'
-    : `Season ${formatNumber(record.current_monitored_season)}`
+    : seasonName(record.current_monitored_season)
 }
 
 /** Null when nobody has watched the show. */

@@ -4750,6 +4750,9 @@ export interface components {
             plex_user_id?: string | null;
             plex_username?: string | null;
             plex_user_uuid?: string | null;
+            season_episode_counts: {
+                [key: string]: number;
+            } | null;
             created_at: string;
             updated_at: string;
             last_updated_at: string;

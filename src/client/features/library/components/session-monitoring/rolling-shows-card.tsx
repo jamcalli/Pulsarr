@@ -23,6 +23,7 @@ interface RollingShowsCardProps {
   /** The saved switch, which pauses rolling and locks enrollment while off. */
   enabled: boolean
   inactivityDays: number
+  remainingEpisodes: number
   onManage: () => void
 }
 
@@ -30,6 +31,7 @@ export function RollingShowsCard({
   page,
   enabled,
   inactivityDays,
+  remainingEpisodes,
   onManage,
 }: RollingShowsCardProps) {
   const all = page.all ?? []
@@ -42,7 +44,11 @@ export function RollingShowsCard({
   ) : rows.length === 0 ? (
     <RollingShowsNoResults page={page} inactivityDays={inactivityDays} />
   ) : (
-    <RollingShowsTable page={page} rows={rows} />
+    <RollingShowsTable
+      page={page}
+      rows={rows}
+      remainingEpisodes={remainingEpisodes}
+    />
   )
   const description = hasShows
     ? inactiveMeaning(inactivityDays)

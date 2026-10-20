@@ -6,10 +6,35 @@ import type {
   NewRollingMonitoredShow,
   RollingMonitoredShow,
   RollingShowMatches,
+  SeasonEpisodeCounts,
 } from '@root/types/plex-session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { isUniqueViolation } from '@utils/db-errors.js'
 import { normalizeTitle } from '@utils/title-normalization.js'
+
+type RollingMonitoredShowRow = Omit<
+  RollingMonitoredShow,
+  'season_episode_counts'
+> & { season_episode_counts: string | SeasonEpisodeCounts | null }
+
+// SQLite returns the JSON column as a string and Postgres as an object.
+function toRollingMonitoredShow(
+  db: DatabaseService,
+  row: RollingMonitoredShowRow,
+): RollingMonitoredShow {
+  const counts = row.season_episode_counts
+  return {
+    ...row,
+    season_episode_counts:
+      typeof counts === 'string'
+        ? db.safeJsonParse<SeasonEpisodeCounts | null>(
+            counts,
+            null,
+            'rolling_monitored_shows.season_episode_counts',
+          )
+        : counts,
+  }
+}
 
 export async function createRollingMonitoredShow(
   this: DatabaseService,
@@ -140,10 +165,10 @@ export async function getRollingMonitoredShows(
   this: DatabaseService,
 ): Promise<RollingMonitoredShow[]> {
   try {
-    return await this.knex('rolling_monitored_shows').orderBy(
-      'show_title',
-      'asc',
-    )
+    const rows: RollingMonitoredShowRow[] = await this.knex(
+      'rolling_monitored_shows',
+    ).orderBy('show_title', 'asc')
+    return rows.map((row) => toRollingMonitoredShow(this, row))
   } catch (error) {
     this.log.error({ error }, 'Error getting rolling monitored shows:')
     return []
@@ -156,11 +181,13 @@ export async function getRollingMonitoredShowById(
   id: number,
 ): Promise<RollingMonitoredShow | null> {
   try {
-    const result = await this.knex('rolling_monitored_shows')
+    const result: RollingMonitoredShowRow | undefined = await this.knex(
+      'rolling_monitored_shows',
+    )
       .where('id', id)
       .first()
 
-    return result || null
+    return result ? toRollingMonitoredShow(this, result) : null
   } catch (error) {
     this.log.error({ error }, 'Error getting rolling monitored show by ID:')
     return null
@@ -174,29 +201,31 @@ export async function getRollingMonitoredShowMatches(
   title?: string,
   plexUserId?: string,
 ): Promise<RollingShowMatches> {
-  const scoped = () => {
+  const scoped = async (tvdbOnly?: string) => {
     const query = this.knex('rolling_monitored_shows')
     if (plexUserId) {
       query.where('plex_user_id', plexUserId)
     } else {
       query.whereNull('plex_user_id')
     }
-    return query.orderBy('sonarr_instance_id', 'asc')
+    if (tvdbOnly) query.where('tvdb_id', tvdbOnly)
+    const rows: RollingMonitoredShowRow[] = await query.orderBy(
+      'sonarr_instance_id',
+      'asc',
+    )
+    return rows.map((row) => toRollingMonitoredShow(this, row))
   }
 
   try {
     if (tvdbId) {
-      const shows: RollingMonitoredShow[] = await scoped().where(
-        'tvdb_id',
-        tvdbId,
-      )
+      const shows = await scoped(tvdbId)
       if (shows.length > 0) return { matchedBy: 'tvdb', shows }
     }
 
     if (!title) return { matchedBy: 'none', shows: [] }
 
     const titleKey = normalizeTitle(title)
-    const rows: RollingMonitoredShow[] = await scoped()
+    const rows = await scoped()
     // A differing stored tvdb id is a different show, which a bare title cannot tell apart
     const shows = rows.filter(
       (show) =>
@@ -280,21 +309,62 @@ export async function updateRollingShowUserIdentity(
   }
 }
 
+/** False when the series has no master row on that instance or the write fails. */
+export async function updateRollingShowSeasonEpisodeCounts(
+  this: DatabaseService,
+  sonarrSeriesId: number,
+  sonarrInstanceId: number,
+  counts: SeasonEpisodeCounts,
+): Promise<boolean> {
+  try {
+    const updated = await this.knex('rolling_monitored_shows')
+      .where({
+        sonarr_series_id: sonarrSeriesId,
+        sonarr_instance_id: sonarrInstanceId,
+      })
+      .whereNull('plex_user_id')
+      .update({
+        season_episode_counts: JSON.stringify(counts),
+        updated_at: this.timestamp,
+      })
+
+    return updated > 0
+  } catch (error) {
+    this.log.error({ error }, 'Error updating rolling show episode counts:')
+    return false
+  }
+}
+
+/** Raises the mark on that row and its master row, never lowering either, false when the row is missing or the write fails. */
 export async function updateRollingShowMonitoredSeason(
   this: DatabaseService,
   id: number,
   season: number,
 ): Promise<boolean> {
   try {
-    const updated = await this.knex('rolling_monitored_shows')
+    const row = await this.knex('rolling_monitored_shows')
       .where({ id })
+      .select('sonarr_series_id', 'sonarr_instance_id')
+      .first()
+
+    if (!row) {
+      return false
+    }
+
+    await this.knex('rolling_monitored_shows')
+      .where({
+        sonarr_series_id: row.sonarr_series_id,
+        sonarr_instance_id: row.sonarr_instance_id,
+      })
+      .where((builder) => builder.where({ id }).orWhereNull('plex_user_id'))
+      .where('current_monitored_season', '<', season)
       .update({
         current_monitored_season: season,
         updated_at: this.timestamp,
         last_updated_at: this.timestamp,
       })
 
-    return updated > 0
+    return true
   } catch (error) {
     this.log.error({ error }, 'Error updating rolling show monitored season:')
     return false
@@ -454,10 +524,10 @@ export async function getInactiveRollingMonitoredShows(
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - inactivityDays)
 
-    const allShows = await this.knex('rolling_monitored_shows').orderBy(
-      'last_updated_at',
-      'asc',
-    )
+    const rows: RollingMonitoredShowRow[] = await this.knex(
+      'rolling_monitored_shows',
+    ).orderBy('last_updated_at', 'asc')
+    const allShows = rows.map((row) => toRollingMonitoredShow(this, row))
 
     const showMap = new Map<string, RollingMonitoredShow[]>()
 

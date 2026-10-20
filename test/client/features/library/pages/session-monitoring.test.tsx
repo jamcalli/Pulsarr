@@ -41,6 +41,7 @@ function record(overrides: Partial<RollingRecord>): RollingRecord {
     sonarr_instance_id: 1,
     plex_user_id: null,
     plex_username: null,
+    season_episode_counts: null,
     created_at: '2026-02-09T00:00:00Z',
     updated_at: '2026-02-09T00:00:00Z',
     last_updated_at: '2026-02-09T00:00:00Z',
@@ -426,6 +427,42 @@ describe('SessionMonitoringPage', () => {
       viewerRows.map((row) => within(row).getAllByRole('cell')[0]?.textContent),
     ).toEqual(['Lukaslukas.admin', 'Maya R.mayar88'])
     expect(within(region).getByText('Season 2, episode 7')).toBeInTheDocument()
+  })
+
+  it('draws no track for a viewer whose season length is unknown', async () => {
+    mockEndpoints()
+    renderPage()
+
+    const { region } = await openViewers('Severance viewers')
+    expect(
+      within(region).queryByRole('button', { name: /^Season / }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('tracks a viewer through the season up to the trigger', async () => {
+    const trigger = 10 - SAVED.remainingEpisodes
+    mockEndpoints({
+      shows: rolling.map((show) =>
+        show.id === severance.id
+          ? { ...show, season_episode_counts: { 2: 10 } }
+          : show,
+      ),
+    })
+    renderPage()
+
+    const { region } = await openViewers('Severance viewers')
+    const bar = within(region).getByRole('button', {
+      name: 'Season 2: Episode 7 of 10',
+    })
+    expect(bar.querySelector('[data-slot="stat-bar-fill"]')).toHaveStyle({
+      width: '70%',
+    })
+    expect(
+      bar.parentElement?.querySelector('[data-slot="stat-bar-marker"]'),
+    ).toHaveStyle({ left: `calc(${trigger * 10}% - 1px)` })
+    expect(
+      within(region).getAllByText(`Next season grabs at episode ${trigger}`),
+    ).toHaveLength(2)
   })
 
   it('reads Pilots only for an all season pilot show at season 0', async () => {

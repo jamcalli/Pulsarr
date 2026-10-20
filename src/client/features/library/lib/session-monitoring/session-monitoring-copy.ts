@@ -1,5 +1,9 @@
 import { SEASON_MONITORING_LABELS } from '@root/schemas/sonarr/season-monitoring.schema'
 import { ROLLING_MODE_START } from '@/features/library/lib/session-monitoring/rolling-labels'
+import type {
+  SeasonTrigger,
+  TriggerState,
+} from '@/features/library/lib/session-monitoring/season-progress'
 import {
   formatCount,
   formatDate,
@@ -61,8 +65,38 @@ export function enrolledLine(instanceName: string, createdAt: string): string {
   return `On ${instanceName}, enrolled ${formatDate(Date.parse(createdAt))}.`
 }
 
+export function seasonName(season: number): string {
+  return `Season ${formatNumber(season)}`
+}
+
 export function viewerProgress(season: number, episode: number): string {
-  return `Season ${formatNumber(season)}, episode ${formatNumber(episode)}`
+  return `${seasonName(season)}, episode ${formatNumber(episode)}`
+}
+
+export function episodeOfTotal(episode: number, total: number): string {
+  return `Episode ${formatNumber(episode)} of ${formatNumber(total)}`
+}
+
+function episodeTriggerLine(episode: number, state: TriggerState): string {
+  switch (state) {
+    case 'pending':
+      return `Next season grabs at episode ${formatNumber(episode)}`
+    case 'grabbed':
+      return 'Next season grabbed'
+    case 'passed':
+      return 'No next season in Sonarr yet'
+  }
+}
+
+export function triggerLine(trigger: SeasonTrigger): string | null {
+  switch (trigger.kind) {
+    case 'episode':
+      return episodeTriggerLine(trigger.episode, trigger.state)
+    case 'pilot':
+      return 'Next season grabs when its pilot is watched'
+    case 'none':
+      return null
+  }
 }
 
 /** Names up to six shows, then counts them. */

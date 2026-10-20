@@ -242,6 +242,9 @@ export interface PlexEpisodeMetadata {
   updatedAt?: number
 }
 
+/** Total episodes per season number, unaired included, specials excluded. */
+export type SeasonEpisodeCounts = Record<string, number>
+
 /**
  * Rolling monitoring tracking data
  */
@@ -260,6 +263,8 @@ export interface RollingMonitoredShow {
   plex_user_id?: string
   plex_username?: string
   plex_user_uuid?: string | null
+  /** Null on per-user rows read from the DB until the session monitor overlays the master row map. */
+  season_episode_counts: SeasonEpisodeCounts | null
   created_at: string
   updated_at: string
   last_updated_at: string

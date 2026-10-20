@@ -4983,6 +4983,20 @@
               "null"
             ]
           },
+          "season_episode_counts": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {
+                  "type": "number"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_at": {
             "type": "string"
           },
@@ -5002,6 +5016,7 @@
           "last_watched_season",
           "last_watched_episode",
           "sonarr_instance_id",
+          "season_episode_counts",
           "created_at",
           "updated_at",
           "last_updated_at"

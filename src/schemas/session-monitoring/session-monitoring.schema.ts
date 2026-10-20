@@ -20,6 +20,7 @@ const RollingMonitoredShowSchema = z
     plex_user_id: z.string().nullish(),
     plex_username: z.string().nullish(),
     plex_user_uuid: z.string().nullish(),
+    season_episode_counts: z.object({}).catchall(z.number()).nullable(),
     created_at: z.string(),
     updated_at: z.string(),
     last_updated_at: z.string(),
