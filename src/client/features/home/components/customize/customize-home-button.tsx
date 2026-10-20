@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CustomizeHomeDialog } from '@/features/home/components/customize/customize-home-dialog'
 import type { HomeLayoutState } from '@/features/home/hooks/useHomeLayout'
+
+const CustomizeHomeDialog = lazy(
+  () => import('@/features/home/components/customize/customize-home-dialog'),
+)
 
 export function CustomizeHomeButton({
   homeLayout,
@@ -9,21 +12,25 @@ export function CustomizeHomeButton({
   homeLayout: HomeLayoutState
 }) {
   const [open, setOpen] = useState(false)
+  const [opened, setOpened] = useState(false)
+  const openDialog = () => {
+    setOpened(true)
+    setOpen(true)
+  }
   return (
     <>
-      <Button
-        type="button"
-        variant="neutral"
-        size="sm"
-        onClick={() => setOpen(true)}
-      >
+      <Button type="button" variant="neutral" size="sm" onClick={openDialog}>
         Customize
       </Button>
-      <CustomizeHomeDialog
-        open={open}
-        onOpenChange={setOpen}
-        homeLayout={homeLayout}
-      />
+      {opened && (
+        <Suspense fallback={null}>
+          <CustomizeHomeDialog
+            open={open}
+            onOpenChange={setOpen}
+            homeLayout={homeLayout}
+          />
+        </Suspense>
+      )}
     </>
   )
 }

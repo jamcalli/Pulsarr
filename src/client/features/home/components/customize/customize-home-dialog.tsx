@@ -33,7 +33,7 @@ interface CustomizeHomeDialogProps {
   homeLayout: HomeLayoutState
 }
 
-export function CustomizeHomeDialog({
+export default function CustomizeHomeDialog({
   open,
   onOpenChange,
   homeLayout,

@@ -6,7 +6,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CustomizeHomeDialog } from '@/features/home/components/customize/customize-home-dialog'
+import CustomizeHomeDialog from '@/features/home/components/customize/customize-home-dialog'
 import { useHomeLayout } from '@/features/home/hooks/useHomeLayout'
 import { HOME_CARDS } from '@/features/home/lib/home-cards'
 import {
