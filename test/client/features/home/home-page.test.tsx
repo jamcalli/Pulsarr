@@ -77,4 +77,51 @@ describe('HomePage', () => {
       screen.queryByRole('heading', { name: 'Home' }),
     ).not.toBeInTheDocument()
   })
+  it('shows one alert for every stats card when stats fail to load', async () => {
+    server.use(
+      http.get('/v1/stats/all', () =>
+        HttpResponse.json(
+          { statusCode: 500, error: 'Internal Server Error', message: 'boom' },
+          { status: 500 },
+        ),
+      ),
+      http.get('/v1/stats/recent-requests', () =>
+        HttpResponse.json({ success: true, items: [] }),
+      ),
+      http.get('/v1/stats/users', () => HttpResponse.json([])),
+      http.get('/v1/stats/genres', () => HttpResponse.json([])),
+      http.get('/v1/approval/requests', () =>
+        HttpResponse.json({
+          success: true,
+          message: 'ok',
+          approvalRequests: [],
+          total: 0,
+          limit: 5,
+          offset: 0,
+        }),
+      ),
+      http.get('/v1/approval/stats', () =>
+        HttpResponse.json({
+          success: true,
+          message: 'ok',
+          stats: {
+            pending: 0,
+            approved: 0,
+            rejected: 0,
+            expired: 0,
+            auto_approved: 0,
+            totalRequests: 0,
+          },
+        }),
+      ),
+    )
+    renderPage()
+
+    expect(
+      await screen.findByRole('alert', {}, { timeout: 3000 }),
+    ).toHaveTextContent('boom')
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(screen.queryByText('Popularity rankings')).not.toBeInTheDocument()
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeInTheDocument()
+  })
 })

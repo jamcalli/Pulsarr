@@ -1,7 +1,13 @@
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { ErrorAlert } from '@/components/error-alert'
 import { StatBar, StatBarList, StatBarSkeleton } from '@/components/stat-bar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   OverflowList,
   OverflowSummarySkeleton,
@@ -89,6 +95,7 @@ export function TopGenresCard({ topGenres }: { topGenres: TopGenres }) {
     <Card>
       <CardHeader>
         <CardTitle>Top genres</CardTitle>
+        <CardDescription>{rangeLabel(topGenres.days)}</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 gap-4">{content}</CardContent>
     </Card>
@@ -98,7 +105,7 @@ export function TopGenresCard({ topGenres }: { topGenres: TopGenres }) {
 export function TopGenresCardSkeleton() {
   return (
     <Card>
-      <CardHeaderSkeleton />
+      <CardHeaderSkeleton description />
       <CardContent className="flex-1 gap-4">
         <TopGenresSkeleton />
       </CardContent>

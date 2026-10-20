@@ -55,7 +55,7 @@ function renderCard() {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <NotificationsCard stats={stats} />
+        <NotificationsCard days={30} stats={stats} />
       </MemoryRouter>
     </QueryClientProvider>,
   )

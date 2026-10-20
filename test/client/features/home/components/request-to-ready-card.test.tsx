@@ -31,7 +31,7 @@ describe('RequestToReadyCard', () => {
   afterEach(() => setFormatLocale(undefined))
 
   it('compares the two types when both have data', () => {
-    render(<RequestToReadyCard times={[movie, show]} />)
+    render(<RequestToReadyCard days={30} times={[movie, show]} />)
 
     expect(
       screen.getByText('Movies are ready about 8 min sooner than shows.'),
@@ -42,7 +42,9 @@ describe('RequestToReadyCard', () => {
   })
 
   it('shows only the measured type and no comparison with one type', () => {
-    render(<RequestToReadyCard times={[movie, { ...show, count: 0 }]} />)
+    render(
+      <RequestToReadyCard days={30} times={[movie, { ...show, count: 0 }]} />,
+    )
 
     expect(screen.getByText('Movies')).toBeInTheDocument()
     expect(screen.queryByText('Shows')).not.toBeInTheDocument()
@@ -50,7 +52,7 @@ describe('RequestToReadyCard', () => {
   })
 
   it('draws no rows and no headline with no measured types', () => {
-    render(<RequestToReadyCard times={[]} />)
+    render(<RequestToReadyCard days={30} times={[]} />)
 
     expect(screen.queryByText('Movies')).not.toBeInTheDocument()
     expect(screen.queryByText('Shows')).not.toBeInTheDocument()
@@ -60,6 +62,7 @@ describe('RequestToReadyCard', () => {
   it('counts requests still waiting when none became ready', () => {
     render(
       <RequestToReadyCard
+        days={30}
         times={[
           { ...movie, count: 0, pending: 2 },
           { ...show, count: 0 },

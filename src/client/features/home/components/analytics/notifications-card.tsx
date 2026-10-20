@@ -6,6 +6,7 @@ import {
   Card,
   CardAction,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -18,6 +19,7 @@ import {
   NOTIFICATION_CHANNELS,
   NOTIFICATION_FAMILIES,
 } from '@/features/home/lib/notification-labels'
+import { rangeLabel } from '@/features/home/lib/range-label'
 import { formatCount } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
@@ -93,7 +95,13 @@ function TypeFamiliesSkeleton() {
   ))
 }
 
-export function NotificationsCard({ stats }: { stats: NotificationStats }) {
+export function NotificationsCard({
+  days,
+  stats,
+}: {
+  days: number
+  stats: NotificationStats
+}) {
   const webhookConfigured = useNativeWebhookConfigured()
   const total = stats?.total_notifications ?? 0
 
@@ -149,6 +157,7 @@ export function NotificationsCard({ stats }: { stats: NotificationStats }) {
     <Card>
       <CardHeader>
         <CardTitle>Notifications</CardTitle>
+        <CardDescription>{rangeLabel(days)}</CardDescription>
         {total > 0 && (
           <CardAction className="text-muted-foreground">
             {formatCount(total, 'notification')}
@@ -163,7 +172,10 @@ export function NotificationsCard({ stats }: { stats: NotificationStats }) {
 export function NotificationsCardSkeleton() {
   return (
     <Card>
-      <CardHeaderSkeleton action={<Skeleton className="h-4 w-20" />} />
+      <CardHeaderSkeleton
+        description
+        action={<Skeleton className="h-4 w-20" />}
+      />
       <CardContent className="gap-5">
         <div className="flex flex-col gap-3">
           <Skeleton className="h-4 w-28" />
