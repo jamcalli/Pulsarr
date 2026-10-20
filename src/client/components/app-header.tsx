@@ -1,4 +1,4 @@
-import { BookOpen, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowUpRight, CircleHelp, Maximize2, Minimize2 } from 'lucide-react'
 import { Fragment } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -10,10 +10,16 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useSettings } from '@/hooks/useSettings'
-import { breadcrumbFor, DOCS_URL } from '@/lib/navigation'
+import { breadcrumbFor, HELP_LINKS } from '@/lib/navigation'
 import { useBreadcrumbStore } from '@/stores/breadcrumbStore'
 
 export function AppHeader() {
@@ -74,15 +80,34 @@ export function AppHeader() {
         )}
         <span className="sr-only">{frameLabel}</span>
       </Button>
-      <a
-        href={DOCS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={buttonVariants({ variant: 'ghost', size: 'icon' })}
-      >
-        <BookOpen aria-hidden="true" />
-        <span className="sr-only">Documentation</span>
-      </a>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
+          <CircleHelp aria-hidden="true" />
+          <span className="sr-only">Help</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={8}
+          className="w-52 max-w-(--available-width)"
+        >
+          {HELP_LINKS.map(({ label, href, icon: Icon }) => (
+            <DropdownMenuItem
+              key={href}
+              render={
+                <a href={href} target="_blank" rel="noopener noreferrer" />
+              }
+            >
+              <Icon />
+              {label}
+              <ArrowUpRight
+                className="ml-auto text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="sr-only">(opens in a new tab)</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   )
 }

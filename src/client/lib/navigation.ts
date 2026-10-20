@@ -169,12 +169,12 @@ export const HELP_LINKS: readonly {
   href: string
   icon: LucideIcon
 }[] = [
+  { label: 'Documentation', href: DOCS_URL, icon: BookOpen },
   {
     label: 'Discord',
     href: 'https://discord.com/invite/9csTEJn5cR',
     icon: MessagesSquare,
   },
-  { label: 'Documentation', href: DOCS_URL, icon: BookOpen },
   {
     label: 'GitHub issues',
     href: 'https://github.com/jamcalli/Pulsarr/issues',

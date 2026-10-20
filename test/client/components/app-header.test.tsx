@@ -1,9 +1,11 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { AppHeader } from '@/components/app-header'
 import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import { HELP_LINKS } from '@/lib/navigation'
 import { useBreadcrumbStore } from '@/stores/breadcrumbStore'
 
 function renderHeader(path: string) {
@@ -64,5 +66,24 @@ describe('AppHeader', () => {
       'aria-current',
       'page',
     )
+  })
+
+  it('opens every help link in a new tab from the help menu', async () => {
+    const user = userEvent.setup()
+    renderHeader('/')
+
+    expect(
+      screen.queryByRole('link', { name: /Documentation/ }),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Help' }))
+
+    for (const { label, href } of HELP_LINKS) {
+      const link = await screen.findByRole('menuitem', {
+        name: `${label} (opens in a new tab)`,
+      })
+      expect(link).toHaveAttribute('href', href)
+      expect(link).toHaveAttribute('target', '_blank')
+    }
   })
 })
