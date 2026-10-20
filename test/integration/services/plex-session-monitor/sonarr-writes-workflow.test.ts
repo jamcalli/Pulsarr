@@ -391,7 +391,7 @@ describe('Session monitoring Sonarr writes', () => {
     })
 
     it('monitors and searches the next season near the end of the current one', async () => {
-      const { viewerId } = await seedShow('firstSeasonRolling', {
+      const { masterId, viewerId } = await seedShow('firstSeasonRolling', {
         last_watched_season: 1,
         last_watched_episode: 1,
       })
@@ -430,10 +430,13 @@ describe('Session monitoring Sonarr writes', () => {
         last_watched_season: 1,
         last_watched_episode: 2,
       })
+      expect(await rowById(masterId)).toMatchObject({
+        current_monitored_season: 2,
+      })
     })
 
-    it('tells Sonarr nothing when the next season is already fully monitored', async () => {
-      const { viewerId } = await seedShow('firstSeasonRolling', {
+    it('raises the marks without telling Sonarr when the next season is already fully monitored', async () => {
+      const { masterId, viewerId } = await seedShow('firstSeasonRolling', {
         last_watched_season: 1,
         last_watched_episode: 1,
       })
@@ -444,8 +447,12 @@ describe('Session monitoring Sonarr writes', () => {
 
       expect(writes).toEqual([])
       expect(result.triggeredSearches).toBe(0)
+      expect(result.rollingUpdates).toEqual([])
       expect(await rowById(viewerId)).toMatchObject({
-        current_monitored_season: 1,
+        current_monitored_season: 2,
+      })
+      expect(await rowById(masterId)).toMatchObject({
+        current_monitored_season: 2,
       })
     })
 
@@ -479,8 +486,8 @@ describe('Session monitoring Sonarr writes', () => {
       })
     })
 
-    it('tells Sonarr nothing when the empty next season was already monitored ahead', async () => {
-      await seedShow('firstSeasonRolling', {
+    it('raises the master without telling Sonarr when the empty next season was already monitored ahead', async () => {
+      const { masterId, viewerId } = await seedShow('firstSeasonRolling', {
         last_watched_season: 3,
         last_watched_episode: 2,
         current_monitored_season: 4,
@@ -492,6 +499,12 @@ describe('Session monitoring Sonarr writes', () => {
 
       expect(writes).toEqual([])
       expect(result.rollingUpdates).toEqual([])
+      expect(await rowById(viewerId)).toMatchObject({
+        current_monitored_season: 4,
+      })
+      expect(await rowById(masterId)).toMatchObject({
+        current_monitored_season: 4,
+      })
     })
 
     it('expands season 1 when a pilotRolling viewer watches S01E01', async () => {

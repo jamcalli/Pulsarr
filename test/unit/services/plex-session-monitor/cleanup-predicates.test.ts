@@ -21,6 +21,7 @@ function makeUser(
     last_session_date: '2026-05-23T00:00:00Z',
     sonarr_instance_id: 1,
     plex_user_id: 'u1',
+    season_episode_counts: null,
     created_at: '2026-05-22T00:00:00Z',
     updated_at: '2026-05-23T00:00:00Z',
     last_updated_at: '2026-05-23T00:00:00Z',

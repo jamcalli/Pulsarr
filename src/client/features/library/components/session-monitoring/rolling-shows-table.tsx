@@ -10,9 +10,14 @@ import type { RollingShowRow } from '@/features/library/lib/session-monitoring/r
 interface RollingShowsTableProps {
   page: SessionMonitoringPage
   rows: RollingShowRow[]
+  remainingEpisodes: number
 }
 
-export function RollingShowsTable({ page, rows }: RollingShowsTableProps) {
+export function RollingShowsTable({
+  page,
+  rows,
+  remainingEpisodes,
+}: RollingShowsTableProps) {
   const { sort, dir } = page.state
 
   return (
@@ -33,6 +38,7 @@ export function RollingShowsTable({ page, rows }: RollingShowsTableProps) {
       renderExpanded={(row) => (
         <RollingShowDetail
           row={row}
+          remainingEpisodes={remainingEpisodes}
           onStop={() => page.openConfirm({ kind: 'stop', row })}
           onReset={() => page.openConfirm({ kind: 'reset', row })}
         />

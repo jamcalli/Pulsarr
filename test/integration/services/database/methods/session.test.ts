@@ -16,6 +16,20 @@ const stella = (overrides: Partial<RollingMonitoredShow> = {}) =>
     ...overrides,
   })
 
+async function addSecondSonarrInstance() {
+  const db = getTestDatabase()
+  const [sonarr] = await db('sonarr_instances').where({ id: 1 })
+  await db('sonarr_instances').insert({
+    ...sonarr,
+    id: 2,
+    name: 'Sonarr 4K',
+    base_url: 'http://sonarr-4k:8989',
+  })
+  await db('sqlite_sequence')
+    .where({ name: 'sonarr_instances' })
+    .update({ seq: 2 })
+}
+
 describe('session database methods', () => {
   let fastify: FastifyInstance
 
@@ -111,17 +125,7 @@ describe('session database methods', () => {
     })
 
     it('matches the same show on two instances by title', async () => {
-      const db = getTestDatabase()
-      const [sonarr] = await db('sonarr_instances').where({ id: 1 })
-      await db('sonarr_instances').insert({
-        ...sonarr,
-        id: 2,
-        name: 'Sonarr 4K',
-        base_url: 'http://sonarr-4k:8989',
-      })
-      await db('sqlite_sequence')
-        .where({ name: 'sonarr_instances' })
-        .update({ seq: 2 })
+      await addSecondSonarrInstance()
       const first = await stella({ tvdb_id: '371980' })
       const second = await stella({ tvdb_id: '371980', sonarr_instance_id: 2 })
 
@@ -196,6 +200,44 @@ describe('session database methods', () => {
       )
 
       expect(second).toBe(first)
+    })
+  })
+
+  describe('updateRollingShowMonitoredSeason', () => {
+    const seasonOf = async (id: number) =>
+      (await fastify.db.getRollingMonitoredShowById(id))
+        ?.current_monitored_season
+
+    it('raises the viewer row and its master but never lowers them', async () => {
+      await addSecondSonarrInstance()
+      const master = await stella()
+      const viewer = await stella({
+        plex_user_id: 'u_nicole',
+        plex_username: 'nicole3876',
+      })
+      const otherViewer = await stella({
+        plex_user_id: 'u_mayar',
+        plex_username: 'mayar88',
+      })
+      const otherInstanceMaster = await stella({ sonarr_instance_id: 2 })
+
+      expect(await fastify.db.updateRollingShowMonitoredSeason(viewer, 3)).toBe(
+        true,
+      )
+      expect(await fastify.db.updateRollingShowMonitoredSeason(viewer, 2)).toBe(
+        true,
+      )
+
+      expect(await seasonOf(viewer)).toBe(3)
+      expect(await seasonOf(master)).toBe(3)
+      expect(await seasonOf(otherViewer)).toBe(1)
+      expect(await seasonOf(otherInstanceMaster)).toBe(1)
+    })
+
+    it('is false for a missing row', async () => {
+      expect(await fastify.db.updateRollingShowMonitoredSeason(999, 2)).toBe(
+        false,
+      )
     })
   })
 })

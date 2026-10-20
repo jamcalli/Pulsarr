@@ -57,6 +57,7 @@ function SessionMonitoring({
           page={page}
           enabled={settings.enabled}
           inactivityDays={settings.inactivityResetDays}
+          remainingEpisodes={settings.remainingEpisodes}
           onManage={enrollment.openCredenza}
         />
       )}

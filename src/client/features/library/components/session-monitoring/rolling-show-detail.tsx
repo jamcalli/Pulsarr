@@ -1,10 +1,15 @@
 import { ActionGroup } from '@/components/action-group'
 import { ResultsTableHeader } from '@/components/settings/action-results'
+import { StatBar } from '@/components/stat-bar'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import type { RollingShowRow } from '@/features/library/lib/session-monitoring/rolling-shows'
+import { seasonProgress } from '@/features/library/lib/session-monitoring/season-progress'
 import {
   enrolledLine,
+  episodeOfTotal,
+  seasonName,
+  triggerLine,
   viewerProgress,
 } from '@/features/library/lib/session-monitoring/session-monitoring-copy'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
@@ -18,11 +23,19 @@ const VIEWER_COLUMNS = [
 
 interface RollingShowDetailProps {
   row: RollingShowRow
+  /** The saved setting with its default applied. */
+  remainingEpisodes: number
   onStop: () => void
   onReset: () => void
 }
 
-function ViewerTable({ row }: { row: RollingShowRow }) {
+function ViewerTable({
+  row,
+  remainingEpisodes,
+}: {
+  row: RollingShowRow
+  remainingEpisodes: number
+}) {
   const { lookup } = useUserDirectory()
 
   return (
@@ -35,6 +48,24 @@ function ViewerTable({ row }: { row: RollingShowRow }) {
           const when = viewer.last_session_date
             ? formatRelative(new Date(viewer.last_session_date))
             : null
+          const progress = seasonProgress(row.record, viewer, remainingEpisodes)
+          const position = progress ? (
+            <StatBar
+              label={seasonName(viewer.last_watched_season)}
+              value={progress.episode}
+              total={progress.total}
+              valueText={episodeOfTotal(progress.episode, progress.total)}
+              color="chart-show"
+              showPercent={false}
+              detail={triggerLine(progress.trigger)}
+              marker={progress.marker}
+            />
+          ) : (
+            viewerProgress(
+              viewer.last_watched_season,
+              viewer.last_watched_episode,
+            )
+          )
           return (
             <TableRow key={viewer.id}>
               <TableCell>
@@ -45,12 +76,7 @@ function ViewerTable({ row }: { row: RollingShowRow }) {
                   )}
                 </div>
               </TableCell>
-              <TableCell>
-                {viewerProgress(
-                  viewer.last_watched_season,
-                  viewer.last_watched_episode,
-                )}
-              </TableCell>
+              <TableCell>{position}</TableCell>
               <TableCell>{when}</TableCell>
             </TableRow>
           )
@@ -62,12 +88,13 @@ function ViewerTable({ row }: { row: RollingShowRow }) {
 
 export function RollingShowDetail({
   row,
+  remainingEpisodes,
   onStop,
   onReset,
 }: RollingShowDetailProps) {
   const viewers =
     row.viewers.length > 0 ? (
-      <ViewerTable row={row} />
+      <ViewerTable row={row} remainingEpisodes={remainingEpisodes} />
     ) : (
       <p className="text-muted-foreground">
         Nobody has watched it since it was enrolled.

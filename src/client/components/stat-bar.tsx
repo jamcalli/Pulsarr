@@ -44,6 +44,8 @@ interface StatBarProps {
   /** Replaces the plain number shown for `value`. */
   valueText?: string
   showPercent?: boolean
+  /** Draws a vertical line at this point on the `total` scale. */
+  marker?: number
 }
 
 export function StatBar({
@@ -55,8 +57,11 @@ export function StatBar({
   detail,
   valueText = formatNumber(value),
   showPercent = true,
+  marker,
 }: StatBarProps) {
   const ratio = total > 0 ? Math.min(value / total, 1) : 0
+  const markerRatio =
+    marker !== undefined && total > 0 ? Math.min(marker / total, 1) : null
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -66,32 +71,42 @@ export function StatBar({
         valueText={valueText}
         percentText={showPercent ? formatPercent(ratio) : undefined}
       />
-      <ChartTooltip
-        label={label}
-        value={valueText}
-        detail={showPercent ? formatPercent(ratio) : undefined}
-        color={color}
-        trackCursorAxis="x"
-        render={
-          <button
-            type="button"
-            data-slot="stat-bar-track"
-            aria-label={`${label}: ${valueText}`}
-            className="block h-3 w-full overflow-hidden rounded-sm bg-chart-track outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0 transition-opacity pointer-fine:group-has-[[data-slot=stat-bar-track]:hover]/stat-list:not-hover:opacity-60 group-has-[[data-slot=stat-bar-track]:focus-visible]/stat-list:not-focus-visible:opacity-60"
-          >
-            {ratio > 0 && (
-              <span
-                data-slot="stat-bar-fill"
-                className={cn(
-                  'block h-full min-w-2 rounded-r-sm border-2 border-border',
-                  CHART_FILL[color],
-                )}
-                style={{ width: `${ratio * 100}%` }}
-              />
-            )}
-          </button>
-        }
-      />
+      <div className="relative">
+        <ChartTooltip
+          label={label}
+          value={valueText}
+          detail={showPercent ? formatPercent(ratio) : undefined}
+          color={color}
+          trackCursorAxis="x"
+          render={
+            <button
+              type="button"
+              data-slot="stat-bar-track"
+              aria-label={`${label}: ${valueText}`}
+              className="block h-3 w-full overflow-hidden rounded-sm bg-chart-track outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0 transition-opacity pointer-fine:group-has-[[data-slot=stat-bar-track]:hover]/stat-list:not-hover:opacity-60 group-has-[[data-slot=stat-bar-track]:focus-visible]/stat-list:not-focus-visible:opacity-60"
+            >
+              {ratio > 0 && (
+                <span
+                  data-slot="stat-bar-fill"
+                  className={cn(
+                    'block h-full min-w-2 rounded-r-sm border-2 border-border',
+                    CHART_FILL[color],
+                  )}
+                  style={{ width: `${ratio * 100}%` }}
+                />
+              )}
+            </button>
+          }
+        />
+        {markerRatio !== null && (
+          <span
+            data-slot="stat-bar-marker"
+            aria-hidden
+            className="pointer-events-none absolute -inset-y-1 w-0.5 bg-foreground"
+            style={{ left: `calc(${markerRatio * 100}% - 1px)` }}
+          />
+        )}
+      </div>
       {detail && <div className="text-xs text-muted-foreground">{detail}</div>}
     </div>
   )

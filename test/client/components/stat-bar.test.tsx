@@ -26,6 +26,32 @@ describe('StatBar', () => {
     expect(fill).toHaveStyle({ width: '25%' })
   })
 
+  it('draws the marker at its point on the total scale', () => {
+    const { container } = render(
+      <StatBar
+        label="Season 2"
+        value={3}
+        total={10}
+        color="chart-show"
+        marker={8}
+      />,
+    )
+
+    expect(
+      container.querySelector('[data-slot="stat-bar-marker"]'),
+    ).toHaveStyle({ left: 'calc(80% - 1px)' })
+  })
+
+  it('draws no marker unless one is given', () => {
+    const { container } = render(
+      <StatBar label="Shows" value={1} total={4} color="chart-show" />,
+    )
+
+    expect(
+      container.querySelector('[data-slot="stat-bar-marker"]'),
+    ).not.toBeInTheDocument()
+  })
+
   it('draws no fill and 0% when the total is zero', () => {
     const { container } = render(
       <StatBar label="Shows" value={0} total={0} color="chart-show" />,

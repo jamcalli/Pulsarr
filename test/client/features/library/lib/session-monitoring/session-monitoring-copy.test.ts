@@ -3,9 +3,13 @@ import {
   checkSummary,
   enrollmentFailure,
   enrollmentSummary,
+  episodeOfTotal,
   liveConnectionLine,
   namedShows,
   resetShowCopy,
+  seasonName,
+  triggerLine,
+  viewerProgress,
 } from '@/features/library/lib/session-monitoring/session-monitoring-copy'
 import { setFormatLocale } from '@/lib/format'
 
@@ -18,6 +22,28 @@ describe('session monitoring copy', () => {
       'Live connection down. Polling every 1 minute until it is back.',
     )
     expect(liveConnectionLine('connected', 15)).toContain('15 minutes')
+  })
+
+  it('formats the season position', () => {
+    expect(viewerProgress(2, 5)).toBe('Season 2, episode 5')
+    expect(seasonName(2)).toBe('Season 2')
+    expect(episodeOfTotal(5, 10)).toBe('Episode 5 of 10')
+  })
+
+  it('names the trigger for each kind', () => {
+    expect(triggerLine({ kind: 'episode', episode: 8, state: 'pending' })).toBe(
+      'Next season grabs at episode 8',
+    )
+    expect(triggerLine({ kind: 'episode', episode: 8, state: 'grabbed' })).toBe(
+      'Next season grabbed',
+    )
+    expect(triggerLine({ kind: 'episode', episode: 8, state: 'passed' })).toBe(
+      'No next season in Sonarr yet',
+    )
+    expect(triggerLine({ kind: 'pilot' })).toBe(
+      'Next season grabs when its pilot is watched',
+    )
+    expect(triggerLine({ kind: 'none' })).toBeNull()
   })
 
   it('counts a check result', () => {

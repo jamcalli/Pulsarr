@@ -3,6 +3,7 @@ import type {
   NewRollingMonitoredShow,
   RollingMonitoredShow,
   RollingShowMatches,
+  SeasonEpisodeCounts,
 } from '@root/types/plex-session.types.js'
 
 declare module '@services/database.service.js' {
@@ -46,6 +47,14 @@ declare module '@services/database.service.js' {
       episode: number,
     ): Promise<boolean>
 
+    /** False when the series has no master row on that instance or the write fails. */
+    updateRollingShowSeasonEpisodeCounts(
+      sonarrSeriesId: number,
+      sonarrInstanceId: number,
+      counts: SeasonEpisodeCounts,
+    ): Promise<boolean>
+
+    /** Raises the mark on that row and its master row, never lowering either, false when the row is missing or the write fails. */
     updateRollingShowMonitoredSeason(
       id: number,
       season: number,
