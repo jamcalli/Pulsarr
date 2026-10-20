@@ -231,10 +231,11 @@ export function createDeleteSyncEmbed(
     .filter(Boolean)
     .join('\n\n')
 
+  const deletedLabel = summary.dryRun ? 'Would delete' : 'Deleted'
   const fields: EmbedField[] = [
     {
       name: 'Summary',
-      value: `Processed: ${summary.totals.processed} items\nDeleted: ${summary.totals.deleted} items\nSkipped: ${summary.totals.skipped} items${summary.totals.protected ? `\nProtected: ${summary.totals.protected} items` : ''}`,
+      value: `Processed: ${summary.totals.processed} items\n${deletedLabel}: ${summary.totals.deleted} items\nSkipped: ${summary.totals.skipped} items${summary.totals.protected ? `\nProtected: ${summary.totals.protected} items` : ''}`,
       inline: false,
     },
   ]

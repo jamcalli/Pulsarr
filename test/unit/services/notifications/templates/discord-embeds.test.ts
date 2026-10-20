@@ -314,6 +314,8 @@ describe('discord-embeds', () => {
       expect(embed.description).toBe(
         'This was a dry run, so nothing was deleted.',
       )
+      expect(embed.fields?.[0]?.value).toContain('Would delete: ')
+      expect(embed.fields?.[0]?.value).not.toContain('Deleted: ')
     })
 
     it('should title a safety triggered run and colour it red', () => {
