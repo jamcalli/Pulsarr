@@ -7,6 +7,7 @@ import {
 } from '@/components/range-bar'
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -21,6 +22,7 @@ import {
   toUnit,
   unitWord,
 } from '@/features/home/lib/duration'
+import { rangeLabel } from '@/features/home/lib/range-label'
 import type { ChartColor } from '@/lib/chart-colors'
 import { formatCount, formatNumber } from '@/lib/format'
 import type { components } from '@/types/api.js'
@@ -55,7 +57,13 @@ function comparison(
     : `${faster.label} are ready about ${duration(gap, unit)} sooner than ${slower.label.toLowerCase()}.`
 }
 
-export function RequestToReadyCard({ times }: { times: ReadyTime[] }) {
+export function RequestToReadyCard({
+  days,
+  times,
+}: {
+  days: number
+  times: ReadyTime[]
+}) {
   const measured = CONTENT_TYPES.flatMap((contentType) => {
     const time = times.find(
       (row) => row.content_type === contentType.type && row.count > 0,
@@ -129,6 +137,9 @@ export function RequestToReadyCard({ times }: { times: ReadyTime[] }) {
         <CardDescription>
           From a request reaching Radarr or Sonarr to a file on disk
         </CardDescription>
+        <CardAction className="text-muted-foreground">
+          {rangeLabel(days)}
+        </CardAction>
       </CardHeader>
       <CardContent className="gap-4">{content}</CardContent>
     </Card>
@@ -138,7 +149,10 @@ export function RequestToReadyCard({ times }: { times: ReadyTime[] }) {
 export function RequestToReadyCardSkeleton() {
   return (
     <Card>
-      <CardHeaderSkeleton description />
+      <CardHeaderSkeleton
+        description
+        action={<Skeleton className="h-4 w-20" />}
+      />
       <CardContent className="gap-4">
         <Skeleton className="h-9 w-28" />
         <div className="flex flex-col gap-3">

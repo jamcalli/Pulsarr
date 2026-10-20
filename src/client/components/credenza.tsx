@@ -1,6 +1,7 @@
 import { cn } from 'cn'
 import type * as React from 'react'
 import { createContext, useContext } from 'react'
+import { ScrollBody } from '@/components/scroll-body'
 import {
   Dialog,
   DialogClose,
@@ -22,7 +23,6 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { useScrollEdges } from '@/hooks/useScrollEdges'
 
 const CredenzaMobileContext = createContext(false)
 
@@ -121,23 +121,12 @@ function CredenzaDescription(props: CredenzaPartProps) {
   return <Description {...props} />
 }
 
-/** Scrolls on its own so the header and footer stay in view, with a divider on each edge that has more content past it. */
 function CredenzaBody({ className, children }: CredenzaPartProps) {
   const isMobile = useContext(CredenzaMobileContext)
-  const edges = useScrollEdges<HTMLDivElement>()
   return (
-    <div
-      ref={edges.ref}
-      onScroll={edges.onScroll}
-      className={cn(
-        'relative min-h-0 overflow-y-auto border-y border-transparent',
-        isMobile ? 'px-4 py-2' : '-mx-6 -my-1 px-6 py-1',
-        edges.canScrollUp && 'border-t-divider',
-        edges.canScrollDown && 'border-b-divider',
-      )}
-    >
-      <div className={className}>{children}</div>
-    </div>
+    <ScrollBody inset={isMobile ? 'drawer' : 'dialog'} className={className}>
+      {children}
+    </ScrollBody>
   )
 }
 

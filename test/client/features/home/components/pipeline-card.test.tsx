@@ -35,7 +35,7 @@ describe('PipelineCard', () => {
   afterEach(() => setFormatLocale(undefined))
 
   it('counts each item once at the top and placements per instance', () => {
-    render(<PipelineCard statuses={statuses} instances={instances} />)
+    render(<PipelineCard days={30} statuses={statuses} instances={instances} />)
 
     expect(screen.getByText('2 requests')).toBeInTheDocument()
     expect(screen.queryByText('4 requests')).not.toBeInTheDocument()

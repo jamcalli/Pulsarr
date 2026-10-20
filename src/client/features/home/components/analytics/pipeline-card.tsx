@@ -7,10 +7,12 @@ import {
   Card,
   CardAction,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { rangeLabel } from '@/features/home/lib/range-label'
 import { formatCount, formatNumber, formatPercent } from '@/lib/format'
 import {
   REQUEST_STATUS_COLORS,
@@ -63,9 +65,11 @@ function sumOf(segments: Array<{ value: number }>): number {
 }
 
 export function PipelineCard({
+  days,
   statuses,
   instances = [],
 }: {
+  days: number
   statuses: StatusDistribution[]
   instances?: InstanceBreakdown[]
 }) {
@@ -130,6 +134,7 @@ export function PipelineCard({
     <Card>
       <CardHeader>
         <CardTitle>Request pipeline</CardTitle>
+        <CardDescription>{rangeLabel(days)}</CardDescription>
         {total > 0 && (
           <CardAction className="text-muted-foreground">
             {formatCount(total, 'request')}
@@ -144,7 +149,10 @@ export function PipelineCard({
 export function PipelineCardSkeleton() {
   return (
     <Card>
-      <CardHeaderSkeleton action={<Skeleton className="h-4 w-20" />} />
+      <CardHeaderSkeleton
+        description
+        action={<Skeleton className="h-4 w-20" />}
+      />
       <CardContent className="gap-5">
         <div className={STAGE_GRID}>
           {STAGES.map((stage) => (

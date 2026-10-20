@@ -1,3 +1,10 @@
+import {
+  DEFAULT_HOME_ROWS,
+  HOME_CARD_IDS,
+  type HomeCardId,
+  type HomeRow,
+  normalizeRows,
+} from '@/features/home/lib/home-layout'
 import { type PrefDef, parseOneOf, parseOneOfNumbers } from '@/lib/prefs'
 import { MEDIA_VIEWS, type MediaView } from '@/lib/request-list-prefs'
 
@@ -36,4 +43,61 @@ export const rankingViewPref: PrefDef<MediaView> = {
   fallback: 'carousel',
   parse: parseOneOf(MEDIA_VIEWS),
   serialize: (value) => value,
+}
+
+export interface HomeLayout {
+  rows: HomeCardId[][]
+  hidden: HomeCardId[]
+}
+
+function isHomeCardId(value: unknown): value is HomeCardId {
+  return HOME_CARD_IDS.some((id) => id === value)
+}
+
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((id) => typeof id === 'string')
+}
+
+/** Drops unknown and repeated ids and appends cards missing from both lists as their own rows, so cards added later still show. */
+export function parseHomeLayout(raw: string): HomeLayout | undefined {
+  try {
+    const parsed = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null) return undefined
+    const { rows, hidden } = parsed
+    if (!Array.isArray(rows) || !rows.every(isStringList)) return undefined
+    if (!isStringList(hidden)) return undefined
+    const placed = new Set<HomeCardId>()
+    const keptRows = rows
+      .map((row) =>
+        row.filter(isHomeCardId).filter((id) => {
+          if (placed.has(id)) return false
+          placed.add(id)
+          return true
+        }),
+      )
+      .filter((row) => row.length > 0)
+    const keptHidden = [...new Set(hidden.filter(isHomeCardId))]
+    const missing = HOME_CARD_IDS.filter(
+      (id) => !placed.has(id) && !keptHidden.includes(id),
+    )
+    return {
+      rows: [...keptRows, ...missing.map((id) => [id])],
+      hidden: keptHidden,
+    }
+  } catch {
+    return undefined
+  }
+}
+
+export const homeLayoutPref: PrefDef<HomeLayout> = {
+  key: 'pulsarr-home-layout',
+  fallback: { rows: DEFAULT_HOME_ROWS.map((row) => [...row]), hidden: [] },
+  parse: parseHomeLayout,
+  serialize: (value) => JSON.stringify(value),
+}
+
+export function visibleRows(layout: HomeLayout): HomeRow[] {
+  return normalizeRows(
+    layout.rows.map((row) => row.filter((id) => !layout.hidden.includes(id))),
+  )
 }

@@ -78,9 +78,13 @@
       "groupName": "UI kit",
       "matchPackageNames": [
         "@base-ui/react",
+        "@base-ui/utils",
         "shadcn",
         "lucide-react",
-        "embla-carousel-react"
+        "embla-carousel-react",
+        "@dnd-kit/core",
+        "@dnd-kit/sortable",
+        "@dnd-kit/utilities"
       ]
     },
     {
@@ -271,6 +275,7 @@
         "!tw-animate-css",
         "!/^@types//",
         "!@base-ui/react",
+        "!@base-ui/utils",
         "!/^@tanstack//",
         "!react",
         "!react-dom",
@@ -282,6 +287,11 @@
         "!happy-dom",
         "!/^@testing-library\\//",
         "!shadcn",
+        "!lucide-react",
+        "!embla-carousel-react",
+        "!@dnd-kit/core",
+        "!@dnd-kit/sortable",
+        "!@dnd-kit/utilities",
         "!@tailwindcss/typography",
         "!jsdom"
       ]
@@ -398,9 +408,13 @@
       "groupName": "UI kit",
       "matchPackageNames": [
         "@base-ui/react",
+        "@base-ui/utils",
         "shadcn",
         "lucide-react",
-        "embla-carousel-react"
+        "embla-carousel-react",
+        "@dnd-kit/core",
+        "@dnd-kit/sortable",
+        "@dnd-kit/utilities"
       ],
       "matchUpdateTypes": [
         "patch"
