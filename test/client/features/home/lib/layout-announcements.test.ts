@@ -43,19 +43,19 @@ describe('layoutAnnouncements', () => {
         active: active('most-active'),
         over: over('request-to-ready'),
       }),
-    ).toBe('Most active is now row 3 with Request to ready.')
+    ).toBe('Most active is now in row 3 with Request to ready.')
     expect(
       announce.onDragOver({
         active: active('most-active'),
         over: over('new-row'),
       }),
-    ).toBe('Most active is now a new row.')
+    ).toBe('Most active is now in a new row.')
   })
 
   it('reports row moves by position and drops by destination', () => {
     expect(
       announce.onDragEnd({ active: active('row-2'), over: over('row-0') }),
-    ).toBe('row 3 with Request to ready was dropped row 1 of 4.')
+    ).toBe('row 3 with Request to ready was dropped at row 1 of 4.')
     expect(
       announce.onDragEnd({ active: active('most-active'), over: null }),
     ).toBe('Most active was dropped back where it was.')

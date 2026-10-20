@@ -33,9 +33,10 @@ export function layoutAnnouncements(columns: BoardColumns): Announcements {
   }
   const placement = (active: UniqueIdentifier, over: UniqueIdentifier) => {
     const card = cardId(active)
-    if (!card) return `row ${keys.indexOf(String(over)) + 1} of ${keys.length}`
+    if (!card)
+      return `at row ${keys.indexOf(String(over)) + 1} of ${keys.length}`
     const key = rowOf(over)
-    return key ? describeRow(key, card) : 'its row'
+    return key ? `in ${describeRow(key, card)}` : 'in its row'
   }
 
   return {
