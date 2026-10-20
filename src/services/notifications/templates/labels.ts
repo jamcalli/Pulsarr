@@ -1,5 +1,6 @@
 import type { ApprovalTrigger } from '@root/types/approval.types.js'
 import { episodeCode } from '@root/utils/episode-code.js'
+import type { MediaAvailability } from './media-available.js'
 
 export const EVENT_LABELS = {
   mediaAvailable: 'Media ready',
@@ -12,15 +13,16 @@ export const EVENT_LABELS = {
   watchlistRemoved: 'Watchlist remove',
   watchlistCap: 'Watchlist cap',
   userCreated: 'User created',
+  test: 'Test',
 } as const
 
 export type NotificationEvent = keyof typeof EVENT_LABELS
 
 export const APPROVAL_TRIGGER_LABELS: Record<ApprovalTrigger, string> = {
-  quota_exceeded: 'Quota Exceeded',
-  router_rule: 'Router Rule',
-  manual_flag: 'Manual Flag',
-  content_criteria: 'Content Criteria',
+  quota_exceeded: 'Quota exceeded',
+  router_rule: 'Router rule',
+  manual_flag: 'Manual flag',
+  content_criteria: 'Content criteria',
 }
 
 export function formatTriggerReason(
@@ -53,10 +55,17 @@ export function userLabel(
   return name || `User ${userId}`
 }
 
-export const WATCHLIST_CAP_TITLE = 'Watchlist Cap Reached'
+export const WATCHLIST_CAP_TITLE = 'Watchlist cap reached'
 
 export const WATCHLIST_CAP_IMPACT =
-  'New items will not be processed until the cap is raised or items are removed.'
+  'New items wait until the cap is raised or items are removed.'
+
+export const MEDIA_AVAILABLE_HEADINGS: Record<MediaAvailability, string> = {
+  episode: 'New episode available',
+  season: 'New season available',
+  content: 'New content available',
+  movie: 'Movie available',
+}
 
 export const TEST_NOTIFICATION = {
   title: 'Pulsarr test notification',

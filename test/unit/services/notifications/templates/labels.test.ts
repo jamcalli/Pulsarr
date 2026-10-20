@@ -42,12 +42,12 @@ describe('userLabel', () => {
 describe('formatTriggerReason', () => {
   it('should put the reason under the trigger label', () => {
     expect(formatTriggerReason('quota_exceeded', 'Monthly quota (5/5)')).toBe(
-      'Quota Exceeded\nMonthly quota (5/5)',
+      'Quota exceeded\nMonthly quota (5/5)',
     )
   })
 
   it('should return the label alone without a reason', () => {
-    expect(formatTriggerReason('router_rule', null)).toBe('Router Rule')
+    expect(formatTriggerReason('router_rule', null)).toBe('Router rule')
   })
 })
 

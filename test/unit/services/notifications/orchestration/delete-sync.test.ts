@@ -240,7 +240,7 @@ describe('delete-sync orchestration', () => {
       expect(mockApprise.sendNotification).toHaveBeenCalledWith(
         'tgram://system/chat',
         expect.objectContaining({
-          title: '🔍 Delete Sync Simulation Results',
+          title: 'Delete sync simulation results',
           type: 'info',
         }),
       )

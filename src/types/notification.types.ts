@@ -1,4 +1,5 @@
 import type { AppriseMessageType } from '@root/types/apprise.types.js'
+import type { ApprovalTrigger } from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import type {
   DirectMessage,
@@ -115,7 +116,8 @@ export interface ApprovalNotification {
   contentTitle: string
   contentType: 'movie' | 'show'
   requestedBy: string
-  reason: string
+  trigger: ApprovalTrigger
+  reason?: string | null
   totalPending: number
   posterUrl?: string
   tmdbUrl?: string

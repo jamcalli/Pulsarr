@@ -120,7 +120,7 @@ async function deliverCapNotification(
       watchlist_item_id: null,
       user_id: event.userId,
       type: 'watchlist_cap',
-      title: `${contentLabel} ${WATCHLIST_CAP_TITLE}`,
+      title: `${contentLabel} ${WATCHLIST_CAP_TITLE.toLowerCase()}`,
       message: `${userLabel(event.userName, event.userId)} reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
     },
     {

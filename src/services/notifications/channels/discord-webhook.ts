@@ -7,6 +7,7 @@ import type {
   NotificationTestOutcome,
 } from '@root/types/notification.types.js'
 import { errorMessage } from '@utils/error-message.js'
+import { pluralize } from '@utils/pluralize.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { createTestWebhookPayload } from '../templates/discord-embeds.js'
 import { postJson } from './http.js'
@@ -132,10 +133,6 @@ async function validateWebhook(
   }
 }
 
-function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? '' : 's'}`
-}
-
 export interface WebhookValidationResult {
   success: true
   valid: boolean
@@ -183,7 +180,7 @@ export async function validateWebhooks(
   const valid = urls.every((result) => result.valid)
   const duplicateNote =
     duplicateCount > 0
-      ? ` (${plural(duplicateCount, 'duplicate URL')} removed)`
+      ? ` (${duplicateCount} ${pluralize(duplicateCount, 'duplicate URL')} removed)`
       : ''
 
   return {
@@ -194,7 +191,7 @@ export async function validateWebhooks(
       urls,
       duplicateCount: duplicateCount > 0 ? duplicateCount : undefined,
       message: valid
-        ? `Successfully validated ${plural(urls.length, 'webhook')}${duplicateNote}`
+        ? `Successfully validated ${urls.length} ${pluralize(urls.length, 'webhook')}${duplicateNote}`
         : 'One or more webhooks failed validation',
     },
   }

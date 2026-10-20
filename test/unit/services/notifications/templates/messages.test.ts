@@ -45,7 +45,7 @@ describe('messages', () => {
       const embed = webhook.embeds?.[0]
 
       expect(webhook.username).toBe('Pulsarr Delete Sync')
-      expect(embed?.title).toBe('🗑️ Delete Sync Results')
+      expect(embed?.title).toBe('Delete sync results')
       expect(embed && fieldValue(embed, 'Movies (1 deleted)')).toBe(
         '• Metropolis',
       )
@@ -54,7 +54,7 @@ describe('messages', () => {
     it('should reuse the embed title and fields in a system DM', () => {
       const { webhook, dm } = createDeleteSyncMessage(results, false)
 
-      expect(dm.embed.title).toBe('🗑️ Delete Sync Results')
+      expect(dm.embed.title).toBe('Delete sync results')
       expect(dm.embed.description).toBe('System notification')
       expect(dm.embed.fields).toEqual(webhook.embeds?.[0].fields)
     })
@@ -62,7 +62,7 @@ describe('messages', () => {
     it('should title the Apprise message and list the deleted movie', () => {
       const { apprise } = createDeleteSyncMessage(results, false)
 
-      expect(apprise.title).toBe('🗑️ Delete Sync Results')
+      expect(apprise.title).toBe('Delete sync results')
       expect(apprise.body).toContain('Metropolis')
     })
   })
@@ -83,14 +83,14 @@ describe('messages', () => {
 
       expect(webhook.username).toBe('Pulsarr Updates')
       expect(webhook.allowed_mentions).toEqual({ parse: [] })
-      expect(webhook.embeds?.[0].title).toBe('v0.20.0')
+      expect(webhook.embeds?.[0].title).toBe('Update available: v0.20.0')
     })
 
     it('should DM the same embed and title Apprise by version', () => {
       const { webhook, dm, apprise } = createUpdateAvailableMessage(release)
 
       expect(dm.embed).toEqual(webhook.embeds?.[0])
-      expect(apprise.title).toBe('🚀 Pulsarr 0.20.0 is available')
+      expect(apprise.title).toBe('Update available: Pulsarr 0.20.0')
       expect(apprise.body).toContain(release.releaseUrl)
     })
   })
@@ -111,8 +111,8 @@ describe('messages', () => {
       const embed = webhook.embeds?.[0]
 
       expect(webhook.username).toBe('Pulsarr')
-      expect(embed?.title).toBe('Nosferatu')
-      expect(embed?.description).toBe('🎬 New Movie Added')
+      expect(embed?.title).toBe('Watchlist add: Nosferatu')
+      expect(embed?.description).toBeUndefined()
       expect(embed?.footer?.text).toBe('Added by Discord+Apprise User')
       expect(embed && fieldValue(embed, 'More Info')).toBe(
         '[View on TMDB](https://www.themoviedb.org/movie/426063)',
@@ -126,7 +126,7 @@ describe('messages', () => {
         'Discord+Apprise User',
       )
 
-      expect(apprise.title).toBe('🎬 Movie Added: Nosferatu')
+      expect(apprise.title).toBe('Watchlist add: Nosferatu')
       expect(apprise.body).toContain('Discord+Apprise User')
     })
   })
@@ -137,23 +137,27 @@ describe('messages', () => {
       const embed = webhook.embeds?.[0]
 
       expect(webhook.username).toBe('Pulsarr Watchlist')
-      expect(embed?.title).toBe('Watchlist Cap Reached')
+      expect(embed?.title).toBe(
+        'Watchlist cap reached: test-user-all-notifications',
+      )
       expect(embed?.description).toBe(
         '**test-user-all-notifications** reached their show cap (6/5)',
       )
       expect(embed && fieldValue(embed, 'Usage')).toBe('6 / 5')
       expect(embed?.footer?.text).toBe(
-        'New items will not be processed until the cap is raised or items are removed.',
+        'New items wait until the cap is raised or items are removed.',
       )
     })
 
     it('should add the impact as a DM field', () => {
       const { dm } = createWatchlistCapMessage(CAP_EVENT)
 
-      expect(dm.embed.title).toBe('Watchlist Cap Reached')
+      expect(dm.embed.title).toBe(
+        'Watchlist cap reached: test-user-all-notifications',
+      )
       expect(fieldValue(dm.embed, 'Content Type')).toBe('Show')
       expect(fieldValue(dm.embed, 'Impact')).toBe(
-        'New items will not be processed until the cap is raised or items are removed.',
+        'New items wait until the cap is raised or items are removed.',
       )
     })
 
@@ -163,7 +167,7 @@ describe('messages', () => {
         userName: null,
       })
 
-      expect(apprise.title).toBe('Watchlist Cap Reached')
+      expect(apprise.title).toBe('Watchlist cap reached: User 3')
       expect(apprise.body).toContain('User 3')
     })
   })
@@ -172,11 +176,11 @@ describe('messages', () => {
     it('should address the capped user by display name', () => {
       const { dm, apprise } = createUserWatchlistCapMessage(CAP_EVENT, 'Alex')
 
-      expect(dm.embed.title).toBe('Watchlist Cap Reached')
+      expect(dm.embed.title).toBe('Watchlist cap reached')
       expect(fieldValue(dm.embed, 'Notice')).toBe(
         "Alex, you've reached your show watchlist cap (6/5). New show items won't be processed until the cap is raised or existing items are removed.",
       )
-      expect(apprise.title).toBe('Watchlist Cap Reached')
+      expect(apprise.title).toBe('Watchlist cap reached: Alex')
       expect(apprise.body).toContain('Alex')
     })
   })
