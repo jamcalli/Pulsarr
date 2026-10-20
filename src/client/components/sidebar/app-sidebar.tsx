@@ -1,5 +1,4 @@
 import { cn } from 'cn'
-import { SidebarHelp } from '@/components/sidebar/sidebar-help'
 import { SidebarLogo } from '@/components/sidebar/sidebar-logo'
 import { SidebarNav } from '@/components/sidebar/sidebar-nav'
 import { SidebarSyncStatus } from '@/components/sidebar/sidebar-sync-status'
@@ -32,7 +31,6 @@ export function AppSidebar() {
       <SidebarLogo />
       <SidebarContent className="gap-0">
         <SidebarNav />
-        <SidebarHelp />
       </SidebarContent>
       <SidebarFooter className="gap-2.5 border-t-2 border-border p-3">
         <SidebarMenu className="gap-2.5">
