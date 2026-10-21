@@ -50,7 +50,7 @@ export function PosterFrame({ thumb, type, size = 'fill' }: PosterFrameProps) {
           alt=""
           loading="lazy"
           onError={onError}
-          className="size-full object-cover"
+          className="aspect-2/3 size-full object-cover"
         />
       ) : (
         <div

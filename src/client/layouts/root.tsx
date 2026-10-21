@@ -76,7 +76,7 @@ function BackgroundLayer({ backdrop }: { backdrop: boolean }) {
                     fetchPriority="high"
                     width="1522"
                     height="1608"
-                    className="h-full w-full object-cover"
+                    className="aspect-[1522/1608] size-full object-cover"
                   />
                 </picture>
               </div>
