@@ -2,7 +2,7 @@ import { cn } from 'cn'
 import { useMemo } from 'react'
 import { sanitizeReleaseNotes } from '@/lib/release-notes'
 
-export function ReleaseNotes({
+export default function ReleaseNotes({
   html,
   className,
 }: {

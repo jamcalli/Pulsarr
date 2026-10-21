@@ -1,8 +1,9 @@
 import { cn } from 'cn'
 import { ArrowUpCircle, ArrowUpRight } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
-import { ReleaseNotes } from '@/components/release-notes'
+import { ReleaseNotesSkeleton } from '@/components/release-notes-skeleton'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Popover,
@@ -17,6 +18,8 @@ import { useAvailableUpdate } from '@/hooks/useAvailableUpdate'
 import { formatDate } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import type { AvailableUpdate } from '@/lib/update-status'
+
+const ReleaseNotes = lazy(() => import('@/components/release-notes'))
 
 function UpdatePopover({ update }: { update: AvailableUpdate }) {
   const title = `v${update.latestVersion} available`
@@ -43,10 +46,14 @@ function UpdatePopover({ update }: { update: AvailableUpdate }) {
           </PopoverDescription>
         </PopoverHeader>
         {update.releaseBodyHtml && (
-          <ReleaseNotes
-            html={update.releaseBodyHtml}
-            className="min-h-0 flex-1"
-          />
+          <Suspense
+            fallback={<ReleaseNotesSkeleton className="min-h-0 flex-1" />}
+          >
+            <ReleaseNotes
+              html={update.releaseBodyHtml}
+              className="min-h-0 flex-1"
+            />
+          </Suspense>
         )}
         <a
           href={update.releaseUrl}

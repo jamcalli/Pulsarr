@@ -125,7 +125,7 @@ describe('RequestBrowserItems', () => {
       { wrapper },
     )
 
-    await user.click(screen.getByRole('button', { name: /Dune/ }))
+    await user.click(await screen.findByRole('button', { name: /Dune/ }))
     expect(browser.onSelect).toHaveBeenCalledWith(dune)
   })
 })
