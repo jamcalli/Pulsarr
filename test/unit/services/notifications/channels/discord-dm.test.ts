@@ -78,9 +78,7 @@ describe('discord DM sendNotification', () => {
     const result = await sendNotification(DISCORD_ID, message, deps(client))
 
     expect(result).toEqual({ ok: true, handle: 'alice' })
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ embeds: [embed] }),
-    )
+    expect(send).toHaveBeenCalledWith({ embeds: [embed] })
   })
 
   it('reports the bot gate without fetching the user', async () => {

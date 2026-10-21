@@ -48,11 +48,12 @@ export function mediaTypeLabel(type: string): {
   return { label: 'Media', emoji: '🎬' }
 }
 
-export function userLabel(
-  name: string | null | undefined,
+/** The alias when set, else the Plex username, else a numbered fallback for a user row that is gone. */
+export function displayName(
+  user: { name?: string | null; alias?: string | null } | null | undefined,
   userId: number,
 ): string {
-  return name || `User ${userId}`
+  return user?.alias || user?.name || `User ${userId}`
 }
 
 export const WATCHLIST_CAP_TITLE = 'Watchlist cap reached'

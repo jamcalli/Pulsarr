@@ -10,6 +10,8 @@ import {
   createPublicMediaWebhookPayload,
   createSystemDm,
   createUpdateAvailableEmbed,
+  createWatchlistCapDm,
+  createWatchlistCapEmbed,
 } from '@services/notifications/templates/discord-embeds.js'
 import { describe, expect, it } from 'vitest'
 
@@ -229,29 +231,69 @@ describe('discord-embeds', () => {
       expect(payload.embeds?.[0].title).toBe('Movie available: Dune')
     })
 
-    it('should leave content empty without mentions', () => {
+    it('should only let the mentioned users be pinged', () => {
+      const payload = createPublicMediaWebhookPayload(
+        { type: 'movie', title: '@everyone Dune', username: 'alice' },
+        ['111'],
+      )
+
+      expect(payload.allowed_mentions).toEqual({ users: ['111'] })
+    })
+
+    it('should leave content empty and ping nobody without mentions', () => {
       const payload = createPublicMediaWebhookPayload(
         { type: 'movie', title: 'Dune', username: 'alice' },
         [],
       )
 
       expect(payload.content).toBe('')
+      expect(payload.allowed_mentions).toEqual({ users: [] })
     })
   })
 
   describe('createApprovalRequestEmbed', () => {
     it('should title the request with the event and content', () => {
-      const embed = createApprovalRequestEmbed(approvalRequest(), 1)
+      const embed = createApprovalRequestEmbed(
+        approvalRequest(),
+        1,
+        undefined,
+        'friend',
+      )
 
       expect(embed.title).toBe('Approval request: Nosferatu')
+    })
+
+    it('should name the requester by the given display name', () => {
+      const embed = createApprovalRequestEmbed(
+        approvalRequest(),
+        1,
+        undefined,
+        'Friendly',
+      )
+
+      expect(fieldValue(embed, 'Requested by')).toBe('Friendly')
     })
   })
 
   describe('createApprovalBatchDm', () => {
     it('should title a single request with the event and content', () => {
-      const { embed } = createApprovalBatchDm([approvalRequest()], 1)
+      const { embed } = createApprovalBatchDm(
+        [approvalRequest()],
+        1,
+        (request) => request.userName,
+      )
 
       expect(embed.title).toBe('Approval request: Nosferatu')
+    })
+
+    it('should name a single requester through the resolver', () => {
+      const { embed } = createApprovalBatchDm(
+        [approvalRequest()],
+        1,
+        () => 'Friendly',
+      )
+
+      expect(fieldValue(embed, 'Requested by')).toBe('Friendly')
     })
 
     it('should title a batch with the event and count', () => {
@@ -262,6 +304,7 @@ describe('discord-embeds', () => {
           approvalRequest({ id: 3, contentTitle: 'Dune' }),
         ],
         3,
+        (request) => request.userName,
       )
 
       expect(embed.title).toBe('Approval requests: 3 new')
@@ -533,6 +576,31 @@ describe('discord-embeds', () => {
           },
         ],
       })
+    })
+  })
+
+  describe('createWatchlistCapEmbed', () => {
+    const event = {
+      userId: 3,
+      userName: 'plex_user',
+      contentType: 'show' as const,
+      currentCount: 6,
+      cap: 5,
+    }
+
+    it('should name the user by the given display name', () => {
+      const embed = createWatchlistCapEmbed(event, 'Alex')
+
+      expect(embed.title).toBe('Watchlist cap reached: Alex')
+      expect(embed.description).toBe('**Alex** reached their show cap (6/5)')
+      expect(fieldValue(embed, 'User')).toBe('Alex')
+    })
+
+    it('should name the user in the DM title and User field', () => {
+      const { embed } = createWatchlistCapDm(event, 'Alex')
+
+      expect(embed.title).toBe('Watchlist cap reached: Alex')
+      expect(fieldValue(embed, 'User')).toBe('Alex')
     })
   })
 })

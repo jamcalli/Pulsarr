@@ -24,7 +24,6 @@ import {
   MEDIA_AVAILABLE_HEADINGS,
   mediaTypeLabel,
   TEST_NOTIFICATION,
-  userLabel,
   WATCHLIST_CAP_IMPACT,
   WATCHLIST_CAP_TITLE,
 } from './labels.js'
@@ -129,6 +128,7 @@ export function createPublicMediaWebhookPayload(
   const mentions = mentionDiscordIds.map((id) => `<@${id}>`).join(' ')
   return {
     content: mentions ? `${mentions} ${mediaAvailableTitle(notification)}` : '',
+    allowed_mentions: { users: mentionDiscordIds },
     ...createWebhookPayload(
       'default',
       createMediaNotificationEmbed(notification),
@@ -350,14 +350,15 @@ export function createSystemDm(content: SystemDmContent): DirectMessage {
 export function createApprovalRequestEmbed(
   request: ApprovalRequest,
   totalPending: number,
-  posterUrl?: string,
+  posterUrl: string | undefined,
+  requestedBy: string,
 ): DiscordEmbed {
   const tmdbUrl = getTmdbUrl(request.contentGuids, request.contentType)
 
   const fields: EmbedField[] = [
     {
       name: 'Requested by',
-      value: userLabel(request.userName, request.userId),
+      value: requestedBy,
       inline: true,
     },
     {
@@ -403,7 +404,10 @@ function countLabel(count: number, noun: string): string {
   return `${count} ${pluralize(count, noun)}`
 }
 
-function approvalBatchFields(requests: ApprovalRequest[]): EmbedField[] {
+function approvalBatchFields(
+  requests: ApprovalRequest[],
+  requesterName: (request: ApprovalRequest) => string,
+): EmbedField[] {
   if (requests.length === 1) {
     const [request] = requests
     return [
@@ -414,7 +418,7 @@ function approvalBatchFields(requests: ApprovalRequest[]): EmbedField[] {
       },
       {
         name: 'Requested by',
-        value: userLabel(request.userName, request.userId),
+        value: requesterName(request),
         inline: true,
       },
       {
@@ -459,6 +463,7 @@ function approvalBatchFields(requests: ApprovalRequest[]): EmbedField[] {
 export function createApprovalBatchDm(
   requests: ApprovalRequest[],
   totalPending: number,
+  requesterName: (request: ApprovalRequest) => string,
 ): DirectMessage {
   const isMultiple = requests.length > 1
   const [first] = requests
@@ -474,7 +479,7 @@ export function createApprovalBatchDm(
         inline: false,
       },
       { name: '\u200b', value: '\u200b', inline: false },
-      ...approvalBatchFields(requests),
+      ...approvalBatchFields(requests, requesterName),
     ],
     tmdbUrl: isMultiple
       ? undefined
@@ -486,11 +491,14 @@ export function createApprovalBatchDm(
   })
 }
 
-function watchlistCapFields(event: WatchlistCapNotification): EmbedField[] {
+function watchlistCapFields(
+  event: WatchlistCapNotification,
+  who: string,
+): EmbedField[] {
   return [
     {
       name: 'User',
-      value: userLabel(event.userName, event.userId),
+      value: who,
       inline: true,
     },
     {
@@ -508,18 +516,16 @@ function watchlistCapFields(event: WatchlistCapNotification): EmbedField[] {
 
 export function createWatchlistCapEmbed(
   event: WatchlistCapNotification,
+  who: string,
 ): DiscordEmbed {
   const contentLabel = mediaTypeLabel(event.contentType).label.toLowerCase()
 
   return {
-    title: truncate(
-      `${WATCHLIST_CAP_TITLE}: ${userLabel(event.userName, event.userId)}`,
-      EMBED_TITLE_MAX,
-    ),
-    description: `**${userLabel(event.userName, event.userId)}** reached their ${contentLabel} cap (${event.currentCount}/${event.cap})`,
+    title: truncate(`${WATCHLIST_CAP_TITLE}: ${who}`, EMBED_TITLE_MAX),
+    description: `**${who}** reached their ${contentLabel} cap (${event.currentCount}/${event.cap})`,
     color: COLOR_WATCHLIST_CAP,
     timestamp: new Date().toISOString(),
-    fields: watchlistCapFields(event),
+    fields: watchlistCapFields(event, who),
     footer: {
       text: WATCHLIST_CAP_IMPACT,
     },
@@ -528,11 +534,12 @@ export function createWatchlistCapEmbed(
 
 export function createWatchlistCapDm(
   event: WatchlistCapNotification,
+  who: string,
 ): DirectMessage {
   return createSystemDm({
-    title: `${WATCHLIST_CAP_TITLE}: ${userLabel(event.userName, event.userId)}`,
+    title: `${WATCHLIST_CAP_TITLE}: ${who}`,
     fields: [
-      ...watchlistCapFields(event),
+      ...watchlistCapFields(event, who),
       { name: 'Impact', value: WATCHLIST_CAP_IMPACT, inline: false },
     ],
   })

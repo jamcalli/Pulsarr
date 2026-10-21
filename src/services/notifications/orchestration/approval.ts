@@ -7,7 +7,7 @@ import { notifyAdmins, recipientLabel } from '../dispatch.js'
 import {
   APPROVAL_TRIGGER_LABELS,
   describeContent,
-  userLabel,
+  displayName,
 } from '../templates/labels.js'
 import { createApprovalMessages } from '../templates/messages.js'
 import {
@@ -84,7 +84,7 @@ export function requestSummary(
 ): string {
   const by = requester
     ? recipientLabel(requester)
-    : userLabel(request.userName, request.userId)
+    : displayName({ name: request.userName }, request.userId)
   return `${describeContent(request.contentTitle, request.contentType)} for ${by}, ${context}`
 }
 
@@ -105,6 +105,7 @@ export async function sendApprovalBatch(
     queuedRequests,
     totalPending,
     posterMap,
+    users,
   )
   const summaries = queuedRequests.map((request) =>
     requestSummary(

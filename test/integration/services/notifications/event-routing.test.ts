@@ -741,7 +741,7 @@ describe('notification event routing', () => {
       await expectChannels(['discord-webhook', 'native'])
       expect(captured.discord).toHaveLength(1)
       expect(captured.discord[0].body.embeds?.[0].description).toBe(
-        '**test-user-primary** reached their show cap (7/5)',
+        '**Primary Test User** reached their show cap (7/5)',
       )
     })
 
@@ -1393,7 +1393,7 @@ describe('notification event routing', () => {
         Nosferatu
         Type: Movie
 
-        Requested by: test-user-discord-apprise
+        Requested by: Discord+Apprise User
         Total pending: 4 requests
         Reason: Quota exceeded
         Weekly movie quota reached
@@ -1412,7 +1412,7 @@ describe('notification event routing', () => {
         Sherlock
         Type: Show
 
-        Requested by: test-user-discord-apprise
+        Requested by: Discord+Apprise User
         Total pending: 4 requests
         Reason: Manual flag
 
@@ -1436,7 +1436,7 @@ describe('notification event routing', () => {
                       {
                         "inline": true,
                         "name": "Requested by",
-                        "value": "test-user-discord-apprise",
+                        "value": "Discord+Apprise User",
                       },
                       {
                         "inline": true,
@@ -1480,7 +1480,7 @@ describe('notification event routing', () => {
                       {
                         "inline": true,
                         "name": "Requested by",
-                        "value": "test-user-discord-apprise",
+                        "value": "Discord+Apprise User",
                       },
                       {
                         "inline": true,
@@ -1640,14 +1640,14 @@ describe('notification event routing', () => {
           "apprise": [
             {
               "body": "<div style="margin:0;padding:32px 16px;background:#f2ebdd;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;color:#1a1a1a;">
-          <table role="presentation" cellpadding="0" cellspacing="0" width="600" align="center" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border:2px solid #1a1a1a;border-radius:8px;background:#fffaf0;box-shadow:4px 4px 0 0 #1a1a1a;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="600" align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid #1a1a1a;border-radius:8px;background:#fffaf0;box-shadow:4px 4px 0 0 #1a1a1a;">
             <tr><td style="padding:10px 24px;background:#48a9a6;border-bottom:2px solid #1a1a1a;border-radius:6px 6px 0 0;">
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;"><tr>
                 <td width="50%" style="width:50%;white-space:nowrap;font-size:15px;font-weight:700;color:#000000;letter-spacing:-0.01em;">Pulsarr</td>
                 <td align="right" width="50%" style="width:50%;padding-left:16px;text-align:right;font-size:13px;font-weight:500;color:#000000;">Movie available</td>
               </tr></table>
             </td></tr>
-            <tr><td style="padding:24px;font-size:14px;line-height:1.5;color:#1a1a1a;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;"><tr><td width="120" valign="top" style="width:120px;vertical-align:top;padding-right:20px;"><img src="https://metadata-static.plex.tv/a/availability.jpg" alt="Availability Test Movie poster" width="120" height="180" style="display:block;width:120px;height:180px;border:2px solid #1a1a1a;border-radius:6px;background:#f7f0e2;font-size:12px;color:#5a5750;"></td><td valign="top" style="vertical-align:top;"><h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:#1a1a1a;">Availability Test Movie</h1><div style="margin-top:12px;"><p style="margin:0;font-size:14px;font-weight:700;color:#1a1a1a;">Movie available to watch!</p></div><div style="margin-top:12px;"><div style="padding-top:4px;text-align:left;"><a href="https://www.themoviedb.org/movie/765432" style="font-size:14px;font-weight:700;color:#1a1a1a;text-decoration:underline;text-underline-offset:3px;">View on TMDB</a></div></div></td></tr></table></td></tr>
+            <tr><td style="padding:24px;font-size:14px;line-height:1.5;color:#1a1a1a;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;table-layout:fixed;"><tr><td width="120" valign="top" style="width:120px;vertical-align:top;padding-right:20px;"><img src="https://metadata-static.plex.tv/a/availability.jpg" alt="Availability Test Movie poster" width="120" height="180" style="display:block;width:120px;height:180px;border:2px solid #1a1a1a;border-radius:6px;background:#f7f0e2;font-size:12px;color:#5a5750;"></td><td valign="top" style="vertical-align:top;word-break:break-word;"><h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:#1a1a1a;word-break:break-word;">Availability Test Movie</h1></td></tr></table><div style="margin-top:12px;"><p style="margin:0;font-size:14px;font-weight:700;color:#1a1a1a;">Movie available to watch!</p></div><div style="margin-top:12px;"><div style="padding-top:4px;text-align:left;"><a href="https://www.themoviedb.org/movie/765432" style="font-size:14px;font-weight:700;color:#1a1a1a;text-decoration:underline;text-underline-offset:3px;">View on TMDB</a></div></div></td></tr>
           </table>
         </div>",
               "format": "html",
@@ -1671,6 +1671,11 @@ describe('notification event routing', () => {
           "discord": [
             {
               "body": {
+                "allowed_mentions": {
+                  "users": [
+                    "222222222222222222",
+                  ],
+                },
                 "avatar_url": "https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png",
                 "content": "<@222222222222222222> Movie available: Availability Test Movie",
                 "embeds": [

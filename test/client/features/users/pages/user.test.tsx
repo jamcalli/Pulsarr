@@ -28,7 +28,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     name: 'mayar88',
     apprise: null,
     alias: 'Maya R.',
-    discord_id: '331920077154',
+    discord_id: '331920077154000001',
     notify_apprise: false,
     notify_discord: true,
     notify_discord_mention: false,

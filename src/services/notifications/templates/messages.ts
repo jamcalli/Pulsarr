@@ -1,4 +1,5 @@
 import type { ApprovalRequest } from '@root/types/approval.types.js'
+import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { DirectMessage } from '@root/types/discord.types.js'
 import type {
@@ -30,7 +31,7 @@ import {
   createWatchlistCapEmbed,
   createWebhookPayload,
 } from './discord-embeds.js'
-import { userLabel } from './labels.js'
+import { displayName } from './labels.js'
 
 type RequestMessage = Omit<NotificationMessage, 'dm'>
 
@@ -44,20 +45,32 @@ export function createApprovalMessages(
   requests: ApprovalRequest[],
   totalPending: number,
   posterUrls: Map<string, string>,
+  users: Map<number, User>,
 ): ApprovalMessages {
+  const requesterName = (request: ApprovalRequest) =>
+    displayName(
+      users.get(request.userId) ?? { name: request.userName },
+      request.userId,
+    )
   return {
-    dm: createApprovalBatchDm(requests, totalPending),
+    dm: createApprovalBatchDm(requests, totalPending, requesterName),
     requests: requests.map((request) => {
       const posterUrl = posterUrls.get(request.contentKey)
+      const requestedBy = requesterName(request)
       return {
         webhook: createWebhookPayload(
           'approval',
-          createApprovalRequestEmbed(request, totalPending, posterUrl),
+          createApprovalRequestEmbed(
+            request,
+            totalPending,
+            posterUrl,
+            requestedBy,
+          ),
         ),
         apprise: createApprovalAppriseMessage({
           contentTitle: request.contentTitle,
           contentType: request.contentType,
-          requestedBy: userLabel(request.userName, request.userId),
+          requestedBy,
           trigger: request.triggeredBy,
           reason: request.approvalReason,
           totalPending,
@@ -126,17 +139,15 @@ export function createWatchlistAddedMessage(
 
 export function createWatchlistCapMessage(
   event: WatchlistCapNotification,
+  who: string,
 ): NotificationMessage {
   return {
     webhook: createWebhookPayload(
       'watchlistCap',
-      createWatchlistCapEmbed(event),
+      createWatchlistCapEmbed(event, who),
     ),
-    dm: createWatchlistCapDm(event),
-    apprise: createWatchlistCapAppriseMessage(
-      event,
-      userLabel(event.userName, event.userId),
-    ),
+    dm: createWatchlistCapDm(event, who),
+    apprise: createWatchlistCapAppriseMessage(event, who),
   }
 }
 
