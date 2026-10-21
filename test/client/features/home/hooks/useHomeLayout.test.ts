@@ -56,14 +56,14 @@ describe('useHomeLayout', () => {
 
   it('reads the saved layout back on the next mount', () => {
     const first = renderHook(() => useHomeLayout())
-    act(() => first.result.current.setHidden('top-genres', true))
+    act(() => first.result.current.setHidden('library-mix', true))
 
     const { result } = renderHook(() => useHomeLayout())
 
     expect(result.current.rows).toContainEqual({
-      cards: ['library-mix'],
+      cards: ['request-to-ready'],
       fill: false,
     })
-    expect(result.current.layout.hidden).toEqual(['top-genres'])
+    expect(result.current.layout.hidden).toEqual(['library-mix'])
   })
 })

@@ -45,8 +45,8 @@ export const DEFAULT_HOME_ROWS: readonly HomeRowCards[] = [
   ['recent-requests'],
   ['popularity-rankings'],
   ['pipeline'],
-  ['request-to-ready', 'notifications'],
-  ['top-genres', 'library-mix'],
+  ['request-to-ready', 'library-mix'],
+  ['top-genres', 'notifications'],
 ]
 
 function toRow(cards: HomeRowCards): HomeRow {

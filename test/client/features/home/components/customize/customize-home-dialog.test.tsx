@@ -46,8 +46,8 @@ describe('CustomizeHomeDialog', () => {
         .map((handle) => handle.getAttribute('aria-label')),
     ).toEqual([
       'Move Needs your approval and Most active',
-      'Move Request to ready and Notifications',
-      'Move Top genres and Library mix',
+      'Move Request to ready and Library mix',
+      'Move Top genres and Notifications',
     ])
     for (const id of HOME_CARD_IDS) {
       const { label } = HOME_CARDS[id]
@@ -69,14 +69,14 @@ describe('CustomizeHomeDialog', () => {
     render(<Harness />)
 
     await user.click(
-      await screen.findByRole('button', { name: 'Hide Top genres' }),
+      await screen.findByRole('button', { name: 'Hide Library mix' }),
     )
 
     expect(
-      screen.getByRole('button', { name: 'Move the Library mix row' }),
+      screen.getByRole('button', { name: 'Move the Request to ready row' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Move Library mix' }),
+      screen.getByRole('button', { name: 'Move Request to ready' }),
     ).toBeInTheDocument()
   })
 
