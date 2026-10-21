@@ -622,6 +622,31 @@ describe('DeleteSyncPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('reports a failed status refresh over a cached failed run', async () => {
+    mockEndpoints({
+      dryRunStatus: {
+        state: 'failed',
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        error: 'The last run broke.',
+        result: null,
+      },
+    })
+    renderPage()
+    expect(await screen.findByText('The last run broke.')).toBeInTheDocument()
+
+    server.use(
+      http.get(
+        '/v1/scheduler/schedules/delete-sync/dry-run/status',
+        serverError,
+      ),
+    )
+    await refetchAndRender(deleteSyncKeys.dryRunStatus)
+
+    expect(await screen.findByText('Down')).toBeInTheDocument()
+    expect(screen.queryByText('The last run broke.')).not.toBeInTheDocument()
+  })
+
   it('reports a failed schedule refresh in the job panel', async () => {
     mockEndpoints()
     renderPage()

@@ -86,8 +86,8 @@ export function useDryRun(saved: DryRunContext) {
     running: operation.running || status?.state === 'running',
     errorMessage:
       operation.errorMessage ??
-      serverError ??
-      latestErrorMessage(query, "Couldn't load the last dry run."),
+      latestErrorMessage(query, "Couldn't load the last dry run.") ??
+      serverError,
     result,
     run: () => operation.run(saved),
   }
