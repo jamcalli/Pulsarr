@@ -5,7 +5,7 @@ import { getUserCanSync } from '@services/plex-watchlist/users/permissions.js'
 import { toContentType } from '@utils/content-type.js'
 import { toItemId } from '@utils/item-id.js'
 import { notifyAdmins, recipientLabel } from '../dispatch.js'
-import { describeContent } from '../templates/labels.js'
+import { describeContent, displayName } from '../templates/labels.js'
 import { createWatchlistAddedMessage } from '../templates/messages.js'
 import {
   buildContentPayload,
@@ -69,7 +69,7 @@ export async function sendWatchlistAdded(
         posterUrl,
         tmdbUrl: getTmdbUrl(guids, mediaType),
       },
-      alias || username,
+      displayName({ name: username, alias }, user.userId),
     ),
     webhook: {
       event: 'watchlist.added',

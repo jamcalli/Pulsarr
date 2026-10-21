@@ -1,6 +1,8 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { DiscordEmbed } from '@root/types/discord.types.js'
 import type { WatchlistCapNotification } from '@root/types/notification.types.js'
 import {
+  createApprovalMessages,
   createDeleteSyncMessage,
   createUpdateAvailableMessage,
   createUserWatchlistCapMessage,
@@ -8,6 +10,7 @@ import {
   createWatchlistCapMessage,
 } from '@services/notifications/templates/messages.js'
 import { describe, expect, it } from 'vitest'
+import { createMockUser } from '../../../../mocks/user.js'
 
 function fieldValue(embed: DiscordEmbed, name: string): string | undefined {
   return embed.fields?.find((field) => field.name === name)?.value
@@ -22,6 +25,56 @@ const CAP_EVENT: WatchlistCapNotification = {
 }
 
 describe('messages', () => {
+  describe('createApprovalMessages', () => {
+    const request: ApprovalRequest = {
+      id: 1,
+      userId: 2,
+      userName: 'friend',
+      contentType: 'movie',
+      contentTitle: 'Nosferatu',
+      contentKey: 'nosferatu-key',
+      contentGuids: ['tmdb:426063'],
+      thumb: null,
+      proposedRouterDecision: { action: 'require_approval' },
+      triggeredBy: 'manual_flag',
+      approvalReason: null,
+      status: 'pending',
+      createdAt: '2026-10-01T10:00:00.000Z',
+      updatedAt: '2026-10-01T10:00:00.000Z',
+    }
+
+    it('should name the requester by alias in the embed, DM and Apprise rows', () => {
+      const users = new Map([
+        [2, createMockUser(2, 'friend', { alias: 'Friendly' })],
+      ])
+      const { dm, requests } = createApprovalMessages(
+        [request],
+        1,
+        new Map(),
+        users,
+      )
+      const embed = requests[0].webhook.embeds?.[0]
+
+      expect(embed && fieldValue(embed, 'Requested by')).toBe('Friendly')
+      expect(fieldValue(dm.embed, 'Requested by')).toBe('Friendly')
+      expect(requests[0].apprise.body).toContain('Friendly')
+    })
+
+    it('should fall back to the request user name without a user row', () => {
+      const { dm, requests } = createApprovalMessages(
+        [request],
+        1,
+        new Map(),
+        new Map(),
+      )
+      const embed = requests[0].webhook.embeds?.[0]
+
+      expect(embed && fieldValue(embed, 'Requested by')).toBe('friend')
+      expect(fieldValue(dm.embed, 'Requested by')).toBe('friend')
+      expect(requests[0].apprise.body).toContain('friend')
+    })
+  })
+
   describe('createDeleteSyncMessage', () => {
     const results = {
       total: { deleted: 1, skipped: 1, processed: 2 },
@@ -133,7 +186,10 @@ describe('messages', () => {
 
   describe('createWatchlistCapMessage', () => {
     it('should post the cap usage as the watchlist webhook', () => {
-      const { webhook } = createWatchlistCapMessage(CAP_EVENT)
+      const { webhook } = createWatchlistCapMessage(
+        CAP_EVENT,
+        'test-user-all-notifications',
+      )
       const embed = webhook.embeds?.[0]
 
       expect(webhook.username).toBe('Pulsarr Watchlist')
@@ -150,7 +206,10 @@ describe('messages', () => {
     })
 
     it('should add the impact as a DM field', () => {
-      const { dm } = createWatchlistCapMessage(CAP_EVENT)
+      const { dm } = createWatchlistCapMessage(
+        CAP_EVENT,
+        'test-user-all-notifications',
+      )
 
       expect(dm.embed.title).toBe(
         'Watchlist cap reached: test-user-all-notifications',
@@ -162,13 +221,24 @@ describe('messages', () => {
     })
 
     it('should name the user in the Apprise message', () => {
-      const { apprise } = createWatchlistCapMessage({
-        ...CAP_EVENT,
-        userName: null,
-      })
+      const { apprise } = createWatchlistCapMessage(CAP_EVENT, 'User 3')
 
       expect(apprise.title).toBe('Watchlist cap reached: User 3')
       expect(apprise.body).toContain('User 3')
+    })
+
+    it('should name the user by alias in every admin form', () => {
+      const { webhook, dm, apprise } = createWatchlistCapMessage(
+        CAP_EVENT,
+        'Alex',
+      )
+      const embed = webhook.embeds?.[0]
+
+      expect(embed?.title).toBe('Watchlist cap reached: Alex')
+      expect(embed?.description).toBe('**Alex** reached their show cap (6/5)')
+      expect(embed && fieldValue(embed, 'User')).toBe('Alex')
+      expect(dm.embed.title).toBe('Watchlist cap reached: Alex')
+      expect(apprise.title).toBe('Watchlist cap reached: Alex')
     })
   })
 

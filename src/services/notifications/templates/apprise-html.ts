@@ -61,7 +61,7 @@ const TABLE_ATTRS = 'role="presentation" cellpadding="0" cellspacing="0"'
 
 function htmlWrapper(bandLabel: string, content: string): string {
   return `<div style="margin:0;padding:32px 16px;background:${PAGE};font-family:${FONT_STACK};color:${INK};">
-  <table ${TABLE_ATTRS} width="600" align="center" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border:2px solid ${INK};border-radius:8px;background:${CARD};box-shadow:4px 4px 0 0 ${INK};">
+  <table ${TABLE_ATTRS} align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid ${INK};border-radius:8px;background:${CARD};box-shadow:4px 4px 0 0 ${INK};">
     <tr><td style="padding:10px 24px;background:${PRIMARY};border-bottom:2px solid ${INK};border-radius:6px 6px 0 0;">
       <table ${TABLE_ATTRS} width="100%" style="width:100%;"><tr>
         <td width="50%" style="width:50%;white-space:nowrap;font-size:15px;font-weight:700;color:${PRIMARY_FOREGROUND};letter-spacing:-0.01em;">Pulsarr</td>
@@ -91,7 +91,7 @@ function posterHero(
   const posterCell = posterUrl
     ? `<td width="120" valign="top" style="width:120px;vertical-align:top;padding-right:20px;"><img src="${escapeHtml(posterUrl)}" alt="${escapeHtml(contentTitle)} poster" width="120" height="180" style="display:block;width:120px;height:180px;border:2px solid ${INK};border-radius:6px;background:${SURFACE};font-size:12px;color:${MUTED};"></td>`
     : ''
-  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;"><tr>${posterCell}<td valign="top" style="vertical-align:top;">${content}</td></tr></table>`
+  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;table-layout:fixed;"><tr>${posterCell}<td valign="top" style="vertical-align:top;word-break:break-word;">${content}</td></tr></table>`
 }
 
 type PillTone = 'warn' | 'neutral' | 'stop'
@@ -114,7 +114,7 @@ function title(text: string, badge?: { text: string; tone: PillTone }): string {
   const badgeHtml = badge
     ? `<div style="margin-bottom:8px;">${pill(badge.text, badge.tone)}</div>`
     : ''
-  return `${badgeHtml}<h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:${INK};">${escapeHtml(text)}</h1>`
+  return `${badgeHtml}<h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:${INK};word-break:break-word;">${escapeHtml(text)}</h1>`
 }
 
 interface FactRow {
@@ -132,11 +132,11 @@ function factRows(rows: FactRow[], labelWidth = '128px'): string {
         : ''
       return `<tr>
         <td valign="top" style="width:${labelWidth};vertical-align:top;padding:8px 16px 8px 0;${borderTop}font-size:14px;color:${MUTED};white-space:nowrap;">${escapeHtml(row.label)}</td>
-        <td valign="top" style="vertical-align:top;padding:8px 0;${borderTop}font-size:14px;font-weight:500;color:${INK};">${escapeHtml(row.value)}${sub}</td>
+        <td valign="top" style="vertical-align:top;padding:8px 0;${borderTop}font-size:14px;font-weight:500;color:${INK};word-break:break-word;">${escapeHtml(row.value)}${sub}</td>
       </tr>`
     })
     .join('')
-  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;border-collapse:collapse;">${rowsHtml}</table>`
+  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;table-layout:fixed;border-collapse:collapse;">${rowsHtml}</table>`
 }
 
 function sectionHeading(text: string, meta?: string): string {
@@ -228,16 +228,16 @@ export function createMediaAppriseMessage(
 
   const bodyHtml = htmlWrapper(
     heading,
-    posterHero(
-      notification.posterUrl,
-      notification.title,
-      stack(INNER_GAP, [
+    stack(INNER_GAP, [
+      posterHero(
+        notification.posterUrl,
+        notification.title,
         title(notification.title),
-        details.length > 0 ? factRows(details) : '',
-        mediaNotice ? notice(mediaNotice) : '',
-        notification.tmdbUrl ? link(notification.tmdbUrl, 'View on TMDB') : '',
-      ]),
-    ),
+      ),
+      details.length > 0 ? factRows(details) : '',
+      mediaNotice ? notice(mediaNotice) : '',
+      notification.tmdbUrl ? link(notification.tmdbUrl, 'View on TMDB') : '',
+    ]),
   )
 
   const textLines = [
@@ -270,32 +270,32 @@ export function createApprovalAppriseMessage(
   const bodyHtml = htmlWrapper(
     EVENT_LABELS.approvalRequest,
     stack(BLOCK_GAP, [
-      posterHero(
-        notification.posterUrl,
-        notification.contentTitle,
-        stack(INNER_GAP, [
+      stack(INNER_GAP, [
+        posterHero(
+          notification.posterUrl,
+          notification.contentTitle,
           title(notification.contentTitle, {
             text: 'Pending approval',
             tone: 'warn',
           }),
-          factRows(
-            [
-              { label: 'Type', value: contentType },
-              { label: 'Requested by', value: notification.requestedBy },
-              {
-                label: 'Pending requests',
-                value: `${notification.totalPending} awaiting review`,
-              },
-              {
-                label: 'Reason',
-                value: APPROVAL_TRIGGER_LABELS[notification.trigger],
-                sub: notification.reason,
-              },
-            ],
-            '136px',
-          ),
-        ]),
-      ),
+        ),
+        factRows(
+          [
+            { label: 'Type', value: contentType },
+            { label: 'Requested by', value: notification.requestedBy },
+            {
+              label: 'Pending requests',
+              value: `${notification.totalPending} awaiting review`,
+            },
+            {
+              label: 'Reason',
+              value: APPROVAL_TRIGGER_LABELS[notification.trigger],
+              sub: notification.reason,
+            },
+          ],
+          '136px',
+        ),
+      ]),
       divider(),
       stack(INNER_GAP, [
         notice(APPROVAL_ACTION_REQUIRED),
@@ -501,18 +501,14 @@ export function createWatchlistAddedAppriseMessage(
 
   const bodyHtml = htmlWrapper(
     EVENT_LABELS.watchlistAdded,
-    posterHero(
-      item.posterUrl,
-      item.title,
-      stack(INNER_GAP, [
-        title(item.title),
-        factRows([
-          { label: 'Type', value: mediaType },
-          { label: 'Added by', value: addedBy },
-        ]),
-        item.tmdbUrl ? link(item.tmdbUrl, 'View on TMDB') : '',
+    stack(INNER_GAP, [
+      posterHero(item.posterUrl, item.title, title(item.title)),
+      factRows([
+        { label: 'Type', value: mediaType },
+        { label: 'Added by', value: addedBy },
       ]),
-    ),
+      item.tmdbUrl ? link(item.tmdbUrl, 'View on TMDB') : '',
+    ]),
   )
 
   let textBody = `New ${mediaType} Added\n\n`

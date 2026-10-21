@@ -37,7 +37,6 @@ export async function sendNotification(
   try {
     const user = await botClient.users.fetch(discordId)
     await user.send({
-      content: `Hey ${user}! 👋`,
       embeds: [embed],
       ...(components ? { components } : {}),
     })
