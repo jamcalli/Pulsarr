@@ -1,8 +1,11 @@
+import { QUERY_RETRY_LIMIT } from '@/lib/constants'
 import {
   apiErrorMessage,
   firstLoadError,
+  latestErrorMessage,
   loadErrorMessage,
   mutationErrorMessage,
+  shouldRetryQuery,
 } from '@/lib/tanstackApi'
 
 describe('apiErrorMessage', () => {
@@ -53,6 +56,26 @@ describe('mutationErrorMessage', () => {
     expect(mutationErrorMessage({ statusCode: 500 }, 'Fallback')).toBe(
       'Fallback',
     )
+  })
+})
+
+describe('latestErrorMessage', () => {
+  it('reports a failed refresh even over cached data', () => {
+    expect(
+      latestErrorMessage(
+        { isError: true, error: { message: 'Down' } },
+        'Fallback',
+      ),
+    ).toBe('Down')
+    expect(latestErrorMessage({ isError: true, error: null }, 'Fallback')).toBe(
+      'Fallback',
+    )
+  })
+
+  it('returns null when the last fetch succeeded', () => {
+    expect(
+      latestErrorMessage({ isError: false, error: null }, 'Fallback'),
+    ).toBeNull()
   })
 })
 
@@ -118,5 +141,36 @@ describe('firstLoadError', () => {
         'Fallback',
       ),
     ).toBeNull()
+  })
+})
+
+describe('shouldRetryQuery', () => {
+  const serverError = {
+    statusCode: 500,
+    error: 'Internal Server Error',
+    message: 'Down',
+  }
+
+  it('retries a network failure', () => {
+    expect(shouldRetryQuery(0, new TypeError('Failed to fetch'))).toBe(true)
+  })
+
+  it('retries a server error', () => {
+    expect(shouldRetryQuery(0, serverError)).toBe(true)
+    expect(shouldRetryQuery(0, { ...serverError, statusCode: 503 })).toBe(true)
+  })
+
+  it('retries a rate limit', () => {
+    expect(shouldRetryQuery(0, { ...serverError, statusCode: 429 })).toBe(true)
+  })
+
+  it('does not retry a client error', () => {
+    expect(shouldRetryQuery(0, { ...serverError, statusCode: 404 })).toBe(false)
+    expect(shouldRetryQuery(0, { ...serverError, statusCode: 400 })).toBe(false)
+  })
+
+  it('stops at the retry limit', () => {
+    expect(shouldRetryQuery(QUERY_RETRY_LIMIT - 1, serverError)).toBe(true)
+    expect(shouldRetryQuery(QUERY_RETRY_LIMIT, serverError)).toBe(false)
   })
 })

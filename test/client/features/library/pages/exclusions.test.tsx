@@ -8,6 +8,7 @@ import { setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { components } from '@/types/api.js'
+import { serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -723,6 +724,23 @@ describe('ExclusionsPage', () => {
     const section = await findSection('Maintainerr')
     expect(await section.findByText('connect ECONNREFUSED')).toBeInTheDocument()
     expect(section.getByText('Error')).toBeInTheDocument()
+  })
+
+  it('shows an error in the section when the status fails to load', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    server.use(http.get('/v1/notifications/maintainerr/status', serverError))
+    renderPage()
+
+    const section = await findSection('Maintainerr')
+    expect(await section.findByText('Down')).toBeInTheDocument()
+
+    server.resetHandlers()
+    mockEndpoints()
+    await user.click(section.getByRole('button', { name: 'Retry' }))
+
+    expect(await section.findByText('Connected')).toBeInTheDocument()
+    expect(section.queryByText('Down')).not.toBeInTheDocument()
   })
 
   it('syncs now and polls the status after', async () => {

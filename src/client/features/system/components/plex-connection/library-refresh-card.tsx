@@ -2,8 +2,8 @@ import { Server } from 'lucide-react'
 import { BusyLabel } from '@/components/busy-label'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { EmptyState } from '@/components/empty-state'
-import { ErrorAlert } from '@/components/error-alert'
 import { NavPageButton } from '@/components/nav-page-button'
+import { RetryAlert } from '@/components/retry-alert'
 import { ActionResults } from '@/components/settings/action-results'
 import { ActionRow } from '@/components/settings/action-row'
 import {
@@ -133,7 +133,12 @@ export function LibraryRefreshCard({
               </p>
             </ActionResults>
           )}
-          <ErrorAlert message={refresh.statusError} />
+          {refresh.statusError && (
+            <RetryAlert
+              message={refresh.statusError}
+              onRetry={refresh.retryStatus}
+            />
+          )}
           {table}
         </div>
       </SettingsSection>

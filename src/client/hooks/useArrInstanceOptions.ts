@@ -2,7 +2,7 @@ import { useArrInstances } from '@/hooks/useArrInstances'
 import { useMinDuration, useMinLoading } from '@/hooks/useMinLoading'
 import { type ArrTarget, isConfiguredTarget } from '@/lib/approval'
 import { toArrOptions } from '@/lib/arr-options'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, firstLoadError } from '@/lib/tanstackApi'
 
 export function useArrInstanceOptions(
   type: ArrTarget['type'],
@@ -43,14 +43,12 @@ export function useArrInstanceOptions(
     ),
   )
 
-  const queryError = [
-    instances.errorMessage,
-    ...[profilesQuery, foldersQuery, tagsQuery].map((query) =>
-      query.isError
-        ? (apiErrorMessage(query.error) ?? 'Instance options failed to load.')
-        : null,
-    ),
-  ].find((message) => message !== null)
+  const queryError =
+    instances.errorMessage ??
+    firstLoadError(
+      [profilesQuery, foldersQuery, tagsQuery],
+      'Instance options failed to load.',
+    )
 
   const retrying = useMinDuration(
     [profilesQuery, foldersQuery, tagsQuery].some(
@@ -72,7 +70,7 @@ export function useArrInstanceOptions(
       tagsQuery.isLoading,
     errorMessage: notConnected
       ? 'This instance is not connected. Check its API key.'
-      : (queryError ?? null),
+      : queryError,
     retrying,
     retry: () => {
       for (const query of [profilesQuery, foldersQuery, tagsQuery]) {

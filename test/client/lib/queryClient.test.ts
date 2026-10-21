@@ -4,8 +4,10 @@ import { notifyBackgroundRefreshError } from '@/lib/queryClient'
 
 vi.mock('@/components/ui/toast', () => ({ toast: { add: vi.fn() } }))
 
-function queryWith(data: unknown): Pick<Query<unknown, unknown>, 'state'> {
-  return { state: { data } } as Pick<Query<unknown, unknown>, 'state'>
+type ToastedQuery = Pick<Query<unknown, unknown>, 'state' | 'meta'>
+
+function queryWith(data: unknown, meta?: ToastedQuery['meta']): ToastedQuery {
+  return { state: { data }, meta } as ToastedQuery
 }
 
 describe('notifyBackgroundRefreshError', () => {
@@ -33,6 +35,14 @@ describe('notifyBackgroundRefreshError', () => {
       title: 'Could not refresh. Showing the last loaded data.',
       description: 'Database is locked',
     })
+  })
+
+  it('stays quiet for a poller that refreshes silently', () => {
+    notifyBackgroundRefreshError(
+      new Error('down'),
+      queryWith({ items: [] }, { silentRefresh: true }),
+    )
+    expect(toast.add).not.toHaveBeenCalled()
   })
 
   it('uses one toast id so several failing queries do not stack', () => {

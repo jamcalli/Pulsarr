@@ -70,7 +70,7 @@ export function useSessionMonitoringPage() {
     rows,
     total,
     inactive,
-    isReady: config.isReady && (config.isError || list.isReady),
+    isReady: config.isReady && (config.error !== null || list.isReady),
     errorMessage: config.error ?? list.errorMessage,
     retry: () => {
       if (config.isError) void config.initialize(true)

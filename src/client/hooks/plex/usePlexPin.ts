@@ -4,7 +4,15 @@ import { useLinkAccount } from '@/hooks/plex/useAccountToken'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { PIN_POLL_INTERVAL_MS, pinPhase } from '@/lib/plex/plex-pin'
 import { TOKEN_FAILURE_MESSAGES } from '@/lib/plex/plex-requests'
-import { $api, apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
+import {
+  $api,
+  apiFetch,
+  latestErrorMessage,
+  mutationErrorMessage,
+} from '@/lib/tanstackApi'
+
+const NO_ANSWER = 'Plex did not answer.'
+const LINK_FAILED = "Couldn't link your account."
 
 async function createPin() {
   const { data, error } = await apiFetch.POST('/v1/plex/pin')
@@ -35,6 +43,7 @@ export function usePlexPin(open: boolean, onLinked: () => void) {
           ? false
           : PIN_POLL_INTERVAL_MS,
       gcTime: 0,
+      meta: { silentRefresh: true },
     },
   )
   const authToken = poll.data?.authToken ?? null
@@ -58,19 +67,22 @@ export function usePlexPin(open: boolean, onLinked: () => void) {
     })
   }, [open, authToken, linkIdle, linkToken, onLinked])
 
+  const pollError = latestErrorMessage(poll, NO_ANSWER)
   const failure = create.isError
     ? {
         title: "Couldn't get a code from Plex.",
-        detail: mutationErrorMessage(create.error, 'Plex did not answer.'),
+        detail: mutationErrorMessage(create.error, NO_ANSWER),
       }
-    : link.errorMessage
-      ? { title: "Couldn't link your account.", detail: link.errorMessage }
-      : link.outcome && !link.outcome.linked
-        ? {
-            title: "Couldn't link your account.",
-            detail: TOKEN_FAILURE_MESSAGES[link.outcome.reason],
-          }
-        : null
+    : pollError
+      ? { title: "Couldn't check the code with Plex.", detail: pollError }
+      : link.errorMessage
+        ? { title: LINK_FAILED, detail: link.errorMessage }
+        : link.outcome && !link.outcome.linked
+          ? {
+              title: LINK_FAILED,
+              detail: TOKEN_FAILURE_MESSAGES[link.outcome.reason],
+            }
+          : null
 
   return {
     pin,

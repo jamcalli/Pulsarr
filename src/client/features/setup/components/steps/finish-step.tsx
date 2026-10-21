@@ -52,8 +52,7 @@ function ownerState(
   users: ReadonlyArray<components['schemas']['UserWithCount']> | undefined,
   isError: boolean,
 ): Owner {
-  if (isError) return 'absent'
-  if (users === undefined) return 'loading'
+  if (users === undefined) return isError ? 'absent' : 'loading'
   return users.some((user) => user.is_primary_token) ? 'present' : 'absent'
 }
 

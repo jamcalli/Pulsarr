@@ -11,11 +11,12 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import SetupDialog from '@/features/setup'
 import { setFormatLocale } from '@/lib/format'
 import { markDone, type SyncRun, startRun } from '@/lib/plex/sync-run'
-import { plexConnectionKeys } from '@/lib/query-keys'
+import { plexConnectionKeys, usersKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import { useSetupStore } from '@/stores/setupStore'
 import type { components } from '@/types/api.js'
+import { refetchAndRender, serverError } from '../../refetch.js'
 import { server } from '../../setup.js'
 import { stubViewport } from '../../viewport.js'
 
@@ -590,6 +591,36 @@ describe('SetupDialog', () => {
     expect(calls.start).toEqual([{ autoStart: false }])
   })
 
+  it('retries a failed sync status read and finishes the sync', async () => {
+    const user = userEvent.setup()
+    const calls = mockEndpoints({ sonarrInstances: [sonarr] })
+    let statusFailures = 0
+    server.use(
+      http.get('/v1/plex/watchlist-sync/:type/status', () => {
+        if (statusFailures > 0) return
+        statusFailures += 1
+        return serverError()
+      }),
+    )
+    renderDialog()
+    act(() => useSetupStore.getState().request())
+
+    const dialog = await findStep('Start syncing')
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Sync watchlists' }),
+    )
+
+    expect(
+      await within(dialog).findByRole(
+        'button',
+        { name: 'Start workflow' },
+        RUN_TIMEOUT,
+      ),
+    ).toBeEnabled()
+    expect(statusFailures).toBe(1)
+    expect(calls.requests.toSorted()).toEqual(['friends', 'self'])
+  })
+
   it('reads friends even when the owner sync fails, then offers a retry', async () => {
     const user = userEvent.setup()
     const calls = mockEndpoints({ sonarrInstances: [sonarr], fail: ['self'] })
@@ -723,6 +754,23 @@ describe('SetupDialog', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(calls.start).toEqual([{ autoStart: true }])
     expect(calls.requests).toEqual(['start'])
+  })
+
+  it('keeps Start workflow for an onboarded owner when the users refetch fails', async () => {
+    mockEndpoints({ sonarrInstances: [sonarr], users: ONBOARDED_USERS })
+    setWorkflowStatus('stopped')
+    renderDialog()
+    act(() => useSetupStore.getState().request())
+
+    const dialog = await findStep('Start syncing')
+    await within(dialog).findByRole('button', { name: 'Start workflow' })
+    server.use(http.get('/v1/users/list/with-counts', serverError))
+    await refetchAndRender(usersKeys.withCounts)
+
+    expect(
+      within(dialog).getByRole('button', { name: 'Start workflow' }),
+    ).toBeEnabled()
+    expect(within(dialog).getByText('214 items')).toBeInTheDocument()
   })
 
   it('shows only Done when the workflow already runs', async () => {

@@ -17,10 +17,6 @@ export function mediaDetailQuery({
     'get',
     '/v1/tmdb/metadata/{id}',
     { params: { path: { id: guid }, query: { region, type } } },
-    {
-      staleTime: METADATA_STALE_MS,
-      retry: (failureCount, error) =>
-        error.statusCode !== 404 && failureCount < 1,
-    },
+    { staleTime: METADATA_STALE_MS },
   )
 }

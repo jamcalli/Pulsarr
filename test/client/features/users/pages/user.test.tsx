@@ -8,6 +8,7 @@ import { setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { components, paths } from '@/types/api.js'
+import { serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -303,6 +304,26 @@ describe('UserPage', () => {
     ).toHaveAttribute('href', '/users')
   })
 
+  it('asks for a missing user once without retrying the 404', async () => {
+    mockUser()
+    let calls = 0
+    server.use(
+      http.get('/v1/users/:id', () => {
+        calls += 1
+        return HttpResponse.json(
+          { statusCode: 404, error: 'Not Found', message: 'User not found' },
+          { status: 404 },
+        )
+      }),
+    )
+    renderPage()
+
+    expect(
+      await screen.findByRole('link', { name: 'Plex users' }),
+    ).toBeInTheDocument()
+    expect(calls).toBe(1)
+  })
+
   it('names the user by alias with the username under it', async () => {
     mockUser()
     renderPage()
@@ -473,6 +494,47 @@ describe('UserPage', () => {
     await waitFor(() =>
       expect(bodies.deleteQuery).toEqual(['?autoApproveHeld=true']),
     )
+  })
+
+  it('shows the held count error and locks approving held requests', async () => {
+    const user = userEvent.setup()
+    mockUser()
+    server.use(
+      http.get('/v1/quota/users/:userId/pending-held-count', serverError),
+    )
+    renderPage()
+    await findTitle()
+
+    await user.click(screen.getByRole('button', { name: 'Remove quotas' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Remove quotas for Maya R.?',
+    })
+
+    expect(await within(dialog).findByText('Down')).toBeInTheDocument()
+    expect(within(dialog).getByRole('switch')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+
+    server.use(
+      http.get('/v1/quota/users/:userId/pending-held-count', () =>
+        HttpResponse.json({
+          success: true,
+          message: 'ok',
+          movieCount: 2,
+          showCount: 1,
+        }),
+      ),
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'Retry' }))
+
+    await waitFor(() =>
+      expect(within(dialog).getByRole('switch')).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      ),
+    )
+    expect(within(dialog).queryByText('Down')).not.toBeInTheDocument()
   })
 
   it('removes a friend and returns to Plex users', async () => {

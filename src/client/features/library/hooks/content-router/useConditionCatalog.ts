@@ -8,6 +8,7 @@ import {
   CERTIFICATION_OPTIONS,
   type ConditionOptions,
   MOVIE_STATUS_OPTIONS,
+  type OptionSource,
   optionLabel,
   SERIES_STATUS_OPTIONS,
 } from '@/features/library/lib/content-router/condition-options'
@@ -46,6 +47,19 @@ export function useConditionCatalog(type: RouteType, needs: CatalogNeeds) {
   const providers = $api.useQuery('get', '/v1/tmdb/providers', undefined, {
     enabled: needs.providers,
   })
+
+  const remoteOptions: Partial<
+    Record<
+      OptionSource,
+      { query: typeof genres | typeof providers; message: string }
+    >
+  > = {
+    genres: { query: genres, message: "Couldn't load the genres." },
+    streamingServices: {
+      query: providers,
+      message: "Couldn't load the streaming services.",
+    },
+  }
 
   const evaluators = metadata.data?.evaluators
   const fields = useMemo(
@@ -115,6 +129,13 @@ export function useConditionCatalog(type: RouteType, needs: CatalogNeeds) {
       'Condition options failed to load.',
     ),
     retry: () => void metadata.refetch(),
+    /** Null for sources that are not fetched, so a failed list shows beside its field instead of replacing the page. */
+    optionError: (source: OptionSource) => {
+      const remote = remoteOptions[source]
+      return remote ? loadErrorMessage(remote.query, remote.message) : null
+    },
+    retryOption: (source: OptionSource) =>
+      void remoteOptions[source]?.query.refetch(),
   }
 }
 

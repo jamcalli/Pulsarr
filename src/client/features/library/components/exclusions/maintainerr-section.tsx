@@ -1,5 +1,6 @@
 import { useStore } from '@tanstack/react-form'
 import { FactList } from '@/components/fact-list'
+import { RetryAlert } from '@/components/retry-alert'
 import { ActionRow } from '@/components/settings/action-row'
 import { InfoLine } from '@/components/settings/info-line'
 import { SettingsSection } from '@/components/settings/settings-section'
@@ -37,6 +38,7 @@ export function MaintainerrSection({
   )
   const pill = maintainerrPill(config.maintainerrEnabled, status.result)
   const result = config.maintainerrEnabled ? status.result : null
+  const statusError = config.maintainerrEnabled ? status.statusError : null
   const facts = result ? maintainerrFacts(result) : []
   const syncReason = syncUnavailableReason(dirty, config)
 
@@ -72,6 +74,9 @@ export function MaintainerrSection({
           />
         )}
       </form.AppField>
+      {statusError && (
+        <RetryAlert message={statusError} onRetry={status.retryStatus} />
+      )}
       {facts.length > 0 && <FactList facts={facts} />}
       {result?.status === 'unsupported_version' && (
         <InfoLine tone="warn">

@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import AccountPage from '@/features/account'
 import { currentUserKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
+import { serverError } from '../../refetch.js'
 import { server } from '../../setup.js'
 import { stubViewport } from '../../viewport.js'
 
@@ -207,6 +208,16 @@ describe('AccountPage', () => {
     ])
     expect(bodies.password).toEqual([])
     expect(me.calls).toBeGreaterThan(loads)
+  })
+
+  it('shows a retry alert when the account fails to load', async () => {
+    mockEndpoints()
+    server.use(http.get('/v1/users/me', serverError))
+    renderPage()
+
+    expect(await screen.findByText('Down')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Email')).toBeNull()
   })
 
   it('keeps the form and its edits when a background refetch fails', async () => {

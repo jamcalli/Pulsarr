@@ -13,6 +13,7 @@ import {
   mockApprovalEndpoints,
   mockQuotaConfig,
 } from '../../../approval-fixtures.js'
+import { refetchAndRender, serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -510,5 +511,23 @@ describe('ApprovalQueuePage', () => {
     expect(
       screen.queryByRole('searchbox', { name: 'Search titles' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('keeps the table when a background refetch fails', async () => {
+    mockQueue()
+    renderPage()
+
+    const table = await screen.findByRole('table', { name: 'Pending requests' })
+    server.use(
+      http.get('/v1/approval/requests', serverError),
+      http.get('/v1/approval/stats', serverError),
+    )
+    await refetchAndRender()
+
+    expect(within(table).getByText('Severance')).toBeInTheDocument()
+    expect(
+      screen.queryByText("Couldn't load the approval queue."),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('Down')).not.toBeInTheDocument()
   })
 })

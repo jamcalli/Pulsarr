@@ -7,9 +7,11 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import DeleteSyncPage from '@/features/library/pages/delete-sync'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
 import { setFormatLocale } from '@/lib/format'
+import { deleteSyncKeys, scheduleKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { components, paths } from '@/types/api.js'
+import { refetchAndRender, serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -574,6 +576,87 @@ describe('DeleteSyncPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Dry run' }))
 
     expect(await screen.findByText('Sonarr is unreachable')).toBeInTheDocument()
+  })
+
+  it('shows an error under the dry run when its status fails to load', async () => {
+    mockEndpoints()
+    server.use(
+      http.get(
+        '/v1/scheduler/schedules/delete-sync/dry-run/status',
+        serverError,
+      ),
+    )
+    renderPage()
+
+    expect(await screen.findByText('Down')).toBeInTheDocument()
+  })
+
+  it('keeps the last dry run and reports a failed refresh of it', async () => {
+    mockEndpoints({
+      dryRunStatus: {
+        state: 'done',
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        error: null,
+        result: dryRunOk,
+      },
+    })
+    renderPage()
+    expect(
+      await screen.findByText(
+        '47 processed. Would delete 2 movies and 1 show.',
+      ),
+    ).toBeInTheDocument()
+
+    server.use(
+      http.get(
+        '/v1/scheduler/schedules/delete-sync/dry-run/status',
+        serverError,
+      ),
+    )
+    await refetchAndRender(deleteSyncKeys.dryRunStatus)
+
+    expect(await screen.findByText('Down')).toBeInTheDocument()
+    expect(
+      screen.getByText('47 processed. Would delete 2 movies and 1 show.'),
+    ).toBeInTheDocument()
+  })
+
+  it('reports a failed status refresh over a cached failed run', async () => {
+    mockEndpoints({
+      dryRunStatus: {
+        state: 'failed',
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        error: 'The last run broke.',
+        result: null,
+      },
+    })
+    renderPage()
+    expect(await screen.findByText('The last run broke.')).toBeInTheDocument()
+
+    server.use(
+      http.get(
+        '/v1/scheduler/schedules/delete-sync/dry-run/status',
+        serverError,
+      ),
+    )
+    await refetchAndRender(deleteSyncKeys.dryRunStatus)
+
+    expect(await screen.findByText('Down')).toBeInTheDocument()
+    expect(screen.queryByText('The last run broke.')).not.toBeInTheDocument()
+  })
+
+  it('reports a failed schedule refresh in the job panel', async () => {
+    mockEndpoints()
+    renderPage()
+    expect(await screen.findByText('Manual run')).toBeInTheDocument()
+
+    server.use(http.get('/v1/scheduler/schedules/delete-sync', serverError))
+    await refetchAndRender(scheduleKeys.byName('delete-sync'))
+
+    expect(await screen.findByText('Down')).toBeInTheDocument()
+    expect(screen.getByText('Manual run')).toBeInTheDocument()
   })
 
   it('marks the dry run stale after a settings save but not a schedule change', async () => {

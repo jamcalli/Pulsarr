@@ -8,6 +8,7 @@ import { setFormatLocale } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { queryClient } from '@/lib/queryClient'
 import type { components, paths } from '@/types/api.js'
+import { serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 import { evaluators } from '../content-router-fixtures.js'
@@ -513,6 +514,21 @@ describe('ContentRouterPage', () => {
         ],
       },
     })
+  })
+
+  it('shows a genre load failure beside its field and keeps the editor open', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    server.use(http.get('/v1/plex/genres', serverError))
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: /^Edit Low/ }))
+
+    expect(
+      await screen.findByText('Down', undefined, { timeout: 3000 }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Route name')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
   })
 
   it('saves an edited route with a full replace', async () => {

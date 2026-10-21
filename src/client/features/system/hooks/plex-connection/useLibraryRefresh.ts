@@ -9,7 +9,7 @@ import { useOperation } from '@/hooks/useOperation'
 import { NAV_PAGES } from '@/lib/navigation'
 import { plexConnectionKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { $api, apiFetch, latestErrorMessage } from '@/lib/tanstackApi'
 
 async function setUp() {
   const { data, error } = await apiFetch.POST(
@@ -77,10 +77,11 @@ export function useLibraryRefresh(configured: {
     rows,
     setUpNames: setUpNames(rows ?? []),
     ranAt: latest?.ranAt ?? null,
-    statusError: status.isError
-      ? (apiErrorMessage(status.error) ??
-        "Couldn't read which instances have it.")
-      : null,
+    statusError: latestErrorMessage(
+      status,
+      "Couldn't read which instances have it.",
+    ),
+    retryStatus: () => void status.refetch(),
     running: setup.running || removal.running,
     setupRunning: setup.running,
     removeRunning: removal.running,

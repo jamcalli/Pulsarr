@@ -10,7 +10,7 @@ import {
 import { NAV_PAGES } from '@/lib/navigation'
 import { deleteSyncKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiFetch } from '@/lib/tanstackApi'
+import { $api, apiFetch, latestErrorMessage } from '@/lib/tanstackApi'
 
 const ERROR_FALLBACK = 'The dry run did not finish. Try again.'
 
@@ -28,6 +28,7 @@ function fetchStatus() {
       '/v1/scheduler/schedules/delete-sync/dry-run/status',
     ),
     staleTime: 0,
+    meta: { silentRefresh: true },
   })
 }
 
@@ -83,7 +84,10 @@ export function useDryRun(saved: DryRunContext) {
 
   return {
     running: operation.running || status?.state === 'running',
-    errorMessage: operation.errorMessage ?? serverError,
+    errorMessage:
+      operation.errorMessage ??
+      latestErrorMessage(query, "Couldn't load the last dry run.") ??
+      serverError,
     result,
     run: () => operation.run(saved),
   }
