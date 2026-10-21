@@ -7,7 +7,12 @@ import { startAndAwaitStatus } from '@/lib/background-job'
 import type { OperationMeta } from '@/lib/operation-toasts'
 import { scheduleKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiFetch, loadErrorMessage } from '@/lib/tanstackApi'
+import {
+  $api,
+  apiFetch,
+  latestErrorMessage,
+  loadErrorMessage,
+} from '@/lib/tanstackApi'
 import type { paths } from '@/types/api.js'
 
 export type ScheduleStatus =
@@ -100,6 +105,12 @@ export function useSchedule(name: string, meta: OperationMeta) {
     isLoading: query.isLoading,
     errorMessage: loadErrorMessage(query, 'The schedule failed to load.'),
     retry: () => query.refetch(),
-    run: { ...run, running: run.running || schedule?.running === true },
+    run: {
+      ...run,
+      errorMessage:
+        run.errorMessage ??
+        latestErrorMessage(query, "Couldn't refresh the schedule."),
+      running: run.running || schedule?.running === true,
+    },
   }
 }

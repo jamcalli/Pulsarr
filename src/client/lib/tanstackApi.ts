@@ -94,6 +94,14 @@ export function loadErrorMessage(
   return apiErrorMessage(query.error) ?? fallback
 }
 
+/** For a status read, where an outdated status shown as current is the bug: reports the last failure even over cached data. */
+export function latestErrorMessage(
+  query: { isError: boolean; error: unknown },
+  fallback: string,
+): string | null {
+  return query.isError ? (apiErrorMessage(query.error) ?? fallback) : null
+}
+
 /** The first query that failed with no cached data, for pages that gate on several queries at once. */
 export function firstLoadError(
   queries: ReadonlyArray<{ data: unknown; isError: boolean; error: unknown }>,

@@ -2,6 +2,7 @@ import { QUERY_RETRY_LIMIT } from '@/lib/constants'
 import {
   apiErrorMessage,
   firstLoadError,
+  latestErrorMessage,
   loadErrorMessage,
   mutationErrorMessage,
   shouldRetryQuery,
@@ -55,6 +56,26 @@ describe('mutationErrorMessage', () => {
     expect(mutationErrorMessage({ statusCode: 500 }, 'Fallback')).toBe(
       'Fallback',
     )
+  })
+})
+
+describe('latestErrorMessage', () => {
+  it('reports a failed refresh even over cached data', () => {
+    expect(
+      latestErrorMessage(
+        { isError: true, error: { message: 'Down' } },
+        'Fallback',
+      ),
+    ).toBe('Down')
+    expect(latestErrorMessage({ isError: true, error: null }, 'Fallback')).toBe(
+      'Fallback',
+    )
+  })
+
+  it('returns null when the last fetch succeeded', () => {
+    expect(
+      latestErrorMessage({ isError: false, error: null }, 'Fallback'),
+    ).toBeNull()
   })
 })
 

@@ -10,7 +10,7 @@ import {
 import { NAV_PAGES } from '@/lib/navigation'
 import { deleteSyncKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiFetch, loadErrorMessage } from '@/lib/tanstackApi'
+import { $api, apiFetch, latestErrorMessage } from '@/lib/tanstackApi'
 
 const ERROR_FALLBACK = 'The dry run did not finish. Try again.'
 
@@ -87,7 +87,7 @@ export function useDryRun(saved: DryRunContext) {
     errorMessage:
       operation.errorMessage ??
       serverError ??
-      loadErrorMessage(query, "Couldn't load the last dry run."),
+      latestErrorMessage(query, "Couldn't load the last dry run."),
     result,
     run: () => operation.run(saved),
   }

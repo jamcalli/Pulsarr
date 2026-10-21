@@ -1098,7 +1098,7 @@ describe('PlexConnectionPage', () => {
     await waitFor(() => expect(calls.removed).toBe(1), { timeout: 3000 })
   })
 
-  it('keeps the refresh table when a background refetch fails', async () => {
+  it('keeps the refresh table and reports a failed refetch beside it', async () => {
     mockEndpoints()
     renderPage()
     const card = await findSection('Plex library refresh')
@@ -1110,7 +1110,8 @@ describe('PlexConnectionPage', () => {
     expect(
       card.getByRole('table', { name: 'Library refresh by instance' }),
     ).toBeInTheDocument()
-    expect(card.queryByRole('alert')).not.toBeInTheDocument()
+    expect(await card.findByText('Down')).toBeInTheDocument()
+    expect(card.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
   })
 
   it('points to Sonarr and Radarr when there are no instances', async () => {

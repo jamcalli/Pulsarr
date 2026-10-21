@@ -6,8 +6,8 @@ import { PIN_POLL_INTERVAL_MS, pinPhase } from '@/lib/plex/plex-pin'
 import { TOKEN_FAILURE_MESSAGES } from '@/lib/plex/plex-requests'
 import {
   $api,
-  apiErrorMessage,
   apiFetch,
+  latestErrorMessage,
   mutationErrorMessage,
 } from '@/lib/tanstackApi'
 
@@ -67,9 +67,7 @@ export function usePlexPin(open: boolean, onLinked: () => void) {
     })
   }, [open, authToken, linkIdle, linkToken, onLinked])
 
-  const pollError = poll.isError
-    ? (apiErrorMessage(poll.error) ?? NO_ANSWER)
-    : null
+  const pollError = latestErrorMessage(poll, NO_ANSWER)
   const failure = create.isError
     ? {
         title: "Couldn't get a code from Plex.",
