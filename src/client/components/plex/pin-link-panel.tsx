@@ -81,7 +81,7 @@ function WaitingBody({
         <img
           src={pin.qr}
           alt="QR code for plex.tv/link with the code filled in"
-          className="size-full object-contain"
+          className="aspect-square size-full object-contain"
         />
       </div>
       <div className="flex flex-col items-start gap-3">
