@@ -84,6 +84,7 @@ export async function syncWatchlist(type: WatchlistSyncType) {
           params,
         }),
         staleTime: 0,
+        meta: { silentRefresh: true },
       }),
     isSettled: isRunSettled,
   })

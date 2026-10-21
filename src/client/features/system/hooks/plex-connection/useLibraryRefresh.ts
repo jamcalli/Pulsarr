@@ -81,6 +81,7 @@ export function useLibraryRefresh(configured: {
       status,
       "Couldn't read which instances have it.",
     ),
+    retryStatus: () => void status.refetch(),
     running: setup.running || removal.running,
     setupRunning: setup.running,
     removeRunning: removal.running,

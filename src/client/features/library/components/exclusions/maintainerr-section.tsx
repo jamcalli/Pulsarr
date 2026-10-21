@@ -1,6 +1,6 @@
 import { useStore } from '@tanstack/react-form'
-import { ErrorAlert } from '@/components/error-alert'
 import { FactList } from '@/components/fact-list'
+import { RetryAlert } from '@/components/retry-alert'
 import { ActionRow } from '@/components/settings/action-row'
 import { InfoLine } from '@/components/settings/info-line'
 import { SettingsSection } from '@/components/settings/settings-section'
@@ -74,7 +74,9 @@ export function MaintainerrSection({
           />
         )}
       </form.AppField>
-      <ErrorAlert message={statusError} />
+      {statusError && (
+        <RetryAlert message={statusError} onRetry={status.retryStatus} />
+      )}
       {facts.length > 0 && <FactList facts={facts} />}
       {result?.status === 'unsupported_version' && (
         <InfoLine tone="warn">

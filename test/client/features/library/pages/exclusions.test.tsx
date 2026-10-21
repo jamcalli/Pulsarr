@@ -727,12 +727,20 @@ describe('ExclusionsPage', () => {
   })
 
   it('shows an error in the section when the status fails to load', async () => {
+    const user = userEvent.setup()
     mockEndpoints()
     server.use(http.get('/v1/notifications/maintainerr/status', serverError))
     renderPage()
 
     const section = await findSection('Maintainerr')
     expect(await section.findByText('Down')).toBeInTheDocument()
+
+    server.resetHandlers()
+    mockEndpoints()
+    await user.click(section.getByRole('button', { name: 'Retry' }))
+
+    expect(await section.findByText('Connected')).toBeInTheDocument()
+    expect(section.queryByText('Down')).not.toBeInTheDocument()
   })
 
   it('syncs now and polls the status after', async () => {

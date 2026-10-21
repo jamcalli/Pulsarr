@@ -51,6 +51,7 @@ function fetchSchedule(name: string) {
       params: { path: { name } },
     }),
     staleTime: 0,
+    meta: { silentRefresh: true },
   })
 }
 

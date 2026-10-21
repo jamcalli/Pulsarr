@@ -28,6 +28,7 @@ function fetchStatus() {
       '/v1/scheduler/schedules/delete-sync/dry-run/status',
     ),
     staleTime: 0,
+    meta: { silentRefresh: true },
   })
 }
 

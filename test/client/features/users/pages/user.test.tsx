@@ -515,6 +515,26 @@ describe('UserPage', () => {
       'aria-disabled',
       'true',
     )
+
+    server.use(
+      http.get('/v1/quota/users/:userId/pending-held-count', () =>
+        HttpResponse.json({
+          success: true,
+          message: 'ok',
+          movieCount: 2,
+          showCount: 1,
+        }),
+      ),
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'Retry' }))
+
+    await waitFor(() =>
+      expect(within(dialog).getByRole('switch')).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      ),
+    )
+    expect(within(dialog).queryByText('Down')).not.toBeInTheDocument()
   })
 
   it('removes a friend and returns to Plex users', async () => {

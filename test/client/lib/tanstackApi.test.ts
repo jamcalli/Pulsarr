@@ -139,6 +139,10 @@ describe('shouldRetryQuery', () => {
     expect(shouldRetryQuery(0, { ...serverError, statusCode: 503 })).toBe(true)
   })
 
+  it('retries a rate limit', () => {
+    expect(shouldRetryQuery(0, { ...serverError, statusCode: 429 })).toBe(true)
+  })
+
   it('does not retry a client error', () => {
     expect(shouldRetryQuery(0, { ...serverError, statusCode: 404 })).toBe(false)
     expect(shouldRetryQuery(0, { ...serverError, statusCode: 400 })).toBe(false)

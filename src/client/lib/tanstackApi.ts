@@ -39,7 +39,7 @@ function presentMessage(message: string): string | null {
   return message.trim() === '' ? null : message
 }
 
-/** Retries network failures and 5xx answers up to the limit, since a 4xx answer will not change on retry. */
+/** Retries network failures, rate limits and 5xx answers up to the limit, since other 4xx answers will not change on retry. */
 export function shouldRetryQuery(
   failureCount: number,
   error: unknown,
@@ -51,7 +51,7 @@ export function shouldRetryQuery(
     'statusCode' in error &&
     typeof error.statusCode === 'number'
   ) {
-    return error.statusCode >= 500
+    return error.statusCode >= 500 || error.statusCode === 429
   }
   return true
 }

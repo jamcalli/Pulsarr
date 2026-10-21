@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ErrorAlert } from '@/components/error-alert'
 import { SwitchRow } from '@/components/form/switch-row'
 import { QuotaCard, QuotaCardSkeleton } from '@/components/quota/quota-card'
+import { RetryAlert } from '@/components/retry-alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GuardedRemoval } from '@/features/users/components/user/guarded-removal'
 import { useRemoveQuotas } from '@/features/users/hooks/user/useRemoveQuotas'
@@ -62,7 +62,12 @@ function RemoveQuotas({
     >
       {showApproveHeld && (
         <>
-          <ErrorAlert message={removal.heldError} />
+          {removal.heldError && (
+            <RetryAlert
+              message={removal.heldError}
+              onRetry={removal.retryHeld}
+            />
+          )}
           <SwitchRow
             id="approve-held"
             label={approveHeldLabel}

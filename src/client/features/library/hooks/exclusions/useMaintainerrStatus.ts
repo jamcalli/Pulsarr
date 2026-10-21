@@ -6,8 +6,8 @@ import { watchlistExclusionKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import {
   $api,
+  apiErrorMessage,
   apiFetch,
-  loadErrorMessage,
   mutationErrorMessage,
 } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
@@ -66,10 +66,11 @@ export function useMaintainerrStatus(config: Config) {
 
   return {
     result: status.data?.result ?? null,
-    statusError: loadErrorMessage(
-      status,
-      "Couldn't load the Maintainerr status.",
-    ),
+    statusError: status.isError
+      ? (apiErrorMessage(status.error) ??
+        "Couldn't load the Maintainerr status.")
+      : null,
+    retryStatus: () => void status.refetch(),
     sync: () => sync.mutate(),
     syncing: sync.isPending,
     syncError: sync.isError

@@ -42,6 +42,7 @@ export function useRemoveQuotas(userId: number, onRemoved: () => void) {
       held,
       "Couldn't load how many requests the quota holds.",
     ),
+    retryHeld: () => void held.refetch(),
     remove: mutation.mutate,
     reset: mutation.reset,
     pending: mutation.isPending,

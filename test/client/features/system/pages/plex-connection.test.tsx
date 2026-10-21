@@ -872,6 +872,28 @@ describe('PlexConnectionPage', () => {
     expect(calls.config).toEqual([])
   })
 
+  it('shows the failure when a later PIN check fails', async () => {
+    const user = userEvent.setup()
+    mockEndpoints({
+      config: NOT_LINKED,
+      pins: [{ authToken: null, expiresIn: 600 }],
+    })
+    renderPage()
+    const account = await findSection('Plex account')
+    await user.click(account.getByRole('button', { name: 'Sign in with Plex' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Sign in with Plex',
+    })
+    expect(await within(dialog).findByText('K7Q1')).toBeInTheDocument()
+
+    server.use(http.get('/v1/plex/pin/:pinId', serverError))
+    await refetchAndRender()
+
+    expect(
+      await within(dialog).findByText("Couldn't check the code with Plex."),
+    ).toBeInTheDocument()
+  })
+
   it('unlinks the account through its confirm', async () => {
     const user = userEvent.setup()
     const calls = mockEndpoints()
