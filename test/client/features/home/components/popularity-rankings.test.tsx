@@ -61,7 +61,7 @@ describe('PopularityRankings', () => {
     vi.unstubAllGlobals()
   })
 
-  it('stacks a poster shelf for shows then movies', () => {
+  it('stacks a poster shelf for shows then movies', async () => {
     stubViewport({ mobile: false })
     renderRankings()
 
@@ -71,7 +71,7 @@ describe('PopularityRankings', () => {
       'Most watchlisted movies',
     ])
     const shows = within(shelf('Most watchlisted shows'))
-    expect(shows.getByText('1')).toBeInTheDocument()
+    expect(await shows.findByText('1')).toBeInTheDocument()
     expect(shows.getByText('12 watchlists')).toBeInTheDocument()
     expect(shows.getByText('+1')).toBeInTheDocument()
     expect(
