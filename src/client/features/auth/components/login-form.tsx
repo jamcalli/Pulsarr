@@ -13,8 +13,7 @@ export function LoginForm() {
     validationLogic: liveValidation,
     validators: { onDynamic: CredentialsSchema },
     // The alert shows the error from the mutation, so this catch only ends the submit.
-    onSubmit: ({ value }) =>
-      login.mutateAsync({ body: value }).catch(() => undefined),
+    onSubmit: ({ value }) => login.mutateAsync(value).catch(() => undefined),
   })
 
   return (

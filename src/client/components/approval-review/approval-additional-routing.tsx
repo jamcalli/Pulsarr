@@ -58,9 +58,8 @@ export function ApprovalAdditionalRouting({
     )
   }
 
-  if (rulesQuery.data === undefined) return null
-
-  const rules = rulesQuery.data.rules
+  if (rulesQuery.data === undefined && !rulesQuery.isError) return null
+  const rules = rulesQuery.data?.rules ?? []
   const lines = entries.map((entry, index) => {
     const instance = instances.findTarget(entry.instanceId)?.instance ?? null
     const profile = entry.qualityProfile ?? instance?.qualityProfile ?? null
