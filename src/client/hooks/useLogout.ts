@@ -1,12 +1,20 @@
-import { useMinLoadingMutation } from '@/hooks/useMinLoading'
+import { useMutation } from '@tanstack/react-query'
+import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { queryClient } from '@/lib/queryClient'
 import { goToLogin } from '@/lib/session-expiry'
-import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
+import { apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
+
+async function logOut() {
+  const { data, error } = await apiFetch.POST('/v1/users/logout', { body: {} })
+  if (error) throw error
+  return data
+}
 
 /** Leaves the session the same way an expired one does, with the cache dropped and a full page load. */
 export function useLogout() {
   const logout = useMinLoadingMutation(
-    $api.useMutation('post', '/v1/users/logout', {
+    useMutation({
+      mutationFn: () => withMinDuration(logOut()),
       onSuccess: () => {
         queryClient.clear()
         goToLogin()

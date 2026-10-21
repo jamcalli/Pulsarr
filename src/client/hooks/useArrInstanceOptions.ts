@@ -1,5 +1,5 @@
 import { useArrInstances } from '@/hooks/useArrInstances'
-import { useMinLoading } from '@/hooks/useMinLoading'
+import { useMinDuration, useMinLoading } from '@/hooks/useMinLoading'
 import { type ArrTarget, isConfiguredTarget } from '@/lib/approval'
 import { toArrOptions } from '@/lib/arr-options'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
@@ -52,6 +52,12 @@ export function useArrInstanceOptions(
     ),
   ].find((message) => message !== null)
 
+  const retrying = useMinDuration(
+    [profilesQuery, foldersQuery, tagsQuery].some(
+      (query) => query.isError && query.isFetching,
+    ),
+  )
+
   return {
     connected,
     ...toArrOptions({
@@ -67,9 +73,7 @@ export function useArrInstanceOptions(
     errorMessage: notConnected
       ? 'This instance is not connected. Check its API key.'
       : (queryError ?? null),
-    retrying: [profilesQuery, foldersQuery, tagsQuery].some(
-      (query) => query.isError && query.isFetching,
-    ),
+    retrying,
     retry: () => {
       for (const query of [profilesQuery, foldersQuery, tagsQuery]) {
         if (query.isError) void query.refetch()

@@ -9,7 +9,7 @@ import {
   parseInitialLines,
 } from '@/features/system/lib/logs/log-prefs'
 import { updateConfig } from '@/hooks/useConfig'
-import { useMinLoadingMutation } from '@/hooks/useMinLoading'
+import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useAppForm } from '@/lib/form'
 
 const SAVE_ERROR = "Couldn't change the log level."
@@ -26,7 +26,8 @@ export function useLogSettings({
   const [restore, setRestore] = useState(() => restoreLevel(savedLevel))
   const save = useMinLoadingMutation(
     useMutation({
-      mutationFn: (logLevel: ConfigLogLevel) => updateConfig({ logLevel }),
+      mutationFn: (logLevel: ConfigLogLevel) =>
+        withMinDuration(updateConfig({ logLevel })),
     }),
   )
   const form = useAppForm({

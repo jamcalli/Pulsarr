@@ -284,11 +284,11 @@ export function PopularityRankings({
             type="button"
             variant="neutral"
             size="sm"
-            disabled={rankings.isFetching}
+            disabled={rankings.isRefreshing}
             onClick={rankings.refresh}
           >
             <BusyLabel
-              busy={rankings.isFetching}
+              busy={rankings.isRefreshing}
               label="Refresh"
               busyLabel="Refreshing..."
             />

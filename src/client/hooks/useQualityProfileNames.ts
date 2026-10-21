@@ -1,5 +1,6 @@
 import { useQueries } from '@tanstack/react-query'
 import { useArrInstances } from '@/hooks/useArrInstances'
+import { useShowLoading } from '@/hooks/useMinLoading'
 import { type ArrTarget, isConfiguredTarget } from '@/lib/approval'
 import { $api } from '@/lib/tanstackApi'
 
@@ -24,9 +25,12 @@ export function useQualityProfileNames(
     ),
   })
 
+  const isLoading = useShowLoading(
+    instances.isLoading || profileQueries.some((query) => query.isLoading),
+  )
+
   return {
-    isLoading:
-      instances.isLoading || profileQueries.some((query) => query.isLoading),
+    isLoading,
     /** Null while loading or when the instance has no profile with that id. */
     profileName: (instanceId: number, profile: string | number) => {
       const index = connectedIds.indexOf(instanceId)

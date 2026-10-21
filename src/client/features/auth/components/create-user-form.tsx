@@ -20,7 +20,7 @@ export function CreateUserForm() {
     // The alert shows the error from the mutation, so this catch only ends the submit.
     onSubmit: ({ value: { email, username, password } }) =>
       createAdmin
-        .mutateAsync({ body: { email, username, password } })
+        .mutateAsync({ email, username, password })
         .catch(() => undefined),
   })
 

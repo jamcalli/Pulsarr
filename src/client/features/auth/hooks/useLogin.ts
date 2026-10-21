@@ -1,12 +1,25 @@
+import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { useMinLoadingMutation } from '@/hooks/useMinLoading'
+import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
-import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
+import { apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
+import type { paths } from '@/types/api.js'
+
+type Credentials =
+  paths['/v1/users/login']['post']['requestBody']['content']['application/json']
+
+async function logIn(body: Credentials) {
+  const { data, error } = await apiFetch.POST('/v1/users/login', { body })
+  if (error) throw error
+  return data
+}
 
 export function useLogin() {
   const navigate = useNavigate()
   const login = useMinLoadingMutation(
-    $api.useMutation('post', '/v1/users/login', {
+    useMutation({
+      mutationFn: (credentials: Credentials) =>
+        withMinDuration(logIn(credentials)),
       onSuccess: ({ redirectTo }) => {
         navigate(redirectTo || pageHref(NAV_PAGES.dashboard))
       },

@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query'
 import { Info } from 'lucide-react'
 import { type ReactNode, useId, useState } from 'react'
 import { BusyLabel } from '@/components/busy-label'
@@ -15,11 +16,12 @@ import {
 import type { SetupFacts } from '@/features/setup/lib/steps'
 import { useWatchlistSync } from '@/hooks/plex/useWatchlistSync'
 import { invalidateConfig } from '@/hooks/useConfig'
+import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { NAV_PAGES } from '@/lib/navigation'
 import { watchlistFacts } from '@/lib/plex/account-facts'
 import { isRunning, type SyncRun, startRun } from '@/lib/plex/sync-run'
-import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
+import { $api, apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
 import { useSetupStore } from '@/stores/setupStore'
 import type { components } from '@/types/api.js'
 
@@ -34,6 +36,15 @@ type FinishPhase =
   | 'on'
 
 const WAITING_RUN = startRun('link')
+
+async function startBackground(autoStart: boolean) {
+  const { data, error } = await apiFetch.POST(
+    '/v1/watchlist-workflow/start-background',
+    { body: { autoStart } },
+  )
+  if (error) throw error
+  return data
+}
 
 type Owner = 'loading' | 'present' | 'absent'
 
@@ -98,9 +109,15 @@ function missingInstanceNote(
 export function FinishStep({ steps, onDirtyChange }: SetupStepProps) {
   const dismiss = useSetupStore((state) => state.dismiss)
   const sync = useWatchlistSync({ page: NAV_PAGES.dashboard })
-  const start = $api.useMutation(
-    'post',
-    '/v1/watchlist-workflow/start-background',
+  const start = useMinLoadingMutation(
+    useMutation({
+      mutationFn: (autoStart: boolean) =>
+        withMinDuration(startBackground(autoStart)),
+      onSuccess: () => {
+        void invalidateConfig()
+        dismiss()
+      },
+    }),
   )
   const workflow = useSyncStatus()
   const users = $api.useQuery('get', '/v1/users/list/with-counts')
@@ -145,15 +162,7 @@ export function FinishStep({ steps, onDirtyChange }: SetupStepProps) {
   }
   const startWorkflow = () => {
     start.reset()
-    start.mutate(
-      { body: { autoStart: startOnLaunch } },
-      {
-        onSuccess: () => {
-          void invalidateConfig()
-          dismiss()
-        },
-      },
-    )
+    start.mutate(startOnLaunch)
   }
 
   const startActions = (

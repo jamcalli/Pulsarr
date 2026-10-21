@@ -374,10 +374,8 @@ describe('ApprovalReviewCredenza', () => {
     )
     const dialog = await findDialog()
 
-    expect(
-      await within(dialog).findByText('Other destinations'),
-    ).toBeInTheDocument()
     const line = await within(dialog).findByRole('listitem')
+    expect(within(dialog).getByText('Other destinations')).toBeInTheDocument()
     await vi.waitFor(() =>
       expect(line).toHaveTextContent('Sonarr 4K, Ultra-HD, /tv-2'),
     )
@@ -397,6 +395,46 @@ describe('ApprovalReviewCredenza', () => {
     await vi.waitFor(() =>
       expect(within(dialog).queryByRole('listitem')).not.toBeInTheDocument(),
     )
+  })
+
+  it('still lists each additional destination when the rules fail to load', async () => {
+    const approval = withAdditional(makeApproval())
+    mockApprovalEndpoints(approval)
+    server.use(
+      http.get('/v1/content-router/rules', () =>
+        HttpResponse.json(
+          {
+            statusCode: 500,
+            error: 'Internal Server Error',
+            message: 'Rules unavailable',
+          },
+          { status: 500 },
+        ),
+      ),
+    )
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ApprovalReviewCredenza
+          approvalId={approval.id}
+          open
+          onOpenChange={() => undefined}
+        />
+      </QueryClientProvider>,
+    )
+    const dialog = await findDialog()
+
+    const line = await within(dialog).findByRole(
+      'listitem',
+      {},
+      { timeout: 3000 },
+    )
+    await vi.waitFor(() =>
+      expect(line).toHaveTextContent('Sonarr 4K, Ultra-HD, /tv-2'),
+    )
+    expect(
+      within(line).getByRole('button', { name: 'Remove Sonarr 4K' }),
+    ).toBeInTheDocument()
+    expect(line).not.toHaveTextContent('Rule:')
   })
 
   it('lists where an approved request also went without remove controls', async () => {

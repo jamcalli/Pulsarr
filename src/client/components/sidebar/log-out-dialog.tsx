@@ -21,7 +21,7 @@ export function LogOutDialog({ open, onOpenChange }: LogOutDialogProps) {
       title="Log out?"
       description="Sync keeps running on the server. You'll need to sign in again to manage it."
       confirmLabel="Log out"
-      onConfirm={() => logout.mutate({ body: {} })}
+      onConfirm={() => logout.mutate()}
       pending={logout.isPending}
       pendingLabel="Logging out..."
       errorMessage={logout.errorMessage}

@@ -2,8 +2,9 @@ import {
   canTransitionApproval,
   isApprovalEditable,
 } from '@root/schemas/approval/approval.schema'
+import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useMinLoadingMutation } from '@/hooks/useMinLoading'
+import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import {
   approveBlockedReason,
   canApprove,
@@ -18,11 +19,47 @@ import {
   approvalStatsKeys,
 } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
+import { apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
 type ApprovalRouting = components['schemas']['ApprovalRouting']
+type ApprovalUpdate = components['schemas']['ApprovalRequestUpdatePayload']
+
+async function approveRequest(id: number, notes: string | undefined) {
+  const { data, error } = await apiFetch.POST(
+    '/v1/approval/requests/{id}/approve',
+    { params: { path: { id } }, body: { notes } },
+  )
+  if (error) throw error
+  return data
+}
+
+async function rejectRequest(id: number, reason: string | undefined) {
+  const { data, error } = await apiFetch.POST(
+    '/v1/approval/requests/{id}/reject',
+    { params: { path: { id } }, body: { reason } },
+  )
+  if (error) throw error
+  return data
+}
+
+async function deleteRequest(id: number) {
+  const { data, error } = await apiFetch.DELETE('/v1/approval/requests/{id}', {
+    params: { path: { id } },
+  })
+  if (error) throw error
+  return data
+}
+
+async function updateRequest(id: number, body: ApprovalUpdate) {
+  const { data, error } = await apiFetch.PATCH('/v1/approval/requests/{id}', {
+    params: { path: { id } },
+    body,
+  })
+  if (error) throw error
+  return data
+}
 
 export type ApprovalReview = ReturnType<typeof useApprovalReview>
 
@@ -53,17 +90,22 @@ export function useApprovalReview(
     ])
   }
   const approveMutation = useMinLoadingMutation(
-    $api.useMutation('post', '/v1/approval/requests/{id}/approve', {
+    useMutation({
+      mutationFn: (approvalNotes: string | undefined) =>
+        withMinDuration(approveRequest(id, approvalNotes)),
       onSuccess: onDecided,
     }),
   )
   const rejectMutation = useMinLoadingMutation(
-    $api.useMutation('post', '/v1/approval/requests/{id}/reject', {
+    useMutation({
+      mutationFn: (rejectReason: string | undefined) =>
+        withMinDuration(rejectRequest(id, rejectReason)),
       onSuccess: onDecided,
     }),
   )
   const deleteMutation = useMinLoadingMutation(
-    $api.useMutation('delete', '/v1/approval/requests/{id}', {
+    useMutation({
+      mutationFn: () => withMinDuration(deleteRequest(id)),
       onSuccess: () => {
         options.onDecided?.()
         queryClient.removeQueries({ queryKey: approvalRequestKeys.byId(id) })
@@ -75,7 +117,9 @@ export function useApprovalReview(
     }),
   )
   const saveMutation = useMinLoadingMutation(
-    $api.useMutation('patch', '/v1/approval/requests/{id}', {
+    useMutation({
+      mutationFn: (update: ApprovalUpdate) =>
+        withMinDuration(updateRequest(id, update)),
       onSuccess: (data) => {
         queryClient.setQueryData(approvalRequestKeys.byId(id), data)
         setStage('review')
@@ -160,36 +204,26 @@ export function useApprovalReview(
     cancelDelete: () => changeStage('review'),
     deleteRequest: () => {
       resetErrors()
-      deleteMutation.mutate({ params: { path: { id } } })
+      deleteMutation.mutate()
     },
     approve: () => {
       resetErrors()
-      approveMutation.mutate({
-        params: { path: { id } },
-        body: { notes: notes.trim() || undefined },
-      })
+      approveMutation.mutate(notes.trim() || undefined)
     },
     deny: () => {
       resetErrors()
-      rejectMutation.mutate({
-        params: { path: { id } },
-        body: { reason: reason.trim() || undefined },
-      })
+      rejectMutation.mutate(reason.trim() || undefined)
     },
     removeAdditionalRouting: (index: number) => {
       resetErrors()
       saveMutation.mutate({
-        params: { path: { id } },
-        body: {
-          proposedRouterDecision: withoutAdditionalRouting(approval, index),
-        },
+        proposedRouterDecision: withoutAdditionalRouting(approval, index),
       })
     },
     saveRouting: (next: ApprovalRouting) => {
       resetErrors()
       saveMutation.mutate({
-        params: { path: { id } },
-        body: { proposedRouterDecision: withRouting(approval, next) },
+        proposedRouterDecision: withRouting(approval, next),
       })
     },
   }

@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useLinkAccount } from '@/hooks/plex/useAccountToken'
+import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { PIN_POLL_INTERVAL_MS, pinPhase } from '@/lib/plex/plex-pin'
 import { TOKEN_FAILURE_MESSAGES } from '@/lib/plex/plex-requests'
 import { $api, apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
@@ -13,7 +14,9 @@ async function createPin() {
 
 /** Asks Plex for a code while `open`, polls it until approved or expired, then links the token. */
 export function usePlexPin(open: boolean, onLinked: () => void) {
-  const create = useMutation({ mutationFn: createPin })
+  const create = useMinLoadingMutation(
+    useMutation({ mutationFn: () => withMinDuration(createPin()) }),
+  )
   const link = useLinkAccount()
   const pin = create.data ?? null
   const poll = $api.useQuery(
