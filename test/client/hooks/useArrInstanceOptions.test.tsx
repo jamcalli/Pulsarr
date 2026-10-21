@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
 import { useArrInstanceOptions } from '@/hooks/useArrInstanceOptions'
 import { queryClient } from '@/lib/queryClient'
+import { refetchAndRender, serverError } from '../refetch.js'
 import { server } from '../setup.js'
 
 function instance(id: number, apiKey: string) {
@@ -117,5 +118,28 @@ describe('useArrInstanceOptions', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(lookups).toEqual([])
+  })
+
+  it('keeps the options when a background refetch fails', async () => {
+    mockEndpoints()
+    const { result } = renderHook(
+      () => useArrInstanceOptions('radarr', 1, true),
+      { wrapper },
+    )
+    await waitFor(() => expect(result.current.tags).toHaveLength(1))
+    await waitFor(() => expect(result.current.rootFolders).toHaveLength(1))
+    await waitFor(() => expect(result.current.qualityProfiles).toHaveLength(1))
+
+    server.use(
+      http.get('/v1/radarr/quality-profiles', serverError),
+      http.get('/v1/radarr/root-folders', serverError),
+      http.get('/v1/radarr/tags', serverError),
+    )
+    await refetchAndRender()
+
+    expect(result.current.qualityProfiles).toHaveLength(1)
+    expect(result.current.rootFolders).toHaveLength(1)
+    expect(result.current.tags).toHaveLength(1)
+    expect(result.current.errorMessage).toBeNull()
   })
 })

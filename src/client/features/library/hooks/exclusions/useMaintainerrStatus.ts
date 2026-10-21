@@ -4,7 +4,12 @@ import { invalidateExclusionItems } from '@/features/library/hooks/exclusions/us
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { watchlistExclusionKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiFetch, mutationErrorMessage } from '@/lib/tanstackApi'
+import {
+  $api,
+  apiFetch,
+  loadErrorMessage,
+  mutationErrorMessage,
+} from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
 type Config = components['schemas']['Config']
@@ -33,6 +38,7 @@ export function useMaintainerrStatus(config: Config) {
         pollUntil !== null && Date.now() < pollUntil
           ? RECONCILE_POLL_MS
           : false,
+      meta: { silentRefresh: true },
     },
   )
 
@@ -60,6 +66,10 @@ export function useMaintainerrStatus(config: Config) {
 
   return {
     result: status.data?.result ?? null,
+    statusError: loadErrorMessage(
+      status,
+      "Couldn't load the Maintainerr status.",
+    ),
     sync: () => sync.mutate(),
     syncing: sync.isPending,
     syncError: sync.isError

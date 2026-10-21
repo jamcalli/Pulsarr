@@ -1,14 +1,24 @@
 import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import SessionMonitoringPage from '@/features/library/pages/session-monitoring'
+import { configKeys } from '@/hooks/useConfig'
 import { setFormatLocale } from '@/lib/format'
+import { sessionMonitoringKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { components } from '@/types/api.js'
+import { refetchAndRender, serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -817,6 +827,47 @@ describe('SessionMonitoringPage', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Apply to 1 show' }),
     ).toBeEnabled()
+  })
+
+  it('waits for the shows when cached settings failed their refetch', async () => {
+    mockEndpoints()
+    renderPage()
+    await findTable()
+    cleanup()
+    server.use(
+      http.get('/v1/config', serverError),
+      http.get('/v1/session-monitoring/rolling-monitored', async () => {
+        await delay('infinite')
+      }),
+    )
+    await act(() => queryClient.refetchQueries({ queryKey: configKeys.config }))
+    queryClient.removeQueries({ queryKey: sessionMonitoringKeys.rolling })
+
+    renderPage()
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('keeps the enrollment list when a background refetch fails', async () => {
+    const user = userEvent.setup()
+    mockEndpoints()
+    renderPage()
+    await findTable()
+
+    await user.click(screen.getByRole('button', { name: 'Manage enrollment' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Manage enrollment',
+    })
+    await within(dialog).findByRole('checkbox', { name: 'Select Ted Lasso' })
+    server.use(http.get('/v1/session-monitoring/sonarr-shows', serverError))
+    await refetchAndRender(sessionMonitoringKeys.enrollable)
+
+    expect(
+      within(dialog).getByRole('checkbox', { name: 'Select Ted Lasso' }),
+    ).toBeInTheDocument()
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('applies the chosen mode to the selected shows', async () => {

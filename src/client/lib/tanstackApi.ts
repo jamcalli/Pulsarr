@@ -1,6 +1,11 @@
 import createFetchClient from 'openapi-fetch'
 import createClient from 'openapi-react-query'
 import { BASE_PATH } from '@/lib/basePath.js'
+import {
+  QUERY_RETRY_DELAY_MAX_MS,
+  QUERY_RETRY_DELAY_MS,
+  QUERY_RETRY_LIMIT,
+} from '@/lib/constants'
 import type { paths } from '@/types/api.js'
 
 export const apiFetch = createFetchClient<paths>({
@@ -32,6 +37,30 @@ export function apiErrorMessage(error: unknown): string | null {
 
 function presentMessage(message: string): string | null {
   return message.trim() === '' ? null : message
+}
+
+/** Retries network failures and 5xx answers up to the limit, since a 4xx answer will not change on retry. */
+export function shouldRetryQuery(
+  failureCount: number,
+  error: unknown,
+): boolean {
+  if (failureCount >= QUERY_RETRY_LIMIT) return false
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number'
+  ) {
+    return error.statusCode >= 500
+  }
+  return true
+}
+
+export function queryRetryDelay(attemptIndex: number): number {
+  return Math.min(
+    QUERY_RETRY_DELAY_MS * 2 ** attemptIndex,
+    QUERY_RETRY_DELAY_MAX_MS,
+  )
 }
 
 /** Error instances (network, parse) get a generic message, API error bodies get their own message or the fallback. */

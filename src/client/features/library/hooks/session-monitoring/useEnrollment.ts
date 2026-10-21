@@ -17,8 +17,8 @@ import { paginate } from '@/lib/paginate'
 import { usePref } from '@/lib/prefs'
 import {
   $api,
-  apiErrorMessage,
   apiFetch,
+  loadErrorMessage,
   mutationErrorMessage,
   requireSuccess,
 } from '@/lib/tanstackApi'
@@ -113,9 +113,7 @@ export function useEnrollment() {
       value: instance.id,
       label: instance.name,
     })),
-    loadError: query.isError
-      ? (apiErrorMessage(query.error) ?? "Couldn't load the shows.")
-      : null,
+    loadError: loadErrorMessage(query, "Couldn't load the shows."),
     retry: () => void query.refetch(),
     filter,
     updateFilter: (patch: Partial<EnrollmentFilter>) => {

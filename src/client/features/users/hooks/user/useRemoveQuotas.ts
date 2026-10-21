@@ -4,6 +4,7 @@ import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import {
   $api,
   apiFetch,
+  loadErrorMessage,
   mutationErrorMessage,
   requireSuccess,
 } from '@/lib/tanstackApi'
@@ -36,7 +37,11 @@ export function useRemoveQuotas(userId: number, onRemoved: () => void) {
   )
 
   return {
-    heldCount: held.data ? held.data.movieCount + held.data.showCount : 0,
+    heldCount: held.data ? held.data.movieCount + held.data.showCount : null,
+    heldError: loadErrorMessage(
+      held,
+      "Couldn't load how many requests the quota holds.",
+    ),
     remove: mutation.mutate,
     reset: mutation.reset,
     pending: mutation.isPending,

@@ -9,10 +9,11 @@ import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import PlexConnectionPage from '@/features/system/pages/plex-connection'
 import { setFormatLocale } from '@/lib/format'
-import { usersKeys } from '@/lib/query-keys'
+import { plexConnectionKeys, usersKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { components } from '@/types/api.js'
+import { refetchAndRender, serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -853,6 +854,24 @@ describe('PlexConnectionPage', () => {
     expect(calls.config).toEqual([])
   })
 
+  it('shows the failure when checking the PIN fails', async () => {
+    const user = userEvent.setup()
+    const calls = mockEndpoints({ config: NOT_LINKED })
+    server.use(http.get('/v1/plex/pin/:pinId', serverError))
+    renderPage()
+    const account = await findSection('Plex account')
+    await user.click(account.getByRole('button', { name: 'Sign in with Plex' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Sign in with Plex',
+    })
+
+    expect(
+      await within(dialog).findByText("Couldn't check the code with Plex."),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByText('Down')).toBeInTheDocument()
+    expect(calls.config).toEqual([])
+  })
+
   it('unlinks the account through its confirm', async () => {
     const user = userEvent.setup()
     const calls = mockEndpoints()
@@ -1055,6 +1074,21 @@ describe('PlexConnectionPage', () => {
     )
 
     await waitFor(() => expect(calls.removed).toBe(1), { timeout: 3000 })
+  })
+
+  it('keeps the refresh table when a background refetch fails', async () => {
+    mockEndpoints()
+    renderPage()
+    const card = await findSection('Plex library refresh')
+    await card.findByRole('table', { name: 'Library refresh by instance' })
+
+    server.use(http.get('/v1/plex/notification-status', serverError))
+    await refetchAndRender(plexConnectionKeys.notificationStatus)
+
+    expect(
+      card.getByRole('table', { name: 'Library refresh by instance' }),
+    ).toBeInTheDocument()
+    expect(card.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('points to Sonarr and Radarr when there are no instances', async () => {

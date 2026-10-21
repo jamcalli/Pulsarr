@@ -1,13 +1,38 @@
+import type { ReactNode } from 'react'
+import { RetryAlert } from '@/components/retry-alert'
 import type { ConditionCatalog } from '@/features/library/hooks/content-router/useConditionCatalog'
 import type { RouteEditorForm } from '@/features/library/hooks/content-router/useRouteEditorForm'
 import {
   numberRange,
   unitSymbol,
 } from '@/features/library/lib/content-router/condition-fields'
+import type { OptionSource } from '@/features/library/lib/content-router/condition-options'
 import {
   chipInputSchema,
   type ValueControl,
 } from '@/features/library/lib/content-router/value-control'
+
+function WithOptionError({
+  catalog,
+  source,
+  children,
+}: {
+  catalog: ConditionCatalog
+  source: OptionSource
+  children: ReactNode
+}) {
+  const message = catalog.optionError(source)
+  if (!message) return children
+  return (
+    <div className="flex flex-col gap-2">
+      {children}
+      <RetryAlert
+        message={message}
+        onRetry={() => catalog.retryOption(source)}
+      />
+    </div>
+  )
+}
 
 interface ConditionValueProps {
   form: RouteEditorForm
@@ -108,17 +133,19 @@ export function ConditionValue({
       )
     case 'select':
       return (
-        <form.AppField name={name}>
-          {(input) => (
-            <input.SelectField
-              label="Value"
-              labelHidden
-              placeholder="Choose a value"
-              disabled={disabled}
-              options={catalog.options[control.source]}
-            />
-          )}
-        </form.AppField>
+        <WithOptionError catalog={catalog} source={control.source}>
+          <form.AppField name={name}>
+            {(input) => (
+              <input.SelectField
+                label="Value"
+                labelHidden
+                placeholder="Choose a value"
+                disabled={disabled}
+                options={catalog.options[control.source]}
+              />
+            )}
+          </form.AppField>
+        </WithOptionError>
       )
     case 'chips': {
       const { source, numeric } = control
@@ -137,14 +164,16 @@ export function ConditionValue({
                 onCreate={(text) => ({ value: text, label: text })}
               />
             ) : (
-              <input.TagsField
-                label="Values"
-                labelHidden
-                placeholder="Choose values"
-                emptyText="Nothing left to add"
-                disabled={disabled}
-                options={catalog.options[source]}
-              />
+              <WithOptionError catalog={catalog} source={source}>
+                <input.TagsField
+                  label="Values"
+                  labelHidden
+                  placeholder="Choose values"
+                  emptyText="Nothing left to add"
+                  disabled={disabled}
+                  options={catalog.options[source]}
+                />
+              </WithOptionError>
             )
           }
         </form.AppField>

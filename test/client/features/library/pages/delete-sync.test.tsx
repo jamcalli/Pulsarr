@@ -10,6 +10,7 @@ import { setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import type { components, paths } from '@/types/api.js'
+import { serverError } from '../../../refetch.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
 
@@ -574,6 +575,19 @@ describe('DeleteSyncPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Dry run' }))
 
     expect(await screen.findByText('Sonarr is unreachable')).toBeInTheDocument()
+  })
+
+  it('shows an error under the dry run when its status fails to load', async () => {
+    mockEndpoints()
+    server.use(
+      http.get(
+        '/v1/scheduler/schedules/delete-sync/dry-run/status',
+        serverError,
+      ),
+    )
+    renderPage()
+
+    expect(await screen.findByText('Down')).toBeInTheDocument()
   })
 
   it('marks the dry run stale after a settings save but not a schedule change', async () => {

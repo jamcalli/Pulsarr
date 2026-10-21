@@ -26,7 +26,11 @@ export function useRecentRequests() {
           query: { limit, status: status === 'all' ? undefined : status },
         },
       },
-      { placeholderData: keepPreviousData, refetchInterval: POLL_INTERVAL_MS },
+      {
+        placeholderData: keepPreviousData,
+        refetchInterval: POLL_INTERVAL_MS,
+        meta: { silentRefresh: true },
+      },
     ),
   )
 

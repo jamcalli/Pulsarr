@@ -78,14 +78,13 @@ export async function syncWatchlist(type: WatchlistSyncType) {
       )
       if (error) throw error
     },
-    readStatus: async () => {
-      const { data, error } = await apiFetch.GET(
-        '/v1/plex/watchlist-sync/{type}/status',
-        { params },
-      )
-      if (error) throw error
-      return data
-    },
+    readStatus: () =>
+      queryClient.fetchQuery({
+        ...$api.queryOptions('get', '/v1/plex/watchlist-sync/{type}/status', {
+          params,
+        }),
+        staleTime: 0,
+      }),
     isSettled: isRunSettled,
   })
   return requireRunDone(status, 'The sync failed. Try again.')
@@ -95,6 +94,7 @@ export async function fetchHasPlexPass(): Promise<boolean> {
   const data = await queryClient.fetchQuery({
     ...$api.queryOptions('get', '/v1/plex/plex-pass-status'),
     staleTime: 0,
+    retry: 1,
   })
   return data.hasPlexPass
 }

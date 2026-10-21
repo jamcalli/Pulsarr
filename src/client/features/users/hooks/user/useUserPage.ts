@@ -60,11 +60,7 @@ export function useUserPage() {
       'get',
       '/v1/users/{id}',
       { params: { path: { id } } },
-      {
-        enabled: valid,
-        retry: (failureCount, error) =>
-          error.statusCode !== NOT_FOUND && failureCount < 1,
-      },
+      { enabled: valid },
     ),
   )
   const stats = useMinLoading(

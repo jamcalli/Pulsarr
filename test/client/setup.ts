@@ -7,6 +7,7 @@ import { createFetchMock } from '../setup/fetch-mock.js'
 vi.mock('@/lib/constants', async (importOriginal) => ({
   ...(await importOriginal<typeof Constants>()),
   MIN_LOADING_DELAY: 0,
+  QUERY_RETRY_DELAY_MS: 0,
 }))
 
 const mock = createFetchMock([], 'error')

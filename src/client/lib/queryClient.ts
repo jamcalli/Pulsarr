@@ -6,16 +6,20 @@ import {
 } from '@tanstack/react-query'
 import { toast } from '@/components/ui/toast'
 import { notifyOperationSettled } from '@/lib/operation-toasts'
-import { apiErrorMessage } from '@/lib/tanstackApi'
+import {
+  apiErrorMessage,
+  queryRetryDelay,
+  shouldRetryQuery,
+} from '@/lib/tanstackApi'
 
 const BACKGROUND_REFRESH_TOAST_ID = 'background-refresh-error'
 
 /** Toasts only failed background refreshes, since first loads show their own error state on the page. */
 export function notifyBackgroundRefreshError(
   error: unknown,
-  query: Pick<Query<unknown, unknown>, 'state'>,
+  query: Pick<Query<unknown, unknown>, 'state' | 'meta'>,
 ): void {
-  if (query.state.data === undefined) return
+  if (query.state.data === undefined || query.meta?.silentRefresh) return
   toast.add({
     id: BACKGROUND_REFRESH_TOAST_ID,
     type: 'error',
@@ -36,7 +40,8 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000,
-      retry: 1,
+      retry: shouldRetryQuery,
+      retryDelay: queryRetryDelay,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
     },

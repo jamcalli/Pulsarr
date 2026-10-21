@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ErrorAlert } from '@/components/error-alert'
 import { SwitchRow } from '@/components/form/switch-row'
 import { QuotaCard, QuotaCardSkeleton } from '@/components/quota/quota-card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,6 +37,12 @@ function RemoveQuotas({
     onRemoved()
   })
   const held = removal.heldCount
+  const canApproveHeld = held !== null && held > 0
+  const showApproveHeld = canApproveHeld || removal.heldError !== null
+  const approveHeldLabel =
+    held === null
+      ? 'Also approve the requests held by the quota'
+      : `Also approve the ${formatCount(held, 'request')} held by the quota`
 
   return (
     <GuardedRemoval
@@ -51,16 +58,19 @@ function RemoveQuotas({
       description={QUOTA_REMOVAL_DESCRIPTION}
       pending={removal.pending}
       errorMessage={removal.errorMessage}
-      onConfirm={() => removal.remove(held > 0 && approveHeld)}
+      onConfirm={() => removal.remove(canApproveHeld && approveHeld)}
     >
-      {held > 0 && (
-        <SwitchRow
-          id="approve-held"
-          label={`Also approve the ${formatCount(held, 'request')} held by the quota`}
-          checked={approveHeld}
-          disabled={removal.pending}
-          onCheckedChange={setApproveHeld}
-        />
+      {showApproveHeld && (
+        <>
+          <ErrorAlert message={removal.heldError} />
+          <SwitchRow
+            id="approve-held"
+            label={approveHeldLabel}
+            checked={approveHeld}
+            disabled={removal.pending || held === null}
+            onCheckedChange={setApproveHeld}
+          />
+        </>
       )}
     </GuardedRemoval>
   )

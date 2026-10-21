@@ -10,6 +10,7 @@ export function useAvailableUpdate() {
       refetchInterval: (q) => updatePollInterval(q.state.data),
       refetchOnWindowFocus: false,
       retry: false,
+      meta: { silentRefresh: true },
     },
   )
   return availableUpdate(query.data)

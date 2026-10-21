@@ -10,7 +10,7 @@ import { useProgressEvents } from '@/hooks/useProgressEvents'
 import { SEARCH_DEBOUNCE_DELAY } from '@/lib/constants'
 import { approvalRequestsKeys, approvalStatsKeys } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, firstLoadError } from '@/lib/tanstackApi'
 
 export function invalidateApprovalQueue() {
   return Promise.all([
@@ -32,18 +32,16 @@ export function useApprovalQueueList(state: QueueState, pageSize: PageSize) {
   const stats = $api.useQuery('get', '/v1/approval/stats')
   useProgressEvents('approval', invalidateApprovalQueue)
 
-  const failed = list.isError ? list.error : stats.isError ? stats.error : null
-
   return {
     rows: list.data?.approvalRequests ?? null,
     total: list.data?.total ?? 0,
     stats: stats.data?.stats ?? null,
     isLoading: list.isLoading,
     stale: list.isPlaceholderData,
-    errorMessage:
-      failed === null
-        ? null
-        : (apiErrorMessage(failed) ?? "Couldn't load the approval queue."),
+    errorMessage: firstLoadError(
+      [list, stats],
+      "Couldn't load the approval queue.",
+    ),
     retry: () => void invalidateApprovalQueue(),
   }
 }

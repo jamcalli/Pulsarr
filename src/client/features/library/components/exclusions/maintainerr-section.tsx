@@ -1,4 +1,5 @@
 import { useStore } from '@tanstack/react-form'
+import { ErrorAlert } from '@/components/error-alert'
 import { FactList } from '@/components/fact-list'
 import { ActionRow } from '@/components/settings/action-row'
 import { InfoLine } from '@/components/settings/info-line'
@@ -37,6 +38,7 @@ export function MaintainerrSection({
   )
   const pill = maintainerrPill(config.maintainerrEnabled, status.result)
   const result = config.maintainerrEnabled ? status.result : null
+  const statusError = config.maintainerrEnabled ? status.statusError : null
   const facts = result ? maintainerrFacts(result) : []
   const syncReason = syncUnavailableReason(dirty, config)
 
@@ -72,6 +74,7 @@ export function MaintainerrSection({
           />
         )}
       </form.AppField>
+      <ErrorAlert message={statusError} />
       {facts.length > 0 && <FactList facts={facts} />}
       {result?.status === 'unsupported_version' && (
         <InfoLine tone="warn">
