@@ -25,6 +25,7 @@ function item(
     userId: 2,
     userName: 'mayar88',
     createdAt,
+    statusTimes: { requested: null, grabbed: null, notified: null },
     primaryInstance: null,
     allInstances: [],
   }

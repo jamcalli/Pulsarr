@@ -94,6 +94,48 @@ describe('recent requests junction status', () => {
     expect(items.map((item) => item.id)).toEqual([2])
   })
 
+  it('GET /v1/stats/recent-requests returns when each status was first reached', async () => {
+    const times = {
+      requested: '2025-06-01T10:00:00.000Z',
+      grabbed: '2025-06-02T11:00:00.000Z',
+      notified: '2025-06-03T12:00:00.000Z',
+    }
+    await getTestDatabase()('watchlist_status_history').insert(
+      Object.entries(times).map(([status, timestamp]) => ({
+        watchlist_item_id: 3,
+        status,
+        timestamp,
+      })),
+    )
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/stats/recent-requests?limit=50',
+    })
+
+    expect(res.statusCode).toBe(200)
+    const items: Array<{
+      id: number
+      statusTimes: Record<keyof typeof times, string | null>
+    }> = res.json().items
+    const statusTimes = (id: number) =>
+      items.find((item) => item.id === id)?.statusTimes
+    const asIso = (value: string | null | undefined) =>
+      value ? new Date(value).toISOString() : value
+
+    const notified = statusTimes(3)
+    expect({
+      requested: asIso(notified?.requested),
+      grabbed: asIso(notified?.grabbed),
+      notified: asIso(notified?.notified),
+    }).toEqual(times)
+    expect(statusTimes(1)).toEqual({
+      requested: null,
+      grabbed: null,
+      notified: null,
+    })
+  })
+
   it('GET /v1/users/:userId/watchlist returns routed and unrouted rows of that user', async () => {
     const [owned, other] = await Promise.all([
       app.inject({ method: 'GET', url: '/v1/users/1/watchlist' }),

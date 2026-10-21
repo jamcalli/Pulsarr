@@ -95,6 +95,7 @@ export async function getRecentRequests(
           userId: row.user_id,
           userName: row.user_name || 'Unknown',
           createdAt: row.created_at,
+          statusTimes: { requested: null, grabbed: null, notified: null },
           primaryInstance: null,
           allInstances: [],
         })
@@ -130,6 +131,21 @@ export async function getRecentRequests(
         (instanceColumn: string) => (qb: Knex.QueryBuilder) => {
           if (!includeUnrouted) qb.whereNotNull(instanceColumn)
         }
+      const withStatusTimes = (qb: Knex.QueryBuilder) => {
+        for (const [alias, status] of [
+          ['hr', 'requested'],
+          ['hg', 'grabbed'],
+          ['hn', 'notified'],
+        ] as const) {
+          qb.leftJoin(`watchlist_status_history as ${alias}`, function () {
+            this.on(`${alias}.watchlist_item_id`, '=', 'wi.id').andOnVal(
+              `${alias}.status`,
+              '=',
+              status,
+            )
+          }).select(`${alias}.timestamp as ${status}_at`)
+        }
+      }
 
       // Fetch watchlist items for movies (Radarr)
       const radarrItems = await this.knex('watchlist_items as wi')
@@ -158,6 +174,7 @@ export async function getRecentRequests(
         .where('wi.type', 'movie')
         .modify(requireRouting('wri.radarr_instance_id'))
         .modify(scopeWatchlistQuery('movie', 'watchlist_radarr_instances'))
+        .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
 
       // Fetch watchlist items for shows (Sonarr)
@@ -187,6 +204,7 @@ export async function getRecentRequests(
         .where('wi.type', 'show')
         .modify(requireRouting('wsi.sonarr_instance_id'))
         .modify(scopeWatchlistQuery('show', 'watchlist_sonarr_instances'))
+        .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
 
       // Group instances by watchlist item ID
@@ -202,6 +220,7 @@ export async function getRecentRequests(
           userId: number
           userName: string
           createdAt: string
+          statusTimes: RecentRequestItem['statusTimes']
           instanceType: 'radarr' | 'sonarr'
           instances: Array<{
             id: number
@@ -236,6 +255,11 @@ export async function getRecentRequests(
               userId: row.user_id,
               userName: row.user_name || 'Unknown',
               createdAt: row.created_at,
+              statusTimes: {
+                requested: row.requested_at ?? null,
+                grabbed: row.grabbed_at ?? null,
+                notified: row.notified_at ?? null,
+              },
               instanceType,
               instances: [],
             }
@@ -287,6 +311,7 @@ export async function getRecentRequests(
           userId: item.userId,
           userName: item.userName,
           createdAt: item.createdAt,
+          statusTimes: item.statusTimes,
           primaryInstance: primaryInstance
             ? {
                 id: primaryInstance.id,

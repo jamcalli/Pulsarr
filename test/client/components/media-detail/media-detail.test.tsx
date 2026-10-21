@@ -123,6 +123,7 @@ function request(overrides: Partial<RecentRequest> = {}): RecentRequest {
     userId: 1,
     userName: 'jamie',
     createdAt: new Date().toISOString(),
+    statusTimes: { requested: null, grabbed: null, notified: null },
     primaryInstance: null,
     allInstances: [
       {
@@ -201,18 +202,24 @@ describe('MediaDetail', () => {
     expect(
       screen.getByRole('heading', { name: 'Dune', level: 2 }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^TMDB / })).toHaveTextContent(
-      '7.8/10',
+    const tmdb = screen.getByRole('link', { name: /^TMDB / })
+    expect(tmdb).toHaveTextContent('7.8/10')
+    expect(tmdb).toHaveAttribute(
+      'href',
+      'https://www.themoviedb.org/movie/438631',
     )
-    expect(screen.getByRole('button', { name: /^IMDb / })).toHaveTextContent(
-      '8.0/10',
+    const imdb = screen.getByRole('link', { name: /^IMDb / })
+    expect(imdb).toHaveTextContent('8.0/10')
+    expect(imdb).toHaveAttribute(
+      'href',
+      'https://www.imdb.com/title/tt1160419/',
     )
-    expect(
-      screen.getByRole('button', { name: /^Rotten Tomatoes critics / }),
-    ).toHaveTextContent('83%')
-    expect(
-      screen.getByRole('button', { name: /^Metacritic / }),
-    ).toHaveTextContent('74/100')
+    const rotten = screen.getByAltText('Rotten Tomatoes critics').parentElement
+    expect(rotten).toHaveTextContent('83%')
+    expect(rotten?.closest('a')).toBeNull()
+    const metacritic = screen.getByAltText('Metacritic').parentElement
+    expect(metacritic).toHaveTextContent('74/100')
+    expect(metacritic?.closest('a')).toBeNull()
     expect(screen.getByText('Streaming')).toBeInTheDocument()
     expect(screen.getByText('Sent to Radarr')).toBeInTheDocument()
     expect(screen.getByText('Download')).toBeInTheDocument()

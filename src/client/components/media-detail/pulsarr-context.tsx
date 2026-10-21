@@ -59,6 +59,11 @@ function Journey({ steps }: { steps: JourneyStep[] }) {
                   {step.detail}
                 </span>
               )}
+              {step.time && (
+                <span className="text-xs text-muted-foreground">
+                  {step.time}
+                </span>
+              )}
             </div>
           </li>
         )

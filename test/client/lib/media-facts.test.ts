@@ -9,6 +9,7 @@ import {
 } from '@/lib/media-facts'
 import type { components } from '@/types/api.js'
 
+type MovieDetails = components['schemas']['TmdbMovieDetails']
 type ShowDetails = components['schemas']['TmdbTvDetails']
 
 const show: ShowDetails = {
@@ -48,6 +49,41 @@ const show: ShowDetails = {
   type: 'Scripted',
   vote_average: 8.4,
   vote_count: 2000,
+}
+
+const movie: MovieDetails = {
+  adult: false,
+  backdrop_path: null,
+  belongs_to_collection: null,
+  budget: 0,
+  genres: [],
+  homepage: null,
+  id: 278,
+  imdb_id: null,
+  origin_country: ['US'],
+  original_language: 'en',
+  original_title: 'The Shawshank Redemption',
+  overview: null,
+  popularity: 1,
+  poster_path: null,
+  production_companies: [],
+  production_countries: [],
+  release_date: '1994-09-23',
+  revenue: 0,
+  runtime: 142,
+  spoken_languages: [],
+  status: 'Released',
+  tagline: null,
+  title: 'The Shawshank Redemption',
+  video: false,
+  vote_average: 8.7,
+  vote_count: 28000,
+}
+
+const movieRatings: components['schemas']['RadarrRatings'] = {
+  imdb: { votes: 1, value: 9.3, type: 'user' },
+  rottenTomatoes: { votes: 1, value: 89, type: 'user' },
+  trakt: { votes: 1, value: 9.1, type: 'user' },
 }
 
 describe('media facts', () => {
@@ -96,11 +132,68 @@ describe('media facts', () => {
       details: show,
       plexRatings: { rtCritic: 6, rtAudience: 5.9, tmdb: 8.25 },
     }
-    expect(mediaRatings(metadata)).toEqual([
-      { icon: 'tmdb', name: 'TMDB', value: '8.3', outOf: 10 },
+    expect(mediaRatings(metadata, [])).toEqual([
+      {
+        icon: 'tmdb',
+        name: 'TMDB',
+        value: '8.3',
+        outOf: 10,
+        url: 'https://www.themoviedb.org/tv/95396',
+      },
       { icon: 'rt-fresh', name: 'Rotten Tomatoes critics', value: '60%' },
       { icon: 'rt-aud-rotten', name: 'Rotten Tomatoes audience', value: '59%' },
     ])
+  })
+
+  it('links a movie to TMDB, IMDb and Trakt from its imdb guid', () => {
+    const ratings = mediaRatings(
+      { details: movie, radarrRatings: movieRatings },
+      ['tmdb:278', ' IMDB:tt0111161 '],
+    )
+    expect(ratings.find((rating) => rating.icon === 'tmdb')?.url).toBe(
+      'https://www.themoviedb.org/movie/278',
+    )
+    expect(ratings.find((rating) => rating.icon === 'imdb')?.url).toBe(
+      'https://www.imdb.com/title/tt0111161/',
+    )
+    expect(ratings.find((rating) => rating.icon === 'trakt')?.url).toBe(
+      'https://trakt.tv/movies/tt0111161',
+    )
+    expect(
+      ratings.find((rating) => rating.icon === 'rt-fresh'),
+    ).not.toHaveProperty('url')
+  })
+
+  it('links a show to TMDB tv without an imdb id', () => {
+    const ratings = mediaRatings(
+      {
+        details: show,
+        plexRatings: { tmdb: 8.4, imdb: { rating: 8.7, votes: null } },
+      },
+      ['tvdb:371980'],
+    )
+    expect(ratings.find((rating) => rating.icon === 'tmdb')?.url).toBe(
+      'https://www.themoviedb.org/tv/95396',
+    )
+    expect(
+      ratings.find((rating) => rating.icon === 'imdb')?.url,
+    ).toBeUndefined()
+  })
+
+  it('falls back to the TMDB imdb id when no imdb guid exists', () => {
+    const ratings = mediaRatings(
+      {
+        details: { ...movie, imdb_id: 'tt0111161' },
+        radarrRatings: movieRatings,
+      },
+      ['tmdb:278'],
+    )
+    expect(ratings.find((rating) => rating.icon === 'imdb')?.url).toBe(
+      'https://www.imdb.com/title/tt0111161/',
+    )
+    expect(ratings.find((rating) => rating.icon === 'trakt')?.url).toBe(
+      'https://trakt.tv/movies/tt0111161',
+    )
   })
 
   it('drops empty provider groups', () => {

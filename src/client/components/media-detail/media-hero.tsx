@@ -79,7 +79,9 @@ export function MediaHero({
               ))}
             </div>
           )}
-          {metadata && <RatingRow ratings={mediaRatings(metadata)} />}
+          {metadata && (
+            <RatingRow ratings={mediaRatings(metadata, item.guids)} />
+          )}
         </div>
       </div>
     </div>
