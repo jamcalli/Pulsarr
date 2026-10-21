@@ -15,6 +15,7 @@ import {
 import type { SetupFacts } from '@/features/setup/lib/steps'
 import { useWatchlistSync } from '@/hooks/plex/useWatchlistSync'
 import { invalidateConfig } from '@/hooks/useConfig'
+import { useMinLoadingMutation } from '@/hooks/useMinLoading'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { NAV_PAGES } from '@/lib/navigation'
 import { watchlistFacts } from '@/lib/plex/account-facts'
@@ -98,9 +99,8 @@ function missingInstanceNote(
 export function FinishStep({ steps, onDirtyChange }: SetupStepProps) {
   const dismiss = useSetupStore((state) => state.dismiss)
   const sync = useWatchlistSync({ page: NAV_PAGES.dashboard })
-  const start = $api.useMutation(
-    'post',
-    '/v1/watchlist-workflow/start-background',
+  const start = useMinLoadingMutation(
+    $api.useMutation('post', '/v1/watchlist-workflow/start-background'),
   )
   const workflow = useSyncStatus()
   const users = $api.useQuery('get', '/v1/users/list/with-counts')

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { ApprovalReview } from '@/hooks/useApprovalReview'
 import { useArrInstances } from '@/hooks/useArrInstances'
+import { useMinLoading } from '@/hooks/useMinLoading'
 import { useQualityProfileNames } from '@/hooks/useQualityProfileNames'
 import { type ArrTarget, additionalRouting } from '@/lib/approval'
 import { formatList } from '@/lib/format'
@@ -33,11 +34,10 @@ export function ApprovalAdditionalRouting({
     type,
     entries.map((entry) => entry.instanceId),
   )
-  const rulesQuery = $api.useQuery(
-    'get',
-    '/v1/content-router/rules',
-    undefined,
-    { enabled: entries.length > 0 },
+  const rulesQuery = useMinLoading(
+    $api.useQuery('get', '/v1/content-router/rules', undefined, {
+      enabled: entries.length > 0,
+    }),
   )
   const removable = review.editable
   const removeDisabled = review.busy !== null || review.stage !== 'review'
@@ -58,7 +58,9 @@ export function ApprovalAdditionalRouting({
     )
   }
 
-  const rules = rulesQuery.data?.rules ?? []
+  if (rulesQuery.data === undefined) return null
+
+  const rules = rulesQuery.data.rules
   const lines = entries.map((entry, index) => {
     const instance = instances.findTarget(entry.instanceId)?.instance ?? null
     const profile = entry.qualityProfile ?? instance?.qualityProfile ?? null

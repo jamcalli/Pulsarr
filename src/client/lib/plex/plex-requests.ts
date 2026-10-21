@@ -102,6 +102,7 @@ export async function fetchHasPlexPass(): Promise<boolean> {
 export function invalidateAccount() {
   return Promise.all([
     invalidateConfig(),
+    queryClient.invalidateQueries({ queryKey: usersKeys.list }),
     queryClient.invalidateQueries({ queryKey: usersKeys.withCounts }),
     queryClient.invalidateQueries({ queryKey: plexConnectionKeys.passStatus }),
   ])

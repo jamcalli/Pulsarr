@@ -374,10 +374,8 @@ describe('ApprovalReviewCredenza', () => {
     )
     const dialog = await findDialog()
 
-    expect(
-      await within(dialog).findByText('Other destinations'),
-    ).toBeInTheDocument()
     const line = await within(dialog).findByRole('listitem')
+    expect(within(dialog).getByText('Other destinations')).toBeInTheDocument()
     await vi.waitFor(() =>
       expect(line).toHaveTextContent('Sonarr 4K, Ultra-HD, /tv-2'),
     )

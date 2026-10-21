@@ -28,7 +28,7 @@ export function dashboardStats(
     },
     isLoading: false,
     isReady: true,
-    isFetching: false,
+    isRefreshing: false,
     updatedAt: 0,
     refresh: vi.fn(),
     errorMessage: null,

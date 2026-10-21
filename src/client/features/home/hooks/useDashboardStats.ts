@@ -3,7 +3,7 @@ import {
   dashboardDaysPref,
   rankingLimitPref,
 } from '@/features/home/lib/home-prefs'
-import { useMinLoading } from '@/hooks/useMinLoading'
+import { useMinDuration, useMinLoading } from '@/hooks/useMinLoading'
 import { refreshDashboardStats } from '@/lib/dashboard-invalidation'
 import { usePref } from '@/lib/prefs'
 import { $api, isSettled, loadErrorMessage } from '@/lib/tanstackApi'
@@ -34,7 +34,7 @@ export function useDashboardStats() {
     data: query.data,
     isLoading: query.isLoading,
     isReady: isSettled(query),
-    isFetching: query.isFetching,
+    isRefreshing: useMinDuration(query.isFetching && query.data !== undefined),
     updatedAt: query.dataUpdatedAt,
     refresh: () => void refreshDashboardStats(),
     errorMessage: loadErrorMessage(query, 'Dashboard stats failed to load.'),

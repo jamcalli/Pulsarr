@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ArrCredentials } from '@/hooks/arr/useConnectionTest'
 import { useArrInstanceOptions } from '@/hooks/useArrInstanceOptions'
-import { useMinLoading } from '@/hooks/useMinLoading'
+import { useMinDuration, useMinLoading } from '@/hooks/useMinLoading'
 import type { ArrType } from '@/lib/arr/instance-form'
 import { toArrOptions } from '@/lib/arr-options'
 import { apiFetch, loadErrorMessage } from '@/lib/tanstackApi'
@@ -36,6 +36,8 @@ export function useRoutingOptions(type: ArrType, source: RoutingSource) {
     }),
   )
 
+  const retrying = useMinDuration(probed.isError && probed.isFetching)
+
   if (source.kind === 'saved') {
     return {
       qualityProfiles: saved.qualityProfiles,
@@ -48,6 +50,7 @@ export function useRoutingOptions(type: ArrType, source: RoutingSource) {
     }
   }
   const data = probed.data ?? null
+
   return {
     ...toArrOptions({
       qualityProfiles: data?.qualityProfiles,
@@ -56,7 +59,7 @@ export function useRoutingOptions(type: ArrType, source: RoutingSource) {
     }),
     ready: data !== null,
     errorMessage: loadErrorMessage(probed, 'Options failed to load.'),
-    retrying: probed.isError && probed.isFetching,
+    retrying,
     retry: () => void probed.refetch(),
   }
 }
