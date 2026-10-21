@@ -16,6 +16,18 @@ export interface MediaItem {
 const TMDB_GUID = /^tmdb:\d+$/
 const TVDB_GUID = /^tvdb:\d+$/
 
+/** The id after `prefix:` in the first matching guid, null when no guid has that prefix. */
+export function guidValue(
+  guids: readonly string[],
+  prefix: string,
+): string | null {
+  const tag = `${prefix}:`
+  const match = guids
+    .map((guid) => guid.trim())
+    .find((guid) => guid.toLowerCase().startsWith(tag))
+  return match ? match.slice(tag.length) || null : null
+}
+
 /** Shows prefer TVDB because TMDB show ids collide with movie ids. Null when neither id is present. */
 export function metadataGuid(
   item: Pick<MediaItem, 'type' | 'guids'>,

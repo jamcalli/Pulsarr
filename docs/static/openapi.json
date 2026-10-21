@@ -4679,6 +4679,9 @@
           "createdAt": {
             "type": "string"
           },
+          "statusTimes": {
+            "$ref": "#/components/schemas/RecentRequestStatusTimes"
+          },
           "primaryInstance": {
             "anyOf": [
               {
@@ -4708,6 +4711,7 @@
           "userId",
           "userName",
           "createdAt",
+          "statusTimes",
           "primaryInstance",
           "allInstances"
         ],
@@ -4724,6 +4728,36 @@
           "notified"
         ],
         "description": "Request status, pending_approval from the approval queue, otherwise the highest watchlist status across routed instances"
+      },
+      "RecentRequestStatusTimes": {
+        "type": "object",
+        "properties": {
+          "requested": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grabbed": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notified": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "requested",
+          "grabbed",
+          "notified"
+        ],
+        "additionalProperties": false,
+        "description": "When the item first reached each watchlist status, null when there is no record"
       },
       "RecentRequestsResponse": {
         "type": "object",

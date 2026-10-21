@@ -1,4 +1,4 @@
-import { setFormatLocale } from '@/lib/format'
+import { formatDateTime, setFormatLocale } from '@/lib/format'
 import { mediaContext } from '@/lib/media-context'
 import type { RecentRequest } from '@/lib/media-item'
 import type { components } from '@/types/api.js'
@@ -7,6 +7,8 @@ type PendingApproval = components['schemas']['ApprovalRequest']
 
 const now = new Date(2026, 9, 4, 14, 0, 0).getTime()
 const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString()
+const oneHourAgo = new Date(now - 60 * 60 * 1000).toISOString()
+const thirtyMinutesAgo = new Date(now - 30 * 60 * 1000).toISOString()
 const inTwoDays = new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString()
 
 function request(overrides: Partial<RecentRequest> = {}): RecentRequest {
@@ -22,6 +24,7 @@ function request(overrides: Partial<RecentRequest> = {}): RecentRequest {
     userId: 1,
     userName: 'jamie',
     createdAt: twoHoursAgo,
+    statusTimes: { requested: null, grabbed: null, notified: null },
     primaryInstance: null,
     allInstances: [instance()],
     ...overrides,
@@ -87,14 +90,30 @@ describe('mediaContext', () => {
     })
 
     expect(context.journey).toEqual([
-      { label: 'Requested', detail: 'by jamie, 2 hours ago', state: 'done' },
+      {
+        label: 'Requested',
+        detail: 'by jamie',
+        time: formatDateTime(new Date(twoHoursAgo)),
+        state: 'done',
+      },
       {
         label: 'Awaiting approval',
         detail: 'Expires in 2 days',
+        time: null,
         state: 'waiting',
       },
-      { label: 'Download', detail: 'After approval', state: 'todo' },
-      { label: 'Notification', detail: 'Once it is downloaded', state: 'todo' },
+      {
+        label: 'Download',
+        detail: 'After approval',
+        time: null,
+        state: 'todo',
+      },
+      {
+        label: 'Notification',
+        detail: 'Once it is downloaded',
+        time: null,
+        state: 'todo',
+      },
     ])
   })
 
@@ -113,6 +132,7 @@ describe('mediaContext', () => {
     expect(context.journey?.[1]).toEqual({
       label: 'Awaiting approval',
       detail: 'Waiting for an admin decision',
+      time: null,
       state: 'waiting',
     })
   })
@@ -139,15 +159,22 @@ describe('mediaContext', () => {
     expect(context.journey?.[1]).toEqual({
       label: 'Sent to Radarr + Radarr 4K',
       detail: null,
+      time: null,
       state: 'done',
     })
     expect(context.journey?.slice(2)).toEqual([
       {
         label: 'Download',
         detail: 'Radarr has no file yet',
+        time: null,
         state: 'progress',
       },
-      { label: 'Notification', detail: 'Once it is downloaded', state: 'todo' },
+      {
+        label: 'Notification',
+        detail: 'Once it is downloaded',
+        time: null,
+        state: 'todo',
+      },
     ])
     expect(context.instances.map((instance) => instance.name)).toEqual([
       'Radarr',
@@ -168,10 +195,16 @@ describe('mediaContext', () => {
     })
 
     expect(context.journey?.slice(2)).toEqual([
-      { label: 'Download', detail: 'Sonarr has the file', state: 'done' },
+      {
+        label: 'Download',
+        detail: 'Sonarr has the file',
+        time: null,
+        state: 'done',
+      },
       {
         label: 'Notification',
         detail: 'No notification yet',
+        time: null,
         state: 'progress',
       },
     ])
@@ -198,6 +231,81 @@ describe('mediaContext', () => {
     expect(context.journey?.[3]?.detail).toBe('The user was told')
   })
 
+  it('shows when each done step happened', () => {
+    const notified = instance({ junctionStatus: 'notified' })
+    const context = mediaContext({
+      displayName,
+      request: request({
+        status: 'notified',
+        primaryInstance: notified,
+        allInstances: [notified],
+        statusTimes: {
+          requested: twoHoursAgo,
+          grabbed: oneHourAgo,
+          notified: thirtyMinutesAgo,
+        },
+      }),
+      now,
+    })
+
+    expect(context.journey?.map((step) => step.time)).toEqual([
+      formatDateTime(new Date(twoHoursAgo)),
+      formatDateTime(new Date(twoHoursAgo)),
+      formatDateTime(new Date(oneHourAgo)),
+      formatDateTime(new Date(thirtyMinutesAgo)),
+    ])
+    expect(context.journey?.slice(1).map((step) => step.detail)).toEqual([
+      null,
+      'Sonarr has the file',
+      'The user was told',
+    ])
+  })
+
+  it('keeps the step text when there is no status record', () => {
+    const notified = instance({ junctionStatus: 'notified' })
+    const context = mediaContext({
+      displayName,
+      request: request({
+        status: 'notified',
+        primaryInstance: notified,
+        allInstances: [notified],
+      }),
+      now,
+    })
+
+    expect(context.journey?.slice(1).map((step) => step.detail)).toEqual([
+      null,
+      'Sonarr has the file',
+      'The user was told',
+    ])
+    expect(context.journey?.slice(1).map((step) => step.time)).toEqual([
+      null,
+      null,
+      null,
+    ])
+  })
+
+  it('never times a step still in progress', () => {
+    const context = mediaContext({
+      displayName,
+      request: request({
+        statusTimes: {
+          requested: twoHoursAgo,
+          grabbed: oneHourAgo,
+          notified: null,
+        },
+      }),
+      now,
+    })
+
+    expect(context.journey?.[2]).toEqual({
+      label: 'Download',
+      detail: 'Sonarr has no file yet',
+      time: null,
+      state: 'progress',
+    })
+  })
+
   it('follows the furthest instance when there is no primary', () => {
     const context = mediaContext({
       displayName,
@@ -222,6 +330,7 @@ describe('mediaContext', () => {
     expect(context.journey?.[2]).toEqual({
       label: 'Download',
       detail: 'Radarr 4K has the file',
+      time: null,
       state: 'done',
     })
     expect(context.journey?.[3]?.state).toBe('progress')
@@ -235,7 +344,7 @@ describe('mediaContext', () => {
       now,
     })
 
-    expect(context.journey?.[0]?.detail).toBe('by Jamie Lee, 2 hours ago')
+    expect(context.journey?.[0]?.detail).toBe('by Jamie Lee')
   })
 
   it('keeps watchers from the rankings', () => {

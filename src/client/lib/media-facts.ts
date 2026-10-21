@@ -8,6 +8,7 @@ import {
   formatRuntime,
   formatYear,
 } from '@/lib/format'
+import { guidValue } from '@/lib/media-item'
 import type { components } from '@/types/api.js'
 
 export type MediaMetadata = components['schemas']['TmdbContentMetadata']
@@ -37,6 +38,8 @@ export interface Rating {
   value: string
   /** The scale maximum shown after the value, absent for percentages. */
   outOf?: 10 | 100
+  /** Present only when an id we hold can address the source's page. */
+  url?: string
 }
 
 interface ProviderGroup {
@@ -154,13 +157,30 @@ export function mediaFacts(details: MediaDetails): Fact[] {
   return [...own, ...shared].filter((fact) => fact !== null)
 }
 
+function ratingUrls(
+  details: MediaDetails,
+  guids: readonly string[],
+): { tmdb: string; imdb?: string; trakt?: string } {
+  const movie = isMovieDetails(details)
+  const imdbId = guidValue(guids, 'imdb') ?? (movie ? details.imdb_id : null)
+  return {
+    tmdb: `https://www.themoviedb.org/${movie ? 'movie' : 'tv'}/${details.id}`,
+    imdb: imdbId ? `https://www.imdb.com/title/${imdbId}/` : undefined,
+    trakt: imdbId ? `https://trakt.tv/movies/${imdbId}` : undefined,
+  }
+}
+
 function tenPoint(value: number): string {
   return formatNumber(value, 1)
 }
 
 /** Plex reports Rotten Tomatoes on a 10-point scale and Radarr on 100. */
-export function mediaRatings(metadata: MediaMetadata): Rating[] {
+export function mediaRatings(
+  metadata: MediaMetadata,
+  guids: readonly string[],
+): Rating[] {
   const { details } = metadata
+  const urls = ratingUrls(details, guids)
   const plex = metadata.plexRatings
   const radarr =
     'radarrRatings' in metadata ? metadata.radarrRatings : undefined
@@ -174,6 +194,7 @@ export function mediaRatings(metadata: MediaMetadata): Rating[] {
       name: 'TMDB',
       value: tenPoint(tmdb),
       outOf: 10,
+      url: urls.tmdb,
     })
   }
 
@@ -184,6 +205,7 @@ export function mediaRatings(metadata: MediaMetadata): Rating[] {
       name: 'IMDb',
       value: tenPoint(imdb),
       outOf: 10,
+      url: urls.imdb,
     })
   }
 
@@ -224,6 +246,7 @@ export function mediaRatings(metadata: MediaMetadata): Rating[] {
       icon: 'trakt',
       name: 'Trakt',
       value: formatPercent(radarr.trakt.value / 10),
+      url: urls.trakt,
     })
   }
 

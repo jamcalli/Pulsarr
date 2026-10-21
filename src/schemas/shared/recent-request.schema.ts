@@ -37,6 +37,17 @@ export const RecentRequestItemSchema = z
     userId: z.number(),
     userName: z.string(),
     createdAt: z.string(),
+    statusTimes: z
+      .object({
+        requested: z.string().nullable(),
+        grabbed: z.string().nullable(),
+        notified: z.string().nullable(),
+      })
+      .meta({
+        id: 'RecentRequestStatusTimes',
+        description:
+          'When the item first reached each watchlist status, null when there is no record',
+      }),
     primaryInstance: InstanceInfoSchema.nullable(),
     allInstances: z.array(InstanceInfoSchema),
   })

@@ -4665,6 +4665,7 @@ export interface components {
             userId: number;
             userName: string;
             createdAt: string;
+            statusTimes: components["schemas"]["RecentRequestStatusTimes"];
             primaryInstance: components["schemas"]["RecentRequestInstance"] | null;
             allInstances: components["schemas"]["RecentRequestInstance"][];
         };
@@ -4673,6 +4674,12 @@ export interface components {
          * @enum {string}
          */
         RecentRequestStatus: "pending_approval" | "pending" | "requested" | "grabbed" | "notified";
+        /** @description When the item first reached each watchlist status, null when there is no record */
+        RecentRequestStatusTimes: {
+            requested: string | null;
+            grabbed: string | null;
+            notified: string | null;
+        };
         /** @description Recent requests for the dashboard, newest first */
         RecentRequestsResponse: {
             success: boolean;

@@ -27,6 +27,7 @@ function item(id: number, title: string): RecentRequest {
     userId: 2,
     userName: 'mayar88',
     createdAt: '2026-10-10T00:00:00Z',
+    statusTimes: { requested: null, grabbed: null, notified: null },
     primaryInstance: null,
     allInstances: [],
   }
