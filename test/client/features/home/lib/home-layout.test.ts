@@ -11,8 +11,8 @@ describe('normalizeRows', () => {
       { cards: ['recent-requests'], fill: true },
       { cards: ['popularity-rankings'], fill: true },
       { cards: ['pipeline'], fill: true },
-      { cards: ['request-to-ready', 'notifications'], fill: true },
-      { cards: ['top-genres', 'library-mix'], fill: true },
+      { cards: ['request-to-ready', 'library-mix'], fill: true },
+      { cards: ['top-genres', 'notifications'], fill: true },
     ])
   })
 
