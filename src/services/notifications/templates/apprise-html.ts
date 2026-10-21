@@ -61,7 +61,7 @@ const TABLE_ATTRS = 'role="presentation" cellpadding="0" cellspacing="0"'
 
 function htmlWrapper(bandLabel: string, content: string): string {
   return `<div style="margin:0;padding:32px 16px;background:${PAGE};font-family:${FONT_STACK};color:${INK};">
-  <table ${TABLE_ATTRS} align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid ${INK};border-radius:8px;background:${CARD};box-shadow:4px 4px 0 0 ${INK};">
+  <table ${TABLE_ATTRS} width="600" align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid ${INK};border-radius:8px;background:${CARD};box-shadow:4px 4px 0 0 ${INK};">
     <tr><td style="padding:10px 24px;background:${PRIMARY};border-bottom:2px solid ${INK};border-radius:6px 6px 0 0;">
       <table ${TABLE_ATTRS} width="100%" style="width:100%;"><tr>
         <td width="50%" style="width:50%;white-space:nowrap;font-size:15px;font-weight:700;color:${PRIMARY_FOREGROUND};letter-spacing:-0.01em;">Pulsarr</td>

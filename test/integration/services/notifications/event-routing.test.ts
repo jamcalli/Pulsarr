@@ -1640,7 +1640,7 @@ describe('notification event routing', () => {
           "apprise": [
             {
               "body": "<div style="margin:0;padding:32px 16px;background:#f2ebdd;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;color:#1a1a1a;">
-          <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid #1a1a1a;border-radius:8px;background:#fffaf0;box-shadow:4px 4px 0 0 #1a1a1a;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="600" align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid #1a1a1a;border-radius:8px;background:#fffaf0;box-shadow:4px 4px 0 0 #1a1a1a;">
             <tr><td style="padding:10px 24px;background:#48a9a6;border-bottom:2px solid #1a1a1a;border-radius:6px 6px 0 0;">
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;"><tr>
                 <td width="50%" style="width:50%;white-space:nowrap;font-size:15px;font-weight:700;color:#000000;letter-spacing:-0.01em;">Pulsarr</td>
