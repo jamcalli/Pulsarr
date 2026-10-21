@@ -1,3 +1,4 @@
+import { DiscordIdSchema } from '@root/schemas/common/discord-id.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import {
   UserBaseSchema,
@@ -13,7 +14,7 @@ export const CreateUserSchema = z.object({
     .min(3, { error: 'Use at least 3 characters.' })
     .max(255)
     .nullable(),
-  discord_id: z.string().nullable(),
+  discord_id: DiscordIdSchema.nullable(),
   notify_apprise: z.boolean(),
   notify_discord: z.boolean(),
   notify_discord_mention: z.boolean(),

@@ -20113,9 +20113,14 @@
                     ]
                   },
                   "discord_id": {
-                    "type": [
-                      "string",
-                      "null"
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{17,20}$"
+                      },
+                      {
+                        "type": "null"
+                      }
                     ]
                   },
                   "notify_apprise": {
@@ -20420,9 +20425,14 @@
                         ]
                       },
                       "discord_id": {
-                        "type": [
-                          "string",
-                          "null"
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^\\d{17,20}$"
+                          },
+                          {
+                            "type": "null"
+                          }
                         ]
                       },
                       "notify_apprise": {
@@ -21431,9 +21441,14 @@
                     ]
                   },
                   "discord_id": {
-                    "type": [
-                      "string",
-                      "null"
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{17,20}$"
+                      },
+                      {
+                        "type": "null"
+                      }
                     ]
                   },
                   "notify_apprise": {

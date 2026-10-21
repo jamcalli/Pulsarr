@@ -1,3 +1,4 @@
+import { isDiscordSnowflake } from '@root/schemas/common/discord-id.schema.js'
 import type { User } from '@root/types/config.types.js'
 import type { NotificationResult } from '@root/types/notification.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
@@ -125,7 +126,7 @@ export async function claimUserNotifications(
     const mentionEligible =
       publicMentionsPossible &&
       user.notify_discord_mention &&
-      Boolean(user.discord_id?.trim())
+      isDiscordSnowflake(user.discord_id ?? '')
 
     if (
       !user.notify_discord &&

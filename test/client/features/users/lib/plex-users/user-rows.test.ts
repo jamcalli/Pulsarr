@@ -13,7 +13,7 @@ function plexUser(overrides: Partial<PlexUser> = {}): PlexUser {
     name: 'maya',
     apprise: null,
     alias: null,
-    discord_id: '331920077154',
+    discord_id: '331920077154000001',
     notify_apprise: false,
     notify_discord: false,
     notify_discord_mention: false,

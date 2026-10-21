@@ -5,7 +5,7 @@ const { shape } = UpdateUserSchema
 
 export const UserSettingsFormSchema = z.object({
   alias: shape.alias.unwrap().unwrap().or(z.literal('')),
-  discord_id: shape.discord_id.unwrap().unwrap(),
+  discord_id: shape.discord_id.unwrap().unwrap().or(z.literal('')),
   apprise: shape.apprise.unwrap().unwrap(),
   notify_discord: shape.notify_discord.unwrap(),
   notify_discord_mention: shape.notify_discord_mention.unwrap(),

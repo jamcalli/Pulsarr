@@ -60,7 +60,7 @@ const users: PlexUser[] = [
     id: 2,
     name: 'mayar88',
     alias: 'Maya R.',
-    discord_id: '331920077154',
+    discord_id: '331920077154000001',
     notify_discord: true,
     watchlist_count: 23,
   }),

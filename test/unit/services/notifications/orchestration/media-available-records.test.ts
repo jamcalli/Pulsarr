@@ -12,7 +12,7 @@ function createTestUser(overrides: Partial<User> = {}): User {
     name: 'user1',
     apprise: null,
     alias: null,
-    discord_id: '123456789',
+    discord_id: '123456789012345678',
     notify_apprise: false,
     notify_discord: false,
     notify_discord_mention: false,
@@ -102,7 +102,7 @@ describe('media-available records', () => {
 
       expect(results).toHaveLength(1)
       expect(db.createNotificationRecord).toHaveBeenCalledTimes(1)
-      expect(extractUserDiscordIds(results)).toEqual(['123456789'])
+      expect(extractUserDiscordIds(results)).toEqual(['123456789012345678'])
     })
 
     it('should skip a mention-only user when public content notifications are disabled', async () => {
@@ -129,6 +129,27 @@ describe('media-available records', () => {
     it('should skip a mention-only user when no public Discord webhook is configured', async () => {
       const user = createTestUser({ notify_discord_mention: true })
       const { deps, db } = createDeps([user], { enabled: true })
+
+      const results = await claimUserNotifications(
+        deps,
+        mediaInfo,
+        options,
+        [createTestItem(user.id)],
+        new Map([[user.id, user]]),
+        enrichment,
+        typeInfo,
+      )
+
+      expect(results).toEqual([])
+      expect(db.createNotificationRecord).not.toHaveBeenCalled()
+    })
+
+    it('should skip a mention-only user whose discord_id is not a snowflake', async () => {
+      const user = createTestUser({
+        notify_discord_mention: true,
+        discord_id: 'alice#1234',
+      })
+      const { deps, db } = createDeps([user], publicDiscordConfig)
 
       const results = await claimUserNotifications(
         deps,
