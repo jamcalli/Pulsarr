@@ -195,7 +195,7 @@ export function ConditionRow({
       {canCountVotes && !showVotes && (
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
           className="self-start"
           disabled={disabled}

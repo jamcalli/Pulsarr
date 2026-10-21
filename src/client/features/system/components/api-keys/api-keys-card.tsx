@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CardTitleCount } from '@/components/card-title-count'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { DeleteButton } from '@/components/delete-button'
 import { EmptyState } from '@/components/empty-state'
 import { SecretCopyInput } from '@/components/secret-copy-input'
 import {
@@ -11,6 +10,7 @@ import {
   SeparatedListActions,
   SeparatedListRow,
 } from '@/components/separated-list'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { ItemContent, ItemDescription, ItemTitle } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -48,9 +48,14 @@ function KeyRow({
         className={KEY_CLASS}
       />
       <SeparatedListActions>
-        <DeleteButton size="sm" onClick={onRevoke}>
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={onRevoke}
+        >
           Revoke
-        </DeleteButton>
+        </Button>
       </SeparatedListActions>
     </SeparatedListRow>
   )

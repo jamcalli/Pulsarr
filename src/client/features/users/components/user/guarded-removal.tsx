@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
-import { DeleteButton } from '@/components/delete-button'
 import { LockLine } from '@/components/settings/lock-line'
+import { Button } from '@/components/ui/button'
 import { UNSAVED_CHANGES_REASON } from '@/lib/settings'
 
 interface GuardedRemovalProps {
@@ -37,7 +37,9 @@ export function GuardedRemoval({
     <>
       <div className="flex flex-col items-start gap-2 self-start">
         {dirty && <LockLine reason={UNSAVED_CHANGES_REASON} />}
-        <DeleteButton
+        <Button
+          type="button"
+          variant="destructive"
           size="sm"
           disabled={dirty}
           onClick={() => {
@@ -46,7 +48,7 @@ export function GuardedRemoval({
           }}
         >
           {label}
-        </DeleteButton>
+        </Button>
       </div>
       <ConfirmCredenza
         open={open}
