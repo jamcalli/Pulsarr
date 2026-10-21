@@ -5,7 +5,6 @@ import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
 import { CardTitleCount } from '@/components/card-title-count'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { ConnectionTest } from '@/components/connection-test'
-import { DeleteButton } from '@/components/delete-button'
 import { EmptyState } from '@/components/empty-state'
 import { ExternalLink } from '@/components/external-link'
 import {
@@ -121,9 +120,14 @@ function EndpointRow({
         <Button type="button" variant="neutral" size="sm" onClick={onEdit}>
           Edit
         </Button>
-        <DeleteButton size="sm" onClick={onDelete}>
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={onDelete}
+        >
           Delete
-        </DeleteButton>
+        </Button>
       </SeparatedListActions>
       {(test.testing || test.outcome || switchError) && (
         <div className="flex basis-full flex-col gap-2">

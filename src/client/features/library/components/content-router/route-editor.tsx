@@ -1,7 +1,6 @@
 import { ROUTER_RULE_PRIORITY } from '@root/schemas/content-router/content-router.schema'
 import { useStore } from '@tanstack/react-form'
 import { BusyLabel } from '@/components/busy-label'
-import { DeleteButton } from '@/components/delete-button'
 import { ErrorAlert } from '@/components/error-alert'
 import { RoutingFields } from '@/components/routing-fields'
 import { Badge } from '@/components/ui/badge'
@@ -149,9 +148,14 @@ export function RouteEditor({
         <ErrorAlert message={editor.errorMessage} />
         <div className="flex flex-wrap items-center gap-2">
           {onDelete && (
-            <DeleteButton disabled={saving} onClick={onDelete}>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={saving}
+              onClick={onDelete}
+            >
               Delete route
-            </DeleteButton>
+            </Button>
           )}
           <div className="ml-auto flex gap-2">
             <Button

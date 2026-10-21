@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import { InstanceFields } from '@/components/arr/instance-fields'
 import { BusyLabel } from '@/components/busy-label'
 import { ConnectionTest } from '@/components/connection-test'
-import { DeleteButton } from '@/components/delete-button'
 import { ErrorAlert } from '@/components/error-alert'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -95,12 +94,14 @@ export function InstanceEditor({
       </FieldGroup>
       {remove && (
         <div className="flex flex-wrap items-center gap-2">
-          <DeleteButton
+          <Button
+            type="button"
+            variant="destructive"
             disabled={editor.saving || remove.disabledReason !== null}
             onClick={remove.onRemove}
           >
             Remove instance
-          </DeleteButton>
+          </Button>
           {remove.disabledReason && (
             <span className="text-sm text-muted-foreground">
               {remove.disabledReason}
