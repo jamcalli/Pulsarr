@@ -9,7 +9,10 @@ import {
 import { useRouteTargets } from '@/features/library/hooks/content-router/useRouteTargets'
 import type { RouteType } from '@/features/library/lib/content-router/condition-fields'
 import { usesField } from '@/features/library/lib/content-router/route-form'
-import { routesFor } from '@/features/library/lib/content-router/route-list'
+import {
+  canReorder,
+  routesFor,
+} from '@/features/library/lib/content-router/route-list'
 import { useDirtyGuard } from '@/hooks/useDirtyGuard'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
@@ -33,6 +36,7 @@ export function useContentRouterPage() {
   const openKey = opened.type === type ? opened.key : null
   const setOpenKey = (key: OpenKey) => setOpened({ type, key })
   const [deleting, setDeleting] = useState<RouterRule | null>(null)
+  const [reorderOpen, setReorderOpen] = useState(false)
   const guard = useDirtyGuard()
   const leaveGuard = useLeaveGuard(guard.dirty)
 
@@ -112,6 +116,14 @@ export function useContentRouterPage() {
       guard.run(() => setOpenKey(key))
     },
     collapse: () => guard.run(() => setOpenKey(null)),
+    reorderable: canReorder(routes),
+    reorderOpen,
+    openReorder: () =>
+      guard.run(() => {
+        setOpenKey(null)
+        setReorderOpen(true)
+      }),
+    setReorderOpen,
     close: () => {
       guard.setDirty(false)
       setOpenKey(null)

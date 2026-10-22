@@ -539,6 +539,7 @@ function roundTrip({ rule }: LegacyCase): {
     type: rule.target_type,
     enabled: rule.enabled ?? true,
     numeric,
+    order: rule.order ?? undefined,
   })
   return { values, payload }
 }

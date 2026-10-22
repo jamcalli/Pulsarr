@@ -1,4 +1,3 @@
-import { RouterRulePrioritySchema } from '@root/schemas/content-router/content-router.schema'
 import { useStore } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -68,7 +67,7 @@ export function useRouteEditorForm({
     }),
   )
 
-  const [schema] = useState(() => routeFormSchema(rule?.order ?? null))
+  const [schema] = useState(() => routeFormSchema())
 
   const mutation = useMutation({
     mutationFn: (values: RouteFormValues) =>
@@ -79,6 +78,7 @@ export function useRouteEditorForm({
             type,
             enabled: rule?.enabled ?? newEnabled,
             numeric: catalog.numeric,
+            order: rule?.order ?? undefined,
           }),
         ),
       ),
@@ -117,9 +117,6 @@ export function useRouteEditorForm({
     form,
     dirty,
     isNew: rule === null,
-    priorityOutOfRange:
-      typeof rule?.order === 'number' &&
-      !RouterRulePrioritySchema.safeParse(rule.order).success,
     saving: mutation.isPending,
     errorMessage:
       mutation.isPending || !mutation.error

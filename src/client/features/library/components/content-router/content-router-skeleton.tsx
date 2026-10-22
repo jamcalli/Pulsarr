@@ -1,16 +1,27 @@
 import { CardFrame } from '@/components/card-frame'
 import { Page, PageHeaderSkeleton } from '@/components/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
-import { RouteFallbackFrame } from '@/features/library/components/content-router/route-fallback-frame'
+import { RouteNoteFrame } from '@/features/library/components/content-router/route-note-frame'
 
 const CARD_NAME_WIDTHS = ['w-48', 'w-40', 'w-56'] as const
 
 export function ContentRouterSkeleton() {
   return (
     <Page busy>
-      <PageHeaderSkeleton action={<Skeleton className="h-10 w-28" />} />
+      <PageHeaderSkeleton
+        action={
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-28" />
+          </div>
+        }
+      />
       <Skeleton className="h-11 w-56" />
       <div className="flex flex-col gap-4">
+        <RouteNoteFrame media={<Skeleton className="size-5" />}>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-1/2" />
+        </RouteNoteFrame>
         {CARD_NAME_WIDTHS.map((width) => (
           <CardFrame key={width}>
             <div className="flex items-start gap-3.5">
@@ -25,9 +36,9 @@ export function ContentRouterSkeleton() {
             </div>
           </CardFrame>
         ))}
-        <RouteFallbackFrame media={<Skeleton className="size-5" />}>
+        <RouteNoteFrame media={<Skeleton className="size-5" />}>
           <Skeleton className="h-4 w-3/4" />
-        </RouteFallbackFrame>
+        </RouteNoteFrame>
       </div>
     </Page>
   )

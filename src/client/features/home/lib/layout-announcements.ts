@@ -6,6 +6,7 @@ import {
   type HomeCardId,
   NEW_ROW_COLUMN,
 } from '@/features/home/lib/home-layout'
+import { dragAnnouncements } from '@/lib/drag-announcements'
 import { formatList } from '@/lib/format'
 
 function cardId(id: UniqueIdentifier): HomeCardId | undefined {
@@ -39,17 +40,5 @@ export function layoutAnnouncements(columns: BoardColumns): Announcements {
     return key ? `in ${describeRow(key, card)}` : 'in its row'
   }
 
-  return {
-    onDragStart: ({ active }) => `Picked up ${subject(active.id)}.`,
-    onDragOver: ({ active, over }) =>
-      over
-        ? `${subject(active.id)} is now ${placement(active.id, over.id)}.`
-        : undefined,
-    onDragEnd: ({ active, over }) =>
-      over
-        ? `${subject(active.id)} was dropped ${placement(active.id, over.id)}.`
-        : `${subject(active.id)} was dropped back where it was.`,
-    onDragCancel: ({ active }) =>
-      `Move cancelled. ${subject(active.id)} went back where it was.`,
-  }
+  return dragAnnouncements({ subject, placement })
 }

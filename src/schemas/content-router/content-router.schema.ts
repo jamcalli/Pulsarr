@@ -427,7 +427,10 @@ function routerRulePayload<Order extends z.ZodType<number | undefined>>(
 }
 
 export const ContentRouterRuleSchema = routerRulePayload(
-  RouterRulePrioritySchema.optional(),
+  RouterRulePrioritySchema.optional().meta({
+    description:
+      'Left out, the rule is placed after every existing rule of its type',
+  }),
 ).meta({
   id: 'RouterRulePayload',
   description: 'Full router rule payload used to create a rule',
@@ -447,6 +450,22 @@ export const ContentRouterRuleToggleSchema = z
   .meta({
     id: 'RouterRuleTogglePayload',
     description: 'Turns a router rule on or off',
+  })
+
+export const ContentRouterRuleOrderSchema = z
+  .object({
+    orders: z
+      .array(
+        z.object({
+          id: z.number().int().min(1),
+          order: RouterRulePrioritySchema,
+        }),
+      )
+      .min(1),
+  })
+  .meta({
+    id: 'RouterRuleOrderPayload',
+    description: 'Priorities to store on several router rules at once',
   })
 
 const StoredRatingValueSchema = z.union([
@@ -569,6 +588,9 @@ export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
 
 export type ContentRouterRuleToggle = z.infer<
   typeof ContentRouterRuleToggleSchema
+>
+export type ContentRouterRuleOrder = z.infer<
+  typeof ContentRouterRuleOrderSchema
 >
 export type ContentRouterRuleResponse = z.infer<
   typeof ContentRouterRuleResponseSchema

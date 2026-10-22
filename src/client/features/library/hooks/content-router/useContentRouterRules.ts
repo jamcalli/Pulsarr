@@ -53,6 +53,17 @@ export async function deleteRule(id: number): Promise<void> {
   updateCachedRules((rules) => rules.filter((rule) => rule.id !== id))
 }
 
+export async function reorderRules(
+  orders: ReadonlyArray<{ id: number; order: number }>,
+): Promise<void> {
+  const { data, error } = await apiFetch.PATCH(
+    '/v1/content-router/rules/order',
+    { body: { orders: [...orders] } },
+  )
+  if (error) throw error
+  updateCachedRules(() => data.rules)
+}
+
 export function useContentRouterRules() {
   const query = useMinLoading($api.useQuery('get', '/v1/content-router/rules'))
   const [toggleErrors, setToggleErrors] = useState<ReadonlyMap<number, string>>(

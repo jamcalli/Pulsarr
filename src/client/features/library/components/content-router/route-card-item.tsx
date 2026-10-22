@@ -1,4 +1,5 @@
 import { cn } from 'cn'
+import { Ban } from 'lucide-react'
 import { useState } from 'react'
 import { StatusPill } from '@/components/status-pill'
 import { Badge } from '@/components/ui/badge'
@@ -33,8 +34,8 @@ export interface RouteSwitch {
 interface RouteCardSummary {
   name: string
   tokens: SummaryToken[]
+  exclude: boolean
   destination: RouteDestination
-  order: number | undefined
   requiresApproval: boolean
 }
 
@@ -50,13 +51,8 @@ function storedSummary(
       conditionNodes(rule.condition, catalog.controlFor, catalog.blank),
       catalog.valueLabel,
     ),
-    destination: targets.destination({
-      exclude,
-      instanceId: rule.target_instance_id,
-      qualityProfile: rule.quality_profile || null,
-      rootFolder: rule.root_folder || null,
-    }),
-    order: rule.order ?? undefined,
+    exclude,
+    destination: targets.ruleDestination(rule),
     requiresApproval: !exclude && (rule.always_require_approval ?? false),
   }
 }
@@ -71,13 +67,13 @@ function draftSummary(
   return {
     name: values.name.trim() || (isNew ? 'New route' : 'Untitled route'),
     tokens: ruleTokens(values.conditions, catalog.valueLabel),
+    exclude,
     destination: targets.destination({
       exclude,
       instanceId: Number(values.routing.instanceId) || null,
       qualityProfile: values.routing.qualityProfile,
       rootFolder: values.routing.rootFolder,
     }),
-    order: values.order,
     requiresApproval: !exclude && values.always_require_approval,
   }
 }
@@ -86,13 +82,13 @@ function blankSummary(targets: RouteTargets): RouteCardSummary {
   return {
     name: 'New route',
     tokens: [],
+    exclude: false,
     destination: targets.destination({
       exclude: false,
       instanceId: null,
       qualityProfile: null,
       rootFolder: null,
     }),
-    order: undefined,
     requiresApproval: false,
   }
 }
@@ -101,6 +97,9 @@ interface RouteCardItemProps {
   type: RouteType
   /** Null while creating a route. */
   rule: RouterRule | null
+  /** Rank among route rules, null for exclude rules and the unsaved new route. */
+  rank: number | null
+  hint: string | null
   open: boolean
   catalog: ConditionCatalog
   targets: RouteTargets
@@ -117,6 +116,8 @@ const ignoreDirty = () => {}
 export function RouteCardItem({
   type,
   rule,
+  rank,
+  hint,
   open,
   catalog,
   targets,
@@ -151,10 +152,21 @@ export function RouteCardItem({
             !enabled && 'bg-card text-muted-foreground',
           )}
         >
-          <span className="text-xs font-bold">Priority</span>
-          <span className="text-xl leading-tight font-bold tabular-nums">
-            {route.order === undefined ? '' : formatNumber(route.order)}
-          </span>
+          {route.exclude ? (
+            <>
+              <span className="text-xs font-bold">Skip</span>
+              <span className="flex h-7 items-center">
+                <Ban aria-hidden className="size-5" />
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-xs font-bold">Rank</span>
+              <span className="text-xl leading-tight font-bold tabular-nums">
+                {rank === null ? '' : formatNumber(rank)}
+              </span>
+            </>
+          )}
         </div>
       }
       badges={
@@ -181,6 +193,11 @@ export function RouteCardItem({
         <>
           <RuleTokens tokens={route.tokens} />
           <RouteDestinationLine destination={route.destination} />
+          {hint && (
+            <p className="pl-6 text-sm text-pretty text-muted-foreground">
+              {hint}
+            </p>
+          )}
         </>
       }
       footer={

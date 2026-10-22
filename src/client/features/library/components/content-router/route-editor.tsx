@@ -1,4 +1,3 @@
-import { ROUTER_RULE_PRIORITY } from '@root/schemas/content-router/content-router.schema'
 import { useStore } from '@tanstack/react-form'
 import { BusyLabel } from '@/components/busy-label'
 import { ErrorAlert } from '@/components/error-alert'
@@ -13,7 +12,6 @@ import type { RouteType } from '@/features/library/lib/content-router/condition-
 import type { RouteAction } from '@/features/library/lib/content-router/route-form'
 import { excludeDescription } from '@/features/library/lib/content-router/route-list'
 import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
-import { formatNumber } from '@/lib/format'
 
 interface RouteEditorProps {
   type: RouteType
@@ -39,13 +37,9 @@ export function RouteEditor({
   )
   const fieldsDisabled = saving || !routing.connected || routing.isLoading
   const saveDisabled = saving || !(editor.dirty || editor.isNew)
-  const priorityDescription =
-    action === 'exclude'
-      ? undefined
-      : `${formatNumber(ROUTER_RULE_PRIORITY.min)} to ${formatNumber(ROUTER_RULE_PRIORITY.max)}. Higher runs first.`
   const actionOptions: Array<{ value: RouteAction; label: string }> = [
     { value: 'route', label: `Send to ${ARR_TYPE_LABELS[type]}` },
-    { value: 'exclude', label: "Don't route" },
+    { value: 'exclude', label: 'Skip' },
   ]
 
   return (
@@ -54,17 +48,6 @@ export function RouteEditor({
         <FieldGroup className="gap-6">
           <form.AppField name="name">
             {(field) => <field.TextField label="Route name" />}
-          </form.AppField>
-          <form.AppField name="order">
-            {(field) => (
-              <field.NumberField
-                label="Priority"
-                description={priorityDescription}
-                min={ROUTER_RULE_PRIORITY.min}
-                max={ROUTER_RULE_PRIORITY.max}
-                allowOutOfRange={editor.priorityOutOfRange}
-              />
-            )}
           </form.AppField>
           <FieldSeparator />
           <ConditionBuilder form={form} catalog={catalog} disabled={saving} />

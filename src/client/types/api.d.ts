@@ -328,6 +328,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/content-router/rules/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Reorder router rules
+         * @description Set the priority of several content router rules at once
+         */
+        patch: operations["reorderRouterRules"];
+        trace?: never;
+    };
     "/v1/content-router/rules/target": {
         parameters: {
             query?: never;
@@ -4887,6 +4907,13 @@ export interface components {
             message: string;
             rules: components["schemas"]["RouterRule"][];
         };
+        /** @description Priorities to store on several router rules at once */
+        RouterRuleOrderPayload: {
+            orders: {
+                id: number;
+                order: number;
+            }[];
+        };
         /** @description Full router rule payload used to create a rule */
         RouterRulePayload: {
             name: string;
@@ -4896,6 +4923,7 @@ export interface components {
             root_folder?: string | null;
             quality_profile?: (number | string) | null;
             tags?: string[];
+            /** @description Left out, the rule is placed after every existing rule of its type */
             order?: number;
             enabled?: boolean;
             search_on_add?: boolean | null;
@@ -6997,6 +7025,58 @@ export interface operations {
             };
             /** @description Default Response */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    reorderRouterRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Priorities to store on several router rules at once */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouterRuleOrderPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
+                };
+            };
+            /** @description Default Response */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

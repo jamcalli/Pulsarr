@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
+import { ReorderRoutesButton } from '@/features/library/components/content-router/reorder-routes-button'
 import { RouteList } from '@/features/library/components/content-router/route-list'
 import { useContentRouterPage } from '@/features/library/hooks/content-router/useContentRouterPage'
 import { ROUTE_TABS } from '@/features/library/lib/content-router/route-list'
@@ -40,13 +41,24 @@ export default function ContentRouterPage() {
         title={TITLE}
         description={DESCRIPTION}
         action={
-          <Button
-            type="button"
-            disabled={!page.targets.hasInstance}
-            onClick={() => page.open('new')}
-          >
-            Add route
-          </Button>
+          <div className="flex items-center gap-2">
+            <ReorderRoutesButton
+              type={page.type}
+              routes={page.routes}
+              targets={page.targets}
+              disabled={!page.reorderable}
+              open={page.reorderOpen}
+              onOpen={page.openReorder}
+              onOpenChange={page.setReorderOpen}
+            />
+            <Button
+              type="button"
+              disabled={!page.targets.hasInstance}
+              onClick={() => page.open('new')}
+            >
+              Add route
+            </Button>
+          </div>
         }
       />
       <Tabs

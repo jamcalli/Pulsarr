@@ -93,6 +93,14 @@ declare module '@services/database.service.js' {
      */
     toggleRouterRule(id: number, enabled: boolean): Promise<RouterRule>
 
+    /** Stores every priority in one transaction, so a failure leaves all rules unchanged. */
+    setRouterRuleOrders(
+      orders: ReadonlyArray<{ id: number; order: number }>,
+    ): Promise<void>
+
+    /** The priority that puts a new rule after every rule of its type. */
+    nextRouterRuleOrder(targetType: 'radarr' | 'sonarr'): Promise<number>
+
     /**
      * Checks if any router rules exist in the database
      * @returns Promise resolving to true if any rules exist, false otherwise

@@ -1,4 +1,3 @@
-import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema'
 import type { Condition, ConditionGroup } from '@root/types/router.types'
 import type { RoutingFieldValues } from '@/components/routing-fields'
 import {
@@ -37,7 +36,6 @@ export type RouteRoutingValues = Omit<RoutingFieldValues, 'minimumAvailability'>
 
 export interface RouteFormValues {
   name: string
-  order: number | undefined
   action: RouteAction
   routing: RouteRoutingValues
   always_require_approval: boolean
@@ -267,7 +265,6 @@ export function ruleFormValues(
   if (rule === null) {
     return {
       name: '',
-      order: DEFAULT_ROUTE_PRIORITY,
       action: 'route',
       routing: routingDefaults(null),
       always_require_approval: false,
@@ -278,7 +275,6 @@ export function ruleFormValues(
   }
   return {
     name: rule.name,
-    order: rule.order ?? DEFAULT_ROUTE_PRIORITY,
     action: rule.exclude_from_routing ? 'exclude' : 'route',
     routing: ruleRouting(rule, routingDefaults(rule.target_instance_id)),
     always_require_approval: rule.always_require_approval ?? false,
@@ -381,7 +377,13 @@ export function rulePayload(
     type,
     enabled,
     numeric,
-  }: { type: RouteType; enabled: boolean; numeric: NumericResolver },
+    order,
+  }: {
+    type: RouteType
+    enabled: boolean
+    numeric: NumericResolver
+    order: number | undefined
+  },
 ): RouterRulePayload {
   const exclude = values.action === 'exclude'
   const { routing } = values
@@ -393,7 +395,7 @@ export function rulePayload(
     root_folder: exclude ? undefined : routing.rootFolder,
     tags: exclude ? [] : routing.tags,
     enabled,
-    order: values.order,
+    order,
     condition: conditionTree(values.conditions, numeric),
     search_on_add: routing.searchOnAdd,
     season_monitoring: type === 'sonarr' ? routing.seasonMonitoring : undefined,

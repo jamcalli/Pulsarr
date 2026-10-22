@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Item, ItemContent, ItemMedia } from '@/components/ui/item'
 
-export function RouteFallbackFrame({
+export function RouteNoteFrame({
   media,
   children,
 }: {

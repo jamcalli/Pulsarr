@@ -5712,6 +5712,38 @@
         "additionalProperties": false,
         "description": "Response carrying a list of router rules"
       },
+      "RouterRuleOrderPayload": {
+        "type": "object",
+        "properties": {
+          "orders": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "order": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "id",
+                "order"
+              ]
+            }
+          }
+        },
+        "required": [
+          "orders"
+        ],
+        "description": "Priorities to store on several router rules at once"
+      },
       "RouterRulePayload": {
         "type": "object",
         "properties": {
@@ -5779,6 +5811,7 @@
             }
           },
           "order": {
+            "description": "Left out, the rule is placed after every existing rule of its type",
             "type": "integer",
             "minimum": 1,
             "maximum": 100
@@ -11006,6 +11039,69 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/content-router/rules/order": {
+      "patch": {
+        "operationId": "reorderRouterRules",
+        "summary": "Reorder router rules",
+        "tags": [
+          "Content Router"
+        ],
+        "description": "Set the priority of several content router rules at once",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouterRuleOrderPayload"
+              }
+            }
+          },
+          "description": "Priorities to store on several router rules at once"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterRuleListResponse"
+                }
+              }
+            }
+          },
+          "404": {
             "description": "Default Response",
             "content": {
               "application/json": {

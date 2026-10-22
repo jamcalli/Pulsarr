@@ -1,4 +1,8 @@
 import type { RouterRule } from '@root/types/router.types.js'
+import {
+  DEFAULT_ROUTE_PRIORITY,
+  ROUTER_RULE_PRIORITY,
+} from '@schemas/content-router/content-router.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
@@ -332,6 +336,38 @@ export async function toggleRouterRule(
   }
 
   return this.formatRouterRule(updatedRule)
+}
+
+export async function setRouterRuleOrders(
+  this: DatabaseService,
+  orders: ReadonlyArray<{ id: number; order: number }>,
+): Promise<void> {
+  await this.knex.transaction(async (trx) => {
+    for (const { id, order } of orders) {
+      await trx('router_rules')
+        .where('id', id)
+        .update({ order, updated_at: this.timestamp })
+    }
+  })
+}
+
+export async function nextRouterRuleOrder(
+  this: DatabaseService,
+  targetType: 'radarr' | 'sonarr',
+): Promise<number> {
+  const row = await this.knex('router_rules')
+    .where('target_type', targetType)
+    .select(
+      this.knex.raw('MIN(COALESCE(??, ?)) AS ??', [
+        'order',
+        DEFAULT_ROUTE_PRIORITY,
+        'lowest',
+      ]),
+    )
+    .first<{ lowest: number | string | null } | undefined>()
+
+  if (row?.lowest == null) return DEFAULT_ROUTE_PRIORITY
+  return Math.max(ROUTER_RULE_PRIORITY.min, Number(row.lowest) - 1)
 }
 
 /**

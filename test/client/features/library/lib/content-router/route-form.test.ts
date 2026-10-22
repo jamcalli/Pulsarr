@@ -207,7 +207,6 @@ describe('ruleFormValues', () => {
   it('fills a new route from the default instance', () => {
     expect(ruleFormValues(null, context)).toMatchObject({
       name: '',
-      order: 50,
       action: 'route',
       routing,
     })
@@ -229,7 +228,6 @@ describe('ruleFormValues', () => {
       ),
     ).toMatchObject({
       name: 'Anime',
-      order: 70,
       action: 'route',
       routing: {
         instanceId: '2',
@@ -294,7 +292,6 @@ describe('ruleFormValues', () => {
 describe('rulePayload', () => {
   const values: RouteFormValues = {
     name: 'Kids',
-    order: 80,
     action: 'route',
     routing,
     always_require_approval: false,
@@ -305,7 +302,12 @@ describe('rulePayload', () => {
 
   it('builds a Radarr route payload', () => {
     expect(
-      rulePayload(values, { type: 'radarr', enabled: true, numeric }),
+      rulePayload(values, {
+        type: 'radarr',
+        enabled: true,
+        numeric,
+        order: 80,
+      }),
     ).toEqual({
       name: 'Kids',
       target_type: 'radarr',
@@ -329,9 +331,15 @@ describe('rulePayload', () => {
 
   it('sends Sonarr options only for Sonarr routes', () => {
     expect(
-      rulePayload(values, { type: 'sonarr', enabled: false, numeric }),
+      rulePayload(values, {
+        type: 'sonarr',
+        enabled: false,
+        numeric,
+        order: undefined,
+      }),
     ).toMatchObject({
       enabled: false,
+      order: undefined,
       season_monitoring: 'all',
       series_type: 'standard',
       monitor: undefined,
@@ -352,7 +360,7 @@ describe('rulePayload', () => {
     expect(
       rulePayload(
         { ...values, routing: inherit },
-        { type: 'sonarr', enabled: true, numeric },
+        { type: 'sonarr', enabled: true, numeric, order: undefined },
       ),
     ).toMatchObject({
       target_instance_id: 1,
@@ -369,7 +377,7 @@ describe('rulePayload', () => {
     expect(
       rulePayload(
         { ...values, action: 'exclude', always_require_approval: true },
-        { type: 'radarr', enabled: true, numeric },
+        { type: 'radarr', enabled: true, numeric, order: undefined },
       ),
     ).toMatchObject({
       target_instance_id: null,
