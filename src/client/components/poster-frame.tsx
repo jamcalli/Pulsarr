@@ -50,12 +50,12 @@ export function PosterFrame({ thumb, type, size = 'fill' }: PosterFrameProps) {
           alt=""
           loading="lazy"
           onError={onError}
-          className="aspect-2/3 size-full object-cover"
+          className="aspect-2/3 w-full object-cover"
         />
       ) : (
         <div
           data-slot="poster-placeholder"
-          className="flex size-full items-center justify-center text-muted-foreground"
+          className="flex aspect-2/3 w-full items-center justify-center text-muted-foreground"
         >
           <PlaceholderIcon className={ICON_SIZES[size]} />
         </div>
