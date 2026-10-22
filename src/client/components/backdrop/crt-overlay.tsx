@@ -2,6 +2,11 @@ import type React from 'react'
 import { useEffect, useRef } from 'react'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
+import {
+  layoutViewport,
+  sameViewport,
+  type ViewportSize,
+} from '@/lib/layout-viewport'
 
 interface CRTOverlayProps {
   children: React.ReactNode
@@ -102,10 +107,13 @@ const CRTOverlay = ({
     const canvas = canvasRef.current
     if (!canvas) return
 
+    let drawn: ViewportSize | null = null
     const setupCanvas = () => {
-      const dpr = window.devicePixelRatio || 1
-      const width = window.innerWidth
-      const height = window.innerHeight
+      const size = layoutViewport()
+      if (sameViewport(drawn, size)) return
+      drawn = size
+
+      const { width, height, dpr } = size
 
       canvas.width = width * dpr
       canvas.height = height * dpr

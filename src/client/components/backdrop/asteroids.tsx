@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
+import {
+  layoutViewport,
+  sameViewport,
+  type ViewportSize,
+} from '@/lib/layout-viewport'
 
 interface AsteroidShape {
   radius: number
@@ -52,8 +57,7 @@ function createAsteroidShape(): AsteroidShape {
 }
 
 function createAsteroidState(): AsteroidState {
-  const width = window.innerWidth
-  const height = window.innerHeight
+  const { width, height } = layoutViewport()
   const angle = Math.random() * 360
   const speed =
     ASTEROID_VELOCITY *
@@ -121,7 +125,7 @@ function drawAsteroids(
 ) {
   const dpr = window.devicePixelRatio || 1
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+  ctx.clearRect(0, 0, ctx.canvas.width / dpr, ctx.canvas.height / dpr)
   for (let i = 0; i < states.length; i++) {
     drawAsteroid(ctx, shapes[i], states[i])
   }
@@ -148,12 +152,17 @@ const FallingAsteroids = () => {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    let drawn: ViewportSize | null = null
     const resizeCanvas = () => {
-      const dpr = window.devicePixelRatio || 1
-      canvas.width = window.innerWidth * dpr
-      canvas.height = window.innerHeight * dpr
-      canvas.style.width = `${window.innerWidth}px`
-      canvas.style.height = `${window.innerHeight}px`
+      const size = layoutViewport()
+      if (sameViewport(drawn, size)) return
+      drawn = size
+
+      const { dpr } = size
+      canvas.width = size.width * dpr
+      canvas.height = size.height * dpr
+      canvas.style.width = `${size.width}px`
+      canvas.style.height = `${size.height}px`
 
       const ctx = canvas.getContext('2d')
       const shapes = shapesRef.current
@@ -202,8 +211,9 @@ const FallingAsteroids = () => {
       const deltaTime = elapsed / 1000
       lastUpdateRef.current = timestamp
 
-      const width = window.innerWidth
-      const height = window.innerHeight
+      const dpr = window.devicePixelRatio || 1
+      const width = canvas.width / dpr
+      const height = canvas.height / dpr
 
       for (let i = 0; i < states.length; i++) {
         const state = states[i]
