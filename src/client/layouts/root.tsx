@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { useMemo } from 'react'
 import { useMatches } from 'react-router-dom'
 import planetDesktop from '@/assets/images/planet.webp'
 import planetMobile from '@/assets/images/planet-m.webp'
@@ -10,30 +9,23 @@ import ParallaxStarfield from '@/components/backdrop/starfield'
 import { Toaster } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
-import { useSettings } from '@/hooks/useSettings'
 import { routeHasBackdrop } from '@/lib/route-handle'
 
 interface RootLayoutProps {
   children: ReactNode
-  /** Draws the backdrop on phones too, for content rendered outside any matched route. */
+  /** Draws the backdrop for content rendered outside any matched route. */
   backdrop?: boolean
 }
 
-/** Phones only get the backdrop on shell-less routes, desktop gets it whenever fullscreen is off. */
+/** The backdrop draws only on shell-less routes, never behind the app shell. */
 function BackgroundLayer({ backdrop }: { backdrop: boolean }) {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isPageVisible = usePageVisibility()
-  const { fullscreenEnabled } = useSettings()
   const matches = useMatches()
   const shellless =
     backdrop || matches.some((match) => routeHasBackdrop(match.handle))
 
-  const shouldShowBackground = useMemo(
-    () => shellless || (!isMobile && !fullscreenEnabled),
-    [isMobile, fullscreenEnabled, shellless],
-  )
-
-  if (!shouldShowBackground) return null
+  if (!shellless) return null
 
   return (
     <div

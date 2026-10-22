@@ -1,8 +1,6 @@
 import {
   ChevronsUpDown,
   LogOut,
-  Maximize2,
-  Minimize2,
   Moon,
   Rocket,
   Sun,
@@ -28,7 +26,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { UserAvatar, UserAvatarSkeleton } from '@/components/user-avatar'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { useSettings } from '@/hooks/useSettings'
 import { useTheme } from '@/hooks/useTheme'
 import { useSetupStore } from '@/stores/setupStore'
 
@@ -47,8 +44,7 @@ function UserSkeleton() {
 export function SidebarUser() {
   const { data, isLoading } = useCurrentUser()
   const { theme, setTheme } = useTheme()
-  const { fullscreenEnabled, setFullscreenEnabled } = useSettings()
-  const { isMobile, setOpenMobile } = useSidebar()
+  const { setOpenMobile } = useSidebar()
   const navigate = useNavigate()
   const [logOutOpen, setLogOutOpen] = useState(false)
   const requestSetup = useSetupStore((state) => state.request)
@@ -115,15 +111,6 @@ export function SidebarUser() {
               {nextTheme === 'light' ? <Sun /> : <Moon />}
               Switch to {nextTheme} theme
             </DropdownMenuItem>
-            {!isMobile && (
-              <DropdownMenuItem
-                closeOnClick={false}
-                onClick={() => setFullscreenEnabled(!fullscreenEnabled)}
-              >
-                {fullscreenEnabled ? <Minimize2 /> : <Maximize2 />}
-                {fullscreenEnabled ? 'Windowed' : 'Full screen'}
-              </DropdownMenuItem>
-            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setLogOutOpen(true)}>

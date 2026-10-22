@@ -1,4 +1,3 @@
-import { cn } from 'cn'
 import { SidebarLogo } from '@/components/sidebar/sidebar-logo'
 import { SidebarNav } from '@/components/sidebar/sidebar-nav'
 import { SidebarSyncStatus } from '@/components/sidebar/sidebar-sync-status'
@@ -10,11 +9,9 @@ import {
   SidebarMenu,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { useSettings } from '@/hooks/useSettings'
 
 export function AppSidebar() {
   const { isMobile } = useSidebar()
-  const { fullscreenEnabled } = useSettings()
 
   return (
     <Sidebar
@@ -22,10 +19,7 @@ export function AppSidebar() {
       className={
         isMobile
           ? undefined
-          : cn(
-              'sticky top-0 w-58 shrink-0 border-r-2 border-border',
-              fullscreenEnabled ? 'h-svh' : 'h-full',
-            )
+          : 'sticky top-0 h-svh w-58 shrink-0 border-r-2 border-border'
       }
     >
       <SidebarLogo />

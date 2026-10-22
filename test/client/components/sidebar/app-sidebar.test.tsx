@@ -3,7 +3,6 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { SettingsProvider } from '@/components/settings-provider'
 import { AppSidebar } from '@/components/sidebar/app-sidebar'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarProvider } from '@/components/ui/sidebar'
@@ -123,9 +122,7 @@ function renderSidebar(path: string) {
   render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <SettingsProvider>
-          <RouterProvider router={router} />
-        </SettingsProvider>
+        <RouterProvider router={router} />
       </ThemeProvider>
     </QueryClientProvider>,
   )
@@ -238,7 +235,7 @@ describe('AppSidebar', () => {
     )
   })
 
-  it('keeps the user menu open on display toggles', async () => {
+  it('keeps the user menu open on the theme toggle', async () => {
     mockApi()
     const user = userEvent.setup()
     renderSidebar('/')
@@ -249,10 +246,12 @@ describe('AppSidebar', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Display')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('menuitem', { name: 'Full screen' }))
+    await user.click(
+      screen.getByRole('menuitem', { name: /Switch to .* theme/ }),
+    )
 
     expect(
-      screen.getByRole('menuitem', { name: 'Windowed' }),
+      screen.getByRole('menuitem', { name: 'Account settings' }),
     ).toBeInTheDocument()
   })
 

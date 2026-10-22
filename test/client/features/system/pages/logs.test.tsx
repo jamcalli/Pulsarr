@@ -269,12 +269,11 @@ describe('LogsPage', () => {
   })
 
   it.each([
-    { mobile: false, windowed: false, expected: '444px' },
-    { mobile: true, windowed: false, expected: '744px' },
-    { mobile: false, windowed: true, expected: '364px' },
+    { mobile: false, expected: '444px' },
+    { mobile: true, expected: '744px' },
   ])(
     'fills the visible area under the app header (%o)',
-    async ({ mobile, windowed, expected }) => {
+    async ({ mobile, expected }) => {
       stubViewport({ mobile })
       vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(
         800,
@@ -287,12 +286,9 @@ describe('LogsPage', () => {
       vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
         function (this: Element) {
           if (this === inset) {
-            return windowed
-              ? new DOMRect(0, 40, 800, 720)
-              : new DOMRect(0, 0, 800, 2000)
+            return new DOMRect(0, 0, 800, 2000)
           }
-          if (this === appHeader)
-            return new DOMRect(0, windowed ? 40 : 0, 800, 56)
+          if (this === appHeader) return new DOMRect(0, 0, 800, 56)
           const content = this.querySelector('[data-slot="card-content"]')
           if (content) return new DOMRect(0, 0, 800, 900)
           if (

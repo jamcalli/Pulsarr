@@ -1,4 +1,4 @@
-import { ArrowUpRight, CircleHelp, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowUpRight, CircleHelp } from 'lucide-react'
 import { Fragment } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useSettings } from '@/hooks/useSettings'
 import { breadcrumbFor, HELP_LINKS } from '@/lib/navigation'
 import { useBreadcrumbStore } from '@/stores/breadcrumbStore'
 
@@ -27,8 +26,6 @@ export function AppHeader() {
   const tail = useBreadcrumbStore((state) => state.tail)
   const sectionCrumbs = breadcrumbFor(location.pathname, location.hash)
   const crumbs = tail ? [...sectionCrumbs, { label: tail }] : sectionCrumbs
-  const { fullscreenEnabled, setFullscreenEnabled } = useSettings()
-  const frameLabel = fullscreenEnabled ? 'Windowed' : 'Full screen'
 
   return (
     <header
@@ -67,19 +64,6 @@ export function AppHeader() {
         </BreadcrumbList>
       </Breadcrumb>
       <ThemeToggle />
-      <Button
-        variant="ghost"
-        size="icon"
-        className="hidden md:inline-flex"
-        onClick={() => setFullscreenEnabled(!fullscreenEnabled)}
-      >
-        {fullscreenEnabled ? (
-          <Minimize2 aria-hidden="true" />
-        ) : (
-          <Maximize2 aria-hidden="true" />
-        )}
-        <span className="sr-only">{frameLabel}</span>
-      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
           <CircleHelp aria-hidden="true" />
