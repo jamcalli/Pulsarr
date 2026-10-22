@@ -4,7 +4,6 @@ import {
   Maximize2,
   Minimize2,
   Moon,
-  Orbit,
   Rocket,
   Sun,
   UserCog,
@@ -14,7 +13,6 @@ import { useNavigate } from 'react-router-dom'
 import { LogOutDialog } from '@/components/sidebar/log-out-dialog'
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
@@ -49,12 +47,7 @@ function UserSkeleton() {
 export function SidebarUser() {
   const { data, isLoading } = useCurrentUser()
   const { theme, setTheme } = useTheme()
-  const {
-    asteroidsEnabled,
-    setAsteroidsEnabled,
-    fullscreenEnabled,
-    setFullscreenEnabled,
-  } = useSettings()
+  const { fullscreenEnabled, setFullscreenEnabled } = useSettings()
   const { isMobile, setOpenMobile } = useSidebar()
   const navigate = useNavigate()
   const [logOutOpen, setLogOutOpen] = useState(false)
@@ -122,15 +115,6 @@ export function SidebarUser() {
               {nextTheme === 'light' ? <Sun /> : <Moon />}
               Switch to {nextTheme} theme
             </DropdownMenuItem>
-            {!isMobile && !fullscreenEnabled && (
-              <DropdownMenuCheckboxItem
-                checked={asteroidsEnabled}
-                onCheckedChange={setAsteroidsEnabled}
-              >
-                <Orbit />
-                Asteroids
-              </DropdownMenuCheckboxItem>
-            )}
             {!isMobile && (
               <DropdownMenuItem
                 closeOnClick={false}
