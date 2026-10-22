@@ -234,7 +234,18 @@ describe('ContentRouterPage', () => {
     expect(screen.getByRole('tab', { name: /Movies/ })).toHaveTextContent('2')
     expect(screen.getByRole('tab', { name: /TV shows/ })).toHaveTextContent('1')
     expect(screen.getByText('Year is 2010 to 2020')).toBeInTheDocument()
-    expect(screen.getByText(byTextContent('Priority90'))).toBeInTheDocument()
+    expect(screen.getByText(byTextContent('Rank1'))).toBeInTheDocument()
+    expect(screen.getByText(byTextContent('Rank2'))).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        byTextContent(
+          'Routes run top to bottom. Every matching route sends the movie. When two share an instance, the one nearer the top wins. The top match decides approval and quotas.',
+        ),
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Rank 1 wins on Radarr when both match.'),
+    ).toBeInTheDocument()
     expect(
       await screen.findAllByText(byTextContent('Radarr, HD-1080p, /movies')),
     ).toHaveLength(2)
@@ -243,6 +254,55 @@ describe('ContentRouterPage', () => {
         'Movies that no route matches go to Radarr, your default Radarr instance.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('opens the reorder dialog with the routes in run order', async () => {
+    const user = userEvent.setup()
+    mockEndpoints([
+      ...savedRules,
+      makeRule({
+        id: 4,
+        name: 'Skip trailers',
+        order: 10,
+        exclude_from_routing: true,
+      }),
+    ])
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Reorder' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Reorder movie routes',
+    })
+    expect(within(dialog).getByText('Always first')).toBeInTheDocument()
+    expect(within(dialog).getByText('Then in this order')).toBeInTheDocument()
+    const pinned = within(dialog).getByRole('list', {
+      name: 'Routes that always run first',
+    })
+    expect(within(pinned).getByText('Skip trailers')).toBeInTheDocument()
+    expect(
+      within(dialog).getByRole('button', { name: 'Move High, rank 1' }),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).getByRole('button', { name: 'Move Low, rank 2' }),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).queryByRole('button', { name: /^Move Skip trailers/ }),
+    ).not.toBeInTheDocument()
+    expect(within(dialog).getByText('1')).toBeInTheDocument()
+    expect(within(dialog).getByText('2')).toBeInTheDocument()
+    expect(within(dialog).getAllByText('Radarr')).toHaveLength(2)
+    expect(
+      within(dialog).getByRole('button', { name: 'Save order' }),
+    ).toBeDisabled()
+  })
+
+  it('keeps Reorder disabled with fewer than two routes to move', async () => {
+    mockEndpoints([makeRule({ id: 1, name: 'Only' })])
+    renderPage()
+
+    expect(
+      await screen.findByRole('button', { name: 'Reorder' }),
+    ).toBeDisabled()
   })
 
   it('opens the tab named in the search params and keeps the tab there', async () => {
@@ -276,9 +336,12 @@ describe('ContentRouterPage', () => {
     expect(await screen.findByText('Off')).toBeInTheDocument()
     expect(
       screen.getByText(
-        byTextContent('Not routed. Matching movies are skipped'),
+        byTextContent('Skipped. Matching movies are not sent to Radarr'),
       ),
     ).toBeInTheDocument()
+    expect(screen.getByText('Skip')).toBeInTheDocument()
+    expect(screen.getByText(byTextContent('Rank1'))).toBeInTheDocument()
+    expect(screen.getByText(byTextContent('Rank2'))).toBeInTheDocument()
     expect(screen.getAllByText('Requires approval')).toHaveLength(1)
   })
 
@@ -325,23 +388,18 @@ describe('ContentRouterPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('notes an inverted rule and drops the priority hint for a skip', async () => {
+  it('notes an inverted rule', async () => {
     const user = userEvent.setup()
     mockEndpoints()
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: /^Edit High/ }))
-    expect(
-      await screen.findByText('1 to 100. Higher runs first.'),
-    ).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Not all conditions' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Not all conditions' }),
+    )
     expect(screen.getByRole('note')).toHaveTextContent(
       'Inverted. This route applies when the conditions below are not met.',
     )
-    await user.click(screen.getByRole('button', { name: "Don't route" }))
-    expect(
-      screen.queryByText('1 to 100. Higher runs first.'),
-    ).not.toBeInTheDocument()
   })
 
   it('turns a route off from the list without dirtying its editor', async () => {
@@ -409,7 +467,6 @@ describe('ContentRouterPage', () => {
       root_folder: null,
       tags: [],
       enabled: true,
-      order: 50,
       condition: {
         operator: 'AND',
         negate: false,
@@ -462,11 +519,8 @@ describe('ContentRouterPage', () => {
     await user.click(
       await screen.findByRole('button', { name: /^Edit Legacy/ }),
     )
-    const priority = await screen.findByLabelText('Priority')
-    await user.clear(priority)
-    await user.type(priority, '150')
-    await user.tab()
-    const name = screen.getByLabelText('Route name')
+    const name = await screen.findByLabelText('Route name')
+    expect(screen.queryByLabelText('Priority')).not.toBeInTheDocument()
     await user.clear(name)
     await user.type(name, 'Legacy renamed')
     await user.click(screen.getByRole('button', { name: 'Save route' }))

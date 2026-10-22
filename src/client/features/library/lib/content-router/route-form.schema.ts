@@ -3,7 +3,6 @@ import {
   ComparisonOperatorSchema,
   ConditionSchema,
   RouterGroupOperatorSchema,
-  routerRulePriorityFor,
 } from '@root/schemas/content-router/content-router.schema'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema'
 import { z } from 'zod'
@@ -47,11 +46,9 @@ const ConditionNodeSchema = z
     if (issue) ctx.addIssue({ code: 'custom', message: issue.message })
   })
 
-/** The editor's schema for one rule, which keeps accepting the priority already stored on it. */
-export function routeFormSchema(storedOrder: number | null) {
+export function routeFormSchema() {
   return z.object({
     name: rule.name,
-    order: routerRulePriorityFor(storedOrder),
     action: z.enum(['route', 'exclude']),
     routing: z.object({
       instanceId: z.string(),

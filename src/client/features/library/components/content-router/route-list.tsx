@@ -1,4 +1,4 @@
-import { CornerDownRight, Route } from 'lucide-react'
+import { CornerDownRight, ListOrdered, Route } from 'lucide-react'
 import { EmptyState } from '@/components/empty-state'
 import { InlineLink } from '@/components/inline-link'
 import { Accordion } from '@/components/ui/accordion'
@@ -6,7 +6,7 @@ import {
   RouteCardItem,
   type RouteSwitch,
 } from '@/features/library/components/content-router/route-card-item'
-import { RouteFallbackFrame } from '@/features/library/components/content-router/route-fallback-frame'
+import { RouteNoteFrame } from '@/features/library/components/content-router/route-note-frame'
 import type { ConditionCatalog } from '@/features/library/hooks/content-router/useConditionCatalog'
 import type { OpenKey } from '@/features/library/hooks/content-router/useContentRouterPage'
 import type { RouteTargets } from '@/features/library/hooks/content-router/useRouteTargets'
@@ -15,6 +15,9 @@ import {
   emptyCopy,
   fallbackLine,
   noInstanceCopy,
+  orderNote,
+  siblingHint,
+  yieldsTo,
 } from '@/features/library/lib/content-router/route-list'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
@@ -48,6 +51,24 @@ export function RouteList({
   onDelete,
   reportDirty,
 }: RouteListProps) {
+  const ranks = new Map(
+    routes
+      .filter((rule) => !rule.exclude_from_routing)
+      .map((rule, index) => [rule.id, index + 1]),
+  )
+  const yields = yieldsTo(routes)
+  const hintFor = (rule: RouterRule) => {
+    const winnerRanks = (yields.get(rule.id) ?? []).flatMap(
+      (id) => ranks.get(id) ?? [],
+    )
+    const destination = targets.ruleDestination(rule)
+    return winnerRanks.length > 0 && destination.kind === 'instance'
+      ? siblingHint(winnerRanks, destination.name)
+      : null
+  }
+  const hasSkip = routes.some((rule) => rule.exclude_from_routing)
+  const note = orderNote(type, hasSkip)
+
   const card = (rule: RouterRule | null) => {
     const key = rule?.id ?? 'new'
     const open = openKey === key
@@ -56,6 +77,8 @@ export function RouteList({
         key={key}
         type={type}
         rule={rule}
+        rank={rule === null ? null : (ranks.get(rule.id) ?? null)}
+        hint={rule === null ? null : hintFor(rule)}
         open={open}
         catalog={catalog}
         targets={targets}
@@ -96,17 +119,25 @@ export function RouteList({
 
   return (
     <div className="flex flex-col gap-4">
+      <RouteNoteFrame
+        media={<ListOrdered aria-hidden className="size-5 text-primary" />}
+      >
+        <p className="text-pretty text-muted-foreground">
+          <span className="font-bold text-foreground">{note.lead}</span>{' '}
+          {note.body}
+        </p>
+      </RouteNoteFrame>
       <Accordion value={openKey === null ? [] : [openKey]} className="gap-4">
         {openKey === 'new' && card(null)}
-        {routes.map(card)}
+        {routes.map((rule) => card(rule))}
       </Accordion>
-      <RouteFallbackFrame
+      <RouteNoteFrame
         media={<CornerDownRight aria-hidden className="size-5 text-primary" />}
       >
         <p className="text-pretty text-muted-foreground">
           {fallbackLine(type, targets.fallback)}
         </p>
-      </RouteFallbackFrame>
+      </RouteNoteFrame>
     </div>
   )
 }

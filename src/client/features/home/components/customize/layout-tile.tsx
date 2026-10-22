@@ -1,8 +1,13 @@
 import { cn } from 'cn'
-import { EyeOff, GripVertical } from 'lucide-react'
+import { EyeOff } from 'lucide-react'
 import type { Ref } from 'react'
+import {
+  DRAGGING_CLASSES,
+  DragHandle,
+  DragHandleFace,
+} from '@/components/drag-handle'
 import { Button } from '@/components/ui/button'
-import { KanbanItem, KanbanItemHandle } from '@/components/ui/kanban'
+import { KanbanItem } from '@/components/ui/kanban'
 import {
   Tooltip,
   TooltipContent,
@@ -41,21 +46,9 @@ export function LayoutTile({
   return (
     <KanbanItem
       value={id}
-      className={cn(
-        TILE,
-        tilePadding(id),
-        'data-dragging:border-dashed data-dragging:border-primary data-dragging:bg-accent data-dragging:opacity-100 data-dragging:*:invisible',
-        className,
-      )}
+      className={cn(TILE, tilePadding(id), DRAGGING_CLASSES, className)}
     >
-      {HOME_CARD_SPANS[id] !== 'full' && (
-        <KanbanItemHandle
-          aria-label={`Move ${label}`}
-          render={<Button variant="ghost" size="icon-xs" />}
-        >
-          <GripVertical className="size-3" />
-        </KanbanItemHandle>
-      )}
+      {HOME_CARD_SPANS[id] !== 'full' && <DragHandle label={`Move ${label}`} />}
       <span className={NAME}>{label}</span>
       <Tooltip>
         <TooltipTrigger
@@ -99,16 +92,7 @@ export function LayoutTileFace({
         className,
       )}
     >
-      {HOME_CARD_SPANS[id] !== 'full' && (
-        <span
-          className={cn(
-            'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground',
-            lifted && 'bg-accent',
-          )}
-        >
-          <GripVertical className="size-3" />
-        </span>
-      )}
+      {HOME_CARD_SPANS[id] !== 'full' && <DragHandleFace lifted={lifted} />}
       <span className={NAME}>{HOME_CARDS[id].label}</span>
       <span className="flex h-6 shrink-0 items-center px-2 text-xs font-bold text-muted-foreground max-sm:w-6 max-sm:justify-center max-sm:px-0">
         <EyeOff className="size-3 sm:hidden" />

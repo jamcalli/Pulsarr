@@ -1,6 +1,7 @@
 import { cn } from 'cn'
 import { GripVertical } from 'lucide-react'
 import type { Ref } from 'react'
+import { DRAGGING_CLASSES } from '@/components/drag-handle'
 import { Button } from '@/components/ui/button'
 import { KanbanColumn, KanbanColumnHandle } from '@/components/ui/kanban'
 import {
@@ -58,7 +59,7 @@ export function LayoutRow({
       className={cn(
         ROW_GRID,
         'border-transparent bg-transparent has-[[data-slot=row-handle]:focus-visible]:bg-accent has-[[data-slot=row-handle]:hover]:bg-accent',
-        'data-dragging:border-dashed data-dragging:border-primary data-dragging:bg-accent data-dragging:opacity-100 data-dragging:*:invisible',
+        DRAGGING_CLASSES,
       )}
     >
       {cards.length === 0 ? (

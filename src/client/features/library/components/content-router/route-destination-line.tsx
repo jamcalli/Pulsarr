@@ -7,7 +7,8 @@ export function RouteDestinationLine({
 }: {
   destination: RouteDestination
 }) {
-  const head = destination.kind === 'skipped' ? 'Not routed.' : destination.name
+  const head =
+    destination.kind === 'skipped' ? destination.head : destination.name
   const separator = destination.kind === 'skipped' ? ' ' : ', '
   return (
     <span className="flex items-start gap-2 text-sm break-words text-muted-foreground">
