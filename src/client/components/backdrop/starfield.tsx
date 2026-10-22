@@ -27,12 +27,10 @@ function generateStars(count: number): Star[] {
 function drawStars(
   canvas: HTMLCanvasElement,
   stars: Star[],
-  { width, height }: ViewportSize,
+  { width, height, dpr }: ViewportSize,
 ) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-
-  const dpr = window.devicePixelRatio || 1
 
   canvas.width = width * dpr
   canvas.height = height * dpr

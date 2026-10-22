@@ -113,8 +113,7 @@ const CRTOverlay = ({
       if (sameViewport(drawn, size)) return
       drawn = size
 
-      const dpr = window.devicePixelRatio || 1
-      const { width, height } = size
+      const { width, height, dpr } = size
 
       canvas.width = width * dpr
       canvas.height = height * dpr

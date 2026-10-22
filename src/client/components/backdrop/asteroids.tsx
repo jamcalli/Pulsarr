@@ -158,7 +158,7 @@ const FallingAsteroids = () => {
       if (sameViewport(drawn, size)) return
       drawn = size
 
-      const dpr = window.devicePixelRatio || 1
+      const { dpr } = size
       canvas.width = size.width * dpr
       canvas.height = size.height * dpr
       canvas.style.width = `${size.width}px`
