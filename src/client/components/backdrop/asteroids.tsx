@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
 
 interface AsteroidShape {
@@ -18,7 +19,7 @@ interface AsteroidState {
 const START_ASTEROID_RADIUS = 125
 const MIN_ASTEROID_RADIUS = 30
 const ASTEROID_VELOCITY = 20
-const NUM_ASTEROIDS = 8
+const NUM_ASTEROIDS = 4
 const FRAME_INTERVAL = 1000 / 30
 const ROTATION_SPEED = 360 / 32
 const STROKE_WIDTH = 4
@@ -113,6 +114,19 @@ function drawAsteroid(
   ctx.restore()
 }
 
+function drawAsteroids(
+  ctx: CanvasRenderingContext2D,
+  shapes: AsteroidShape[],
+  states: AsteroidState[],
+) {
+  const dpr = window.devicePixelRatio || 1
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+  for (let i = 0; i < states.length; i++) {
+    drawAsteroid(ctx, shapes[i], states[i])
+  }
+}
+
 const FallingAsteroids = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const shapesRef = useRef<AsteroidShape[] | null>(null)
@@ -120,6 +134,7 @@ const FallingAsteroids = () => {
   const animationFrameRef = useRef<number>(0)
   const lastUpdateRef = useRef<number>(0)
   const isPageVisible = usePageVisibility()
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
   if (!shapesRef.current) {
     shapesRef.current = Array.from(
@@ -139,15 +154,20 @@ const FallingAsteroids = () => {
       canvas.height = window.innerHeight * dpr
       canvas.style.width = `${window.innerWidth}px`
       canvas.style.height = `${window.innerHeight}px`
+
+      const ctx = canvas.getContext('2d')
+      const shapes = shapesRef.current
+      const states = statesRef.current
+      if (ctx && shapes && states) drawAsteroids(ctx, shapes, states)
     }
 
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
     return () => window.removeEventListener('resize', resizeCanvas)
-  }, [])
+  }, [prefersReducedMotion])
 
   useEffect(() => {
-    if (!isPageVisible) {
+    if (!isPageVisible || prefersReducedMotion) {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
         animationFrameRef.current = 0
@@ -182,12 +202,8 @@ const FallingAsteroids = () => {
       const deltaTime = elapsed / 1000
       lastUpdateRef.current = timestamp
 
-      const dpr = window.devicePixelRatio || 1
       const width = window.innerWidth
       const height = window.innerHeight
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, width, height)
 
       for (let i = 0; i < states.length; i++) {
         const state = states[i]
@@ -203,9 +219,8 @@ const FallingAsteroids = () => {
         state.x = newX
         state.y = newY
         state.angle += shapes[i].rotationSpeed * deltaTime
-
-        drawAsteroid(ctx, shapes[i], state)
       }
+      drawAsteroids(ctx, shapes, states)
 
       animationFrameRef.current = requestAnimationFrame(gameLoop)
     }
@@ -218,7 +233,9 @@ const FallingAsteroids = () => {
         animationFrameRef.current = 0
       }
     }
-  }, [isPageVisible])
+  }, [isPageVisible, prefersReducedMotion])
+
+  if (prefersReducedMotion) return null
 
   return (
     <div className="fixed inset-0 pointer-events-none z-1">

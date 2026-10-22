@@ -23,7 +23,7 @@ interface RootLayoutProps {
 function BackgroundLayer({ backdrop }: { backdrop: boolean }) {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isPageVisible = usePageVisibility()
-  const { asteroidsEnabled, fullscreenEnabled } = useSettings()
+  const { fullscreenEnabled } = useSettings()
   const matches = useMatches()
   const shellless =
     backdrop || matches.some((match) => routeHasBackdrop(match.handle))
@@ -86,7 +86,7 @@ function BackgroundLayer({ backdrop }: { backdrop: boolean }) {
           <div className="fixed top-32 left-1/2 -translate-x-1/2 -translate-y-32 ml-24 z-[-1] pointer-events-none">
             <Pulsar className="w-24 h-24" />
           </div>
-          {asteroidsEnabled && <AsteroidsBackground />}
+          <AsteroidsBackground />
         </ParallaxStarfield>
         <div className="absolute bottom-8 left-0 right-0 z-10">
           <p

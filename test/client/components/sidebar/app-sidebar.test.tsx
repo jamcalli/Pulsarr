@@ -238,7 +238,7 @@ describe('AppSidebar', () => {
     )
   })
 
-  it('keeps the user menu open on display toggles, asteroids only when windowed', async () => {
+  it('keeps the user menu open on display toggles', async () => {
     mockApi()
     const user = userEvent.setup()
     renderSidebar('/')
@@ -248,15 +248,9 @@ describe('AppSidebar', () => {
       await screen.findByRole('menuitem', { name: 'Account settings' }),
     ).toBeInTheDocument()
     expect(screen.getByText('Display')).toBeInTheDocument()
-    expect(
-      screen.getByRole('menuitemcheckbox', { name: 'Asteroids' }),
-    ).toBeChecked()
 
     await user.click(screen.getByRole('menuitem', { name: 'Full screen' }))
 
-    expect(
-      screen.queryByRole('menuitemcheckbox', { name: 'Asteroids' }),
-    ).not.toBeInTheDocument()
     expect(
       screen.getByRole('menuitem', { name: 'Windowed' }),
     ).toBeInTheDocument()

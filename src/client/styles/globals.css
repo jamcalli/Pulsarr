@@ -95,45 +95,8 @@
   --font-weight-medium: 500;
   --font-weight-bold: 700;
 
-  --animate-star-pulse: starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-hard-flicker: hardFlicker 0.16s steps(3) infinite;
-  --animate-soft-flicker: softFlicker 2s infinite;
   --animate-marquee: marquee 15s linear infinite;
   --animate-marquee2: marquee2 15s linear infinite;
-
-  @keyframes starPulse {
-    0%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.3;
-      transform: scale(0.95);
-    }
-  }
-  @keyframes hardFlicker {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.85;
-    }
-    25%,
-    75% {
-      opacity: 0.95;
-    }
-  }
-  @keyframes softFlicker {
-    0%,
-    100% {
-      opacity: 0.1;
-    }
-    50% {
-      opacity: 0.15;
-    }
-  }
 
   @keyframes spin {
     from {
@@ -249,10 +212,7 @@
   --orange: #f6723a;
   --blue: #4a94b5;
   --plex: #e5a00d;
-  /* Static asteroid variables */
-  --static-asteroid-fill: #948d89;
   --static-space: #212121;
-  --static-asteroid-border: #dedede;
 
   --bg: #f2ebdd;
   --card: #fffaf0;
