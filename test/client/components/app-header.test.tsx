@@ -2,7 +2,6 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { AppHeader } from '@/components/app-header'
-import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { HELP_LINKS } from '@/lib/navigation'
@@ -24,9 +23,7 @@ function renderHeader(path: string) {
   )
   render(
     <ThemeProvider>
-      <SettingsProvider>
-        <RouterProvider router={router} />
-      </SettingsProvider>
+      <RouterProvider router={router} />
     </ThemeProvider>,
   )
   return within(screen.getByRole('navigation', { name: 'breadcrumb' }))
