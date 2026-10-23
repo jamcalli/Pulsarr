@@ -1,41 +1,13 @@
-# Website
+# Pulsarr docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+The site at https://jamcalli.github.io/Pulsarr/, built with Fumadocs as a static export.
 
-### Installation
+From the repository root:
 
-```
-$ yarn
-```
+- `bun run docs:start` runs the dev server on port 3001.
+- `bun run docs:build` builds the site into `docs/out/`.
+- `bun run docs:sync` copies shared files from `src/client`.
 
-### Local Development
+Files listed in `scripts/sync-docs-shared.ts` are copies. Edit them in `src/client`, then run `docs:sync`. CI fails if they drift.
 
-```
-$ yarn start
-```
-
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-### Build
-
-```
-$ yarn build
-```
-
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
-
-### Deployment
-
-Using SSH:
-
-```
-$ USE_SSH=true yarn deploy
-```
-
-Not using SSH:
-
-```
-$ GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+`content/docs/api/` is generated from `public/openapi.json` at build time and is not committed.

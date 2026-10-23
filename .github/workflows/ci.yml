@@ -37,12 +37,22 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Biome
         run: biome ci .
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+      - name: Install docs dependencies
+        run: npm ci --prefix docs
+      - name: Docs Shared Files Check
+        run: bun run docs:sync --check
       - name: TypeScript Check
         run: bun run typecheck
       - name: OpenAPI Contract Drift Check
         run: |
           bun run openapi:dev
-          git diff --exit-code docs/static/openapi.json src/client/types/api.d.ts || {
+          git diff --exit-code docs/public/openapi.json src/client/types/api.d.ts || {
             echo "OpenAPI spec or generated client types are stale. Run 'bun run openapi:dev' and commit the results."
             exit 1
           }

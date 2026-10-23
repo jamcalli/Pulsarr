@@ -43,16 +43,6 @@
   },
   "overrides": [
     {
-      "includes": ["**/docs/src/**/*.tsx", "**/docs/src/**/*.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "useImportType": "off"
-          }
-        }
-      }
-    },
-    {
       "includes": ["**/.github/renovate.json"],
       "formatter": {
         "enabled": false

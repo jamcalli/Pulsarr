@@ -191,6 +191,17 @@
       ]
     },
     {
+      "description": "Group the Fumadocs packages of the docs site, since core and UI share a version",
+      "groupName": "Fumadocs",
+      "matchPackageNames": [
+        "fumadocs-core",
+        "fumadocs-mdx",
+        "fumadocs-openapi",
+        "@fumadocs/base-ui",
+        "@fumadocs/cli"
+      ]
+    },
+    {
       "description": "Group the pino logger and its transports",
       "groupName": "Logging",
       "matchPackageNames": [

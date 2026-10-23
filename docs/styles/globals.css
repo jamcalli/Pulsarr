@@ -1,0 +1,366 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant w600 (@media (max-width: 600px));
+@custom-variant w400 (@media (max-width: 400px));
+
+@theme {
+  --breakpoint-xs: 490px;
+
+  --font-sans: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--text);
+  --color-secondary: var(--inset);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--destructive);
+  --color-destructive-text: var(--destructive-text);
+  --color-destructive-foreground: var(--primary-foreground);
+  --color-input: var(--border);
+  --color-gold: var(--gold);
+  --color-backdrop-title: var(--backdrop-title);
+  --color-static-space: var(--static-space);
+  --color-overlay: var(--overlay);
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-foreground: var(--text);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-ring-offset: var(--ring-offset);
+  --color-orange: var(--orange);
+  --color-blue: var(--blue);
+  --color-plex: var(--plex);
+  --color-inset: var(--inset);
+  --color-divider: var(--divider);
+  --color-ok: var(--ok);
+  --color-info: var(--info);
+
+  --color-status-pending: var(--status-pending);
+  --color-status-approved: var(--status-approved);
+  --color-status-available: var(--status-available);
+  --color-status-requested: var(--status-requested);
+  --color-status-rejected: var(--status-rejected);
+  --color-status-expired: var(--status-expired);
+  --color-status-auto-approved: var(--status-auto-approved);
+  --color-status-failed: var(--status-failed);
+
+  --color-chart-movie: var(--chart-movie);
+  --color-chart-show: var(--chart-show);
+  --color-chart-season: var(--chart-season);
+  --color-chart-discord: var(--chart-discord);
+  --color-chart-plex-mobile: var(--chart-plex-mobile);
+  --color-chart-apprise: var(--chart-apprise);
+  --color-chart-native-webhook: var(--chart-native-webhook);
+  --color-chart-watchlist: var(--chart-watchlist);
+  --color-chart-approval: var(--chart-approval);
+  --color-chart-account: var(--chart-account);
+  --color-chart-requested: var(--chart-requested);
+  --color-chart-grabbed: var(--chart-grabbed);
+  --color-chart-notified: var(--chart-notified);
+  --color-chart-single: var(--chart-single);
+  --color-chart-range: var(--chart-range);
+  --color-chart-error: var(--chart-error);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-track: var(--chart-track);
+  --color-chart-axis: var(--chart-axis);
+  --color-chart-ink: var(--chart-ink);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+
+  --radius-base: 5px;
+
+  --shadow-shadow: var(--shadow);
+
+  --spacing-boxShadowX: 4px;
+  --spacing-boxShadowY: 4px;
+  --spacing-reverseBoxShadowX: -4px;
+  --spacing-reverseBoxShadowY: -4px;
+
+  --font-weight-base: 500;
+  --font-weight-heading: 700;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  --animate-marquee: marquee 15s linear infinite;
+  --animate-marquee2: marquee2 15s linear infinite;
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes marquee2 {
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(0%);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@utility prose-tokens {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-lead: var(--color-muted-foreground);
+  --tw-prose-links: var(--color-foreground);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-counters: var(--color-muted-foreground);
+  --tw-prose-bullets: var(--color-muted-foreground);
+  --tw-prose-hr: var(--color-divider);
+  --tw-prose-quotes: var(--color-muted-foreground);
+  --tw-prose-quote-borders: var(--color-divider);
+  --tw-prose-captions: var(--color-muted-foreground);
+  --tw-prose-kbd: var(--color-foreground);
+  --tw-prose-code: var(--color-foreground);
+  --tw-prose-pre-code: var(--color-foreground);
+  --tw-prose-pre-bg: var(--color-accent);
+  --tw-prose-th-borders: var(--color-divider);
+  --tw-prose-td-borders: var(--color-divider);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role^="menuitem"]:not([aria-disabled="true"]):not([data-disabled]),
+  label[for] {
+    cursor: pointer;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-divider) transparent;
+  }
+
+  *:hover {
+    scrollbar-color: var(--color-muted-foreground) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    background-color: var(--color-divider);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted-foreground);
+  }
+}
+
+:root {
+  --primary: #48a9a6;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --backdrop-title: #c1666b;
+  --destructive: #d4777b;
+  --destructive-text: #b23a40;
+  --gold: #d4b483;
+  --orange: #f6723a;
+  --blue: #4a94b5;
+  --plex: #e5a00d;
+  --static-space: #212121;
+
+  --bg: #f2ebdd;
+  --card: #fffaf0;
+  --surface: #f7f0e2;
+  --inset: #f2ebdd;
+  --divider: #ddd3c0;
+  --muted-foreground: #5a5750;
+  --accent: #ebe2d1;
+  --ok: #4aae70;
+  --info: #7fb8d6;
+  --border: #1a1a1a;
+  --text: #1a1a1a;
+  --primary-foreground: #000;
+  --ring: #000;
+  --ring-offset: #e4dfda;
+
+  --border-radius: 5px;
+  --box-shadow-x: 4px;
+  --box-shadow-y: 4px;
+  --reverse-box-shadow-x: -4px;
+  --reverse-box-shadow-y: -4px;
+  --base-font-weight: 500;
+  --heading-font-weight: 700;
+
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+
+  --chart-movie: #3787b5;
+  --chart-show: #ca7e58;
+  --chart-season: #9a502f;
+  --chart-discord: #7d6be0;
+  --chart-plex-mobile: #e5a00d;
+  --chart-apprise: #65c5a4;
+  --chart-native-webhook: #9e4f74;
+  --chart-watchlist: #bbb3a3;
+  --chart-approval: #9b927f;
+  --chart-account: #5f5a50;
+  --chart-requested: #a3b9a7;
+  --chart-grabbed: #72ae89;
+  --chart-notified: #3f8a62;
+  --chart-single: #bf834a;
+  --chart-range: var(--destructive);
+  --chart-error: var(--destructive);
+  --chart-grid: var(--divider);
+  --chart-track: var(--inset);
+  --chart-axis: var(--muted-foreground);
+  --chart-ink: var(--primary-foreground);
+  --chart-1: #56a5d4;
+  --chart-2: #dea63e;
+  --chart-3: #69c6a2;
+  --chart-4: #e5806a;
+
+  --color-movie: #1a5999;
+  --color-show: #39b978;
+  --color-count: #f47b30;
+
+  --status-pending: var(--gold);
+  --status-requested: var(--info);
+  --status-available: var(--ok);
+  --status-failed: var(--destructive);
+  --status-approved: var(--status-available);
+  --status-auto-approved: var(--status-available);
+  --status-rejected: var(--status-failed);
+  --status-expired: var(--muted-foreground);
+}
+
+.dark {
+  --destructive-text: var(--destructive);
+  --bg: #121317;
+  --card: #26282f;
+  --surface: #2e3038;
+  --inset: #1d1e23;
+  --divider: #3a3d46;
+  --muted-foreground: #a8a8a8;
+  --accent: #33363f;
+  --ok: #66cf8f;
+  --info: #7fb8d6;
+  --border: #0b0b0d;
+  --text: #ececec;
+  --primary-foreground: #000;
+  --ring: #e4dfda;
+  --ring-offset: #000;
+
+  --chart-show: #c97c57;
+  --chart-season: #965031;
+  --chart-plex-mobile: #be840d;
+  --chart-apprise: #43a586;
+  --chart-watchlist: #ddd5c4;
+  --chart-requested: #d5ecd9;
+  --chart-grabbed: #8fcca5;
+  --chart-1: #4c9bca;
+  --chart-2: #bd870e;
+  --chart-3: #48a684;
+  --chart-4: #d5725d;
+
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+}
+
+.animations-paused,
+.animations-paused *,
+.animations-paused ::before,
+.animations-paused ::after {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
+}
+
+html {
+  color-scheme: light;
+  overscroll-behavior-y: none;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  touch-action: pan-y pinch-zoom;
+}
+
+#app {
+  isolation: isolate;
+}
+
+/* Font heading utility - only applies to direct heading elements */
+@layer utilities {
+  .font-heading > h1,
+  .font-heading > h2,
+  .font-heading > h3,
+  .font-heading > h4,
+  .font-heading > h5,
+  .font-heading > h6,
+  h1.font-heading,
+  h2.font-heading,
+  h3.font-heading,
+  h4.font-heading,
+  h5.font-heading,
+  h6.font-heading {
+    font-family: var(--font-heading);
+    font-weight: 700;
+  }
+}
