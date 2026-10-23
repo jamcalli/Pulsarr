@@ -47,75 +47,30 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install docs dependencies
-        run: |
-          cd docs
-          npm ci
+        run: npm ci --prefix docs
 
       - name: Generate OpenAPI spec
         run: bun run openapi:generate
 
-      - name: Clean old API docs
-        run: npm --prefix docs run docusaurus clean-api-docs pulsarr
-        env:
-          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
-          ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
-          ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
-
-      - name: Generate fresh API docs
-        run: npm --prefix docs run docusaurus gen-api-docs pulsarr
-        env:
-          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
-          ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
-          ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
-
-      - name: Format generated files
-        run: bun run fix
-
-      - name: Commit generated API docs
-        env:
-          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add docs/
-          if git diff --staged --quiet; then
-            echo "No changes to API docs"
-          else
-            git commit -m "chore(docs): regenerate OpenAPI docs [skip ci]"
-            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-            git push
-          fi
+      - name: Check docs shared files
+        run: bun run docs:sync --check
 
       - name: Build documentation
-        run: |
-          cd docs
-          npm run build
-        env:
-          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
-          ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
-          ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
+        run: npm --prefix docs run build
 
       - name: Deploy to GitHub Pages
-        run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          cd docs
-          npm run deploy
         env:
-          GIT_USER: ${{ github.actor }}
-          GIT_PASS: ${{ secrets.GITHUB_TOKEN }}
-          USE_SSH: false
-          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
-          ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
-          ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
-
-      - name: Trigger Algolia reindex
-        env:
-          ALGOLIA_CRAWLER_ID: ${{ secrets.ALGOLIA_CRAWLER_ID }}
-          ALGOLIA_CRAWLER_USER_ID: ${{ secrets.ALGOLIA_CRAWLER_USER_ID }}
-          ALGOLIA_CRAWLER_API_KEY: ${{ secrets.ALGOLIA_CRAWLER_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -X POST "https://crawler.algolia.com/api/1/crawlers/${ALGOLIA_CRAWLER_ID}/reindex" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Basic $(echo -n "${ALGOLIA_CRAWLER_USER_ID}:${ALGOLIA_CRAWLER_API_KEY}" | base64 -w 0)"
-        continue-on-error: true
+          git clone --depth 1 --branch gh-pages "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" gh-pages
+          rsync -a --delete --exclude .git docs/out/ gh-pages/
+          cd gh-pages
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "Deploy website - based on ${GITHUB_SHA}"
+            git push
+          fi

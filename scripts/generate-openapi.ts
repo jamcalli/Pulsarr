@@ -34,7 +34,7 @@ if (!app.swagger) {
 }
 
 const schema = JSON.stringify(app.swagger(), undefined, 2)
-const outputPath = resolve(process.cwd(), 'docs/static/openapi.json')
+const outputPath = resolve(process.cwd(), 'docs/public/openapi.json')
 
 await writeFile(outputPath, schema, { flag: 'w+' })
 console.log(`OpenAPI spec generated: ${outputPath}`)
