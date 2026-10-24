@@ -71,7 +71,10 @@ export class StatusService {
       )
       let updateCount = 0
       if (mainUpdates.length > 0) {
-        updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
+        updateCount = await this.dbService.bulkUpdateWatchlistItems(
+          mainUpdates,
+          { reconcileAvailability: true },
+        )
       }
 
       // Process junction updates for Sonarr items
@@ -121,7 +124,10 @@ export class StatusService {
       )
       let updateCount = 0
       if (mainUpdates.length > 0) {
-        updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
+        updateCount = await this.dbService.bulkUpdateWatchlistItems(
+          mainUpdates,
+          { reconcileAvailability: true },
+        )
       }
 
       // Process junction updates for Radarr items

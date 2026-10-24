@@ -90,6 +90,24 @@ function findMatch<T extends SonarrItem | RadarrItem>(
 }
 
 /**
+ * Whether any *arr item matching the GUIDs already has files (grabbed).
+ * The same title can exist on several instances; one instance without files
+ * must not reset a title that another instance has downloaded.
+ */
+function hasGrabbedMatch<T extends SonarrItem | RadarrItem>(
+  items: T[],
+  itemGuids: string[] | string | undefined,
+): boolean {
+  if (!itemGuids) return false
+  const guids = parseGuids(itemGuids)
+  return items.some(
+    (item) =>
+      item.status === 'grabbed' &&
+      item.guids.some((itemGuid) => guids.includes(itemGuid)),
+  )
+}
+
+/**
  * Process status updates for watchlist items based on *arr content.
  * Returns an array of updates to be applied via bulkUpdateWatchlistItems.
  */
@@ -140,7 +158,18 @@ export async function processStatusUpdates<
     // Check status change with notified protection
     if (item.status !== contentMatch.status) {
       if (item.status !== 'notified') {
-        update.status = contentMatch.status
+        if (
+          item.status === 'grabbed' &&
+          contentMatch.status === 'requested' &&
+          hasGrabbedMatch(arrItems, item.guids)
+        ) {
+          // Another instance still has files: keep the grabbed status
+          logger.debug(
+            `Keeping 'grabbed' for ${contentType} ${item.title} [${item.key}]: another instance still reports files`,
+          )
+        } else {
+          update.status = contentMatch.status
+        }
       } else {
         // If item is notified but *arr shows it should be grabbed,
         // backfill the missing grabbed status in history
