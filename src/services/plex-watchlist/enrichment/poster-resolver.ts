@@ -1,5 +1,6 @@
 import type { Friend, Item as WatchlistItem } from '@root/types/plex.types.js'
 import type { TmdbService } from '@services/tmdb.service.js'
+import { toContentType } from '@utils/content-type.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -54,7 +55,7 @@ export async function resolveTmdbPosters(
         const [first] = group
         const posterPath = await tmdb.getPosterPath(
           first.guids,
-          first.type.toLowerCase() === 'show' ? 'show' : 'movie',
+          toContentType(first.type),
         )
 
         if (!posterPath) {
