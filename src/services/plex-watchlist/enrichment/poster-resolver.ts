@@ -54,7 +54,7 @@ export async function resolveTmdbPosters(
         const [first] = group
         const posterPath = await tmdb.getPosterPath(
           first.guids,
-          first.type === 'show' ? 'show' : 'movie',
+          first.type.toLowerCase() === 'show' ? 'show' : 'movie',
         )
 
         if (!posterPath) {
