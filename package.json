@@ -113,7 +113,7 @@
   },
   "overrides": {
     "colorette": "^2.0.19",
-    "undici": "^6.27.0"
+    "undici": "^6.29.1"
   },
   "devDependencies": {
     "@base-ui/react": "^1.8.0",
