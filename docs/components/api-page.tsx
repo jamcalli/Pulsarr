@@ -1,4 +1,4 @@
-'use client';
-import { createOpenAPIPage } from 'fumadocs-openapi/ui';
+'use client'
+import { createOpenAPIPage } from 'fumadocs-openapi/ui'
 
-export const OpenAPIPage = createOpenAPIPage();
+export const OpenAPIPage = createOpenAPIPage()

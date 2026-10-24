@@ -1,0 +1,12 @@
+{
+  "title": "Notifications",
+  "pages": [
+    "index",
+    "discord",
+    "apprise",
+    "webhooks",
+    "plex-mobile",
+    "public-content",
+    "delivery"
+  ]
+}

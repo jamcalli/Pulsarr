@@ -1,0 +1,78 @@
+---
+title: Apprise
+description: Send notifications to Telegram, Slack, email and many other services through an Apprise server.
+---
+
+[Apprise](https://github.com/caronc/apprise) sends notifications to many services, such as Telegram, Slack and email. Each destination is an Apprise URL in that service's own format. Pulsarr sends each notification to your Apprise API server along with the URLs it should go to, and Apprise delivers it. Users can get their own notifications through it, and admins can get system notifications.
+
+## Run Apprise
+
+Run the Apprise API container in the same Compose file as Pulsarr, so Pulsarr can reach it by name:
+
+```yaml
+services:
+  apprise:
+    image: caronc/apprise:latest
+    container_name: apprise
+    ports:
+      - "8000:8000"
+    environment:
+      APPRISE_STATEFUL_MODE: simple
+      APPRISE_WORKER_COUNT: "1"
+      APPRISE_DEFAULT_FORMAT: "text"
+      TZ: America/Toronto
+    volumes:
+      - ./config:/config
+      - ./plugin:/plugin
+      - ./attach:/attach
+    restart: unless-stopped
+
+  pulsarr:
+    image: lakker/pulsarr:latest
+    container_name: pulsarr
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - apprise
+```
+
+Then point Pulsarr at it in `.env` and restart Pulsarr:
+
+```bash
+appriseUrl=http://apprise:8000
+```
+
+If Apprise runs somewhere else, use its full address instead, for example `http://192.168.1.100:8000`. Pulsarr reads `appriseUrl` only at startup. **Notifications** > **Apprise** shows the address in use and whether Pulsarr can reach it.
+
+## System notifications
+
+**Apprise URLs** under **System notifications** is where admin notifications go. Enter an Apprise URL, for example `tgram://bot_token/chat_id`, and select **Add URL** for each extra one. With an [email sender](#email-addresses) set, a plain email address works too. The [Apprise documentation](https://appriseit.com/) lists the URL format for every service.
+
+**Send test** next to a URL sends a test notification to it, and **Test saved URLs** tests the URLs already saved.
+
+## Users
+
+A user's own Apprise URL goes on their page under [Plex users](/users/plex-users), or they can set it with `/notifications` in Discord.
+
+## Email addresses
+
+**Email sender** takes a `mailtos://` URL for an account that can send mail, for example `mailtos://user:app_password@gmail.com`. With it set, any Apprise field in Pulsarr also accepts a plain email address, and Pulsarr sends to it through that account. Gmail needs an app password. The email sender doesn't work with [saved Apprise configs](#saved-apprise-configs).
+
+## Saved Apprise configs
+
+Pulsarr uses Apprise's stateless notify endpoint, so every URL you enter in Pulsarr is sent along with each notification, and nothing has to be saved in Apprise.
+
+If you already keep your services in a config saved in Apprise, you can point Pulsarr at it instead. Saved configs need Apprise's stateful mode, which `APPRISE_STATEFUL_MODE=simple` in the example above turns on. Enter `apprise://apprise:8000/<config-key>` wherever Pulsarr takes an Apprise URL, or `apprises://` when Apprise is behind HTTPS. Add `?tags=` to send to only part of the config.
+
+Two things work differently with a saved config:
+
+- The **Email sender** doesn't work with saved configs. Put the email service in the saved config itself.
+- Posters and other images only come through with Apprise API 1.5.0 or later.

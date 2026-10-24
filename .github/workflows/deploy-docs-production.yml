@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - develop
     paths:
       - 'docs/**'
       - 'src/**'  # OpenAPI generation depends on source files
@@ -17,9 +18,10 @@ permissions:
   pages: write
   id-token: write
 
+# Both branches push to gh-pages, so deploys queue instead of cancelling each other.
 concurrency:
   group: docs-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -43,6 +45,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: docs/package-lock.json
 
+      - name: Pick the deploy target
+        id: target
+        run: |
+          if [ "$GITHUB_REF_NAME" = "master" ]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=next" >> "$GITHUB_OUTPUT"
+            echo "NEXT_PUBLIC_DOCS_BASE_PATH=/Pulsarr/next" >> "$GITHUB_ENV"
+            echo "NEXT_PUBLIC_DOCS_PREVIEW=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Install root dependencies
         run: bun install --frozen-lockfile
 
@@ -55,15 +68,29 @@ jobs:
       - name: Check docs shared files
         run: bun run docs:sync --check
 
+      - name: Cache docs Next.js build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: docs/.next/cache
+          key: docs-next-${{ runner.os }}-${{ hashFiles('docs/package-lock.json') }}-${{ hashFiles('docs/app/**', 'docs/components/**', 'docs/lib/**', 'docs/content/**', 'docs/styles/**', 'docs/*.ts') }}
+          restore-keys: |
+            docs-next-${{ runner.os }}-${{ hashFiles('docs/package-lock.json') }}-
+
       - name: Build documentation
         run: npm --prefix docs run build
 
       - name: Deploy to GitHub Pages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_DIR: ${{ steps.target.outputs.dir }}
         run: |
           git clone --depth 1 --branch gh-pages "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" gh-pages
-          rsync -a --delete --exclude .git docs/out/ gh-pages/
+          if [ "$TARGET_DIR" = "." ]; then
+            rsync -a --delete --exclude .git --exclude next/ docs/out/ gh-pages/
+          else
+            mkdir -p "gh-pages/$TARGET_DIR"
+            rsync -a --delete docs/out/ "gh-pages/$TARGET_DIR/"
+          fi
           cd gh-pages
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
@@ -71,6 +98,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to deploy"
           else
-            git commit -m "Deploy website - based on ${GITHUB_SHA}"
+            git commit -m "Deploy website from ${GITHUB_REF_NAME} at ${GITHUB_SHA}"
             git push
           fi

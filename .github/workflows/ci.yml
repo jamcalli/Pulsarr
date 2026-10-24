@@ -60,3 +60,12 @@ jobs:
         run: bun run test
       - name: Build
         run: bun run build
+      - name: Cache docs Next.js build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: docs/.next/cache
+          key: docs-next-${{ runner.os }}-${{ hashFiles('docs/package-lock.json') }}-${{ hashFiles('docs/app/**', 'docs/components/**', 'docs/lib/**', 'docs/content/**', 'docs/styles/**', 'docs/*.ts') }}
+          restore-keys: |
+            docs-next-${{ runner.os }}-${{ hashFiles('docs/package-lock.json') }}-
+      - name: Build docs
+        run: npm --prefix docs run build
