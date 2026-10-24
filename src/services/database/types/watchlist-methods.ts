@@ -86,6 +86,7 @@ declare module '@services/database.service.js' {
     /**
      * Bulk updates multiple watchlist items
      * @param updates - Array of watchlist item updates with user ID and key
+     * @param options - Optional flags. `reconcileAvailability` additionally permits a `grabbed` → `requested` reset; only the status reconciler should set it
      * @returns Promise resolving to the number of items updated
      */
     bulkUpdateWatchlistItems(
@@ -102,6 +103,7 @@ declare module '@services/database.service.js' {
         sonarr_series_id?: number
         radarr_instance_id?: number | null
       }>,
+      options?: { reconcileAvailability?: boolean },
     ): Promise<number>
 
     /**

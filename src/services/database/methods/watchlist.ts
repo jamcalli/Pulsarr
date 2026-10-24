@@ -97,6 +97,13 @@ const STATUS_RANK: Readonly<Record<WatchlistStatus, number>> = Object.freeze({
 })
 
 /**
+ * Junction statuses that may be rewritten to `requested` when an item's
+ * availability is reset. `notified` is deliberately excluded.
+ */
+const RESET_AVAILABILITY_JUNCTION_STATUSES: readonly WatchlistStatus[] =
+  Object.freeze(['pending', 'requested', 'grabbed'])
+
+/**
  * Returns all watchlist statuses whose rank is less-than-or-equal to the rank of `target`.
  *
  * If `target` is unknown, it is treated as rank 0 and the result will only include statuses with rank ≤ 0 (typically none).
@@ -758,12 +765,14 @@ export async function getWatchlistItemsByKeys(
 /**
  * Bulk-updates multiple watchlist items and their Radarr/Sonarr associations in a single transactional operation.
  *
- * Processes the provided updates in chunks (100 per batch) inside a transaction. Status changes are applied monotonically (regressions are ignored) via the status-rank rules; status history rows are recorded only when the main watchlist row actually progresses. Radarr/Sonarr junction handling:
+ * Processes the provided updates in chunks (100 per batch) inside a transaction. Status changes are applied monotonically (regressions are ignored) via the status-rank rules, unless `options.reconcileAvailability` permits the single `grabbed` → `requested` reset; status history rows are recorded only when the main watchlist row actually changes status. Radarr/Sonarr junction handling:
  * - A numeric instance ID creates or updates an association (new association becomes primary and others are demoted).
  * - A null instance ID deletes all associations for that service on the item.
  * - Omitting an instance field leaves junctions unchanged.
  *
  * @param updates - Array of update objects (each must include userId and key). Supported fields: added, status, series_status, movie_status, last_notified_at, sonarr_instance_id, radarr_instance_id. Status updates are applied only when they represent allowed progression; last_notified_at is propagated to new/updated junction rows.
+ * @param options - Optional behavior flags.
+ * @param options.reconcileAvailability - When true, a `requested` update for an item currently `grabbed` is applied instead of being ignored as a regression, so a caller holding authoritative *arr state can report that previously grabbed files are gone. Only the main row's `grabbed` status and the junction rows' `pending`/`requested`/`grabbed` statuses are rewritten; `notified` is never downgraded and every other regression is still ignored. Intended for the status reconciler only; webhook-driven callers must leave it unset.
  * @returns The number of watchlist items that were modified (counts an item once even if both main and junction changes occurred)
  */
 export async function bulkUpdateWatchlistItems(
@@ -780,6 +789,7 @@ export async function bulkUpdateWatchlistItems(
     sonarr_series_id?: number
     radarr_instance_id?: number | null
   }>,
+  options: { reconcileAvailability?: boolean } = {},
 ): Promise<number> {
   let updatedCount = 0
 
@@ -798,13 +808,26 @@ export async function bulkUpdateWatchlistItems(
 
         if (!currentItem) continue
 
+        // An *arr snapshot can report that previously grabbed files no longer
+        // exist. Only callers that opt in may reset grabbed -> requested.
+        const resetAvailability =
+          options.reconcileAvailability === true &&
+          currentItem.status === 'grabbed' &&
+          update.status === 'requested'
+
         // Process status update with regression prevention
-        const statusResult = processStatusUpdate(
-          currentItem.status,
-          update.status,
-          `bulk update item ${update.key}`,
-          this.log,
-        )
+        const statusResult = resetAvailability
+          ? {
+              effectiveStatus: 'requested' as const,
+              shouldUpdateStatus: true,
+              shouldWriteHistory: true,
+            }
+          : processStatusUpdate(
+              currentItem.status,
+              update.status,
+              `bulk update item ${update.key}`,
+              this.log,
+            )
 
         const effectiveStatus = statusResult.effectiveStatus
 
@@ -836,7 +859,12 @@ export async function bulkUpdateWatchlistItems(
             key: update.key,
           })
           if (statusResult.shouldUpdateStatus) {
-            builder.whereIn('status', allowedStatusesUpTo(effectiveStatus))
+            builder.whereIn(
+              'status',
+              resetAvailability
+                ? ['grabbed']
+                : allowedStatusesUpTo(effectiveStatus),
+            )
           }
           const updated = await builder.update({
             ...mainTableFields,
@@ -893,7 +921,12 @@ export async function bulkUpdateWatchlistItems(
                 radarr_instance_id: radarrInstanceId,
               })
               if (statusResult.shouldUpdateStatus) {
-                rb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
+                rb.whereIn(
+                  'status',
+                  resetAvailability
+                    ? RESET_AVAILABILITY_JUNCTION_STATUSES
+                    : allowedStatusesUpTo(effectiveStatus),
+                )
               }
               const affected = await rb.update({
                 ...(statusResult.shouldUpdateStatus
@@ -966,7 +999,12 @@ export async function bulkUpdateWatchlistItems(
                 sonarr_instance_id: sonarrInstanceId,
               })
               if (statusResult.shouldUpdateStatus) {
-                sb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
+                sb.whereIn(
+                  'status',
+                  resetAvailability
+                    ? RESET_AVAILABILITY_JUNCTION_STATUSES
+                    : allowedStatusesUpTo(effectiveStatus),
+                )
               }
               const affected = await sb.update({
                 ...(statusResult.shouldUpdateStatus
