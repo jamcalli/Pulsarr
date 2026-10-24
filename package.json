@@ -33,7 +33,7 @@
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "typecheck:migrations": "tsc --noEmit -p migrations/tsconfig.json",
     "typecheck:packages": "tsc --noEmit -p packages/better-sqlite3-bun/tsconfig.json",
-    "typecheck:docs": "tsc --noEmit -p docs/tsconfig.json",
+    "typecheck:docs": "cd docs && npx --no-install next typegen && tsc --noEmit -p tsconfig.json",
     "migrate": "bun run --bun migrations/migrate.ts",
     "migrate:make": "knex migrate:make -x ts",
     "migrate:rollback": "bun run --bun migrations/rollback.ts",
