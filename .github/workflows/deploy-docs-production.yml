@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - develop
+      - feat/docs-fumadocs
     paths:
       - 'docs/**'
       - 'src/**'  # OpenAPI generation depends on source files
