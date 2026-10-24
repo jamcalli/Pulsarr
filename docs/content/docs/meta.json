@@ -1,3 +1,15 @@
 {
-  "pages": ["index", "...", "api"]
+  "pages": [
+    "index",
+    "how-it-works",
+    "installation",
+    "home",
+    "requests",
+    "library",
+    "users",
+    "notifications",
+    "system",
+    "...",
+    "api"
+  ]
 }

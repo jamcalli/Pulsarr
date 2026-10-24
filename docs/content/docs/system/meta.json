@@ -1,0 +1,4 @@
+{
+  "title": "System",
+  "pages": ["index", "plex-connection", "api-keys", "logs", "account"]
+}

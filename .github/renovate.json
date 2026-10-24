@@ -2,7 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "security:openssf-scorecard"
+    "security:openssf-scorecard",
+    "customManagers:biomeVersions"
   ],
   "dockerfile": {
     "managerFilePatterns": [
@@ -33,19 +34,6 @@
       ],
       "depNameTemplate": "tsx",
       "datasourceTemplate": "npm"
-    },
-    {
-      "customType": "regex",
-      "description": "Update Biome schema version in biome.json to match CLI",
-      "managerFilePatterns": [
-        "/^biome\\.json$/"
-      ],
-      "matchStrings": [
-        "biomejs\\.dev/schemas/(?<currentValue>[\\d.]+)/schema\\.json"
-      ],
-      "depNameTemplate": "@biomejs/biome",
-      "depTypeTemplate": "devDependencies",
-      "datasourceTemplate": "npm"
     }
   ],
   "baseBranchPatterns": [
@@ -56,7 +44,7 @@
     "before 6am on monday",
     "before 6am on thursday"
   ],
-  "prConcurrentLimit": 5,
+  "prConcurrentLimit": 15,
   "prHourlyLimit": 10,
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
@@ -137,11 +125,11 @@
       "groupName": "Build tools"
     },
     {
-      "description": "Bump Biome range so package.json and biome.json stay in sync",
+      "description": "Pin Biome to an exact version so lock file maintenance can't move it past the biome.json schema",
       "matchPackageNames": [
         "@biomejs/biome"
       ],
-      "rangeStrategy": "bump"
+      "rangeStrategy": "pin"
     },
     {
       "description": "Use widen strategy for peer dependencies",
@@ -389,29 +377,10 @@
       "allowedVersions": "< 6.0.0"
     },
     {
-      "description": "Ignore regular updates for docs dependencies but keep security alerts",
-      "matchFileNames": [
-        "docs/**"
-      ],
-      "enabled": false
-    },
-    {
-      "description": "Enable vulnerability alerts for docs dependencies",
-      "matchFileNames": [
-        "docs/**"
-      ],
-      "vulnerabilityAlerts": {
-        "enabled": true
-      }
-    },
-    {
       "description": "High priority for vulnerability alerts",
-      "matchDatasources": [
-        "*"
+      "matchJsonata": [
+        "isVulnerabilityAlert = true"
       ],
-      "vulnerabilityAlerts": {
-        "enabled": true
-      },
       "prPriority": 20
     },
     {
@@ -666,6 +635,48 @@
         "!/^@tanstack//",
         "!node"
       ]
+    },
+    {
+      "description": "Group Next.js for the docs site",
+      "matchFileNames": [
+        "docs/**"
+      ],
+      "groupName": "Next.js",
+      "matchPackageNames": [
+        "next"
+      ]
+    },
+    {
+      "description": "Group the docs site's remaining minor and patch updates into one PR",
+      "matchFileNames": [
+        "docs/**"
+      ],
+      "groupName": "Docs site dependencies",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "/.*/",
+        "!next",
+        "!fumadocs-core",
+        "!fumadocs-mdx",
+        "!fumadocs-openapi",
+        "!@fumadocs/base-ui",
+        "!@fumadocs/cli",
+        "!react",
+        "!react-dom",
+        "!/^@types\\/react/"
+      ]
+    },
+    {
+      "description": "Keep docs PRs apart from app PRs and review them by hand, since CI typechecks the docs site but never builds it",
+      "matchFileNames": [
+        "docs/**"
+      ],
+      "additionalBranchPrefix": "docs-",
+      "semanticCommitScope": "docs-deps",
+      "automerge": false
     }
   ],
   "vulnerabilityAlerts": {

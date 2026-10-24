@@ -1,0 +1,20 @@
+---
+title: Plex mobile
+description: Push a notification to users' Plex app when something on their watchlist is ready.
+---
+
+Pulsarr can push a notification straight to a user's Plex app on iOS or Android when something on their watchlist becomes available. Tapping it opens the title in Plex. It needs Plex Pass on your server.
+
+## Turn it on
+
+Under **Notifications** > **Plex mobile**, turn on **Send to Plex mobile apps**. Then turn on **Plex mobile** for each user on their page under [Plex users](/users/plex-users), or for several at once with **Edit settings**.
+
+**Send a test push** pushes to one user's Plex app to check it works.
+
+If a title isn't in Plex yet when it's ready, Pulsarr keeps trying for up to 10 minutes.
+
+## In the Plex app
+
+Users need push notifications turned on in the Plex app, under **Settings** > **Notifications**.
+
+Plex can also notify about every new item in a library, under **New Content Added to Library**. With that on, users get two notifications for the same title. Unchecking all libraries there leaves only Pulsarr's, which only cover what's on their watchlist.

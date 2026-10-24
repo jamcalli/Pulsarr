@@ -37,13 +37,21 @@ html {
 }
 
 html > body[data-scroll-locked] {
+  /* biome-ignore lint/complexity/noImportantStyles: the scroll lock injects its own !important margin, which only !important overrides */
   margin-right: 0px !important;
+  /* biome-ignore lint/complexity/noImportantStyles: the scroll lock injects this variable with !important too */
   --removed-body-scroll-bar-size: 0px !important;
 }
 
 .prose {
   @apply prose-tokens;
   max-width: none;
+}
+
+/* The typography plugin wraps inline code in literal backticks. */
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after {
+  content: none;
 }
 
 .prose img {

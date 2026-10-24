@@ -1,0 +1,59 @@
+---
+title: Content router
+description: Send each request to the right Sonarr or Radarr instance based on what it is and who asked for it.
+---
+
+Without routes, every request goes to the default Sonarr or Radarr instance. Routes send matching requests somewhere else, with their own settings, or skip them. Manage them under **Library** > **Content router**, which has a **Movies** tab for Radarr routes and a **TV shows** tab for Sonarr routes.
+
+![Four movie routes: a Skip route first, then three ranked routes](/img/library/content-router.webp)
+
+Each route shows its conditions and where matching requests go. The switch on a route turns it on or off without deleting it.
+
+## Add a route
+
+Select **Add route**, or the arrow on an existing route to edit it. Give it a **Route name**, set its conditions, then choose what happens **When a request matches**:
+
+- **Send to Sonarr** or **Send to Radarr** sends it to the **Instance** you pick. The route has its own quality profile, root folder, tags and other settings. Leave any of them on **Use instance default** to keep the instance's setting. Tags you list replace the instance's tags.
+- **Skip** never sends it anywhere.
+
+Select **Save route** when you're done.
+
+![Editing a route with a nested group and a Not condition](/img/library/content-router-route.webp)
+
+## Conditions
+
+**Match** decides whether a request must meet **All** of the conditions or **Any** of them. Each condition is a field, an operator and a value, for example **Year** **is above** 2000. **Add condition** adds another. **Add group** adds a nested set with its own **All** or **Any**. **Not** reverses a condition or a whole group.
+
+The route above sends a movie to Radarr Kids when it's Animation or Family, or rated G or PG, and isn't Horror.
+
+Fields for movies and TV shows:
+
+- **Genres**. When a condition checks for anime, Pulsarr also looks the title up in the community anime list and adds an "anime" genre if it's there.
+- **User**, the person who requested it.
+- **Plex list**, a custom Plex list owned by the requester.
+- **Year**, **Language** and **Certification**.
+- **Streaming services**, where the title streams in your TMDB region.
+- **IMDb rating**, with an optional **Minimum votes**, **RT critic score**, **RT audience score** and **TMDB rating**.
+
+TV shows also have **Season** and **Series status**. Movies also have **Movie status**.
+
+## Approval and quotas
+
+A route can also change how matching requests are approved:
+
+- **Always require approval** holds matching requests in the [approval queue](/requests/approval-queue), even from users who can request freely. **Approval reason** is shown to admins on the held request.
+- **Bypass user quotas** means matching requests don't count toward the requester's quota.
+
+## Order and priority
+
+Every matching route runs, so one request can go to several instances. When two matching routes send to the same instance, the one nearer the top wins. The top matching route also decides approval and quota bypass. Routes lower down add neither.
+
+**Skip** routes always run first. A matching Skip route stops the request from going anywhere, whatever the other routes say.
+
+To change the order, select **Reorder**, drag the routes into place and select **Save order**. Skip routes stay pinned under **Always first**.
+
+![Reordering movie routes, with the Skip route pinned first](/img/library/content-router-reorder.webp)
+
+## When nothing matches
+
+A request no route sends anywhere goes to the default instance, as the note at the bottom of the list says. To skip it instead, turn on **Skip content no route matches** on the default instance under [Sonarr and Radarr](/library/sonarr-radarr#the-default-instance). Movies and TV shows are set separately.

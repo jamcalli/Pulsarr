@@ -1,0 +1,51 @@
+---
+title: Webhooks
+description: Post a JSON payload to your own service, such as Home Assistant or n8n, when something happens in Pulsarr.
+---
+
+Webhooks post a JSON payload to a URL you choose when an event happens. Use them to connect Pulsarr to Home Assistant, n8n or your own scripts. Set them up under **Notifications** > **Webhooks**.
+
+## Add an endpoint
+
+Select **Add endpoint**, then fill in:
+
+- **Name**, for example "Home Assistant".
+- **URL**, where Pulsarr posts.
+- **Auth header**, optional. Fill in both **Header name** and **Header value**, for example `Authorization` and `Bearer <token>`, and Pulsarr sends it with every request.
+- The events to send. Pick at least one.
+
+**Send test** posts a test event, with `"event": "test"`, to the URL and header as typed. Save the endpoint when you're done.
+
+On each saved endpoint, **Enabled** pauses deliveries without deleting it.
+
+## Events
+
+| Event | Label | Sent when |
+| --- | --- | --- |
+| `media.available` | Media available | A movie or show becomes available in Plex. |
+| `watchlist.added` | Watchlist added | A user adds something to their watchlist. |
+| `watchlist.removed` | Watchlist removed | A user removes something from their watchlist. |
+| `approval.created` | Approval created | A request is held for approval. |
+| `approval.resolved` | Approval resolved | A held request is approved or denied. |
+| `approval.auto` | Auto approved | A request goes through without needing approval. |
+| `delete_sync.completed` | Delete sync complete | A delete sync run finishes. |
+| `user.created` | User created | Pulsarr adds a new user. |
+| `quota.cap_reached` | Watchlist cap reached | A user reaches their watchlist cap. |
+
+## Payloads
+
+Every payload has the same envelope:
+
+```json
+{
+  "event": "media.available",
+  "timestamp": "2026-10-23T10:30:00.000Z",
+  "data": { }
+}
+```
+
+`data` depends on the event. The [webhook payloads](/api/webhook-payloads/webhookMediaAvailable) in the API reference document each one, with examples.
+
+## Delivery
+
+Your endpoint must answer within 10 seconds. Pulsarr tries each delivery up to three times.

@@ -1,7 +1,7 @@
-import type { BaseLayoutProps } from '@fumadocs/base-ui/layouts/shared';
-import Image from 'next/image';
-import pulsarrLogo from '@/assets/images/pulsarr.svg';
-import { appName, gitConfig } from './shared';
+import type { BaseLayoutProps } from '@fumadocs/base-ui/layouts/shared'
+import Image from 'next/image'
+import pulsarrLogo from '@/assets/images/pulsarr.svg'
+import { appName, gitConfig } from './shared'
 
 export function baseOptions(): BaseLayoutProps {
   return {
@@ -14,5 +14,5 @@ export function baseOptions(): BaseLayoutProps {
       ),
     },
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
-  };
+  }
 }

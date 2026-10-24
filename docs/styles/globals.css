@@ -150,6 +150,11 @@
   --tw-prose-pre-bg: var(--color-accent);
   --tw-prose-th-borders: var(--color-divider);
   --tw-prose-td-borders: var(--color-divider);
+
+  /* The typography plugin bolds at 600, but the app's bold is 700 everywhere else. */
+  & strong:not(:where(.not-prose, .not-prose *)) {
+    font-weight: var(--font-weight-bold);
+  }
 }
 
 @layer base {
