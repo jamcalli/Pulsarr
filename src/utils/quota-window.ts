@@ -17,9 +17,9 @@ export function resolveQuotaWindowSettings(
   quotaSettings: Config['quotaSettings'],
 ): QuotaWindowSettings {
   return {
-    weeklyRollingDays: quotaSettings?.weeklyRolling?.resetDays ?? 7,
-    monthlyResetDay: quotaSettings?.monthly?.resetDay ?? 1,
-    monthEnd: quotaSettings?.monthly?.handleMonthEnd ?? 'last-day',
+    weeklyRollingDays: quotaSettings?.weeklyRolling.resetDays ?? 7,
+    monthlyResetDay: quotaSettings?.monthly.resetDay ?? 1,
+    monthEnd: quotaSettings?.monthly.handleMonthEnd ?? 'last-day',
   }
 }
 

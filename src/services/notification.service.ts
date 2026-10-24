@@ -204,6 +204,7 @@ export class NotificationService {
       discordWebhook: this._discordWebhook,
       apprise: this._apprise,
       plexMobile: this._plexMobile,
+      progress: fastify.progress,
       detach: (work) => {
         void this.track(work)
       },

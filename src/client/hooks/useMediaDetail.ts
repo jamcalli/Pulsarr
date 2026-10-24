@@ -1,0 +1,44 @@
+import { useQuery } from '@tanstack/react-query'
+import { useConfig } from '@/hooks/useConfig'
+import { useMinLoading } from '@/hooks/useMinLoading'
+import { DEFAULT_REGION, mediaDetailQuery } from '@/lib/media-detail-query'
+import { loadErrorMessage } from '@/lib/tanstackApi'
+
+export function useMediaDetail({
+  open,
+  guid,
+  type,
+}: {
+  open: boolean
+  guid: string | null
+  type: 'movie' | 'show'
+}) {
+  const { config } = useConfig()
+  const region = config?.tmdbRegion ?? DEFAULT_REGION
+
+  const query = useMinLoading(
+    useQuery({
+      ...mediaDetailQuery({ guid: guid ?? '', type, region }),
+      enabled: open && guid !== null && config !== null,
+      placeholderData: (previous, previousQuery) =>
+        previousQuery?.queryKey[2]?.params.path.id === guid
+          ? previous
+          : undefined,
+    }),
+  )
+
+  const notFound = query.error?.statusCode === 404
+  const errorMessage =
+    guid === null
+      ? 'This title has no TMDB or TVDB id to look up.'
+      : notFound
+        ? null
+        : loadErrorMessage(query, 'Details failed to load.')
+
+  return {
+    region,
+    metadata: query.data?.metadata,
+    notFound,
+    errorMessage,
+  }
+}

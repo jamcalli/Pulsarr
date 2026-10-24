@@ -1,3 +1,4 @@
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
 import {
   ROLLING_BASELINE_SEASON,
   type SonarrRollingMonitorOption,
@@ -6,6 +7,7 @@ import type {
   PlexPlaySessionNotification,
   PlexSession,
   RollingMonitoredShow,
+  SeasonEpisodeCounts,
   SessionMonitoringResult,
 } from '@root/types/plex-session.types.js'
 import type { SonarrEpisode, SonarrSeries } from '@root/types/sonarr.types.js'
@@ -14,6 +16,11 @@ import {
   userNeedsSeason,
 } from '@services/plex-session-monitor/cleanup-predicates.js'
 import { EpisodeNotices } from '@services/plex-session-monitor/episode-notices.js'
+import {
+  countsFromEpisodes,
+  countsFromSeasonStatistics,
+  sameSeasonEpisodeCounts,
+} from '@services/plex-session-monitor/season-episode-counts.js'
 import {
   type AllowedUserMatcher,
   allowAllUsers,
@@ -398,6 +405,9 @@ export class PlexSessionMonitorService {
     }
 
     if (rollingShow.monitoring_type === 'allSeasonPilotRolling') {
+      if (!positionUnchanged) {
+        await this.fillSeasonEpisodeCounts(rollingShow)
+      }
       this.log.debug(
         `Not expanding ${viewing}: allSeasonPilotRolling only expands when an E01 is watched`,
       )
@@ -450,6 +460,12 @@ export class PlexSessionMonitorService {
       return false
     }
 
+    await this.storeSeasonEpisodeCounts(
+      rollingShow,
+      rollingShow.season_episode_counts,
+      countsFromSeasonStatistics(series.seasons),
+    )
+
     const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
     if (!season?.statistics?.totalEpisodeCount) {
       this.notice(
@@ -463,7 +479,9 @@ export class PlexSessionMonitorService {
 
     const totalEpisodes = season.statistics.totalEpisodeCount
     const remainingEpisodes = totalEpisodes - currentEpisode
-    const threshold = this.config.plexSessionMonitoring?.remainingEpisodes ?? 2
+    const threshold =
+      this.config.plexSessionMonitoring?.remainingEpisodes ??
+      PLEX_SESSION_MONITORING_DEFAULTS.remainingEpisodes
 
     if (remainingEpisodes < 0) {
       this.notice(
@@ -554,7 +572,7 @@ export class PlexSessionMonitorService {
     }
   }
 
-  /** One per-user row per enrolled Sonarr instance, created from the master row on first sight. */
+  /** One per-user row per enrolled Sonarr instance, created from the master row on first sight and carrying the master's season_episode_counts. */
   private async getRollingMonitoredShows(
     session: PlexSession,
   ): Promise<RollingMonitoredShow[]> {
@@ -625,7 +643,10 @@ export class PlexSessionMonitorService {
             existing.plex_username = session.User.title
             if (sessionUuid) existing.plex_user_uuid = sessionUuid
           }
-          resolved.push(existing)
+          resolved.push({
+            ...existing,
+            season_episode_counts: globalShow.season_episode_counts,
+          })
           continue
         }
 
@@ -649,7 +670,10 @@ export class PlexSessionMonitorService {
             )
             continue
           }
-          resolved.push(byId)
+          resolved.push({
+            ...byId,
+            season_episode_counts: globalShow.season_episode_counts,
+          })
         } catch (error) {
           // Keep entries already resolved on other instances.
           this.log.error(
@@ -667,6 +691,43 @@ export class PlexSessionMonitorService {
     } catch (error) {
       this.log.error({ error }, 'Error getting rolling monitored shows:')
       throw error
+    }
+  }
+
+  private async storeSeasonEpisodeCounts(
+    show: Pick<RollingMonitoredShow, 'sonarr_series_id' | 'sonarr_instance_id'>,
+    stored: SeasonEpisodeCounts | null | undefined,
+    counts: SeasonEpisodeCounts,
+  ): Promise<void> {
+    if (Object.keys(counts).length === 0) return
+    if (sameSeasonEpisodeCounts(stored, counts)) return
+    await this.db.updateRollingShowSeasonEpisodeCounts(
+      show.sonarr_series_id,
+      show.sonarr_instance_id,
+      counts,
+    )
+  }
+
+  private async fillSeasonEpisodeCounts(
+    rollingShow: RollingMonitoredShow,
+  ): Promise<void> {
+    const sonarr = this.sonarrManager.getSonarrService(
+      rollingShow.sonarr_instance_id,
+    )
+    if (!sonarr) return
+    try {
+      const series = await sonarr.getSeriesById(rollingShow.sonarr_series_id)
+      if (!series) return
+      await this.storeSeasonEpisodeCounts(
+        rollingShow,
+        rollingShow.season_episode_counts,
+        countsFromSeasonStatistics(series.seasons),
+      )
+    } catch (error) {
+      this.log.debug(
+        { error },
+        `Could not fetch season lengths for ${rollingShow.show_title}`,
+      )
     }
   }
 
@@ -719,6 +780,11 @@ export class PlexSessionMonitorService {
     successMessage: string,
   ): Promise<void> {
     const allEpisodes = await sonarr.getEpisodes(rollingShow.sonarr_series_id)
+    await this.storeSeasonEpisodeCounts(
+      rollingShow,
+      rollingShow.season_episode_counts,
+      countsFromEpisodes(allEpisodes),
+    )
     const seasonEpisodes = allEpisodes.filter(
       (ep) => ep.seasonNumber === seasonNumber,
     )
@@ -735,6 +801,10 @@ export class PlexSessionMonitorService {
           : 'has no episodes in Sonarr and is already monitored ahead of them'
       this.log.debug(
         `Not expanding ${describeViewing(rollingShow.show_title, session)}: ${episodeCode(seasonNumber)} ${reason}`,
+      )
+      await this.db.updateRollingShowMonitoredSeason(
+        rollingShow.id,
+        seasonNumber,
       )
       return
     }
@@ -753,13 +823,8 @@ export class PlexSessionMonitorService {
       result.triggeredSearches++
     }
 
-    // High-water mark, so watching an earlier season after skipping ahead never regresses it.
-    if (seasonNumber > rollingShow.current_monitored_season) {
-      await this.db.updateRollingShowMonitoredSeason(
-        rollingShow.id,
-        seasonNumber,
-      )
-    }
+    // Written only after Sonarr accepts the season, since monitorsAhead reads the mark and a failed write must retry.
+    await this.db.updateRollingShowMonitoredSeason(rollingShow.id, seasonNumber)
 
     result.rollingUpdates.push({
       showTitle: session.grandparentTitle,
@@ -886,6 +951,11 @@ export class PlexSessionMonitorService {
       })
 
       const allEpisodes = await sonarr.getEpisodes(seriesId)
+      await this.storeSeasonEpisodeCounts(
+        { sonarr_series_id: seriesId, sonarr_instance_id: instanceId },
+        null,
+        countsFromEpisodes(allEpisodes),
+      )
       const pilots = allEpisodes.filter(isSeasonPilot)
 
       if (pilots.length === 0) {
@@ -960,7 +1030,9 @@ export class PlexSessionMonitorService {
   }
 
   /** Resets shows with no activity in inactivityDays and deletes their per-user rows. */
-  async resetInactiveRollingShows(inactivityDays = 7): Promise<void> {
+  async resetInactiveRollingShows(
+    inactivityDays = PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays,
+  ): Promise<void> {
     try {
       const inactiveShows =
         await this.db.getInactiveRollingMonitoredShows(inactivityDays)
@@ -1012,7 +1084,8 @@ export class PlexSessionMonitorService {
       )
 
       const inactivityDays =
-        this.config.plexSessionMonitoring?.inactivityResetDays ?? 7
+        this.config.plexSessionMonitoring?.inactivityResetDays ??
+        PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
       const cutoffDate = new Date()
       cutoffDate.setDate(cutoffDate.getDate() - inactivityDays)

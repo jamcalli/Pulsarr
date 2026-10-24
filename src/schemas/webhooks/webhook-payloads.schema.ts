@@ -1,3 +1,4 @@
+import { ApprovalTriggerSchema } from '@root/schemas/approval/approval.schema.js'
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import {
@@ -55,14 +56,6 @@ const ContentInfoSchema = z
     id: 'WebhookContent',
     description: 'Movie or show the event is about',
   })
-
-/** Approval trigger types */
-const ApprovalTriggerSchema = z.enum([
-  'quota_exceeded',
-  'router_rule',
-  'manual_flag',
-  'content_criteria',
-])
 
 // =============================================================================
 // Routing Schemas (Discriminated Union)

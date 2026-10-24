@@ -10,7 +10,10 @@ import type {
   SonarrSeriesWithTags,
   SyncResult,
 } from '@root/types/plex-label-sync.types.js'
-import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
+import {
+  PLEX_LABEL_CONCURRENCY,
+  type PlexLabelSyncConfig,
+} from '@schemas/plex/label-sync-config.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
@@ -348,10 +351,9 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
     }
 
     // Step 6: Process available content
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
     deps.logger.debug(`Processing ${available.length} content items`)
 
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     let processedContentCount = 0
 
     const contentProcessingResults = await Promise.allSettled(

@@ -1,111 +1,42 @@
-import { useCallback } from 'react'
-import { useDashboardStatsQuery } from '@/features/home/hooks/useDashboardStatsQuery'
-import { useDashboardStore } from '@/features/home/store/dashboardStore'
-import { useConfig } from '@/hooks/useConfig'
-import { useMinDuration } from '@/hooks/useMinLoading'
-import { dashboardStatsKeys } from '@/lib/query-keys'
-import { queryClient } from '@/lib/queryClient'
-import { apiErrorMessage } from '@/lib/tanstackApi'
+import { keepPreviousData } from '@tanstack/react-query'
+import {
+  dashboardDaysPref,
+  rankingLimitPref,
+} from '@/features/home/lib/home-prefs'
+import { useMinDuration, useMinLoading } from '@/hooks/useMinLoading'
+import { refreshDashboardStats } from '@/lib/dashboard-invalidation'
+import { usePref } from '@/lib/prefs'
+import { $api, isSettled, loadErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
-type ContentStat = components['schemas']['ContentStat']
+export type DashboardStatsData = components['schemas']['DashboardStats']
 
-// Re-export presets from store for convenience
-export {
-  DATE_RANGE_PRESETS,
-  type DateRangePreset,
-  getDateRangeLabel,
-  getLimitLabel,
-  LIMIT_PRESETS,
-  type LimitPreset,
-} from '@/features/home/store/dashboardStore'
+export type DashboardStats = ReturnType<typeof useDashboardStats>
 
-interface DashboardStatsState {
-  isLoading: boolean
-  lastRefreshed: Date | null
-  mostWatchedShows: ContentStat[] | null
-  mostWatchedMovies: ContentStat[] | null
-  loadingStates: {
-    all: boolean
-    shows: boolean
-    movies: boolean
-  }
-  errorStates: {
-    all: string | null
-    shows: string | null
-    movies: string | null
-  }
-  days: number
-  setDays: (days: number) => void
-  limit: number
-  setLimit: (limit: number) => void
-  refreshStats: () => Promise<void>
-  isRefreshing: boolean
-}
+export function useDashboardStats() {
+  const [days, setDays] = usePref(dashboardDaysPref)
+  const [limit, setLimit] = usePref(rankingLimitPref)
 
-/**
- * React hook that exposes dashboard statistics state and a refresh function.
- *
- * Wraps the React Query `useDashboardStatsQuery` hook and provides a
- * compatible API for existing components.
- *
- * Filter params (days) are stored in the dashboard store and shared
- * across all consumers.
- *
- * @returns DashboardStatsState containing:
- * - isLoading: whether stats are currently loading (considers config readiness)
- * - lastRefreshed: Date | null - time of the last successful fetch
- * - mostWatchedShows / mostWatchedMovies: arrays or null
- * - loadingStates / errorStates: mapped from query state
- * - days: current date range in days
- * - setDays: function to change date range
- * - refreshStats: function to manually request a refresh
- */
-export function useDashboardStats(): DashboardStatsState {
-  const days = useDashboardStore((s) => s.days)
-  const setDays = useDashboardStore((s) => s.setDays)
-  const limit = useDashboardStore((s) => s.limit)
-  const setLimit = useDashboardStore((s) => s.setLimit)
-
-  const { isInitialized: isConfigInitialized } = useConfig()
-
-  const { data, isLoading, isFetching, error, dataUpdatedAt } =
-    useDashboardStatsQuery()
-
-  const errorMessage = apiErrorMessage(error)
-
-  // Refetches in the background - existing cards stay visible instead of
-  // resetting to skeletons
-  const refreshStats = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: dashboardStatsKeys.all })
-  }, [])
-
-  const isRefreshing = useMinDuration(isFetching && data !== undefined)
-
-  // Cards must not show their empty states before the first load completes -
-  // "no data" is only knowable once data exists
-  const hasData = data !== undefined
+  const query = useMinLoading(
+    $api.useQuery(
+      'get',
+      '/v1/stats/all',
+      { params: { query: { days, limit } } },
+      { placeholderData: keepPreviousData },
+    ),
+  )
 
   return {
-    isLoading: !isConfigInitialized || isLoading || !hasData,
-    isRefreshing,
-    lastRefreshed: dataUpdatedAt ? new Date(dataUpdatedAt) : null,
-    mostWatchedShows: data?.most_watched_shows ?? null,
-    mostWatchedMovies: data?.most_watched_movies ?? null,
-    loadingStates: {
-      all: isLoading || !hasData,
-      shows: isLoading || !hasData,
-      movies: isLoading || !hasData,
-    },
-    errorStates: {
-      all: errorMessage,
-      shows: errorMessage,
-      movies: errorMessage,
-    },
     days,
     setDays,
     limit,
     setLimit,
-    refreshStats,
+    data: query.data,
+    isLoading: query.isLoading,
+    isReady: isSettled(query),
+    isRefreshing: useMinDuration(query.isFetching && query.data !== undefined),
+    updatedAt: query.dataUpdatedAt,
+    refresh: () => void refreshDashboardStats(),
+    errorMessage: loadErrorMessage(query, 'Dashboard stats failed to load.'),
   }
 }

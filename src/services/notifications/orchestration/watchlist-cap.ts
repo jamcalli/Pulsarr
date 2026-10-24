@@ -9,8 +9,8 @@ import {
 } from '../dispatch.js'
 import type { NotificationState } from '../state.js'
 import {
+  displayName,
   mediaTypeLabel,
-  userLabel,
   WATCHLIST_CAP_TITLE,
 } from '../templates/labels.js'
 import {
@@ -34,7 +34,7 @@ async function notifyCappedUser(
 ): Promise<DeliveryOutcome> {
   const message = createUserWatchlistCapMessage(
     event,
-    userLabel(user.alias || user.name, event.userId),
+    displayName(user, event.userId),
   )
   const sent = await sendToUser(
     deps,
@@ -83,19 +83,18 @@ async function deliverCapNotification(
 ): Promise<boolean> {
   const contentLabel = mediaTypeLabel(event.contentType).label
   const user = await deps.db.getUser(event.userId)
-  const who = user
-    ? recipientLabel(user)
-    : userLabel(event.userName, event.userId)
+  const who = displayName(user ?? { name: event.userName }, event.userId)
+  const label = user ? recipientLabel(user) : who
 
   const [admin, capped] = await Promise.all([
     deliverToAdmins(deps, {
       setting: deps.config.watchlistCapNotify,
       line: {
         event: 'watchlistCap',
-        summary: `${who}, ${usage(event)}`,
+        summary: `${label}, ${usage(event)}`,
         userId: event.userId,
       },
-      message: createWatchlistCapMessage(event),
+      message: createWatchlistCapMessage(event, who),
       webhook: {
         event: 'quota.cap_reached',
         payload: {
@@ -120,8 +119,8 @@ async function deliverCapNotification(
       watchlist_item_id: null,
       user_id: event.userId,
       type: 'watchlist_cap',
-      title: `${contentLabel} ${WATCHLIST_CAP_TITLE}`,
-      message: `${userLabel(event.userName, event.userId)} reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
+      title: `${contentLabel} ${WATCHLIST_CAP_TITLE.toLowerCase()}`,
+      message: `${who} reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
     },
     {
       sent_to_discord: admin.sent_to_discord || capped.sent_to_discord,

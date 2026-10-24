@@ -1,4 +1,7 @@
-import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import {
+  ARR_API_KEY_PLACEHOLDER,
+  placeholderSonarrInstance,
+} from '@root/schemas/common/arr-placeholder.js'
 import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
 import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
@@ -16,10 +19,7 @@ import type {
   SonarrItem,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
-import {
-  PlaceholderResetError,
-  placeholderSonarrInstance,
-} from '@utils/arr-default-instance.js'
+import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -31,6 +31,7 @@ import {
   isSameServerEndpoint,
   normalizeEndpointWithPath,
 } from '@utils/url.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -160,12 +161,26 @@ export class SonarrManagerService {
       this.log.error({ error }, 'Error testing Sonarr connection')
       return {
         success: false,
+        code: 'unreachable',
         message:
           error instanceof Error
             ? error.message
             : 'Unknown error testing connection',
       }
     }
+  }
+
+  async probe(
+    baseUrl: string,
+    apiKey: string,
+  ): ReturnType<SonarrService['probe']> {
+    const tempService = new SonarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    return tempService.probe(baseUrl, apiKey)
   }
 
   async fetchAllSeries(bypassExclusions?: boolean): Promise<SonarrItem[]> {
@@ -375,6 +390,7 @@ export class SonarrManagerService {
         syncing: syncing,
         status: 'requested',
       })
+      emitWatchlistChange(this.fastify.progress, 'status', [userId])
 
       this.log.debug(
         {

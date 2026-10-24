@@ -68,7 +68,6 @@ describe('content-tracker', () => {
       enabled: true,
       labelPrefix: 'pulsarr',
       labelNamingSource: 'username' as const,
-      concurrencyLimit: 5,
       cleanupOrphanedLabels: false,
       removedLabelMode: 'keep',
       removedLabelPrefix: 'pulsarr:removed',

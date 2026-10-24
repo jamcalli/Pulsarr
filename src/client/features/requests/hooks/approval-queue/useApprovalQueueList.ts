@@ -1,0 +1,47 @@
+import { keepPreviousData } from '@tanstack/react-query'
+import type { PageSize } from '@/components/data-table/page-size'
+import {
+  type QueueState,
+  requestQuery,
+} from '@/features/requests/lib/approval-queue/queue-state'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { useMinLoading } from '@/hooks/useMinLoading'
+import { useProgressEvents } from '@/hooks/useProgressEvents'
+import { SEARCH_DEBOUNCE_DELAY } from '@/lib/constants'
+import { approvalRequestsKeys, approvalStatsKeys } from '@/lib/query-keys'
+import { queryClient } from '@/lib/queryClient'
+import { $api, firstLoadError } from '@/lib/tanstackApi'
+
+export function invalidateApprovalQueue() {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: approvalRequestsKeys.all }),
+    queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all }),
+  ])
+}
+
+export function useApprovalQueueList(state: QueueState, pageSize: PageSize) {
+  const q = useDebouncedValue(state.q, SEARCH_DEBOUNCE_DELAY)
+  const list = useMinLoading(
+    $api.useQuery(
+      'get',
+      '/v1/approval/requests',
+      { params: { query: requestQuery({ ...state, q }, pageSize) } },
+      { placeholderData: keepPreviousData },
+    ),
+  )
+  const stats = $api.useQuery('get', '/v1/approval/stats')
+  useProgressEvents('approval', invalidateApprovalQueue)
+
+  return {
+    rows: list.data?.approvalRequests ?? null,
+    total: list.data?.total ?? 0,
+    stats: stats.data?.stats ?? null,
+    isLoading: list.isLoading,
+    stale: list.isPlaceholderData,
+    errorMessage: firstLoadError(
+      [list, stats],
+      "Couldn't load the approval queue.",
+    ),
+    retry: () => void invalidateApprovalQueue(),
+  }
+}

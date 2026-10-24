@@ -34,6 +34,7 @@ export function createNotificationDeps(config: Partial<Config> = {}) {
   const deps = {
     db,
     logger: createMockLogger(),
+    progress: { emit: vi.fn() },
     config: {
       discordWebhookUrl: ADMIN_WEBHOOK_URL,
       systemAppriseUrl: SYSTEM_APPRISE_URL,

@@ -55,6 +55,7 @@ Watchlist caps limit the **total number of items** a user can have on their watc
 ### How Caps Work
 
 - A cap of **10** means the user can have up to 10 items on their watchlist. The 11th item is blocked.
+- A cap is a whole number from 1 to 10,000. A quota limit is a whole number from 1 to 1,000 requests per period.
 - Caps count **all** watchlist items (pending + routed) for that content type.
 - When a user hits their cap, new items are silently skipped — no approval request is created.
 - Items approved **before** a cap was enabled still route through normally.

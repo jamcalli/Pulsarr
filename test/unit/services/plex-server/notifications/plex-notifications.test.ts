@@ -118,22 +118,6 @@ describe('plex notifications across Radarr and Sonarr', () => {
     expect(run.results.sonarr[0]).toMatchObject({ success: true })
   })
 
-  it('strips the arr API error prefix from a failure message', async () => {
-    const run = doneRun(
-      await removePlexNotifications(
-        deps({
-          radarrService: fakeService({
-            removePlexNotification: vi.fn(async () => {
-              throw new Error('Radarr API error: 500 - Internal Server Error')
-            }),
-          }),
-        }),
-      ),
-    )
-
-    expect(run.results.radarr[0]?.message).toBe('500 - Internal Server Error')
-  })
-
   it('passes the target to every instance', async () => {
     const radarrService = fakeService()
     await configurePlexNotifications(deps({ radarrService }), {

@@ -1,60 +1,81 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { ArrBaseUrlSchema } from '@root/schemas/common/url.schema.js'
 import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { SonarrSeriesTypeSchema } from '@root/schemas/sonarr/series-type.schema.js'
 import { z } from 'zod'
 
-// Base Sonarr instance schema for creation (with defaults)
-export const SonarrInstanceSchema = z.object({
+export const SonarrMonitorNewItemsSchema = z.enum(['all', 'none']).meta({
+  id: 'SonarrMonitorNewItems',
+  description: 'Whether Sonarr monitors seasons added to a series later',
+})
+
+export const SonarrInstanceFieldsSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }),
+  baseUrl: ArrBaseUrlSchema,
   apiKey: z.string().min(1, { error: 'API Key is required' }),
   qualityProfile: z.union([z.string(), z.number()]).nullish(),
   rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional().default(false),
-  seasonMonitoring: SonarrSeasonMonitoringValueSchema.optional().default('all'),
-  monitorNewItems: z.enum(['all', 'none']).default('all'),
-  searchOnAdd: z.boolean().optional().default(true),
-  createSeasonFolders: z.boolean().optional().default(false),
-  tags: z.array(z.string()).optional().default([]),
-  isDefault: z.boolean().optional().default(false),
-  syncedInstances: z.array(z.number()).optional(),
-  seriesType: SonarrSeriesTypeSchema.optional().default('standard'),
-  skipDefaultRoutingWhenNoMatch: z.boolean().optional().default(false),
+  bypassIgnored: z.boolean(),
+  seasonMonitoring: SonarrSeasonMonitoringValueSchema,
+  monitorNewItems: SonarrMonitorNewItemsSchema,
+  searchOnAdd: z.boolean(),
+  createSeasonFolders: z.boolean(),
+  tags: z.array(z.string()),
+  isDefault: z.boolean(),
+  syncedInstances: z.array(z.number()),
+  seriesType: SonarrSeriesTypeSchema,
+  skipDefaultRoutingWhenNoMatch: z.boolean(),
 })
 
-// Sonarr instance schema for updates (no defaults to prevent overwriting existing values)
-export const SonarrInstanceUpdateSchema = z.object({
-  name: z.string().min(1, { error: 'Name is required' }).optional(),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }).optional(),
-  apiKey: z.string().min(1, { error: 'API Key is required' }).optional(),
-  qualityProfile: z.union([z.string(), z.number()]).nullish(),
-  rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional(),
-  seasonMonitoring: SonarrSeasonMonitoringValueSchema.optional(),
-  monitorNewItems: z.enum(['all', 'none']).optional(),
-  searchOnAdd: z.boolean().optional(),
-  createSeasonFolders: z.boolean().optional(),
-  tags: z.array(z.string()).optional(),
-  isDefault: z.boolean().optional(),
-  syncedInstances: z.array(z.number()).optional(),
-  seriesType: SonarrSeriesTypeSchema.optional(),
-  skipDefaultRoutingWhenNoMatch: z.boolean().optional(),
+const sonarrFields = SonarrInstanceFieldsSchema.shape
+
+export const SonarrInstanceSchema = SonarrInstanceFieldsSchema.extend({
+  bypassIgnored: sonarrFields.bypassIgnored.default(false),
+  seasonMonitoring: sonarrFields.seasonMonitoring.default('all'),
+  monitorNewItems: sonarrFields.monitorNewItems.default('all'),
+  searchOnAdd: sonarrFields.searchOnAdd.default(true),
+  createSeasonFolders: sonarrFields.createSeasonFolders.default(false),
+  tags: sonarrFields.tags.default([]),
+  isDefault: sonarrFields.isDefault.default(false),
+  syncedInstances: sonarrFields.syncedInstances.optional(),
+  seriesType: sonarrFields.seriesType.default('standard'),
+  skipDefaultRoutingWhenNoMatch:
+    sonarrFields.skipDefaultRoutingWhenNoMatch.default(false),
+}).meta({
+  id: 'SonarrInstancePayload',
+  description: 'A new Sonarr instance, omitted settings take their defaults',
 })
 
-// Response schema for a single instance (includes id)
+export const SonarrInstanceUpdateSchema =
+  SonarrInstanceFieldsSchema.partial().meta({
+    id: 'SonarrInstanceUpdatePayload',
+    description:
+      'Partial Sonarr instance update, omitted fields keep their stored value',
+  })
+
 export const SonarrInstanceResponseSchema = SonarrInstanceSchema.extend({
   id: z.number(),
+  baseUrl: z.string(),
+}).meta({
+  id: 'SonarrInstance',
+  description: 'A configured Sonarr instance',
 })
 
-// Response schema for list of instances
-export const SonarrInstanceListResponseSchema = z.array(
-  SonarrInstanceResponseSchema,
-)
+export const SonarrInstanceListResponseSchema = z
+  .array(SonarrInstanceResponseSchema)
+  .meta({
+    id: 'SonarrInstanceListResponse',
+    description: 'All configured Sonarr instances',
+  })
 
-// Response schema for instance creation
-export const SonarrInstanceCreateResponseSchema = z.object({
-  id: z.number().int().positive(),
-})
+export const SonarrInstanceCreateResponseSchema = z
+  .object({
+    id: z.number().int().positive(),
+  })
+  .meta({
+    id: 'SonarrInstanceCreateResponse',
+    description: 'Id of the newly created Sonarr instance',
+  })
 
 // Inferred types for use in client and server
 export type SonarrInstance = z.infer<typeof SonarrInstanceSchema>
@@ -69,5 +90,4 @@ export type SonarrInstanceCreateResponse = z.infer<
   typeof SonarrInstanceCreateResponseSchema
 >
 
-// Re-export shared schemas for route use
 export { ErrorSchema }

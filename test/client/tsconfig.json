@@ -1,0 +1,17 @@
+{
+  "extends": "../../src/client/tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
+    "paths": {
+      "@/*": ["../../src/client/*"],
+      "@root/*": ["../../src/*"]
+    }
+  },
+  "include": [
+    "**/*",
+    "../../src/client/**/*",
+    "../../src/types/**/*",
+    "../../src/schemas/**/*"
+  ],
+  "exclude": ["../../src/client/dist"]
+}

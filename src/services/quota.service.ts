@@ -1,3 +1,4 @@
+import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type {
   CreateUserQuotaData,
   EnabledQuotaData,
@@ -282,8 +283,10 @@ export class QuotaService {
       defaults.push({
         userId,
         contentType: 'movie',
-        quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
-        quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        quotaType:
+          config.newUserDefaultMovieQuotaType ?? QUOTA_DEFAULTS.quotaType,
+        quotaLimit:
+          config.newUserDefaultMovieQuotaLimit ?? QUOTA_DEFAULTS.limit,
         bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
         watchlistCap: config.newUserDefaultMovieWatchlistCap ?? null,
       })
@@ -293,8 +296,9 @@ export class QuotaService {
       defaults.push({
         userId,
         contentType: 'show',
-        quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
-        quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        quotaType:
+          config.newUserDefaultShowQuotaType ?? QUOTA_DEFAULTS.quotaType,
+        quotaLimit: config.newUserDefaultShowQuotaLimit ?? QUOTA_DEFAULTS.limit,
         bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
         watchlistCap: config.newUserDefaultShowWatchlistCap ?? null,
       })
@@ -362,8 +366,8 @@ export class QuotaService {
     await this.logQuotaStatus(now)
 
     // Cleanup old quota usage records based on configuration
-    if (config?.cleanup?.enabled !== false) {
-      const retentionDays = config?.cleanup?.retentionDays ?? 90
+    if (config?.cleanup.enabled !== false) {
+      const retentionDays = config?.cleanup.retentionDays ?? 90
       const cleanedCount =
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
@@ -373,7 +377,7 @@ export class QuotaService {
         )
       }
     } else {
-      const retentionDays = config?.cleanup?.retentionDays ?? 90
+      const retentionDays = config?.cleanup.retentionDays ?? 90
       this.log.debug(
         { retentionDays },
         'Quota cleanup disabled by configuration',

@@ -11,23 +11,23 @@ import type {
   WatchlistCapNotification,
 } from '@root/types/notification.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import { pluralize } from '@root/utils/pluralize.js'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 import {
   type DeleteSyncSection,
+  sectionEmptyText,
   summarizeDeleteSync,
 } from './delete-sync-summary.js'
 import {
+  EVENT_LABELS,
   formatTriggerReason,
+  MEDIA_AVAILABLE_HEADINGS,
   mediaTypeLabel,
   TEST_NOTIFICATION,
-  userLabel,
   WATCHLIST_CAP_IMPACT,
   WATCHLIST_CAP_TITLE,
 } from './labels.js'
-import {
-  type MediaAvailability,
-  summarizeMediaAvailable,
-} from './media-available.js'
+import { summarizeMediaAvailable } from './media-available.js'
 
 const EMBED_COLOR = 0x48a9a6
 
@@ -82,21 +82,18 @@ function tmdbField(url: string): EmbedField {
   }
 }
 
-const MEDIA_AVAILABLE_DESCRIPTIONS: Record<
-  MediaAvailability,
-  (title: string) => string
-> = {
-  episode: (title) => `New episode available for ${title}!`,
-  season: (title) => `New season available for ${title}!`,
-  content: (title) => `New content available for ${title}!`,
-  movie: () => 'Movie available to watch!',
+function mediaAvailableTitle(notification: MediaNotification): string {
+  const { availability } = summarizeMediaAvailable(notification)
+  return truncate(
+    `${MEDIA_AVAILABLE_HEADINGS[availability]}: ${notification.title}`,
+    EMBED_TITLE_MAX,
+  )
 }
 
 export function createMediaNotificationEmbed(
   notification: MediaNotification,
 ): DiscordEmbed {
-  const { emoji } = mediaTypeLabel(notification.type)
-  const { availability, details } = summarizeMediaAvailable(notification)
+  const { details } = summarizeMediaAvailable(notification)
 
   const fields: EmbedField[] = details.map((detail) => ({
     name: detail.label,
@@ -109,8 +106,7 @@ export function createMediaNotificationEmbed(
   }
 
   const embed: DiscordEmbed = {
-    title: truncate(notification.title, EMBED_TITLE_MAX),
-    description: `${MEDIA_AVAILABLE_DESCRIPTIONS[availability](notification.title)} ${emoji}`,
+    title: mediaAvailableTitle(notification),
     color: EMBED_COLOR,
     timestamp: new Date().toISOString(),
     fields,
@@ -131,7 +127,8 @@ export function createPublicMediaWebhookPayload(
 ): DiscordWebhookPayload {
   const mentions = mentionDiscordIds.map((id) => `<@${id}>`).join(' ')
   return {
-    content: mentions ? `${mentions} 👋` : '',
+    content: mentions ? `${mentions} ${mediaAvailableTitle(notification)}` : '',
+    allowed_mentions: { users: mentionDiscordIds },
     ...createWebhookPayload(
       'default',
       createMediaNotificationEmbed(notification),
@@ -143,11 +140,13 @@ export function createMediaAddedEmbed(
   notification: MediaNotification,
   displayName: string,
 ): DiscordEmbed {
-  const { label, emoji } = mediaTypeLabel(notification.type)
+  const { label } = mediaTypeLabel(notification.type)
 
   const embed: DiscordEmbed = {
-    title: truncate(notification.title, EMBED_TITLE_MAX),
-    description: `${emoji} New ${label} Added`,
+    title: truncate(
+      `${EVENT_LABELS.watchlistAdded}: ${notification.title}`,
+      EMBED_TITLE_MAX,
+    ),
     color: EMBED_COLOR,
     timestamp: new Date().toISOString(),
     footer: {
@@ -193,7 +192,7 @@ function deleteSyncFields(section: DeleteSyncSection): EmbedField[] {
     return [
       {
         name: section.label,
-        value: `No ${section.noun} deleted${section.protectedInfo}`,
+        value: sectionEmptyText(section),
         inline: false,
       },
     ]
@@ -205,7 +204,7 @@ function deleteSyncFields(section: DeleteSyncSection): EmbedField[] {
 
   const fields: EmbedField[] = [
     {
-      name: `${section.label} (${section.deleted} deleted${section.protectedInfo})`,
+      name: `${section.label} (${section.meta})`,
       value: list || 'None',
       inline: false,
     },
@@ -228,17 +227,15 @@ export function createDeleteSyncEmbed(
 ): DiscordEmbed {
   const summary = summarizeDeleteSync(results, dryRun)
 
-  const description = truncate(
-    summary.protectedText
-      ? `${summary.summaryText}\n\n${summary.protectedText}`
-      : summary.summaryText,
-    EMBED_DESCRIPTION_MAX,
-  )
+  const description = [summary.summaryText, summary.protectedText]
+    .filter(Boolean)
+    .join('\n\n')
 
+  const deletedLabel = summary.dryRun ? 'Would delete' : 'Deleted'
   const fields: EmbedField[] = [
     {
       name: 'Summary',
-      value: `Processed: ${summary.totals.processed} items\nDeleted: ${summary.totals.deleted} items\nSkipped: ${summary.totals.skipped} items${summary.totals.protected ? `\nProtected: ${summary.totals.protected} items` : ''}`,
+      value: `Processed: ${summary.totals.processed} items\n${deletedLabel}: ${summary.totals.deleted} items\nSkipped: ${summary.totals.skipped} items${summary.totals.protected ? `\nProtected: ${summary.totals.protected} items` : ''}`,
       inline: false,
     },
   ]
@@ -258,7 +255,9 @@ export function createDeleteSyncEmbed(
 
   return {
     title: summary.title,
-    description,
+    description: description
+      ? truncate(description, EMBED_DESCRIPTION_MAX)
+      : undefined,
     color: results.safetyTriggered === true ? COLOR_RED : COLOR_GREEN,
     timestamp: new Date().toISOString(),
     fields,
@@ -301,7 +300,10 @@ export function createUpdateAvailableEmbed(
   })
 
   return {
-    title: truncate(displayName, EMBED_TITLE_MAX),
+    title: truncate(
+      `${EVENT_LABELS.updateAvailable}: ${displayName}`,
+      EMBED_TITLE_MAX,
+    ),
     url: release.releaseUrl,
     description,
     color: EMBED_COLOR,
@@ -348,14 +350,15 @@ export function createSystemDm(content: SystemDmContent): DirectMessage {
 export function createApprovalRequestEmbed(
   request: ApprovalRequest,
   totalPending: number,
-  posterUrl?: string,
+  posterUrl: string | undefined,
+  requestedBy: string,
 ): DiscordEmbed {
   const tmdbUrl = getTmdbUrl(request.contentGuids, request.contentType)
 
   const fields: EmbedField[] = [
     {
       name: 'Requested by',
-      value: userLabel(request.userName, request.userId),
+      value: requestedBy,
       inline: true,
     },
     {
@@ -375,7 +378,10 @@ export function createApprovalRequestEmbed(
   }
 
   const embed: DiscordEmbed = {
-    title: 'Content Approval Required',
+    title: truncate(
+      `${EVENT_LABELS.approvalRequest}: ${request.contentTitle}`,
+      EMBED_TITLE_MAX,
+    ),
     description: `**${request.contentTitle}** (${mediaTypeLabel(request.contentType).label})`,
     color: COLOR_APPROVAL,
     timestamp: new Date().toISOString(),
@@ -395,10 +401,13 @@ export function createApprovalRequestEmbed(
 const APPROVAL_EXAMPLE_LIMIT = 3
 
 function countLabel(count: number, noun: string): string {
-  return `${count} ${noun}${count > 1 ? 's' : ''}`
+  return `${count} ${pluralize(count, noun)}`
 }
 
-function approvalBatchFields(requests: ApprovalRequest[]): EmbedField[] {
+function approvalBatchFields(
+  requests: ApprovalRequest[],
+  requesterName: (request: ApprovalRequest) => string,
+): EmbedField[] {
   if (requests.length === 1) {
     const [request] = requests
     return [
@@ -409,7 +418,7 @@ function approvalBatchFields(requests: ApprovalRequest[]): EmbedField[] {
       },
       {
         name: 'Requested by',
-        value: userLabel(request.userName, request.userId),
+        value: requesterName(request),
         inline: true,
       },
       {
@@ -454,14 +463,15 @@ function approvalBatchFields(requests: ApprovalRequest[]): EmbedField[] {
 export function createApprovalBatchDm(
   requests: ApprovalRequest[],
   totalPending: number,
+  requesterName: (request: ApprovalRequest) => string,
 ): DirectMessage {
   const isMultiple = requests.length > 1
   const [first] = requests
 
   return createSystemDm({
     title: isMultiple
-      ? `${requests.length} New Approval Requests`
-      : 'New Approval Request',
+      ? `${pluralize(requests.length, EVENT_LABELS.approvalRequest)}: ${requests.length} new`
+      : `${EVENT_LABELS.approvalRequest}: ${first.contentTitle}`,
     fields: [
       {
         name: 'Pending Approvals',
@@ -469,7 +479,7 @@ export function createApprovalBatchDm(
         inline: false,
       },
       { name: '\u200b', value: '\u200b', inline: false },
-      ...approvalBatchFields(requests),
+      ...approvalBatchFields(requests, requesterName),
     ],
     tmdbUrl: isMultiple
       ? undefined
@@ -481,11 +491,14 @@ export function createApprovalBatchDm(
   })
 }
 
-function watchlistCapFields(event: WatchlistCapNotification): EmbedField[] {
+function watchlistCapFields(
+  event: WatchlistCapNotification,
+  who: string,
+): EmbedField[] {
   return [
     {
       name: 'User',
-      value: userLabel(event.userName, event.userId),
+      value: who,
       inline: true,
     },
     {
@@ -503,15 +516,16 @@ function watchlistCapFields(event: WatchlistCapNotification): EmbedField[] {
 
 export function createWatchlistCapEmbed(
   event: WatchlistCapNotification,
+  who: string,
 ): DiscordEmbed {
   const contentLabel = mediaTypeLabel(event.contentType).label.toLowerCase()
 
   return {
-    title: WATCHLIST_CAP_TITLE,
-    description: `**${userLabel(event.userName, event.userId)}** reached their ${contentLabel} cap (${event.currentCount}/${event.cap})`,
+    title: truncate(`${WATCHLIST_CAP_TITLE}: ${who}`, EMBED_TITLE_MAX),
+    description: `**${who}** reached their ${contentLabel} cap (${event.currentCount}/${event.cap})`,
     color: COLOR_WATCHLIST_CAP,
     timestamp: new Date().toISOString(),
-    fields: watchlistCapFields(event),
+    fields: watchlistCapFields(event, who),
     footer: {
       text: WATCHLIST_CAP_IMPACT,
     },
@@ -520,11 +534,12 @@ export function createWatchlistCapEmbed(
 
 export function createWatchlistCapDm(
   event: WatchlistCapNotification,
+  who: string,
 ): DirectMessage {
   return createSystemDm({
-    title: WATCHLIST_CAP_TITLE,
+    title: `${WATCHLIST_CAP_TITLE}: ${who}`,
     fields: [
-      ...watchlistCapFields(event),
+      ...watchlistCapFields(event, who),
       { name: 'Impact', value: WATCHLIST_CAP_IMPACT, inline: false },
     ],
   })

@@ -663,9 +663,9 @@ describe('plex/watchlist-fetcher', () => {
         ["Reading friends' watchlists", 0],
         ['Alice page 1', 0],
         ['Alice page 1, Bob page 1', 0],
-        ['Alice page 1', 25],
-        ['Alice page 2', 25],
-        ["Reading friends' watchlists", 50],
+        ['Alice page 1', 45],
+        ['Alice page 2', 45],
+        ["Reading friends' watchlists", 90],
       ])
       expect(events.at(-1)?.metadata).toEqual({
         stage: 'reading',

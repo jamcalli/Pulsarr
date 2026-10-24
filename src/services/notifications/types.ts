@@ -6,7 +6,7 @@ import type {
 import type { NotificationMessage } from '@root/types/notification.types.js'
 import type { WebhookEventType } from '@root/types/webhook-endpoint.types.js'
 import type { DatabaseService } from '@services/database.service.js'
-import type { FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { AppriseService } from './channels/apprise.service.js'
 import type { DiscordWebhookService } from './channels/discord-webhook.service.js'
 import type { PlexMobileService } from './channels/plex-mobile.service.js'
@@ -23,6 +23,7 @@ export interface NotificationDeps {
   discordWebhook: DiscordWebhookService
   apprise: AppriseService
   plexMobile: PlexMobileService
+  progress: FastifyInstance['progress']
   /** Runs delivery work in the background, tracked so shutdown can drain it. */
   detach: (work: Promise<boolean>) => void
 }

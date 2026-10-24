@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { appendFile, mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import type { LogEntry } from '@schemas/logs/logs.schema.js'
+import type { LogEntry } from '@root/types/logs.types.js'
 import { resolveLogPath } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'

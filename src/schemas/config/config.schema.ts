@@ -1,23 +1,34 @@
 import { isDiscordWebhookUrl } from '@root/schemas/common/discord-webhook-url.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
-import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
+import { splitUrlList } from '@root/schemas/common/url-list.js'
+import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
+import {
+  PlexLabelSyncConfigPayloadSchema,
+  PlexLabelSyncConfigSchema,
+} from '@root/schemas/plex/label-sync-config.schema.js'
+import {
+  PlexSessionMonitoringConfigPayloadSchema,
+  PlexSessionMonitoringConfigSchema,
+} from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import { MAX_DELETION_PREVENTION } from '@root/schemas/shared/delete-sync-limits.js'
 import { PORT_RANGE } from '@root/schemas/shared/port.js'
 import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import {
+  QuotaLimitSchema,
+  WatchlistCapSchema,
+} from '@root/schemas/shared/quota-limits.js'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
+import type { ConfigLogLevel } from '@root/types/config.types.js'
 import {
   longestQuotaWindowDays,
   resolveQuotaWindowSettings,
 } from '@root/utils/quota-window.js'
-import { splitUrlList } from '@root/utils/url.js'
 import { z } from 'zod'
-
-// Max constants for validation
-const QUEUE_WAIT_TIME_MAX_MS = 30 * 60 * 1000
-const NEW_EPISODE_THRESHOLD_MAX_MS = 720 * 60 * 60 * 1000
 
 const DiscordWebhookUrlListSchema = z
   .string()
@@ -34,16 +45,36 @@ const DiscordWebhookUrlListSchema = z
  */
 const AppriseUrlSchema = z.string().optional()
 
-const LogLevelEnum = z.enum([
-  'fatal',
-  'error',
-  'warn',
-  'info',
-  'debug',
-  'trace',
-  'silent',
-])
+export const ConfigLogLevelSchema = z
+  .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+  .meta({
+    id: 'ConfigLogLevel',
+    description: 'How much Pulsarr writes to its log',
+  }) satisfies z.ZodType<ConfigLogLevel>
 
+export const DEFAULT_LOG_LEVEL = 'info' satisfies ConfigLogLevel
+
+export const DEFAULT_PULSARR_PORT = 3003
+export const APPROVAL_EXPIRATION_HOURS = { min: 1, max: 8760 } as const
+export const QUEUE_WAIT_TIME_MS = {
+  min: 0,
+  max: 1_800_000,
+  default: 120_000,
+} as const
+export const NEW_EPISODE_THRESHOLD_MS = {
+  min: 0,
+  max: 2_592_000_000,
+  default: 172_800_000,
+} as const
+
+export const MS_PER_MINUTE = 60_000
+export const MS_PER_HOUR = 60 * MS_PER_MINUTE
+const QUEUE_WAIT_TIME_ERROR = `Enter ${QUEUE_WAIT_TIME_MS.min / MS_PER_MINUTE} to ${QUEUE_WAIT_TIME_MS.max / MS_PER_MINUTE} minutes.`
+const NEW_EPISODE_THRESHOLD_ERROR = `Enter ${NEW_EPISODE_THRESHOLD_MS.min / MS_PER_HOUR} to ${NEW_EPISODE_THRESHOLD_MS.max / MS_PER_HOUR} hours.`
+export const EXPIRED_APPROVAL_CLEANUP_DAYS = { min: 1, max: 365 } as const
+export const QUOTA_USAGE_RETENTION_DAYS = { min: 1, max: 365 } as const
+export const QUOTA_WEEKLY_ROLLING_DAYS = { min: 1, max: 365 } as const
+export const QUOTA_MONTHLY_RESET_DAY = { min: 1, max: 31 } as const
 /** Empty means Pulsarr negotiates the Plex server connection itself. */
 export const PLEX_SERVER_URL_DEFAULT = ''
 
@@ -116,16 +147,30 @@ export const MaintainerrExclusionModeSchema = z
       'Exclude Maintainerr-handled media for its current watchlisters, or globally for every user',
   })
 
-const NotifyOptionEnum = z.enum(NOTIFY_OPTIONS)
+const NotifyOptionEnum = z.enum(NOTIFY_OPTIONS).meta({
+  id: 'NotifyOption',
+  description:
+    'Channels an admin notification goes to, legacy aliases included',
+})
 
-const UpdateNotifyEnum = z.enum(UPDATE_NOTIFY_OPTIONS)
+const UpdateNotifyEnum = z.enum(UPDATE_NOTIFY_OPTIONS).meta({
+  id: 'UpdateNotifyOption',
+  description: 'Channels an admin notification goes to',
+})
 
-const DeleteSyncNotifyOptionEnum = z.enum(DELETE_SYNC_NOTIFY_OPTIONS)
+const DeleteSyncNotifyOptionEnum = z.enum(DELETE_SYNC_NOTIFY_OPTIONS).meta({
+  id: 'DeleteSyncNotifyOption',
+  description:
+    'Channels the delete sync run summary goes to, legacy aliases included',
+})
 
-const DeletionModeEnum = z.enum([
-  'watchlist', // Remove content when it's no longer on any watchlist
-  'tag-based', // Only remove content that has a specific tag
-])
+export const DELETION_MODES = ['watchlist', 'tag-based'] as const
+
+const DeletionModeEnum = z.enum(DELETION_MODES).meta({
+  id: 'DeletionMode',
+  description:
+    'Whether delete sync targets content off every watchlist or content carrying the removal tag',
+})
 
 /**
  * Schema for validating regex patterns used in delete sync tag matching.
@@ -167,6 +212,149 @@ const PlexTokensSchema = z
   .array(z.string())
   .meta({ description: 'Plex authentication tokens' })
 
+const ApprovalExpirationActionSchema = z.enum(['expire', 'auto_approve']).meta({
+  id: 'ApprovalExpirationAction',
+  description: 'What happens to a pending approval request when it expires',
+})
+
+const RemovedTagModeSchema = z.enum(['remove', 'keep', 'special-tag']).meta({
+  id: 'RemovedTagMode',
+  description: 'What happens to a user tag once that user drops the content',
+})
+
+const QuotaMonthEndSchema = z
+  .enum(['last-day', 'skip-month', 'next-month'])
+  .meta({
+    id: 'QuotaMonthEnd',
+    description:
+      'How a monthly quota resets when its reset day is past the end of a short month',
+  })
+
+const ExpirationOverrideHoursSchema = z
+  .number()
+  .min(APPROVAL_EXPIRATION_HOURS.min)
+  .max(APPROVAL_EXPIRATION_HOURS.max)
+
+const ApprovalExpirationSchema = z
+  .object({
+    enabled: z.boolean(),
+    defaultExpirationHours: z.number(),
+    expirationAction: ApprovalExpirationActionSchema,
+    autoApproveOnQuotaAvailable: z.boolean().meta({
+      description:
+        'Approve quota-exceeded requests once the user has quota again',
+    }),
+    quotaExceededExpirationHours: z
+      .number()
+      .meta({ description: 'Override for requests held by a quota' })
+      .optional(),
+    routerRuleExpirationHours: z
+      .number()
+      .meta({ description: 'Override for requests held by a router rule' })
+      .optional(),
+    manualFlagExpirationHours: z
+      .number()
+      .meta({ description: 'Override for users who always need approval' })
+      .optional(),
+    contentCriteriaExpirationHours: z
+      .number()
+      .meta({ description: 'Override for requests held by content criteria' })
+      .optional(),
+    cleanupExpiredDays: z.number(),
+  })
+  .meta({
+    id: 'ApprovalExpiration',
+    description:
+      'Approval expiry and cleanup settings, always returned with defaults filled in. Per-trigger overrides are present only when set.',
+  })
+
+const ApprovalExpirationPayloadSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    defaultExpirationHours: z
+      .number({ error: 'Enter a number of hours.' })
+      .min(APPROVAL_EXPIRATION_HOURS.min)
+      .max(APPROVAL_EXPIRATION_HOURS.max)
+      .optional(),
+    expirationAction: ApprovalExpirationActionSchema.optional(),
+    autoApproveOnQuotaAvailable: z.boolean().optional(),
+    quotaExceededExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    routerRuleExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    manualFlagExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    contentCriteriaExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    cleanupExpiredDays: z
+      .number({ error: 'Enter a number of days.' })
+      .min(EXPIRED_APPROVAL_CLEANUP_DAYS.min)
+      .max(EXPIRED_APPROVAL_CLEANUP_DAYS.max)
+      .optional(),
+  })
+  .meta({
+    id: 'ApprovalExpirationPayload',
+    description:
+      'Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one.',
+  })
+
+const QuotaSettingsSchema = z
+  .object({
+    cleanup: z.object({
+      enabled: z.boolean(),
+      retentionDays: z.number(),
+    }),
+    weeklyRolling: z.object({
+      resetDays: z.number(),
+    }),
+    monthly: z.object({
+      resetDay: z.number(),
+      handleMonthEnd: QuotaMonthEndSchema,
+    }),
+  })
+  .meta({
+    id: 'QuotaSettings',
+    description: 'Quota settings, always returned with defaults filled in',
+  })
+
+const QuotaSettingsPayloadSchema = z
+  .object({
+    cleanup: z.object({
+      enabled: z.boolean(),
+      retentionDays: z
+        .number({ error: 'Enter a number of days.' })
+        .min(QUOTA_USAGE_RETENTION_DAYS.min)
+        .max(QUOTA_USAGE_RETENTION_DAYS.max),
+    }),
+    weeklyRolling: z.object({
+      resetDays: z
+        .number({ error: 'Enter a number of days.' })
+        .min(QUOTA_WEEKLY_ROLLING_DAYS.min)
+        .max(QUOTA_WEEKLY_ROLLING_DAYS.max),
+    }),
+    monthly: z.object({
+      resetDay: z
+        .number({ error: 'Enter a day of the month.' })
+        .min(QUOTA_MONTHLY_RESET_DAY.min)
+        .max(QUOTA_MONTHLY_RESET_DAY.max),
+      handleMonthEnd: QuotaMonthEndSchema,
+    }),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.cleanup.enabled) return
+    const minimumDays = longestQuotaWindowDays(
+      resolveQuotaWindowSettings(value),
+    )
+    if (value.cleanup.retentionDays < minimumDays) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Usage history must be kept for at least ${minimumDays} days so cleanup never removes requests that still count toward a quota.`,
+        path: ['cleanup', 'retentionDays'],
+      })
+    }
+  })
+  .meta({
+    id: 'QuotaSettingsPayload',
+    description:
+      'Writable quota settings. Send the whole object, it replaces the stored one.',
+  })
+
 // Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z
   .object({
@@ -181,7 +369,7 @@ export const ConfigFullSchema = z
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean(),
     // Logging & Performance
-    logLevel: LogLevelEnum.optional(),
+    logLevel: ConfigLogLevelSchema.optional(),
     closeGraceDelay: z
       .number()
       .meta({ description: 'Shutdown grace period in milliseconds' })
@@ -259,7 +447,6 @@ export const ConfigFullSchema = z
     deleteSyncRequiredTagRegex: z.string(),
     enablePlexPlaylistProtection: z.boolean(),
     plexProtectionPlaylistName: z.string(),
-    // Plex Label Sync Configuration - getConfig() always returns this with defaults
     plexLabelSync: PlexLabelSyncConfigSchema,
     // RSS Config
     selfRss: z.string().optional(),
@@ -271,69 +458,28 @@ export const ConfigFullSchema = z
     // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
     // persistHistoricalTags: z.boolean(),
     tagPrefix: z.string(),
-    tagNamingSource: z.enum(['username', 'alias']),
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
+    tagNamingSource: UserNamingSourceSchema,
+    removedTagMode: RemovedTagModeSchema,
     removedTagPrefix: z.string(),
     // Tag Migration Configuration
     tagMigration: TagMigrationSchema,
     // Plex Session Monitoring
-    plexSessionMonitoring: z
-      .object({
-        enabled: z.boolean(),
-        pollingIntervalMinutes: z.number(),
-        remainingEpisodes: z.number(),
-        filterUsers: z.array(z.string()).optional(),
-        enableAutoReset: z.boolean().optional(),
-        inactivityResetDays: z.number().optional(),
-        autoResetIntervalHours: z.number().optional(),
-        enableProgressiveCleanup: z.boolean().optional(),
-      })
-      .optional(),
+    plexSessionMonitoring: PlexSessionMonitoringConfigSchema.optional(),
     // New User Defaults - getConfig() applies defaults with Boolean() and || operators
     newUserDefaultCanSync: z.boolean(),
     newUserDefaultRequiresApproval: z.boolean(),
     newUserDefaultMovieQuotaEnabled: z.boolean(),
-    newUserDefaultMovieQuotaType: z.enum([
-      'daily',
-      'weekly_rolling',
-      'monthly',
-    ]),
+    newUserDefaultMovieQuotaType: QuotaTypeSchema,
     newUserDefaultMovieQuotaLimit: z.number(),
     newUserDefaultMovieBypassApproval: z.boolean(),
     newUserDefaultMovieWatchlistCap: z.number().nullable(),
     newUserDefaultShowQuotaEnabled: z.boolean(),
-    newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+    newUserDefaultShowQuotaType: QuotaTypeSchema,
     newUserDefaultShowQuotaLimit: z.number(),
     newUserDefaultShowBypassApproval: z.boolean(),
     newUserDefaultShowWatchlistCap: z.number().nullable(),
-    // Quota System Configuration - getConfig() always returns this with defaults
-    quotaSettings: z.object({
-      cleanup: z.object({
-        enabled: z.boolean(),
-        retentionDays: z.number(),
-      }),
-      weeklyRolling: z.object({
-        resetDays: z.number(),
-      }),
-      monthly: z.object({
-        resetDay: z.number(),
-        handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
-      }),
-    }),
-    // Approval System Configuration - getConfig() always returns this with defaults
-    approvalExpiration: z.object({
-      enabled: z.boolean(),
-      defaultExpirationHours: z.number(),
-      expirationAction: z.enum(['expire', 'auto_approve']),
-      // Auto-approve quota_exceeded requests when quota becomes available
-      autoApproveOnQuotaAvailable: z.boolean(),
-      // Per-trigger expiration overrides (optional - only present if explicitly set)
-      quotaExceededExpirationHours: z.number().optional(),
-      routerRuleExpirationHours: z.number().optional(),
-      manualFlagExpirationHours: z.number().optional(),
-      contentCriteriaExpirationHours: z.number().optional(),
-      cleanupExpiredDays: z.number(),
-    }),
+    quotaSettings: QuotaSettingsSchema,
+    approvalExpiration: ApprovalExpirationSchema,
     // Ready state
     _isReady: z.boolean().meta({
       description:
@@ -354,7 +500,7 @@ export const ConfigUpdateSchema = z
     dbPath: z.string().optional(),
     // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean().optional(),
-    logLevel: LogLevelEnum.optional(),
+    logLevel: ConfigLogLevelSchema.optional(),
     closeGraceDelay: z.number().optional(),
     rateLimitMax: z.number().optional(),
     queueProcessDelaySeconds: z.number().optional(),
@@ -393,21 +539,15 @@ export const ConfigUpdateSchema = z
     queueWaitTime: z.coerce
       .number()
       .int()
-      .min(0, { error: 'Queue wait time must be at least 0 milliseconds' })
-      .max(QUEUE_WAIT_TIME_MAX_MS, {
-        error: `Queue wait time cannot exceed ${QUEUE_WAIT_TIME_MAX_MS} milliseconds (30 minutes)`,
-      })
-      .optional(), // 0-30 minutes in ms
+      .min(QUEUE_WAIT_TIME_MS.min, { error: QUEUE_WAIT_TIME_ERROR })
+      .max(QUEUE_WAIT_TIME_MS.max, { error: QUEUE_WAIT_TIME_ERROR })
+      .optional(),
     newEpisodeThreshold: z.coerce
       .number()
       .int()
-      .min(0, {
-        error: 'New episode threshold must be at least 0 milliseconds',
-      })
-      .max(NEW_EPISODE_THRESHOLD_MAX_MS, {
-        error: `New episode threshold cannot exceed ${NEW_EPISODE_THRESHOLD_MAX_MS} milliseconds (720 hours)`,
-      })
-      .optional(), // 0-720 hours in ms
+      .min(NEW_EPISODE_THRESHOLD_MS.min, { error: NEW_EPISODE_THRESHOLD_ERROR })
+      .max(NEW_EPISODE_THRESHOLD_MS.max, { error: NEW_EPISODE_THRESHOLD_ERROR })
+      .optional(),
     // lastNotifiedVersion is internal-only; only the user-facing setting here.
     notifyOnUpdate: UpdateNotifyEnum.optional(),
     notifyOnAvailability: z.boolean().optional(),
@@ -432,7 +572,11 @@ export const ConfigUpdateSchema = z
     watchlistCapNotifyUser: z.boolean().optional(),
     watchlistAddNotify: NotifyOptionEnum.optional(),
     deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
-    maxDeletionPrevention: z.number().min(1).max(100).optional(),
+    maxDeletionPrevention: z
+      .number()
+      .min(MAX_DELETION_PREVENTION.min)
+      .max(MAX_DELETION_PREVENTION.max)
+      .optional(),
     // Deletion mode
     deletionMode: DeletionModeEnum.optional(),
     removedTagPrefix: RemovedTagPrefixSchema.optional(),
@@ -443,7 +587,7 @@ export const ConfigUpdateSchema = z
     // Cleanup approval_requests when content is deleted
     deleteSyncCleanupApprovals: z.boolean().optional(),
     // Tag removal mode
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
+    removedTagMode: RemovedTagModeSchema.optional(),
     // Plex Playlist Protection
     enablePlexPlaylistProtection: z.boolean().optional(),
     plexProtectionPlaylistName: z.string().optional(),
@@ -452,103 +596,28 @@ export const ConfigUpdateSchema = z
     // Primary token user: checks ALL accessible servers (owned + shared)
     // Friend/other users: checks ONLY the owned server (no access tokens for shared)
     skipIfExistsOnPlex: z.boolean().optional(),
-    // Plex Label Sync Configuration - nested object following complex config pattern
-    plexLabelSync: PlexLabelSyncConfigSchema.optional(),
+    plexLabelSync: PlexLabelSyncConfigPayloadSchema.optional(),
     // RSS and other settings
     selfRss: z.string().optional(),
     friendsRss: z.string().optional(),
     _isReady: z.boolean().optional(),
     // Plex Session Monitoring
-    plexSessionMonitoring: z
-      .object({
-        enabled: z.boolean(),
-        pollingIntervalMinutes: z.number().min(1),
-        remainingEpisodes: z.number().min(1),
-        filterUsers: z.array(z.string()).optional(),
-        // Rolling monitoring reset settings
-        enableAutoReset: z.boolean().optional(),
-        inactivityResetDays: z.number().min(1).max(365).optional(),
-        autoResetIntervalHours: z.number().min(1).max(168).optional(),
-        // Progressive cleanup mode - cleans up previous seasons as user progresses
-        enableProgressiveCleanup: z.boolean().optional(),
-      })
-      .optional(),
+    plexSessionMonitoring: PlexSessionMonitoringConfigPayloadSchema.optional(),
     // New User Defaults
     newUserDefaultCanSync: z.boolean().optional(),
     newUserDefaultRequiresApproval: z.boolean().optional(),
     newUserDefaultMovieQuotaEnabled: z.boolean().optional(),
-    newUserDefaultMovieQuotaType: z
-      .enum(['daily', 'weekly_rolling', 'monthly'])
-      .optional(),
-    newUserDefaultMovieQuotaLimit: z.number().min(1).max(1000).optional(),
+    newUserDefaultMovieQuotaType: QuotaTypeSchema.optional(),
+    newUserDefaultMovieQuotaLimit: QuotaLimitSchema.optional(),
     newUserDefaultMovieBypassApproval: z.boolean().optional(),
-    newUserDefaultMovieWatchlistCap: z.number().min(1).nullable().optional(),
+    newUserDefaultMovieWatchlistCap: WatchlistCapSchema.nullable().optional(),
     newUserDefaultShowQuotaEnabled: z.boolean().optional(),
-    newUserDefaultShowQuotaType: z
-      .enum(['daily', 'weekly_rolling', 'monthly'])
-      .optional(),
-    newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
+    newUserDefaultShowQuotaType: QuotaTypeSchema.optional(),
+    newUserDefaultShowQuotaLimit: QuotaLimitSchema.optional(),
     newUserDefaultShowBypassApproval: z.boolean().optional(),
-    newUserDefaultShowWatchlistCap: z.number().min(1).nullable().optional(),
-    // Quota System Configuration
-    quotaSettings: z
-      .object({
-        // Cleanup configuration
-        cleanup: z
-          .object({
-            enabled: z.boolean().optional(),
-            retentionDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
-          })
-          .optional(),
-        // Weekly rolling quota configuration
-        weeklyRolling: z
-          .object({
-            resetDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
-          })
-          .optional(),
-        // Monthly quota configuration
-        monthly: z
-          .object({
-            resetDay: z.number().min(1).max(31).optional(), // 1st to 31st
-            handleMonthEnd: z
-              .enum(['last-day', 'skip-month', 'next-month'])
-              .optional(),
-          })
-          .optional(),
-      })
-      .superRefine((value, ctx) => {
-        if (value.cleanup?.enabled === false) return
-        const minimumDays = longestQuotaWindowDays(
-          resolveQuotaWindowSettings(value),
-        )
-        if ((value.cleanup?.retentionDays ?? 90) < minimumDays) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `Usage history must be kept for at least ${minimumDays} days so cleanup never removes requests that still count toward a quota.`,
-            path: ['cleanup', 'retentionDays'],
-          })
-        }
-      })
-      .optional(),
-    // Approval System Configuration
-    approvalExpiration: z
-      .object({
-        enabled: z.boolean().optional(),
-        // Default expiration time in hours for approval requests
-        defaultExpirationHours: z.number().min(1).max(8760).optional(), // 1 hour to 1 year
-        // What happens when approvals expire
-        expirationAction: z.enum(['expire', 'auto_approve']).optional(),
-        // Auto-approve quota_exceeded requests when quota becomes available
-        autoApproveOnQuotaAvailable: z.boolean().optional(),
-        // Per-trigger expiration overrides
-        quotaExceededExpirationHours: z.number().min(1).max(8760).optional(),
-        routerRuleExpirationHours: z.number().min(1).max(8760).optional(),
-        manualFlagExpirationHours: z.number().min(1).max(8760).optional(),
-        contentCriteriaExpirationHours: z.number().min(1).max(8760).optional(),
-        // Maintenance settings
-        cleanupExpiredDays: z.number().min(1).max(365).optional(),
-      })
-      .optional(),
+    newUserDefaultShowWatchlistCap: WatchlistCapSchema.nullable().optional(),
+    quotaSettings: QuotaSettingsPayloadSchema.optional(),
+    approvalExpiration: ApprovalExpirationPayloadSchema.optional(),
     // TMDB Configuration
     tmdbRegion: z
       .string()
@@ -562,7 +631,7 @@ export const ConfigUpdateSchema = z
     tagUsersInRadarr: z.boolean().optional(),
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
-    tagNamingSource: z.enum(['username', 'alias']).optional(),
+    tagNamingSource: UserNamingSourceSchema.optional(),
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
     tagMigration: TagMigrationSchema,
   })

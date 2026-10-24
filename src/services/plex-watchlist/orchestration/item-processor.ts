@@ -1,3 +1,4 @@
+import { PLEX_LABEL_CONCURRENCY } from '@root/schemas/plex/label-sync-config.schema.js'
 import type { Config } from '@root/types/config.types.js'
 import type {
   Friend,
@@ -7,6 +8,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from '../../plex-label-sync.service.js'
@@ -139,6 +141,12 @@ export async function processAndSaveNewItems(
       )
       await db.syncGenresFromWatchlist()
 
+      emitWatchlistChange(
+        fastify.progress,
+        'added',
+        insertedResults.map(({ user_id }) => user_id),
+      )
+
       if (
         plexLabelSyncService &&
         config.plexLabelSync?.enabled &&
@@ -152,8 +160,7 @@ export async function processAndSaveNewItems(
 
           const itemMap = new Map(itemsToInsert.map((item) => [item.key, item]))
 
-          const concurrencyLimit = config.plexLabelSync?.concurrencyLimit || 5
-          const limit = pLimit(concurrencyLimit)
+          const limit = pLimit(PLEX_LABEL_CONCURRENCY)
 
           const syncResults = await Promise.allSettled(
             insertedResults.map(({ id, key }) =>

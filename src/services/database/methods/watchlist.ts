@@ -1222,7 +1222,7 @@ export async function getAllMovieWatchlistItems(
 }
 
 /**
- * Inserts multiple watchlist items in bulk and returns their database IDs and keys.
+ * Inserts multiple watchlist items in bulk and returns their database IDs, owners and keys.
  *
  * Supports conflict resolution: use 'ignore' (default) to skip duplicates or 'merge' to update existing entries.
  * When using 'merge', only metadata fields (title, type, thumb, guids, genres) are updated - status is never
@@ -1230,14 +1230,14 @@ export async function getAllMovieWatchlistItems(
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
  * @param options - Optional conflict resolution mode: 'ignore' (default) or 'merge'
- * @returns Array of objects with the IDs and keys of inserted or merged items
+ * @returns Array of objects with the IDs, user IDs and keys of inserted or merged items
  */
 export async function createWatchlistItems(
   this: DatabaseService,
   items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
   options: { onConflict?: 'ignore' | 'merge' } = { onConflict: 'ignore' },
-): Promise<{ id: number; key: string }[]> {
-  const insertedIds: { id: number; key: string }[] = []
+): Promise<{ id: number; user_id: number; key: string }[]> {
+  const insertedIds: { id: number; user_id: number; key: string }[] = []
 
   await this.knex.transaction(async (trx) => {
     const chunks = this.chunkArray(items, 250)
@@ -1281,13 +1281,13 @@ export async function createWatchlistItems(
             'tmdb_rating',
             'updated_at',
           ])
-          .returning(['id', 'key'])
+          .returning(['id', 'user_id', 'key'])
         insertedIds.push(...results)
       } else {
         const results = await query
           .onConflict(['user_id', 'key'])
           .ignore()
-          .returning(['id', 'key'])
+          .returning(['id', 'user_id', 'key'])
         insertedIds.push(...results)
       }
     }
@@ -1392,12 +1392,6 @@ export async function deleteWatchlistItems(
         )
       }
     }
-
-    // Clear exclusions so re-adding the item to a watchlist allows routing again
-    await trx('watchlist_exclusions')
-      .where('user_id', numericUserId)
-      .whereIn('key', keys)
-      .delete()
 
     // Delete watchlist items (CASCADE will handle notifications with non-NULL watchlist_item_id)
     await trx('watchlist_items')

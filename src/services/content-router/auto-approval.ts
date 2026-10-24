@@ -1,3 +1,4 @@
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema.js'
 import type { RouterDecision } from '@root/types/approval.types.js'
 import type {
   ContentItem,
@@ -24,7 +25,7 @@ function toApprovalRouting(
     qualityProfile: routing.qualityProfile,
     rootFolder: routing.rootFolder,
     tags: routing.tags,
-    priority: 50,
+    priority: DEFAULT_ROUTE_PRIORITY,
     searchOnAdd: routing.searchOnAdd,
     seasonMonitoring: routing.seasonMonitoring,
     seriesType: routing.seriesType,

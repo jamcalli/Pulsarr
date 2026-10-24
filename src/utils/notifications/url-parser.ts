@@ -1,6 +1,6 @@
+import { isValidAppriseEndpoint } from '@root/schemas/common/apprise-endpoint.js'
+import { splitUrlList } from '@root/schemas/common/url-list.js'
 import type { Config, PublicContentKeyMap } from '@root/types/config.types.js'
-import { splitUrlList } from '@utils/url.js'
-import { isValidAppriseEndpoint } from './apprise-email.js'
 
 /**
  * Parses a comma-separated string into a deduplicated array of valid, trimmed URLs or email addresses.

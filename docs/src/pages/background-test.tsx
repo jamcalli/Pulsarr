@@ -31,7 +31,7 @@ export default function BackgroundTest(): React.ReactElement {
           const CrtOverlay =
             require('@/client/components/backdrop/crt-overlay').default
           const Asteroids = require('@/client/components/backdrop/asteroids').default
-          const { AspectRatio } = require('@/client/components/ui/aspect-ratio')
+          const { AspectRatio } = require('@/client/legacy/components/ui/aspect-ratio')
           const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
           const planetDesktop =
             require('@/client/assets/images/planet.webp').default
@@ -95,8 +95,8 @@ export default function BackgroundTest(): React.ReactElement {
                   style={{ position: 'relative', zIndex: 10, padding: '2rem' }}
                 >
                   <h1
+                    className="text-backdrop-title"
                     style={{
-                      color: 'var(--static-text)',
                       fontSize: '3rem',
                       fontWeight: 'bold',
                       textAlign: 'center',
@@ -105,8 +105,8 @@ export default function BackgroundTest(): React.ReactElement {
                     Background Test Page
                   </h1>
                   <p
+                    className="text-backdrop-title"
                     style={{
-                      color: 'var(--static-text)',
                       fontSize: '1.25rem',
                       textAlign: 'center',
                       marginTop: '1rem',
@@ -126,7 +126,7 @@ export default function BackgroundTest(): React.ReactElement {
                       margin: '2rem auto',
                     }}
                   >
-                    <h2 style={{ color: 'var(--static-text)' }}>
+                    <h2 className="text-backdrop-title">
                       Content with Background
                     </h2>
                     <p style={{ color: 'var(--text)' }}>

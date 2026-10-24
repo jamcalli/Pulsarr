@@ -1,6 +1,12 @@
 import type React from 'react'
 import { useEffect, useRef } from 'react'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
+import {
+  layoutViewport,
+  sameViewport,
+  type ViewportSize,
+} from '@/lib/layout-viewport'
 
 interface CRTOverlayProps {
   children: React.ReactNode
@@ -14,12 +20,35 @@ const intensitySettings = {
   heavy: { scanlineOpacity: 0.4, rgbOffset: 0.09 },
 }
 
-// hardFlicker: 0.16s cycle, 3 discrete steps
-const HARD_STEPS = [1.0, 0.92, 0.85]
-const HARD_PERIOD = 160
-// softFlicker: 2s smooth cycle, opacity 0.1 → 0.15
 const SOFT_PERIOD = 2000
+const STATIC_SOFT_OPACITY = 0.125
 const FRAME_INTERVAL = 1000 / 20
+
+function softOpacityAt(timestamp: number): number {
+  const phase = (timestamp % SOFT_PERIOD) / SOFT_PERIOD
+  return 0.1 + 0.05 * (0.5 - 0.5 * Math.cos(phase * Math.PI * 2))
+}
+
+function drawFrame(
+  ctx: CanvasRenderingContext2D,
+  pattern: HTMLCanvasElement,
+  width: number,
+  height: number,
+  softOpacity: number,
+) {
+  const dpr = window.devicePixelRatio || 1
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, width, height)
+
+  ctx.globalAlpha = 1
+  ctx.drawImage(pattern, 0, 0, width, height)
+
+  ctx.globalAlpha = softOpacity
+  ctx.fillStyle = 'black'
+  ctx.fillRect(0, 0, width, height)
+
+  ctx.globalAlpha = 1
+}
 
 function createPatternCanvas(
   width: number,
@@ -69,6 +98,7 @@ const CRTOverlay = ({
   const animFrameRef = useRef<number>(0)
   const lastFrameRef = useRef<number>(0)
   const isPageVisible = usePageVisibility()
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
   const settings = intensitySettings[intensity]
 
@@ -77,33 +107,49 @@ const CRTOverlay = ({
     const canvas = canvasRef.current
     if (!canvas) return
 
+    let drawn: ViewportSize | null = null
     const setupCanvas = () => {
-      const dpr = window.devicePixelRatio || 1
-      const width = window.innerWidth
-      const height = window.innerHeight
+      const size = layoutViewport()
+      if (sameViewport(drawn, size)) return
+      drawn = size
+
+      const { width, height, dpr } = size
 
       canvas.width = width * dpr
       canvas.height = height * dpr
       canvas.style.width = `${width}px`
       canvas.style.height = `${height}px`
 
-      patternRef.current = createPatternCanvas(
+      const pattern = createPatternCanvas(
         width,
         height,
         dpr,
         settings.scanlineOpacity,
         settings.rgbOffset,
       )
+      patternRef.current = pattern
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      drawFrame(
+        ctx,
+        pattern,
+        width,
+        height,
+        prefersReducedMotion
+          ? STATIC_SOFT_OPACITY
+          : softOpacityAt(performance.now()),
+      )
     }
 
     setupCanvas()
     window.addEventListener('resize', setupCanvas)
     return () => window.removeEventListener('resize', setupCanvas)
-  }, [settings.scanlineOpacity, settings.rgbOffset])
+  }, [settings.scanlineOpacity, settings.rgbOffset, prefersReducedMotion])
 
   // Animation loop
   useEffect(() => {
-    if (!isPageVisible) {
+    if (!isPageVisible || prefersReducedMotion) {
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current)
         animFrameRef.current = 0
@@ -138,26 +184,13 @@ const CRTOverlay = ({
       }
 
       const dpr = window.devicePixelRatio || 1
-      const width = canvas.width / dpr
-      const height = canvas.height / dpr
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, width, height)
-
-      // Hard flicker: 3 discrete opacity steps over 0.16s
-      const hardStep = Math.floor(((timestamp % HARD_PERIOD) / HARD_PERIOD) * 3)
-      ctx.globalAlpha = HARD_STEPS[hardStep]
-      ctx.drawImage(pattern, 0, 0, width, height)
-
-      // Soft flicker: smooth 0.1 → 0.15 over 2s
-      const softPhase = (timestamp % SOFT_PERIOD) / SOFT_PERIOD
-      const softOpacity =
-        0.1 + 0.05 * (0.5 - 0.5 * Math.cos(softPhase * Math.PI * 2))
-      ctx.globalAlpha = softOpacity
-      ctx.fillStyle = 'black'
-      ctx.fillRect(0, 0, width, height)
-
-      ctx.globalAlpha = 1
+      drawFrame(
+        ctx,
+        pattern,
+        canvas.width / dpr,
+        canvas.height / dpr,
+        softOpacityAt(timestamp),
+      )
       animFrameRef.current = requestAnimationFrame(loop)
     }
 
@@ -169,7 +202,7 @@ const CRTOverlay = ({
         animFrameRef.current = 0
       }
     }
-  }, [isPageVisible])
+  }, [isPageVisible, prefersReducedMotion])
 
   return (
     <div className={`relative overflow-hidden ${className}`}>

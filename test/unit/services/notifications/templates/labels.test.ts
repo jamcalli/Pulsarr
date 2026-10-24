@@ -1,8 +1,8 @@
 import {
   describeContent,
+  displayName,
   formatTriggerReason,
   mediaTypeLabel,
-  userLabel,
 } from '@services/notifications/templates/labels.js'
 import { describe, expect, it } from 'vitest'
 
@@ -28,26 +28,35 @@ describe('mediaTypeLabel', () => {
   })
 })
 
-describe('userLabel', () => {
-  it('should prefer the name', () => {
-    expect(userLabel('john_doe', 7)).toBe('john_doe')
+describe('displayName', () => {
+  it('should prefer the alias', () => {
+    expect(displayName({ name: 'john_doe', alias: 'John' }, 7)).toBe('John')
   })
 
-  it('should fall back to the user id for a missing or empty name', () => {
-    expect(userLabel(null, 7)).toBe('User 7')
-    expect(userLabel('', 7)).toBe('User 7')
+  it('should use the name without an alias', () => {
+    expect(displayName({ name: 'john_doe', alias: null }, 7)).toBe('john_doe')
+  })
+
+  it('should fall through an empty alias to the name', () => {
+    expect(displayName({ name: 'john_doe', alias: '' }, 7)).toBe('john_doe')
+  })
+
+  it('should fall back to the user id when both are missing or the user is null', () => {
+    expect(displayName({ name: null, alias: null }, 7)).toBe('User 7')
+    expect(displayName({}, 7)).toBe('User 7')
+    expect(displayName(null, 7)).toBe('User 7')
   })
 })
 
 describe('formatTriggerReason', () => {
   it('should put the reason under the trigger label', () => {
     expect(formatTriggerReason('quota_exceeded', 'Monthly quota (5/5)')).toBe(
-      'Quota Exceeded\nMonthly quota (5/5)',
+      'Quota exceeded\nMonthly quota (5/5)',
     )
   })
 
   it('should return the label alone without a reason', () => {
-    expect(formatTriggerReason('router_rule', null)).toBe('Router Rule')
+    expect(formatTriggerReason('router_rule', null)).toBe('Router rule')
   })
 })
 

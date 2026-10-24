@@ -1,6 +1,7 @@
 import type { DirectMessage } from '@root/types/discord.types.js'
 import type {
   DeliveryResult,
+  DiscordBotStatus,
   NotificationTestResult,
 } from '@root/types/notification.types.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -19,12 +20,10 @@ import {
 } from './command-registry.js'
 import { setupBotEventHandlers } from './event-router.js'
 
-export type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping'
-
 export class DiscordBotService {
   private readonly log: FastifyBaseLogger
   private botClient: Client | null = null
-  private botStatus: BotStatus = 'stopped'
+  private botStatus: DiscordBotStatus = 'stopped'
   private startAttempt = 0
   private statusChangeCallback: (() => void) | null = null
   private readonly commands: Map<string, Command>
@@ -157,7 +156,7 @@ export class DiscordBotService {
     }
   }
 
-  getBotStatus(): BotStatus {
+  getBotStatus(): DiscordBotStatus {
     return this.botStatus
   }
 
@@ -166,7 +165,7 @@ export class DiscordBotService {
   }
 
   // Every transition notifies, including the intermediate starting and stopping states
-  private setBotStatus(status: BotStatus): void {
+  private setBotStatus(status: DiscordBotStatus): void {
     if (this.botStatus === status) return
     this.botStatus = status
     this.statusChangeCallback?.()

@@ -1,311 +1,93 @@
-import { useState } from 'react'
-import type { z } from 'zod'
-import { PageError } from '@/components/page-error'
-import { UtilitySectionHeader } from '@/components/utility-section-header'
-import BulkEditModal from '@/features/users/components/plex-users/bulk-edit-modal'
-import { BulkQuotaEditModal } from '@/features/users/components/plex-users/bulk-quota-edit-modal'
-import { QuotaDeleteConfirmation } from '@/features/users/components/plex-users/quota-delete-confirmation'
-import { QuotaEditModal } from '@/features/users/components/plex-users/quota-edit-modal'
-import UserEditModal from '@/features/users/components/plex-users/user-edit-modal'
-import UserTable from '@/features/users/components/plex-users/user-table'
-import { useBulkQuotaManagement } from '@/features/users/hooks/useBulkQuotaManagement'
-import { usePlexBulkUpdate } from '@/features/users/hooks/usePlexBulkUpdate'
-import { usePlexUser } from '@/features/users/hooks/usePlexUser'
-import { useQuotaManagement } from '@/features/users/hooks/useQuotaManagement'
-import type { PlexUserTableRow } from '@/features/users/lib/types'
-import { useApprovalEvents } from '@/hooks/useApprovalEvents'
-import { useConfig } from '@/hooks/useConfig'
-import { useShowLoading } from '@/hooks/useMinLoading'
+import { DataTableFooter } from '@/components/data-table/data-table-footer'
+import { Page, PageHeader } from '@/components/page-header'
+import { RetryAlert } from '@/components/retry-alert'
+import { BulkQuotaCredenza } from '@/features/users/components/plex-users/bulk-quota-credenza'
+import { BulkSettingsCredenza } from '@/features/users/components/plex-users/bulk-settings-credenza'
+import { NotYetFriendsCard } from '@/features/users/components/plex-users/not-yet-friends-card'
+import { PlexUsersBar } from '@/features/users/components/plex-users/plex-users-bar'
 import {
-  invalidateQuotaData,
-  invalidateUserData,
-  type UserWithQuotaInfo,
-  useUsersWithQuota,
-} from '@/hooks/usePlexUsers'
-import type {
-  BulkQuotaFormSchema,
-  QuotaFormData,
-} from '@/lib/quota-form-schema'
+  PlexNotConnectedEmpty,
+  PlexUsersNoResults,
+} from '@/features/users/components/plex-users/plex-users-empty'
+import { PlexUsersFilters } from '@/features/users/components/plex-users/plex-users-filters'
+import {
+  PlexUsersBodySkeleton,
+  PlexUsersSkeleton,
+} from '@/features/users/components/plex-users/plex-users-skeleton'
+import { PlexUsersTable } from '@/features/users/components/plex-users/plex-users-table'
+import {
+  type PlexUsersPage as UsersPage,
+  usePlexUsersPage,
+} from '@/features/users/hooks/plex-users/usePlexUsersPage'
+import { NAV_PAGES } from '@/lib/navigation'
 
-/**
- * Displays the Plex Users administration page, allowing administrators to view, edit, and manage user watchlists, individual user settings, quotas, and perform bulk operations.
- *
- * Integrates user and quota management hooks, handles approval event-driven data refresh, and manages modal and loading states for both individual and bulk user and quota editing workflows.
- *
- * @returns The rendered Plex Users administration page component.
- */
-export default function PlexUsersPage() {
-  const { initialize, isInitialized, error: configError } = useConfig()
+const SECTION = 'Users'
+const TITLE = NAV_PAGES.plexUsers.label
+const DESCRIPTION =
+  'Set sync, approval, notifications and quotas for each person.'
 
-  const {
-    selectedUser,
-    isEditModalOpen,
-    setIsEditModalOpen,
-    saveStatus,
-    handleEditUser,
-    handleUpdateUser,
-  } = usePlexUser()
+function UsersBody({ page }: { page: UsersPage }) {
+  const { rows } = page
 
-  const {
-    bulkEditModalOpen,
-    setBulkEditModalOpen,
-    updateStatus: bulkUpdateStatus,
-    selectedRows,
-    handleOpenBulkEditModal,
-    handleBulkUpdate,
-  } = usePlexBulkUpdate()
+  if (page.isLoading) return <PlexUsersBodySkeleton />
+  if (rows === null) return null
 
-  const {
-    saveStatus: quotaSaveStatus,
-    saveQuota,
-    setSaveStatus: setQuotaSaveStatus,
-    getPendingHeldCount,
-  } = useQuotaManagement()
-
-  const {
-    saveStatus: bulkQuotaSaveStatus,
-    performBulkOperation,
-    setSaveStatus: setBulkQuotaSaveStatus,
-  } = useBulkQuotaManagement()
-
-  // Listen for approval events to refresh quota data
-  useApprovalEvents({
-    onApprovalApproved: () => {
-      // Refresh quota data when approvals are processed
-      invalidateQuotaData()
-    },
-    onApprovalRejected: () => {
-      // Refresh quota data when approvals are rejected
-      invalidateQuotaData()
-    },
-    showToasts: false, // Don't show duplicate toasts on this page
-  })
-
-  // Quota modal state
-  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false)
-  const [selectedQuotaUser, setSelectedQuotaUser] =
-    useState<UserWithQuotaInfo | null>(null)
-
-  // Quota delete confirmation state
-  const [showQuotaDeleteConfirmation, setShowQuotaDeleteConfirmation] =
-    useState(false)
-  const [pendingHeldCount, setPendingHeldCount] = useState({
-    movieCount: 0,
-    showCount: 0,
-  })
-  const [pendingQuotaSave, setPendingQuotaSave] = useState<{
-    user: UserWithQuotaInfo
-    formData: QuotaFormData
-  } | null>(null)
-  const [isQuotaDeleteSubmitting, setIsQuotaDeleteSubmitting] = useState(false)
-
-  // Bulk quota modal state
-  const [isBulkQuotaModalOpen, setIsBulkQuotaModalOpen] = useState(false)
-  const [selectedQuotaRows, setSelectedQuotaRows] = useState<
-    PlexUserTableRow[]
-  >([])
-
-  const {
-    usersWithQuota,
-    hasUserData,
-    isLoading: usersLoading,
-    isError: usersError,
-    refetch: refetchUsers,
-  } = useUsersWithQuota()
-
-  const isLoading = useShowLoading(!isInitialized || usersLoading)
-
-  // Quota handlers
-  const handleEditQuota = (user: UserWithQuotaInfo) => {
-    setSelectedQuotaUser(user)
-    setIsQuotaModalOpen(true)
-    setQuotaSaveStatus({ type: 'idle' })
-  }
-
-  const handleQuotaModalClose = (open: boolean) => {
-    if (!open) {
-      setIsQuotaModalOpen(false)
-      setSelectedQuotaUser(null)
-      setQuotaSaveStatus({ type: 'idle' })
-    }
-  }
-
-  const handleSaveQuota = async (formData: QuotaFormData) => {
-    if (!selectedQuotaUser) return
-
-    // Detect if quotas are being deleted (user has existing quotas but form disables both)
-    const hasExistingQuotas =
-      selectedQuotaUser.userQuotas?.movieQuota ||
-      selectedQuotaUser.userQuotas?.showQuota
-    // Detect if any individual quota is being removed
-    const isRemovingMovieQuota =
-      !!selectedQuotaUser.userQuotas?.movieQuota && !formData.hasMovieQuota
-    const isRemovingShowQuota =
-      !!selectedQuotaUser.userQuotas?.showQuota && !formData.hasShowQuota
-    const isRemovingAnyQuota = isRemovingMovieQuota || isRemovingShowQuota
-
-    if (hasExistingQuotas && isRemovingAnyQuota) {
-      try {
-        const counts = await getPendingHeldCount(selectedQuotaUser.id)
-        // Only show counts for quota types actually being removed
-        const relevantCounts = {
-          movieCount: isRemovingMovieQuota ? counts.movieCount : 0,
-          showCount: isRemovingShowQuota ? counts.showCount : 0,
-        }
-        if (relevantCounts.movieCount > 0 || relevantCounts.showCount > 0) {
-          // Has held items for removed quota types — show confirmation credenza
-          setPendingHeldCount(relevantCounts)
-          setPendingQuotaSave({ user: selectedQuotaUser, formData })
-          setIsQuotaModalOpen(false)
-          setShowQuotaDeleteConfirmation(true)
-          return
-        }
-      } catch {
-        // If we can't fetch counts, proceed without confirmation
-      }
-    }
-
-    // No held items or not removing quotas — proceed normally
-    await saveQuota(selectedQuotaUser, formData, undefined, () => {
-      setIsQuotaModalOpen(false)
-      setSelectedQuotaUser(null)
-    })
-  }
-
-  const handleQuotaDeleteConfirm = async (autoApprove: boolean) => {
-    if (!pendingQuotaSave) return
-    setIsQuotaDeleteSubmitting(true)
-    try {
-      await saveQuota(
-        pendingQuotaSave.user,
-        pendingQuotaSave.formData,
-        { autoApproveHeld: autoApprove },
-        () => {
-          setPendingQuotaSave(null)
-          setSelectedQuotaUser(null)
-        },
-      )
-    } finally {
-      setIsQuotaDeleteSubmitting(false)
-    }
-  }
-
-  const handleQuotaDeleteConfirmationClose = (open: boolean) => {
-    if (!open) {
-      setShowQuotaDeleteConfirmation(false)
-      setPendingQuotaSave(null)
-      setPendingHeldCount({ movieCount: 0, showCount: 0 })
-      setIsQuotaDeleteSubmitting(false)
-    }
-  }
-
-  // Bulk quota handlers
-  const handleOpenBulkQuotaModal = (selectedRows: PlexUserTableRow[]) => {
-    setSelectedQuotaRows(selectedRows)
-    setIsBulkQuotaModalOpen(true)
-    setBulkQuotaSaveStatus({ type: 'idle' })
-  }
-
-  const handleBulkQuotaModalClose = (open: boolean) => {
-    if (!open) {
-      setIsBulkQuotaModalOpen(false)
-      setSelectedQuotaRows([])
-      setBulkQuotaSaveStatus({ type: 'idle' })
-    }
-  }
-
-  const handleBulkQuotaSave = async (
-    formData: z.input<typeof BulkQuotaFormSchema>,
-  ) => {
-    await performBulkOperation(selectedQuotaRows, formData, () => {
-      setIsBulkQuotaModalOpen(false)
-      setSelectedQuotaRows([])
-    })
-  }
-
-  if (configError && !isInitialized) {
-    return <PageError message={configError} onRetry={() => initialize(true)} />
-  }
-
-  if (usersError) {
-    return (
-      <PageError
-        message="Failed to load user data"
-        onRetry={() => refetchUsers()}
+  return (
+    <div className="flex flex-col gap-5">
+      <PlexUsersFilters page={page} />
+      {rows.length === 0 ? (
+        <PlexUsersNoResults page={page} />
+      ) : (
+        <PlexUsersTable page={page} rows={rows} />
+      )}
+      <DataTableFooter
+        page={page.page}
+        pageSize={page.pageSize}
+        onPageSizeChange={page.setPageSize}
+        total={page.total}
+        pageHref={page.pageHref}
+        onPageChange={page.setPage}
       />
+      <NotYetFriendsCard accounts={page.untracked} />
+    </div>
+  )
+}
+
+export default function PlexUsersPage() {
+  const page = usePlexUsersPage()
+  const header = (
+    <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
+  )
+
+  if (!page.isReady) {
+    return <PlexUsersSkeleton />
+  }
+
+  if (!page.plexConnected) {
+    return (
+      <Page wide>
+        {header}
+        <PlexNotConnectedEmpty />
+      </Page>
     )
   }
 
-  if (!isInitialized && !isLoading) {
-    return null
+  if (page.errorMessage) {
+    return (
+      <Page wide>
+        {header}
+        <RetryAlert message={page.errorMessage} onRetry={page.retry} />
+      </Page>
+    )
   }
 
   return (
-    <div>
-      <UtilitySectionHeader
-        title="User Watchlists"
-        description="Watchlist syncing requires Plex friendship. Click status badges to send, cancel, or resend friend requests. Users who aren't friends cannot be configured until a friendship is established."
-        showStatus={false}
-      />
-      <div className="grid gap-4">
-        {!hasUserData && !isLoading && usersWithQuota !== null ? (
-          <div className="text-center py-8 text-foreground">
-            No watchlist data available
-          </div>
-        ) : (
-          <>
-            <UserTable
-              users={usersWithQuota || []}
-              onEditUser={handleEditUser}
-              onEditQuota={handleEditQuota}
-              isLoading={isLoading}
-              onBulkEdit={handleOpenBulkEditModal}
-              onBulkEditQuotas={handleOpenBulkQuotaModal}
-              onRefreshStatus={invalidateUserData}
-            />
-            {/* Individual user edit modal */}
-            <UserEditModal
-              open={isEditModalOpen}
-              onOpenChange={setIsEditModalOpen}
-              user={selectedUser}
-              onSave={handleUpdateUser}
-              saveStatus={saveStatus}
-            />
-            {/* Quota edit modal */}
-            <QuotaEditModal
-              isOpen={isQuotaModalOpen}
-              onOpenChange={handleQuotaModalClose}
-              user={selectedQuotaUser}
-              onSave={handleSaveQuota}
-              saveStatus={quotaSaveStatus}
-            />
-            {/* Quota delete confirmation */}
-            <QuotaDeleteConfirmation
-              open={showQuotaDeleteConfirmation}
-              onOpenChange={handleQuotaDeleteConfirmationClose}
-              onConfirm={handleQuotaDeleteConfirm}
-              pendingCount={pendingHeldCount}
-              isSubmitting={isQuotaDeleteSubmitting}
-            />
-            {/* Bulk edit modal */}
-            <BulkEditModal
-              open={bulkEditModalOpen}
-              onOpenChange={setBulkEditModalOpen}
-              selectedRows={selectedRows}
-              onSave={handleBulkUpdate}
-              saveStatus={bulkUpdateStatus}
-            />
-            {/* Bulk quota edit modal */}
-            <BulkQuotaEditModal
-              isOpen={isBulkQuotaModalOpen}
-              onOpenChange={handleBulkQuotaModalClose}
-              selectedRows={selectedQuotaRows}
-              onSave={handleBulkQuotaSave}
-              saveStatus={bulkQuotaSaveStatus}
-            />
-          </>
-        )}
-      </div>
-    </div>
+    <Page wide>
+      {header}
+      <UsersBody page={page} />
+      <PlexUsersBar page={page} />
+      <BulkSettingsCredenza page={page} />
+      <BulkQuotaCredenza page={page} />
+    </Page>
   )
 }

@@ -85,11 +85,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Get user quotas',
         operationId: 'getUserQuotas',
-        description: 'Get quota configurations for a specific user',
+        description:
+          'Get quota configurations for a specific user. Each quota is absent when the user has none for that content type.',
         params: QuotaUserIdParamsSchema,
         response: {
           200: UserQuotaGetResponseSchema,
-          404: QuotaErrorSchema,
+          500: QuotaErrorSchema,
         },
         tags: ['Quota'],
       },
@@ -98,10 +99,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const userId = request.params.userId
         const userQuotas = await fastify.db.getUserQuotas(userId)
-
-        if (!userQuotas.movieQuota && !userQuotas.showQuota) {
-          return reply.notFound('User quotas not found')
-        }
 
         return {
           success: true,

@@ -1,12 +1,20 @@
+import { DiscordIdSchema } from '@root/schemas/common/discord-id.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
-import { UserBaseSchema } from '@root/schemas/users/users-list.schema.js'
+import {
+  UserBaseSchema,
+  UserWithFriendStatusSchema,
+} from '@root/schemas/users/users-list.schema.js'
 import { z } from 'zod'
 
 export const CreateUserSchema = z.object({
   name: z.string().min(3).max(255),
   apprise: z.string().nullable(),
-  alias: z.string().min(3).max(255).nullable(),
-  discord_id: z.string().nullable(),
+  alias: z
+    .string()
+    .min(3, { error: 'Use at least 3 characters.' })
+    .max(255)
+    .nullable(),
+  discord_id: DiscordIdSchema.nullable(),
   notify_apprise: z.boolean(),
   notify_discord: z.boolean(),
   notify_discord_mention: z.boolean(),
@@ -19,6 +27,12 @@ export const UserResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   user: UserBaseSchema,
+})
+
+export const UserWithFriendStatusResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  user: UserWithFriendStatusSchema,
 })
 
 export const UpdateUserSchema = CreateUserSchema.partial()

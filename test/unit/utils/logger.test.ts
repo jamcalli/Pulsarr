@@ -46,32 +46,10 @@ type LoggerConfigWithSerializers = {
 }
 
 // Now import the module after mocks are set up
-const {
-  createServiceLogger,
-  validLogLevels,
-  pinoLevelToName,
-  parseModuleFromMsg,
-} = await import('@utils/logger.js')
+const { createServiceLogger, pinoLevelToName, parseModuleFromMsg } =
+  await import('@utils/logger.js')
 
 describe('logger', () => {
-  describe('validLogLevels', () => {
-    it('should export all valid pino log levels', () => {
-      expect(validLogLevels).toEqual([
-        'fatal',
-        'error',
-        'warn',
-        'info',
-        'debug',
-        'trace',
-        'silent',
-      ])
-    })
-
-    it('should be an array of 7 log levels', () => {
-      expect(validLogLevels).toHaveLength(7)
-    })
-  })
-
   describe('pinoLevelToName', () => {
     it('should map standard pino levels', () => {
       expect(pinoLevelToName(10)).toBe('trace')

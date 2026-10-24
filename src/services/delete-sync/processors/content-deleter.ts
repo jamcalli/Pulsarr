@@ -1,6 +1,10 @@
+import { PLEX_PROTECTION_PLAYLIST_DEFAULT } from '@root/schemas/shared/delete-sync-limits.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { TagCache, TagService } from '@services/delete-sync/cache/index.js'
+import type {
+  TagCache,
+  TagService,
+} from '@services/delete-sync/cache/tag-cache.js'
 import type { DeletionCounters } from '@services/delete-sync/utils/deletion-counters.js'
 import type {
   ContentValidators,
@@ -283,7 +287,7 @@ export async function processMovieDeletions(
 
         if (validation.protected) {
           logger.info(
-            `Skipping deletion of movie "${movie.title}" as it is protected in Plex playlist "${playlistName || 'Do Not Delete'}"`,
+            `Skipping deletion of movie "${movie.title}" as it is protected in Plex playlist "${playlistName || PLEX_PROTECTION_PLAYLIST_DEFAULT}"`,
           )
           counters.incrementMovieProtected()
           continue
@@ -336,7 +340,7 @@ export async function processMovieDeletions(
 
   // Summary logging
   const protectionSuffix = config.enablePlexPlaylistProtection
-    ? `, ${counters.moviesProtected} protected by playlist "${playlistName || 'Do Not Delete'}"`
+    ? `, ${counters.moviesProtected} protected by playlist "${playlistName || PLEX_PROTECTION_PLAYLIST_DEFAULT}"`
     : ''
 
   logger.info(
@@ -446,7 +450,7 @@ export async function processShowDeletions(
 
         if (validation.protected) {
           logger.info(
-            `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is protected in Plex playlist "${playlistName || 'Do Not Delete'}"`,
+            `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is protected in Plex playlist "${playlistName || PLEX_PROTECTION_PLAYLIST_DEFAULT}"`,
           )
           counters.incrementShowProtected()
           continue
@@ -505,7 +509,7 @@ export async function processShowDeletions(
 
   // Summary logging
   const protectionSuffix = config.enablePlexPlaylistProtection
-    ? `, ${counters.showsProtected} protected by playlist "${playlistName || 'Do Not Delete'}"`
+    ? `, ${counters.showsProtected} protected by playlist "${playlistName || PLEX_PROTECTION_PLAYLIST_DEFAULT}"`
     : ''
 
   logger.info(

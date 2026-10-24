@@ -22,6 +22,7 @@ export const fetchSelfWatchlist = async (
   userId: number,
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
   progress?: WatchlistSyncProgress,
+  onFallback?: (userId: number) => void,
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
   const seenKeys = new Set<string>()
@@ -122,6 +123,7 @@ export const fetchSelfWatchlist = async (
 
       try {
         log.info(`Falling back to existing database items for user ${userId}`)
+        onFallback?.(userId)
         const existingItems = await getAllWatchlistItemsForUser(userId)
         if (existingItems.length === 0) {
           throw err
@@ -179,6 +181,7 @@ export const getOthersWatchlist = async (
   friends: Set<[Friend & { userId: number }, string]>,
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
   progress?: WatchlistSyncProgress,
+  onFallback?: (userId: number) => void,
 ): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
   log.info(`Starting fetch of watchlists for ${friends.size} friends`)
@@ -217,6 +220,7 @@ export const getOthersWatchlist = async (
             pageByFriend.set(user.username, page)
             reportFriends()
           },
+          onFallback: () => onFallback?.(user.userId),
         })
         return { user, watchlistItems, success: true }
       } catch (error) {

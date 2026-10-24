@@ -1,33 +1,50 @@
-import { ModeToggle } from '@/components/mode-toggle'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from '@/components/ui/card'
-import { CreateUserForm } from '@/features/setup/components/create-user-form'
+import { useEffect } from 'react'
+import { LeaveDialog } from '@/components/leave-dialog'
+import { SetupCredenza } from '@/features/setup/components/setup-credenza'
+import { useSetupSteps } from '@/features/setup/hooks/useSetupSteps'
+import { useConfig } from '@/hooks/useConfig'
+import { useDirtyGuard } from '@/hooks/useDirtyGuard'
+import { linkedToken } from '@/lib/plex/account-facts'
+import { useSetupStore } from '@/stores/setupStore'
+import type { components } from '@/types/api.js'
 
-export function CreateUserPage() {
+function SetupDialogHost({
+  config,
+}: {
+  config: components['schemas']['Config']
+}) {
+  const requested = useSetupStore((state) => state.requested)
+  const request = useSetupStore((state) => state.request)
+  const dismiss = useSetupStore((state) => state.dismiss)
+  const forced = linkedToken(config) === null
+  const open = forced || requested
+  const guard = useDirtyGuard()
+  const steps = useSetupSteps(config, open, guard.run)
+
+  // Linking clears `forced`, so the dialog holds itself open as requested until the admin closes it.
+  useEffect(() => {
+    if (forced) request()
+  }, [forced, request])
+
   return (
-    <div className="w-full max-w-sm px-4">
-      <Card className="relative">
-        <CardHeader>
-          <h1 className="text-2xl font-heading text-center mb-2">
-            Create User
-          </h1>
-          <CardDescription className="text-center">
-            Enter details to create a new admin user
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CreateUserForm />
-          <div className="mt-6 text-center">
-            <ModeToggle />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <SetupCredenza
+        open={open}
+        onOpenChange={(next) => {
+          if (!next && !forced) guard.run(dismiss)
+        }}
+        locked={forced}
+        steps={steps}
+        config={config}
+        onDirtyChange={guard.setDirty}
+      />
+      <LeaveDialog {...guard.leaveDialog} />
+    </>
   )
 }
 
-export default CreateUserPage
+export default function SetupDialog() {
+  const { config } = useConfig()
+  if (!config) return null
+  return <SetupDialogHost config={config} />
+}

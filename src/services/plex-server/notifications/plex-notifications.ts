@@ -1,6 +1,5 @@
 import type { PlexNotificationResponse } from '@schemas/plex/plex-notification-result.schema.js'
 import type { PlexNotificationTarget } from '@services/plex-server/notifications/notification-target.js'
-import { stripArrApiErrorPrefix } from '@utils/route-errors.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 const CONFIGURE_TIMEOUT_MS = 5000
@@ -52,7 +51,6 @@ type InstanceOperation = (
 
 interface ArrSide {
   label: 'Radarr' | 'Sonarr'
-  service: 'radarr' | 'sonarr'
   instances: ReadonlyArray<{ id: number; name: string }>
   serviceFor: (id: number) => PlexNotificationService | undefined
 }
@@ -106,10 +104,7 @@ async function runOnSide(
         id: instance.id,
         name: instance.name,
         success: false,
-        message:
-          error instanceof Error
-            ? stripArrApiErrorPrefix(side.service, error.message)
-            : 'Unknown error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       })
     }
   }
@@ -130,7 +125,6 @@ async function runOnArrInstances(
   const radarr = await runOnSide(
     {
       label: 'Radarr',
-      service: 'radarr',
       instances: radarrInstances,
       serviceFor: (id) => deps.radarrManager.getRadarrService(id),
     },
@@ -141,7 +135,6 @@ async function runOnArrInstances(
   const sonarr = await runOnSide(
     {
       label: 'Sonarr',
-      service: 'sonarr',
       instances: sonarrInstances,
       serviceFor: (id) => deps.sonarrManager.getSonarrService(id),
     },

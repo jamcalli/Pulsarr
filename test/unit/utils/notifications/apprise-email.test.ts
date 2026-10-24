@@ -1,32 +1,10 @@
 import {
-  isPlainEmail,
   resolveAppriseUrl,
   resolveAppriseUrls,
 } from '@utils/notifications/apprise-email.js'
 import { describe, expect, it } from 'vitest'
 
 describe('apprise-email', () => {
-  describe('isPlainEmail', () => {
-    it('should return true for plain email addresses', () => {
-      expect(isPlainEmail('user@example.com')).toBe(true)
-      expect(isPlainEmail('john.doe@gmail.com')).toBe(true)
-      expect(isPlainEmail('test+tag@domain.org')).toBe(true)
-    })
-
-    it('should return false for Apprise URLs', () => {
-      expect(isPlainEmail('mailtos://user:pass@gmail.com')).toBe(false)
-      expect(isPlainEmail('mailto://user:pass@smtp.example.com')).toBe(false)
-      expect(isPlainEmail('discord://webhook/token')).toBe(false)
-      expect(isPlainEmail('telegram://bottoken/ChatID')).toBe(false)
-    })
-
-    it('should return false for strings without @', () => {
-      expect(isPlainEmail('discord://webhook/token')).toBe(false)
-      expect(isPlainEmail('https://example.com')).toBe(false)
-      expect(isPlainEmail('just-a-string')).toBe(false)
-    })
-  })
-
   describe('resolveAppriseUrl', () => {
     const adminSender = 'mailtos://admin:password@gmail.com'
 

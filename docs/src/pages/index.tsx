@@ -32,7 +32,7 @@ export default function Home(): React.ReactElement {
               justifyContent: 'center',
               color: '#c1666b',
               fontSize: '1.5rem',
-              fontFamily: 'Shuttleblock, system-ui, -apple-system, sans-serif',
+              fontFamily: '"Chakra Petch", system-ui, -apple-system, sans-serif',
             }}
           >
             Loading Pulsarr...
@@ -44,10 +44,10 @@ export default function Home(): React.ReactElement {
           const CrtOverlay =
             require('@/client/components/backdrop/crt-overlay').default
           const Asteroids = require('@/client/components/backdrop/asteroids').default
-          const { AspectRatio } = require('@/client/components/ui/aspect-ratio')
+          const { AspectRatio } = require('@/client/legacy/components/ui/aspect-ratio')
           const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
           const Pulsar = require('@/client/components/backdrop/pulsar').default
-          const { Button } = require('@/client/components/ui/button')
+          const { Button } = require('@/client/legacy/components/ui/button')
 
           const ClientHome = () => {
             const [isHydrated, setIsHydrated] = React.useState(false)
@@ -100,7 +100,7 @@ export default function Home(): React.ReactElement {
                     color: '#c1666b',
                     fontSize: '1.5rem',
                     fontFamily:
-                      'Shuttleblock, system-ui, -apple-system, sans-serif',
+                      '"Chakra Petch", system-ui, -apple-system, sans-serif',
                   }}
                 >
                   Loading Pulsarr...
@@ -162,11 +162,11 @@ export default function Home(): React.ReactElement {
                         <Heading
                           as="h1"
                           style={{
-                            color: '#c1666b', // --static-text red color from main app
+                            color: '#c1666b', // --backdrop-title red color from main app
                             fontSize: '4rem',
                             fontWeight: 'bold',
                             fontFamily:
-                              'Shuttleblock, system-ui, -apple-system, sans-serif',
+                              '"Chakra Petch", system-ui, -apple-system, sans-serif',
                             textShadow: '3px 3px 0px rgba(0, 0, 0, 0.5)',
                           }}
                         >
@@ -176,10 +176,10 @@ export default function Home(): React.ReactElement {
                       <p
                         id="subtitle"
                         style={{
-                          color: '#c1666b', // --static-text red color
+                          color: '#c1666b', // --backdrop-title red color
                           fontSize: '1.5rem',
                           fontFamily:
-                            'Shuttleblock, system-ui, -apple-system, sans-serif',
+                            '"Chakra Petch", system-ui, -apple-system, sans-serif',
                           marginTop:
                             '-0.5rem' /* Increased negative margin to pull up more */,
                           marginBottom: '3rem',

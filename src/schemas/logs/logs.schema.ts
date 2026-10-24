@@ -1,6 +1,9 @@
+import type { LogEntry, LogLevel } from '@root/types/logs.types.js'
 import { z } from 'zod'
 
-// Log levels schema
+export const LOG_TAIL_LINES = { min: 0, max: 1000 } as const
+export const DEFAULT_LOG_TAIL_LINES = 100
+
 export const LogLevelSchema = z.enum([
   'fatal',
   'error',
@@ -8,58 +11,46 @@ export const LogLevelSchema = z.enum([
   'info',
   'debug',
   'trace',
-])
+]) satisfies z.ZodType<LogLevel>
 
-// Query parameters for log streaming
 export const LogStreamQuerySchema = z.object({
   tail: z.coerce
     .number()
     .int()
-    .min(0)
-    .max(1000)
+    .min(LOG_TAIL_LINES.min)
+    .max(LOG_TAIL_LINES.max)
     .optional()
-    .default(100)
-    .describe('Number of recent log lines to send initially. Defaults to 100.'),
-  follow: z
-    .stringbool()
-    .optional()
-    .default(true)
-    .describe(
+    .default(DEFAULT_LOG_TAIL_LINES)
+    .meta({
+      description: `Number of recent log lines to send initially. Defaults to ${DEFAULT_LOG_TAIL_LINES}.`,
+    }),
+  follow: z.stringbool().optional().default(true).meta({
+    description:
       'Whether to follow the log file for new entries. Defaults to true.',
-    ),
-  filter: z
-    .string()
-    .trim()
-    .max(512)
-    .optional()
-    .describe(
+  }),
+  filter: z.string().trim().max(512).optional().meta({
+    description:
       'Optional string filter to match against log messages (max 512 chars). Applies within the tail window of recent lines, so older matches are not backfilled and fewer than tail lines may be returned.',
-    ),
+  }),
 })
 
-// Individual log entry schema
 export const LogEntrySchema = z.object({
   timestamp: z.string(),
   level: LogLevelSchema,
   message: z.string(),
   module: z.string().optional(),
-  data: z.object({}).catchall(z.unknown()).optional(),
-})
+  data: z.record(z.string(), z.json()).optional(),
+}) satisfies z.ZodType<LogEntry>
 
-// SSE message schema for logs
 export const LogSSEMessageSchema = z.object({
   id: z.string(),
   data: z.string(), // JSON stringified LogEntry
 })
 
-// Response schema for documentation
 export const LogStreamResponseSchema = z.object({
-  message: z.string().describe('SSE stream of log entries'),
+  message: z.string().meta({ description: 'SSE stream of log entries' }),
 })
 
-// Export types
-export type LogLevel = z.infer<typeof LogLevelSchema>
 export type LogStreamQuery = z.infer<typeof LogStreamQuerySchema>
-export type LogEntry = z.infer<typeof LogEntrySchema>
 export type LogSSEMessage = z.infer<typeof LogSSEMessageSchema>
 export type LogStreamResponse = z.infer<typeof LogStreamResponseSchema>

@@ -3,9 +3,9 @@ import './styles/fonts.css'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
-import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { configureOperationToasts } from '@/lib/operation-toasts'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router/router'
 
@@ -17,21 +17,24 @@ function RootLayoutContent() {
 }
 
 /**
- * Provides theme, settings, and query context to the application and renders the main layout content.
+ * Provides theme, tooltip, and query context to the application and renders the main layout content.
  */
 function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <SettingsProvider>
-          <TooltipProvider>
-            <RootLayoutContent />
-          </TooltipProvider>
-        </SettingsProvider>
+        <TooltipProvider delay={600}>
+          <RootLayoutContent />
+        </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )
 }
+
+configureOperationToasts({
+  pathname: () => router.state.location.pathname,
+  navigate: (to) => router.navigate(to),
+})
 
 const rootElement = document.getElementById('app')
 if (rootElement === null) throw new Error('Root element not found')

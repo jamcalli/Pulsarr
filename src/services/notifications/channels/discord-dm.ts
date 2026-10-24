@@ -1,18 +1,18 @@
 import type { DirectMessage } from '@root/types/discord.types.js'
 import type {
   DeliveryResult,
+  DiscordBotStatus,
   NotificationTestOutcome,
 } from '@root/types/notification.types.js'
 import { errorMessage } from '@utils/error-message.js'
 import { type Client, DiscordAPIError } from 'discord.js'
 import type { FastifyBaseLogger } from 'fastify'
-import type { BotStatus } from '../discord-bot/bot.service.js'
 import { createTestEmbed } from '../templates/discord-embeds.js'
 
 export interface DiscordDmDeps {
   logger: FastifyBaseLogger
   botClient: Client | null
-  botStatus: BotStatus
+  botStatus: DiscordBotStatus
 }
 
 function dmFailureReason(error: unknown): string {
@@ -37,7 +37,6 @@ export async function sendNotification(
   try {
     const user = await botClient.users.fetch(discordId)
     await user.send({
-      content: `Hey ${user}! 👋`,
       embeds: [embed],
       ...(components ? { components } : {}),
     })

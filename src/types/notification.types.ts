@@ -1,4 +1,5 @@
 import type { AppriseMessageType } from '@root/types/apprise.types.js'
+import type { ApprovalTrigger } from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import type {
   DirectMessage,
@@ -50,6 +51,32 @@ export const USER_TEST_CHANNELS = [
 
 export type UserTestChannel = (typeof USER_TEST_CHANNELS)[number]
 
+export const DISCORD_BOT_STATUSES = [
+  'stopped',
+  'starting',
+  'running',
+  'stopping',
+] as const
+
+export type DiscordBotStatus = (typeof DISCORD_BOT_STATUSES)[number]
+
+export const APPRISE_STATUSES = [
+  'enabled',
+  'disabled',
+  'not_configured',
+] as const
+
+export type AppriseStatus = (typeof APPRISE_STATUSES)[number]
+
+export const PLEX_MOBILE_STATUSES = [
+  'enabled',
+  'disabled',
+  'no_plex_pass',
+  'not_configured',
+] as const
+
+export type PlexMobileStatus = (typeof PLEX_MOBILE_STATUSES)[number]
+
 export type NotificationUser = Pick<
   User,
   | 'id'
@@ -89,7 +116,8 @@ export interface ApprovalNotification {
   contentTitle: string
   contentType: 'movie' | 'show'
   requestedBy: string
-  reason: string
+  trigger: ApprovalTrigger
+  reason?: string | null
   totalPending: number
   posterUrl?: string
   tmdbUrl?: string

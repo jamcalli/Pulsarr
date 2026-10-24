@@ -140,8 +140,10 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
   let manager: SonarrManagerService
   let addToSonarr: Mock<SonarrService['addToSonarr']>
   let db: Partial<DatabaseService>
+  let emit: Mock<FastifyInstance['progress']['emit']>
 
   beforeEach(() => {
+    emit = vi.fn()
     db = {
       getSonarrInstance: vi.fn<DatabaseService['getSonarrInstance']>(
         async () => ({
@@ -158,7 +160,10 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
         async () => undefined,
       ),
     }
-    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    const fastify: Partial<FastifyInstance> = {
+      db: db as DatabaseService,
+      progress: { emit } as unknown as FastifyInstance['progress'],
+    }
     service = new SonarrService(
       createMockLogger(),
       'http://localhost',
@@ -172,6 +177,17 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     manager['sonarrServices'].set(1, service)
+  })
+
+  it('emits a watchlist status event for the routed user', async () => {
+    await manager.routeItemToSonarr(item, 'key', 2, 1)
+
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'watchlist',
+        metadata: { action: 'status', userIds: [2] },
+      }),
+    )
   })
 
   it('sends the instance values when the settings inherit', async () => {
@@ -269,6 +285,7 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
       'is not set up',
     )
     expect(addToSonarr).not.toHaveBeenCalled()
+    expect(emit).not.toHaveBeenCalled()
   })
 })
 

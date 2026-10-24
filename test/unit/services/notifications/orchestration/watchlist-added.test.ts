@@ -64,8 +64,7 @@ describe('sendWatchlistAdded channel gating', () => {
     expect(db.getPrimaryUser).toHaveBeenCalledTimes(1)
     expect(discordBot.sendNotification).toHaveBeenCalledWith(ADMIN_DISCORD_ID, {
       embed: expect.objectContaining({
-        title: 'Night of the Living Dead',
-        description: expect.stringContaining('New Movie Added'),
+        title: 'Watchlist add: Night of the Living Dead',
         footer: expect.objectContaining({ text: 'Added by alice' }),
       }),
     })

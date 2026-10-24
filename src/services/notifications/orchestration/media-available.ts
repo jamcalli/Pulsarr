@@ -1,3 +1,4 @@
+import { emitWatchlistChange } from '@root/utils/watchlist-events.js'
 import { buildUserPayload } from '../templates/webhook-payloads.js'
 import type { NotificationDeps } from '../types.js'
 import {
@@ -23,7 +24,12 @@ export async function sendMediaAvailable(
   const typeInfo = determineNotificationType(mediaInfo, options.isBulkRelease)
   if (!typeInfo || watchlistItems.length === 0) return { matchedCount: 0 }
 
-  await recordAvailability(deps, mediaInfo, options, watchlistItems)
+  const recordedUserIds = await recordAvailability(
+    deps,
+    mediaInfo,
+    options,
+    watchlistItems,
+  )
 
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
   const users = new Map(
@@ -42,6 +48,11 @@ export async function sendMediaAvailable(
         typeInfo,
       )
     : []
+  emitWatchlistChange(deps.progress, 'status', [
+    ...recordedUserIds,
+    ...userClaims.map((claim) => claim.user.id),
+  ])
+
   const publicClaim = await claimPublicNotification(
     deps,
     mediaInfo,

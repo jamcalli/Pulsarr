@@ -300,10 +300,7 @@ export interface PingResponse {
   status: string
 }
 
-export interface ConnectionTestResult {
-  success: boolean
-  message: string
-}
+export type { ConnectionTestResult } from '@root/types/arr-connection.types.js'
 
 export interface SonarrEpisodeSchema {
   episodeNumber: number

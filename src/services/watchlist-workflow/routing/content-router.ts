@@ -19,6 +19,7 @@ import {
   hasMatchingParsedGuids,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { ContentRoutingDeps } from '../types.js'
 
 export interface RouteContentResult {
@@ -329,7 +330,9 @@ async function markRequested(
       { error, userId, key },
       'Failed to mark existing item as requested',
     )
+    return
   }
+  emitWatchlistChange(deps.fastify.progress, 'status', [userId])
 }
 
 async function reportRouted(

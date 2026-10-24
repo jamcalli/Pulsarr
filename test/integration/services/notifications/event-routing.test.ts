@@ -741,7 +741,7 @@ describe('notification event routing', () => {
       await expectChannels(['discord-webhook', 'native'])
       expect(captured.discord).toHaveLength(1)
       expect(captured.discord[0].body.embeds?.[0].description).toBe(
-        '**test-user-primary** reached their show cap (7/5)',
+        '**Primary Test User** reached their show cap (7/5)',
       )
     })
 
@@ -1003,7 +1003,7 @@ describe('notification event routing', () => {
       await expectChannels(['discord-webhook', 'apprise', 'native'])
       expect(captured.discord.map((post) => post.url)).toEqual([PUBLIC_WEBHOOK])
       expect(captured.discord[0].body.content).toBe(
-        `<@${FRIEND_DISCORD_ID}> 👋`,
+        `<@${FRIEND_DISCORD_ID}> Movie available: Availability Test Movie`,
       )
       expect(captured.apprise.map((body) => body.urls)).toEqual([
         PUBLIC_APPRISE,
@@ -1050,7 +1050,7 @@ describe('notification event routing', () => {
       await app.notifications.whenIdle()
 
       expect(captured.discord[0].body.content).toBe(
-        `<@${FRIEND_DISCORD_ID}> 👋`,
+        `<@${FRIEND_DISCORD_ID}> Movie available: Availability Test Movie`,
       )
       expect(await notificationRows('movie')).toEqual([
         {
@@ -1388,38 +1388,38 @@ describe('notification event routing', () => {
           "apprise": [
             {
               "attachment": "https://metadata-static.plex.tv/b/gracenote/b92a7759185b25342b6a7224406f0c7f.jpg",
-              "body": "Content Approval Required
+              "body": "Approval request
 
         Nosferatu
         Type: Movie
 
-        Requested by: test-user-discord-apprise
+        Requested by: Discord+Apprise User
         Total pending: 4 requests
-        Reason: Quota Exceeded
+        Reason: Quota exceeded
         Weekly movie quota reached
         TMDB: https://www.themoviedb.org/movie/426063
 
         Visit the Pulsarr UI to review and handle this approval request.
         ",
               "format": "text",
-              "title": "New Approval Request: Nosferatu",
+              "title": "Approval request: Nosferatu",
               "type": "info",
               "urls": "tgram://system/chat",
             },
             {
-              "body": "Content Approval Required
+              "body": "Approval request
 
         Sherlock
         Type: Show
 
-        Requested by: test-user-discord-apprise
+        Requested by: Discord+Apprise User
         Total pending: 4 requests
-        Reason: Manual Flag
+        Reason: Manual flag
 
         Visit the Pulsarr UI to review and handle this approval request.
         ",
               "format": "text",
-              "title": "New Approval Request: Sherlock",
+              "title": "Approval request: Sherlock",
               "type": "info",
               "urls": "tgram://system/chat",
             },
@@ -1436,7 +1436,7 @@ describe('notification event routing', () => {
                       {
                         "inline": true,
                         "name": "Requested by",
-                        "value": "test-user-discord-apprise",
+                        "value": "Discord+Apprise User",
                       },
                       {
                         "inline": true,
@@ -1446,7 +1446,7 @@ describe('notification event routing', () => {
                       {
                         "inline": false,
                         "name": "Reason for approval",
-                        "value": "Quota Exceeded
+                        "value": "Quota exceeded
         Weekly movie quota reached",
                       },
                       {
@@ -1462,7 +1462,7 @@ describe('notification event routing', () => {
                       "url": "https://metadata-static.plex.tv/b/gracenote/b92a7759185b25342b6a7224406f0c7f.jpg",
                     },
                     "timestamp": "<timestamp>",
-                    "title": "Content Approval Required",
+                    "title": "Approval request: Nosferatu",
                   },
                 ],
                 "username": "Pulsarr Approvals",
@@ -1480,7 +1480,7 @@ describe('notification event routing', () => {
                       {
                         "inline": true,
                         "name": "Requested by",
-                        "value": "test-user-discord-apprise",
+                        "value": "Discord+Apprise User",
                       },
                       {
                         "inline": true,
@@ -1490,14 +1490,14 @@ describe('notification event routing', () => {
                       {
                         "inline": false,
                         "name": "Reason for approval",
-                        "value": "Manual Flag",
+                        "value": "Manual flag",
                       },
                     ],
                     "footer": {
                       "text": "Request ID: 8",
                     },
                     "timestamp": "<timestamp>",
-                    "title": "Content Approval Required",
+                    "title": "Approval request: Sherlock",
                   },
                 ],
                 "username": "Pulsarr Approvals",
@@ -1549,7 +1549,7 @@ describe('notification event routing', () => {
                     },
                   ],
                   "timestamp": "<timestamp>",
-                  "title": "2 New Approval Requests",
+                  "title": "Approval requests: 2 new",
                 },
               },
             },
@@ -1639,31 +1639,31 @@ describe('notification event routing', () => {
         {
           "apprise": [
             {
-              "body": "
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-              <div style="text-align: center; margin-bottom: 20px;">
-               <img src="https://metadata-static.plex.tv/a/availability.jpg" alt="Availability Test Movie poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-             </div>
-            <div style="margin-bottom: 20px; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000; background-color: #212121;">
-              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Availability Test Movie</h3><p style="color: #ffffff; font-weight: 500;">Movie available to watch!</p><p style="margin-top: 10px;"><a href="https://www.themoviedb.org/movie/765432" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB</a></p>
-            </div>
-          
-            </div>
-            ",
+              "body": "<div style="margin:0;padding:32px 16px;background:#f2ebdd;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;color:#1a1a1a;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="600" align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid #1a1a1a;border-radius:8px;background:#fffaf0;box-shadow:4px 4px 0 0 #1a1a1a;">
+            <tr><td style="padding:10px 24px;background:#48a9a6;border-bottom:2px solid #1a1a1a;border-radius:6px 6px 0 0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;"><tr>
+                <td width="50%" style="width:50%;white-space:nowrap;font-size:15px;font-weight:700;color:#000000;letter-spacing:-0.01em;">Pulsarr</td>
+                <td align="right" width="50%" style="width:50%;padding-left:16px;text-align:right;font-size:13px;font-weight:500;color:#000000;">Movie available</td>
+              </tr></table>
+            </td></tr>
+            <tr><td style="padding:24px;font-size:14px;line-height:1.5;color:#1a1a1a;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;table-layout:fixed;"><tr><td width="120" valign="top" style="width:120px;vertical-align:top;padding-right:20px;"><img src="https://metadata-static.plex.tv/a/availability.jpg" alt="Availability Test Movie poster" width="120" height="180" style="display:block;width:120px;height:180px;border:2px solid #1a1a1a;border-radius:6px;background:#f7f0e2;font-size:12px;color:#5a5750;"></td><td valign="top" style="vertical-align:top;word-break:break-word;"><h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:#1a1a1a;word-break:break-word;">Availability Test Movie</h1></td></tr></table><div style="margin-top:12px;"><p style="margin:0;font-size:14px;font-weight:700;color:#1a1a1a;">Movie available to watch!</p></div><div style="margin-top:12px;"><div style="padding-top:4px;text-align:left;"><a href="https://www.themoviedb.org/movie/765432" style="font-size:14px;font-weight:700;color:#1a1a1a;text-decoration:underline;text-underline-offset:3px;">View on TMDB</a></div></div></td></tr>
+          </table>
+        </div>",
               "format": "html",
-              "title": "🎬 Availability Test Movie",
+              "title": "Movie available: Availability Test Movie",
               "type": "info",
               "urls": "mailto://user2@example.com",
             },
             {
               "attachment": "https://metadata-static.plex.tv/a/availability.jpg",
-              "body": "Movie Available
+              "body": "Movie available
 
         Availability Test Movie
         Movie available to watch!
         TMDB: https://www.themoviedb.org/movie/765432",
               "format": "text",
-              "title": "🎬 Availability Test Movie",
+              "title": "Movie available: Availability Test Movie",
               "type": "info",
               "urls": "tgram://public/chat",
             },
@@ -1671,12 +1671,16 @@ describe('notification event routing', () => {
           "discord": [
             {
               "body": {
+                "allowed_mentions": {
+                  "users": [
+                    "222222222222222222",
+                  ],
+                },
                 "avatar_url": "https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png",
-                "content": "<@222222222222222222> 👋",
+                "content": "<@222222222222222222> Movie available: Availability Test Movie",
                 "embeds": [
                   {
                     "color": 4762022,
-                    "description": "Movie available to watch! 🎬",
                     "fields": [
                       {
                         "inline": true,
@@ -1688,7 +1692,7 @@ describe('notification event routing', () => {
                       "url": "https://metadata-static.plex.tv/a/availability.jpg",
                     },
                     "timestamp": "<timestamp>",
-                    "title": "Availability Test Movie",
+                    "title": "Movie available: Availability Test Movie",
                   },
                 ],
                 "username": "Pulsarr",
@@ -1702,7 +1706,6 @@ describe('notification event routing', () => {
               "message": {
                 "embed": {
                   "color": 4762022,
-                  "description": "Movie available to watch! 🎬",
                   "fields": [
                     {
                       "inline": true,
@@ -1714,7 +1717,7 @@ describe('notification event routing', () => {
                     "url": "https://metadata-static.plex.tv/a/availability.jpg",
                   },
                   "timestamp": "<timestamp>",
-                  "title": "Availability Test Movie",
+                  "title": "Movie available: Availability Test Movie",
                 },
               },
             },

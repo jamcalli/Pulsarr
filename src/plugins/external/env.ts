@@ -2,13 +2,31 @@ import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
 import {
+  ConfigLogLevelSchema,
+  DEFAULT_LOG_LEVEL,
+  DEFAULT_PULSARR_PORT,
   DELETE_SYNC_NOTIFY_OPTIONS,
+  DELETION_MODES,
   MAINTAINERR_EXCLUSION_MODE_DEFAULT,
   MAINTAINERR_EXCLUSION_MODES,
+  NEW_EPISODE_THRESHOLD_MS,
   NOTIFY_DEFAULTS,
   NOTIFY_OPTIONS,
   PLEX_SERVER_URL_DEFAULT,
+  QUEUE_WAIT_TIME_MS,
 } from '@root/schemas/config/config.schema.js'
+import {
+  PLEX_LABEL_SYNC_DEFAULTS,
+  type PlexLabelSyncConfig,
+} from '@root/schemas/plex/label-sync-config.schema.js'
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import {
+  MAX_DELETION_PREVENTION,
+  PLEX_PROTECTION_PLAYLIST_DEFAULT,
+} from '@root/schemas/shared/delete-sync-limits.js'
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
+import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
 import { resolveDataDir } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
@@ -19,17 +37,6 @@ const generateSecret = () => crypto.randomBytes(32).toString('hex')
 // Resolve data directory deterministically from platform (Windows/macOS)
 // or fall back to project-relative paths (Linux/Docker)
 const dataDir = resolveDataDir()
-
-const DEFAULT_PLEX_SESSION_MONITORING = {
-  enabled: false,
-  pollingIntervalMinutes: 15,
-  remainingEpisodes: 2,
-  filterUsers: [],
-  enableAutoReset: true,
-  inactivityResetDays: 7,
-  autoResetIntervalHours: 24,
-  enableProgressiveCleanup: false,
-}
 
 const DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS = {
   enabled: false,
@@ -63,24 +70,6 @@ const DEFAULT_APPROVAL_EXPIRATION = {
   cleanupExpiredDays: 30,
 }
 
-const DEFAULT_PLEX_LABEL_SYNC = {
-  enabled: false,
-  labelPrefix: 'pulsarr',
-  labelNamingSource: 'username',
-  concurrencyLimit: 5,
-  cleanupOrphanedLabels: false,
-  removedLabelMode: 'remove' as const,
-  removedLabelPrefix: 'pulsarr:removed',
-  autoResetOnScheduledSync: false,
-  scheduleTime: undefined,
-  dayOfWeek: '*',
-  tagSync: {
-    enabled: false,
-    syncRadarrTags: true,
-    syncSonarrTags: true,
-  },
-}
-
 const schema = {
   type: 'object',
   required: ['port'],
@@ -95,11 +84,11 @@ const schema = {
     },
     port: {
       type: 'number',
-      default: 3003,
+      default: DEFAULT_PULSARR_PORT,
     },
     listenPort: {
       type: 'number',
-      default: 3003,
+      default: DEFAULT_PULSARR_PORT,
     },
     dbType: {
       type: 'string',
@@ -175,8 +164,8 @@ const schema = {
     },
     logLevel: {
       type: 'string',
-      enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
-      default: 'info',
+      enum: ConfigLogLevelSchema.options,
+      default: DEFAULT_LOG_LEVEL,
     },
     closeGraceDelay: {
       type: 'number',
@@ -230,11 +219,11 @@ const schema = {
     },
     queueWaitTime: {
       type: 'number',
-      default: 120000,
+      default: QUEUE_WAIT_TIME_MS.default,
     },
     newEpisodeThreshold: {
       type: 'number',
-      default: 172800000,
+      default: NEW_EPISODE_THRESHOLD_MS.default,
     },
     plexMobileEnabled: {
       type: 'boolean',
@@ -344,7 +333,7 @@ const schema = {
     },
     plexProtectionPlaylistName: {
       type: 'string',
-      default: 'Do Not Delete',
+      default: PLEX_PROTECTION_PLAYLIST_DEFAULT,
     },
     deleteMovie: {
       type: 'boolean',
@@ -393,7 +382,7 @@ const schema = {
     },
     maxDeletionPrevention: {
       type: 'number',
-      default: 10,
+      default: MAX_DELETION_PREVENTION.default,
     },
     selfRss: {
       type: 'string',
@@ -415,7 +404,7 @@ const schema = {
     },
     tagPrefix: {
       type: 'string',
-      default: 'pulsarr-user',
+      default: TAG_PREFIX_DEFAULTS.tagPrefix,
     },
     tagNamingSource: {
       type: 'string',
@@ -429,11 +418,11 @@ const schema = {
     },
     removedTagPrefix: {
       type: 'string',
-      default: 'pulsarr-removed',
+      default: TAG_PREFIX_DEFAULTS.removedTagPrefix,
     },
     deletionMode: {
       type: 'string',
-      enum: ['watchlist', 'tag-based'],
+      enum: DELETION_MODES,
       default: 'watchlist',
     },
     tagMigration: {
@@ -441,7 +430,7 @@ const schema = {
     },
     plexSessionMonitoring: {
       type: 'string',
-      default: JSON.stringify(DEFAULT_PLEX_SESSION_MONITORING),
+      default: JSON.stringify(PLEX_SESSION_MONITORING_DEFAULTS),
     },
     newUserDefaultCanSync: {
       type: 'boolean',
@@ -457,12 +446,12 @@ const schema = {
     },
     newUserDefaultMovieQuotaType: {
       type: 'string',
-      enum: ['daily', 'weekly_rolling', 'monthly'],
-      default: 'monthly',
+      enum: QuotaTypeSchema.options,
+      default: QUOTA_DEFAULTS.quotaType,
     },
     newUserDefaultMovieQuotaLimit: {
       type: 'number',
-      default: 10,
+      default: QUOTA_DEFAULTS.limit,
     },
     newUserDefaultMovieBypassApproval: {
       type: 'boolean',
@@ -474,12 +463,12 @@ const schema = {
     },
     newUserDefaultShowQuotaType: {
       type: 'string',
-      enum: ['daily', 'weekly_rolling', 'monthly'],
-      default: 'monthly',
+      enum: QuotaTypeSchema.options,
+      default: QUOTA_DEFAULTS.quotaType,
     },
     newUserDefaultShowQuotaLimit: {
       type: 'number',
-      default: 10,
+      default: QUOTA_DEFAULTS.limit,
     },
     newUserDefaultShowBypassApproval: {
       type: 'boolean',
@@ -502,7 +491,7 @@ const schema = {
     // Plex Label Sync Configuration - nested object following complex config pattern
     plexLabelSync: {
       type: 'string',
-      default: JSON.stringify(DEFAULT_PLEX_LABEL_SYNC),
+      default: JSON.stringify(PLEX_LABEL_SYNC_DEFAULTS),
     },
   },
 }
@@ -554,7 +543,7 @@ export default fp(
       plexSessionMonitoring: rawConfig.plexSessionMonitoring
         ? safeJsonParse(
             rawConfig.plexSessionMonitoring as string,
-            DEFAULT_PLEX_SESSION_MONITORING,
+            PLEX_SESSION_MONITORING_DEFAULTS,
             'plexSessionMonitoring',
           )
         : undefined,
@@ -600,29 +589,17 @@ export default fp(
         : DEFAULT_APPROVAL_EXPIRATION,
       plexLabelSync: (() => {
         const parsed = rawConfig.plexLabelSync
-          ? safeJsonParse<{
-              enabled?: boolean
-              labelPrefix?: string
-              concurrencyLimit?: number
-              cleanupOrphanedLabels?: boolean
-              removedLabelMode?: 'remove' | 'keep' | 'special-label'
-              removedLabelPrefix?: string
-              autoResetOnScheduledSync?: boolean
-              scheduleTime?: string
-              dayOfWeek?: string
-              tagSync?: {
-                enabled?: boolean
-                syncRadarrTags?: boolean
-                syncSonarrTags?: boolean
-              }
-            }>(rawConfig.plexLabelSync as string, {}, 'plexLabelSync')
+          ? safeJsonParse<Partial<PlexLabelSyncConfig>>(
+              rawConfig.plexLabelSync as string,
+              {},
+              'plexLabelSync',
+            )
           : {}
         return {
-          ...DEFAULT_PLEX_LABEL_SYNC,
+          ...PLEX_LABEL_SYNC_DEFAULTS,
           ...parsed,
-          // Handle nested tagSync object separately to preserve defaults
           tagSync: {
-            ...DEFAULT_PLEX_LABEL_SYNC.tagSync,
+            ...PLEX_LABEL_SYNC_DEFAULTS.tagSync,
             ...(parsed.tagSync ?? {}),
           },
         }

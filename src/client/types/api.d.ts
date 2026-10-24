@@ -328,6 +328,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/content-router/rules/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Reorder router rules
+         * @description Set the priority of several content router rules at once
+         */
+        patch: operations["reorderRouterRules"];
+        trace?: never;
+    };
     "/v1/content-router/rules/target": {
         parameters: {
             query?: never;
@@ -905,7 +925,8 @@ export interface paths {
         };
         /**
          * Get others watchlist tokens
-         * @description Retrieve watchlist items from other Plex users
+         * @deprecated
+         * @description Retrieve watchlist items from other Plex users. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/others-watchlist/start and its status route instead.
          */
         get: operations["getOthersWatchlistTokens"];
         put?: never;
@@ -1045,7 +1066,8 @@ export interface paths {
         };
         /**
          * Get self watchlist items
-         * @description Retrieve the current user watchlist items from Plex
+         * @deprecated
+         * @description Retrieve the current user watchlist items from Plex. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/self-watchlist/start and its status route instead.
          */
         get: operations["getSelfWatchlistItems"];
         put?: never;
@@ -1108,6 +1130,46 @@ export interface paths {
          * @description Cross-references friends, server users, and pending requests to classify all known Plex users
          */
         get: operations["getPlexUserStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/watchlist-sync/{type}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a watchlist sync
+         * @description Starts a sync of one watchlist type in the background and returns at once, joining or queueing behind a sync already running. Read the status route for the outcome.
+         */
+        post: operations["startWatchlistSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/watchlist-sync/{type}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get watchlist sync status
+         * @description Whether a sync of one watchlist type is running and how the latest one ended. Resets when the server restarts.
+         */
+        get: operations["getWatchlistSyncStatus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1269,7 +1331,7 @@ export interface paths {
         };
         /**
          * Get user quotas
-         * @description Get quota configurations for a specific user
+         * @description Get quota configurations for a specific user. Each quota is absent when the user has none for that content type.
          */
         get: operations["getUserQuotas"];
         put?: never;
@@ -1436,6 +1498,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/radarr/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Radarr routing options
+         * @description Read quality profiles, root folders and tags from a Radarr instance with unsaved credentials
+         */
+        post: operations["probeRadarr"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/radarr/quality-profiles": {
         parameters: {
             query?: never;
@@ -1551,9 +1633,50 @@ export interface paths {
         put?: never;
         /**
          * Dry-run delete sync
-         * @description Perform a dry-run of the delete sync job to preview what would be deleted
+         * @deprecated
+         * @description Perform a dry-run of the delete sync job to preview what would be deleted. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/delete-sync/dry-run/start instead.
          */
         post: operations["dryRunDeleteSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/delete-sync/dry-run/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start delete sync dry run
+         * @description Starts a delete sync dry run in the background and returns at once. Read the dry run status route for the outcome.
+         */
+        post: operations["startDeleteSyncDryRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/delete-sync/dry-run/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get delete sync dry run status
+         * @description Whether a delete sync dry run is running and how the latest one ended. Resets when the server restarts.
+         */
+        get: operations["getDeleteSyncDryRunStatus"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1599,9 +1722,30 @@ export interface paths {
         put?: never;
         /**
          * Run job immediately
-         * @description Execute a scheduled job immediately
+         * @deprecated
+         * @description Execute a scheduled job immediately. Holds the request open for the whole run, so use POST /v1/scheduler/schedules/{name}/start instead.
          */
         post: operations["runJobNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/{name}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start job in the background
+         * @description Starts a scheduled job outside its schedule and returns at once. The schedule row reports running and the outcome in last_run.
+         */
+        post: operations["startJob"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1856,6 +2000,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sonarr/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Sonarr routing options
+         * @description Read quality profiles, root folders and tags from a Sonarr instance with unsaved credentials
+         */
+        post: operations["probeSonarr"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sonarr/quality-profiles": {
         parameters: {
             query?: never;
@@ -1968,26 +2132,6 @@ export interface paths {
          * @description Retrieve comprehensive dashboard statistics including genres, content, users, and activity
          */
         get: operations["getAllDashboardStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/availability": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get availability time stats
-         * @description Retrieve average time from adding to availability statistics
-         */
-        get: operations["getAvailabilityStats"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2740,6 +2884,26 @@ export interface paths {
         patch: operations["updateUser"];
         trace?: never;
     };
+    "/v1/users/{id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user stats
+         * @description Count watchlist items by status, notifications sent and pending approvals for one user
+         */
+        get: operations["getUserStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/users/{userId}/watchlist": {
         parameters: {
             query?: never;
@@ -2749,7 +2913,7 @@ export interface paths {
         };
         /**
          * Get user watchlist items
-         * @description Fetch all watchlist items for a specific user by their ID
+         * @description Fetch the pending approvals and watchlist items of one user, newest first
          */
         get: operations["getUserWatchlist"];
         put?: never;
@@ -2895,9 +3059,30 @@ export interface paths {
         put?: never;
         /**
          * Start watchlist workflow
-         * @description Start the watchlist processing workflow
+         * @deprecated
+         * @description Start the watchlist processing workflow. Holds the request open until the initial sync finishes, so use POST /v1/watchlist-workflow/start-background instead.
          */
         post: operations["startWatchlistWorkflow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-workflow/start-background": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start watchlist workflow in the background
+         * @description Starts the watchlist processing workflow and returns at once. The status route and the watchlist-workflow-status event report when it runs, or lastError when the start fails.
+         */
+        post: operations["startWatchlistWorkflowInBackground"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3068,7 +3253,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Media Available
+         * Media available
          * @description Fired when content becomes available to watch
          */
         post: operations["webhookMediaAvailable"];
@@ -3088,7 +3273,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Watchlist Added
+         * Watchlist added
          * @description Fired when a user adds content to their Plex watchlist
          */
         post: operations["webhookWatchlistAdded"];
@@ -3108,7 +3293,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Watchlist Removed
+         * Watchlist removed
          * @description Fired when a user removes content from their watchlist
          */
         post: operations["webhookWatchlistRemoved"];
@@ -3128,7 +3313,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Approval Created
+         * Approval created
          * @description Fired when a new approval request is submitted
          */
         post: operations["webhookApprovalCreated"];
@@ -3148,7 +3333,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Approval Resolved
+         * Approval resolved
          * @description Fired when an approval is approved or rejected
          */
         post: operations["webhookApprovalResolved"];
@@ -3168,7 +3353,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Auto Approved
+         * Auto approved
          * @description Fired when content is auto-approved
          */
         post: operations["webhookApprovalAuto"];
@@ -3188,7 +3373,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Delete Sync Complete
+         * Delete sync complete
          * @description Fired when a delete sync job finishes
          */
         post: operations["webhookDeleteSyncCompleted"];
@@ -3208,7 +3393,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * User Created
+         * User created
          * @description Fired when a new user is added
          */
         post: operations["webhookUserCreated"];
@@ -3228,7 +3413,7 @@ export interface webhooks {
         get?: never;
         put?: never;
         /**
-         * Watchlist Cap Reached
+         * Watchlist cap reached
          * @description Fired when a user reaches their watchlist cap
          */
         post: operations["webhookQuotaCapReached"];
@@ -3247,11 +3432,91 @@ export interface components {
             status_changes: number;
             notifications_sent: number;
         };
+        /** @description An API key, returned in full so the admin can copy it */
+        ApiKey: {
+            id: number;
+            name: string;
+            key: string;
+            user_id: number;
+            created_at: string;
+            is_active: boolean;
+        };
+        /** @description Name for a new API key */
+        ApiKeyCreatePayload: {
+            name: string;
+        };
         /** @description Apprise URL to send a test notification to */
         AppriseTestPayload: {
             /** @description Apprise URL or plain email address */
             url: string;
         };
+        /** @description Approval requests to approve, with optional notes */
+        ApprovalBulkApprovePayload: {
+            requestIds: number[];
+            notes?: string;
+        };
+        /** @description Approval requests to delete */
+        ApprovalBulkDeletePayload: {
+            requestIds: number[];
+        };
+        /** @description Result of a bulk approve, reject or delete */
+        ApprovalBulkOperationResponse: {
+            success: boolean;
+            message: string;
+            result: components["schemas"]["ApprovalBulkResult"];
+        };
+        /** @description Approval requests to reject, with an optional reason */
+        ApprovalBulkRejectPayload: {
+            requestIds: number[];
+            reason?: string;
+        };
+        /** @description Per-request outcome counts of a bulk approval operation */
+        ApprovalBulkResult: {
+            successful: number;
+            /** @description Request ids that could not be processed */
+            failed: number[];
+            errors: string[];
+            total: number;
+        };
+        /** @description Approval expiry and cleanup settings, always returned with defaults filled in. Per-trigger overrides are present only when set. */
+        ApprovalExpiration: {
+            enabled: boolean;
+            defaultExpirationHours: number;
+            expirationAction: components["schemas"]["ApprovalExpirationAction"];
+            /** @description Approve quota-exceeded requests once the user has quota again */
+            autoApproveOnQuotaAvailable: boolean;
+            /** @description Override for requests held by a quota */
+            quotaExceededExpirationHours?: number;
+            /** @description Override for requests held by a router rule */
+            routerRuleExpirationHours?: number;
+            /** @description Override for users who always need approval */
+            manualFlagExpirationHours?: number;
+            /** @description Override for requests held by content criteria */
+            contentCriteriaExpirationHours?: number;
+            cleanupExpiredDays: number;
+        };
+        /**
+         * @description What happens to a pending approval request when it expires
+         * @enum {string}
+         */
+        ApprovalExpirationAction: "expire" | "auto_approve";
+        /** @description Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one. */
+        ApprovalExpirationPayload: {
+            enabled?: boolean;
+            defaultExpirationHours?: number;
+            expirationAction?: components["schemas"]["ApprovalExpirationAction"];
+            autoApproveOnQuotaAvailable?: boolean;
+            quotaExceededExpirationHours?: number;
+            routerRuleExpirationHours?: number;
+            manualFlagExpirationHours?: number;
+            contentCriteriaExpirationHours?: number;
+            cleanupExpiredDays?: number;
+        };
+        /**
+         * @description Expiry state computed from the current expiration config
+         * @enum {string}
+         */
+        ApprovalExpirationStatus: "active" | "expiring_soon" | "expired";
         /** @description Trigger details captured when the request needed approval */
         ApprovalQuotaData: {
             quotaType?: components["schemas"]["QuotaType"];
@@ -3291,12 +3556,46 @@ export interface components {
             approvalNotes: string | null;
             expiresAt: string | null;
             isExpired?: boolean;
-            /** @enum {string} */
-            expirationStatus?: "active" | "expiring_soon" | "expired";
+            expirationStatus?: components["schemas"]["ApprovalExpirationStatus"];
             expirationDisplayText?: string;
+            /** @description Milliseconds until expiry, negative once expired */
             timeUntilExpiration?: number | null;
             createdAt: string;
             updatedAt: string;
+        };
+        /** @description Fields for creating an approval request */
+        ApprovalRequestCreatePayload: {
+            userId: number;
+            contentType: components["schemas"]["ContentType"];
+            contentTitle: string;
+            contentKey: string;
+            contentGuids?: string[];
+            routerDecision: components["schemas"]["RouterDecision"];
+            routerRuleId?: number;
+            approvalReason?: string;
+            triggeredBy: components["schemas"]["ApprovalTrigger"];
+            expiresAt?: string;
+        };
+        /** @description One page of approval requests with the total match count */
+        ApprovalRequestListResponse: {
+            success: boolean;
+            message: string;
+            approvalRequests: components["schemas"]["ApprovalRequest"][];
+            total: number;
+            limit: number;
+            offset: number;
+        };
+        /** @description A single approval request returned by a read or write */
+        ApprovalRequestResult: {
+            success: boolean;
+            message: string;
+            approvalRequest: components["schemas"]["ApprovalRequest"];
+        };
+        /** @description Fields to change on an approval request */
+        ApprovalRequestUpdatePayload: {
+            status?: components["schemas"]["ApprovalStatus"];
+            approvalNotes?: string;
+            proposedRouterDecision?: components["schemas"]["RouterDecision"];
         };
         /** @description Target instance and arr settings used to add the content */
         ApprovalRouting: {
@@ -3330,16 +3629,129 @@ export interface components {
             syncedInstances?: number[];
             ruleId?: number;
         };
+        /** @description Approval request counts by status */
+        ApprovalStats: {
+            pending: number;
+            approved: number;
+            rejected: number;
+            expired: number;
+            auto_approved: number;
+            totalRequests: number;
+        };
+        /** @description Approval request counts by status */
+        ApprovalStatsResponse: {
+            success: boolean;
+            message: string;
+            stats: components["schemas"]["ApprovalStats"];
+        };
         /**
          * @description Lifecycle state of an approval request
          * @enum {string}
          */
         ApprovalStatus: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
+        /** @description Outcome of an approval action */
+        ApprovalSuccessResponse: {
+            success: boolean;
+            message: string;
+        };
         /**
          * @description What caused a request to need approval
          * @enum {string}
          */
         ApprovalTrigger: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+        /**
+         * @description Why a Radarr or Sonarr connection check failed
+         * @enum {string}
+         */
+        ArrConnectionFailureCode: "unreachable" | "auth" | "invalid" | "webhook_callback_failed";
+        /** @description Tag to create on a saved Radarr or Sonarr instance */
+        ArrCreateTagBody: {
+            instanceId: number;
+            label: string;
+        };
+        /** @description The tag as Radarr or Sonarr stored it */
+        ArrCreateTagResponse: {
+            id: number;
+            label: string;
+        };
+        /** @description Instance save rejected because the arr could not reach the Pulsarr webhook */
+        ArrInstanceConflict: {
+            /** @description HTTP status code */
+            statusCode: number;
+            /** @description HTTP status text */
+            error: string;
+            /** @description Error detail, replaced with a generic string for 5xx */
+            message: string;
+            code: components["schemas"]["ArrConnectionFailureCode"];
+        };
+        /** @description The Radarr or Sonarr instance a lookup ran against */
+        ArrInstanceInfo: {
+            id: number;
+            name: string;
+            baseUrl: string;
+        };
+        /** @description Quality profiles, root folders and tags read from a Radarr or Sonarr server with unsaved credentials */
+        ArrProbeResponse: {
+            /** @constant */
+            success: true;
+            qualityProfiles: ({
+                id: number;
+                name: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            rootFolders: ({
+                id: number;
+                path: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            tags: components["schemas"]["ArrTag"][];
+        };
+        /** @description Quality profiles read from a saved Radarr or Sonarr instance */
+        ArrQualityProfilesResponse: {
+            success: boolean;
+            instance: components["schemas"]["ArrInstanceInfo"];
+            qualityProfiles: ({
+                id: number;
+                name: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+        };
+        /** @description Root folders read from a saved Radarr or Sonarr instance */
+        ArrRootFoldersResponse: {
+            success: boolean;
+            instance: components["schemas"]["ArrInstanceInfo"];
+            rootFolders: ({
+                id: number;
+                path: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+        };
+        /** @description A Radarr or Sonarr tag */
+        ArrTag: {
+            id: number;
+            label: string;
+        };
+        /** @description Tags read from a saved Radarr or Sonarr instance */
+        ArrTagsResponse: {
+            success: boolean;
+            instance: components["schemas"]["ArrInstanceInfo"];
+            tags: components["schemas"]["ArrTag"][];
+        };
+        /** @description Radarr or Sonarr address and API key to check before saving */
+        ArrTestConnectionBody: {
+            baseUrl: string;
+            apiKey: string;
+        };
+        /** @description Radarr or Sonarr connection test result, code is null on success */
+        ArrTestConnectionResponse: {
+            success: boolean;
+            message: string;
+            code: components["schemas"]["ArrConnectionFailureCode"] | null;
+        };
         /** @description Outcome of testing or registering the Pulsarr webhook in one arr instance */
         ArrWebhookResult: {
             instanceId: number;
@@ -3353,14 +3765,11 @@ export interface components {
             radarr: components["schemas"]["ArrWebhookResult"][];
             sonarr: components["schemas"]["ArrWebhookResult"][];
         };
-        /** @description Days from watchlisted to available for a content type */
-        AvailabilityTime: {
-            content_type: string;
-            avg_days: number;
-            min_days: number;
-            max_days: number;
-            count: number;
-        };
+        /**
+         * @description Where the latest background run stands, idle when none ran since the server started
+         * @enum {string}
+         */
+        BackgroundRunState: "idle" | "running" | "done" | "failed";
         /** @description Shows to enroll in or switch between rolling monitoring types */
         BulkManageRollingPayload: {
             shows: {
@@ -3384,22 +3793,31 @@ export interface components {
                 [key: string]: components["schemas"]["OrphanedTagRefInstanceResult"];
             };
         };
+        /** @description Result of a label cleanup: expired pending syncs and orphaned labels removed */
+        CleanupPlexLabelsResponse: {
+            success: boolean;
+            message: string;
+            pending: {
+                removed: number;
+                failed: number;
+            };
+            orphaned: {
+                removed: number;
+                failed: number;
+            };
+        };
         /**
          * @description Comparison operator applied to a condition value
          * @enum {string}
          */
         ConditionOperator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-        /** @description Value shapes accepted by router conditions */
-        ConditionValue: string | number | boolean | string[] | number[] | (string | number)[] | {
-            rating?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
-            votes?: number;
-        } | {
+        /** @description Inclusive numeric range, either bound may be left open */
+        ConditionRange: {
             min?: number;
             max?: number;
-        } | null;
+        };
+        /** @description Value shapes accepted by router conditions */
+        ConditionValue: string | number | boolean | string[] | number[] | (string | number)[] | components["schemas"]["ImdbConditionValue"] | components["schemas"]["ConditionRange"] | null;
         /**
          * @description Value shape a condition field or operator accepts
          * @enum {string}
@@ -3414,8 +3832,7 @@ export interface components {
             port?: number;
             dbPath?: string;
             cookieSecured: boolean;
-            /** @enum {string} */
-            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            logLevel?: components["schemas"]["ConfigLogLevel"];
             /** @description Shutdown grace period in milliseconds */
             closeGraceDelay?: number;
             rateLimitMax?: number;
@@ -3440,14 +3857,12 @@ export interface components {
                 appriseUrlsShows: string;
             };
             plexMobileEnabled: boolean;
-            /** @enum {string} */
-            deletionMode: "watchlist" | "tag-based";
+            deletionMode: components["schemas"]["DeletionMode"];
             /** @description Notification queue wait time in milliseconds */
             queueWaitTime: number;
             /** @description New episode notification threshold in milliseconds */
             newEpisodeThreshold: number;
-            /** @enum {string} */
-            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnUpdate: components["schemas"]["UpdateNotifyOption"];
             notifyOnAvailability: boolean;
             /** @description Pending webhook retry interval in seconds */
             pendingWebhookRetryInterval: number;
@@ -3466,15 +3881,11 @@ export interface components {
             deleteContinuingShow: boolean;
             deleteFiles: boolean;
             respectUserSyncSetting: boolean;
-            /** @enum {string} */
-            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotify: components["schemas"]["DeleteSyncNotifyOption"];
+            approvalNotify: components["schemas"]["NotifyOption"];
+            watchlistCapNotify: components["schemas"]["NotifyOption"];
             watchlistCapNotifyUser: boolean;
-            /** @enum {string} */
-            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistAddNotify: components["schemas"]["NotifyOption"];
             deleteSyncNotifyOnlyOnDeletion: boolean;
             maxDeletionPrevention?: number;
             deleteSyncTrackedOnly: boolean;
@@ -3482,96 +3893,32 @@ export interface components {
             deleteSyncRequiredTagRegex: string;
             enablePlexPlaylistProtection: boolean;
             plexProtectionPlaylistName: string;
-            plexLabelSync: {
-                enabled: boolean;
-                labelPrefix: string;
-                /**
-                 * @default username
-                 * @enum {string}
-                 */
-                labelNamingSource: "username" | "alias";
-                concurrencyLimit: number;
-                cleanupOrphanedLabels: boolean;
-                /**
-                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                 * @enum {string}
-                 */
-                removedLabelMode: "remove" | "keep" | "special-label";
-                /**
-                 * @description Prefix for special labels indicating removed users
-                 * @default pulsarr:removed
-                 */
-                removedLabelPrefix?: string;
-                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                autoResetOnScheduledSync: boolean;
-                tagSync: {
-                    enabled: boolean;
-                    syncRadarrTags: boolean;
-                    syncSonarrTags: boolean;
-                };
-            };
+            plexLabelSync: components["schemas"]["PlexLabelSyncConfig"];
             selfRss?: string;
             friendsRss?: string;
             tagUsersInSonarr: boolean;
             tagUsersInRadarr: boolean;
             cleanupOrphanedTags: boolean;
             tagPrefix: string;
-            /** @enum {string} */
-            tagNamingSource: "username" | "alias";
-            /** @enum {string} */
-            removedTagMode: "remove" | "keep" | "special-tag";
+            tagNamingSource: components["schemas"]["UserNamingSource"];
+            removedTagMode: components["schemas"]["RemovedTagMode"];
             removedTagPrefix: string;
             tagMigration?: components["schemas"]["TagMigrationOutput"];
-            plexSessionMonitoring?: {
-                enabled: boolean;
-                pollingIntervalMinutes: number;
-                remainingEpisodes: number;
-                filterUsers?: string[];
-                enableAutoReset?: boolean;
-                inactivityResetDays?: number;
-                autoResetIntervalHours?: number;
-                enableProgressiveCleanup?: boolean;
-            };
+            plexSessionMonitoring?: components["schemas"]["PlexSessionMonitoringConfig"];
             newUserDefaultCanSync: boolean;
             newUserDefaultRequiresApproval: boolean;
             newUserDefaultMovieQuotaEnabled: boolean;
-            /** @enum {string} */
-            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaType: components["schemas"]["QuotaType"];
             newUserDefaultMovieQuotaLimit: number;
             newUserDefaultMovieBypassApproval: boolean;
             newUserDefaultMovieWatchlistCap: number | null;
             newUserDefaultShowQuotaEnabled: boolean;
-            /** @enum {string} */
-            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaType: components["schemas"]["QuotaType"];
             newUserDefaultShowQuotaLimit: number;
             newUserDefaultShowBypassApproval: boolean;
             newUserDefaultShowWatchlistCap: number | null;
-            quotaSettings: {
-                cleanup: {
-                    enabled: boolean;
-                    retentionDays: number;
-                };
-                weeklyRolling: {
-                    resetDays: number;
-                };
-                monthly: {
-                    resetDay: number;
-                    /** @enum {string} */
-                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
-                };
-            };
-            approvalExpiration: {
-                enabled: boolean;
-                defaultExpirationHours: number;
-                /** @enum {string} */
-                expirationAction: "expire" | "auto_approve";
-                autoApproveOnQuotaAvailable: boolean;
-                quotaExceededExpirationHours?: number;
-                routerRuleExpirationHours?: number;
-                manualFlagExpirationHours?: number;
-                contentCriteriaExpirationHours?: number;
-                cleanupExpiredDays: number;
-            };
+            quotaSettings: components["schemas"]["QuotaSettings"];
+            approvalExpiration: components["schemas"]["ApprovalExpiration"];
             /** @description Auto-start the watchlist workflow on next boot; surfaced as the Auto-Start toggle */
             _isReady: boolean;
         };
@@ -3585,6 +3932,11 @@ export interface components {
             message: string;
             webhooks?: components["schemas"]["ArrWebhookResults"];
         };
+        /**
+         * @description How much Pulsarr writes to its log
+         * @enum {string}
+         */
+        ConfigLogLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
         /** @description Configuration response envelope */
         ConfigResponse: {
             /** @constant */
@@ -3598,8 +3950,7 @@ export interface components {
             port?: number;
             dbPath?: string;
             cookieSecured?: boolean;
-            /** @enum {string} */
-            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            logLevel?: components["schemas"]["ConfigLogLevel"];
             closeGraceDelay?: number;
             rateLimitMax?: number;
             queueProcessDelaySeconds?: number;
@@ -3623,8 +3974,7 @@ export interface components {
             plexMobileEnabled?: boolean;
             queueWaitTime?: number;
             newEpisodeThreshold?: number;
-            /** @enum {string} */
-            notifyOnUpdate?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnUpdate?: components["schemas"]["UpdateNotifyOption"];
             notifyOnAvailability?: boolean;
             pendingWebhookRetryInterval?: number;
             pendingWebhookMaxAge?: number;
@@ -3637,57 +3987,24 @@ export interface components {
             deleteContinuingShow?: boolean;
             deleteFiles?: boolean;
             respectUserSyncSetting?: boolean;
-            /** @enum {string} */
-            deleteSyncNotify?: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            approvalNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-            /** @enum {string} */
-            watchlistCapNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotify?: components["schemas"]["DeleteSyncNotifyOption"];
+            approvalNotify?: components["schemas"]["NotifyOption"];
+            watchlistCapNotify?: components["schemas"]["NotifyOption"];
             watchlistCapNotifyUser?: boolean;
-            /** @enum {string} */
-            watchlistAddNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistAddNotify?: components["schemas"]["NotifyOption"];
             deleteSyncNotifyOnlyOnDeletion?: boolean;
             maxDeletionPrevention?: number;
-            /** @enum {string} */
-            deletionMode?: "watchlist" | "tag-based";
+            deletionMode?: components["schemas"]["DeletionMode"];
             removedTagPrefix?: string;
             deleteSyncRequiredTagRegex?: string;
             deleteSyncTrackedOnly?: boolean;
             deleteSyncCleanupApprovals?: boolean;
-            /** @enum {string} */
-            removedTagMode?: "remove" | "keep" | "special-tag";
+            removedTagMode?: components["schemas"]["RemovedTagMode"];
             enablePlexPlaylistProtection?: boolean;
             plexProtectionPlaylistName?: string;
             plexServerUrl?: string | "";
             skipIfExistsOnPlex?: boolean;
-            plexLabelSync?: {
-                enabled: boolean;
-                labelPrefix: string;
-                /**
-                 * @default username
-                 * @enum {string}
-                 */
-                labelNamingSource?: "username" | "alias";
-                concurrencyLimit: number;
-                cleanupOrphanedLabels: boolean;
-                /**
-                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                 * @enum {string}
-                 */
-                removedLabelMode: "remove" | "keep" | "special-label";
-                /**
-                 * @description Prefix for special labels indicating removed users
-                 * @default pulsarr:removed
-                 */
-                removedLabelPrefix?: string;
-                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                autoResetOnScheduledSync: boolean;
-                tagSync: {
-                    enabled: boolean;
-                    syncRadarrTags: boolean;
-                    syncSonarrTags: boolean;
-                };
-            };
+            plexLabelSync?: components["schemas"]["PlexLabelSyncConfigPayload"];
             selfRss?: string;
             friendsRss?: string;
             _isReady?: boolean;
@@ -3704,50 +4021,23 @@ export interface components {
             newUserDefaultCanSync?: boolean;
             newUserDefaultRequiresApproval?: boolean;
             newUserDefaultMovieQuotaEnabled?: boolean;
-            /** @enum {string} */
-            newUserDefaultMovieQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaType?: components["schemas"]["QuotaType"];
             newUserDefaultMovieQuotaLimit?: number;
             newUserDefaultMovieBypassApproval?: boolean;
             newUserDefaultMovieWatchlistCap?: number | null;
             newUserDefaultShowQuotaEnabled?: boolean;
-            /** @enum {string} */
-            newUserDefaultShowQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaType?: components["schemas"]["QuotaType"];
             newUserDefaultShowQuotaLimit?: number;
             newUserDefaultShowBypassApproval?: boolean;
             newUserDefaultShowWatchlistCap?: number | null;
-            quotaSettings?: {
-                cleanup?: {
-                    enabled?: boolean;
-                    retentionDays?: number;
-                };
-                weeklyRolling?: {
-                    resetDays?: number;
-                };
-                monthly?: {
-                    resetDay?: number;
-                    /** @enum {string} */
-                    handleMonthEnd?: "last-day" | "skip-month" | "next-month";
-                };
-            };
-            approvalExpiration?: {
-                enabled?: boolean;
-                defaultExpirationHours?: number;
-                /** @enum {string} */
-                expirationAction?: "expire" | "auto_approve";
-                autoApproveOnQuotaAvailable?: boolean;
-                quotaExceededExpirationHours?: number;
-                routerRuleExpirationHours?: number;
-                manualFlagExpirationHours?: number;
-                contentCriteriaExpirationHours?: number;
-                cleanupExpiredDays?: number;
-            };
+            quotaSettings?: components["schemas"]["QuotaSettingsPayload"];
+            approvalExpiration?: components["schemas"]["ApprovalExpirationPayload"];
             tmdbRegion?: string;
             tagUsersInSonarr?: boolean;
             tagUsersInRadarr?: boolean;
             cleanupOrphanedTags?: boolean;
             tagPrefix?: string;
-            /** @enum {string} */
-            tagNamingSource?: "username" | "alias";
+            tagNamingSource?: components["schemas"]["UserNamingSource"];
             tagMigration?: components["schemas"]["TagMigration"];
         };
         /** @description A watchlisted title with its watchlist count and identifiers. */
@@ -3787,12 +4077,69 @@ export interface components {
             status_distribution: components["schemas"]["StatusDistribution"][];
             content_type_distribution: components["schemas"]["ContentTypeDistribution"][];
             recent_activity: components["schemas"]["ActivityStats"];
-            instance_activity: components["schemas"]["InstanceStat"][];
-            availability_times: components["schemas"]["AvailabilityTime"][];
             request_to_ready_times: components["schemas"]["RequestToReadyTime"][];
             status_transitions?: components["schemas"]["StatusTransitionTime"][];
             notification_stats?: components["schemas"]["NotificationStats"];
             instance_content_breakdown?: components["schemas"]["InstanceBreakdown"][];
+        };
+        /** @description Outcome of a delete sync dry run */
+        DeleteSyncDryRunResponse: {
+            success: boolean;
+            message: string;
+            results: components["schemas"]["DeleteSyncResult"];
+        };
+        /** @description The latest delete sync dry run */
+        DeleteSyncDryRunStatus: {
+            state: components["schemas"]["BackgroundRunState"];
+            startedAt: string | null;
+            finishedAt: string | null;
+            /** @description Why the latest run failed, null unless state is failed */
+            error: string | null;
+            /** @description The latest dry run outcome, null until a dry run finishes */
+            result: components["schemas"]["DeleteSyncDryRunResponse"] | null;
+        };
+        /**
+         * @description Channels the delete sync run summary goes to, legacy aliases included
+         * @enum {string}
+         */
+        DeleteSyncNotifyOption: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+        /** @description Totals and per-type results of a delete sync run */
+        DeleteSyncResult: {
+            total: {
+                deleted: number;
+                skipped: number;
+                processed: number;
+                protected?: number;
+            };
+            movies: components["schemas"]["DeleteSyncTypeResult"];
+            shows: components["schemas"]["DeleteSyncTypeResult"];
+            safetyTriggered?: boolean;
+            safetyMessage?: string;
+        };
+        /** @description One item a delete sync run deleted or would delete */
+        DeleteSyncResultItem: {
+            title: string;
+            guid: string;
+            instance: string;
+        };
+        /** @description Delete sync counts and items for one content type */
+        DeleteSyncTypeResult: {
+            deleted: number;
+            skipped: number;
+            protected?: number;
+            readonly items: components["schemas"]["DeleteSyncResultItem"][];
+        };
+        /**
+         * @description Whether delete sync targets content off every watchlist or content carrying the removal tag
+         * @enum {string}
+         */
+        DeletionMode: "watchlist" | "tag-based";
+        /** @description Discord bot status after a start or stop request */
+        DiscordBotControlResponse: {
+            success: boolean;
+            /** @enum {string} */
+            status: "running" | "stopped" | "starting" | "stopping" | "unknown";
+            message?: string;
         };
         /** @description Discord user to send a test direct message to */
         DiscordDmTestPayload: {
@@ -3803,6 +4150,22 @@ export interface components {
         DiscordWebhookTestPayload: {
             /** @description A single https://discord.com/api/webhooks/ URL */
             url: string;
+        };
+        /** @description Comma-separated Discord webhook URLs to check */
+        DiscordWebhookValidationPayload: {
+            webhookUrls: string;
+        };
+        /** @description Whether each Discord webhook URL answered */
+        DiscordWebhookValidationResponse: {
+            success: boolean;
+            valid: boolean;
+            urls: {
+                url: string;
+                valid: boolean;
+                error?: string;
+            }[];
+            duplicateCount?: number;
+            message?: string;
         };
         /** @description Standard error response */
         Error: {
@@ -3841,6 +4204,11 @@ export interface components {
             genre: string;
             count: number;
         };
+        /** @description IMDb rating comparison with an optional minimum vote count */
+        ImdbConditionValue: {
+            rating?: number | number[] | components["schemas"]["ConditionRange"];
+            votes?: number;
+        };
         /** @description Routed content on one arr instance by status and content type */
         InstanceBreakdown: {
             id: number;
@@ -3866,18 +4234,71 @@ export interface components {
             content_type: string;
             count: number;
         };
-        /** @description Watchlist item count routed to one arr instance */
-        InstanceStat: {
-            instance_id: number;
-            instance_type: components["schemas"]["InstanceType"];
-            name: string;
-            item_count: number;
-        };
         /**
          * @description Arr instance kind, radarr or sonarr
          * @enum {string}
          */
         InstanceType: "radarr" | "sonarr";
+        /** @description A scheduled job and its run state */
+        JobStatus: {
+            id: number;
+            name: string;
+            /** @constant */
+            type: "interval";
+            config: {
+                days?: number;
+                hours?: number;
+                minutes?: number;
+                seconds?: number;
+                runImmediately?: boolean;
+            };
+            enabled: boolean;
+            last_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            next_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            created_at: string;
+            updated_at: string;
+            /** @description True while a run of the job is in progress */
+            running: boolean;
+        } | {
+            id: number;
+            name: string;
+            /** @constant */
+            type: "cron";
+            config: {
+                expression: string;
+            };
+            enabled: boolean;
+            last_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            next_run: {
+                time: string;
+                /** @enum {string} */
+                status: "completed" | "failed" | "pending";
+                error?: string;
+                estimated?: boolean;
+            } | null;
+            created_at: string;
+            updated_at: string;
+            /** @description True while a run of the job is in progress */
+            running: boolean;
+        };
         /**
          * @description Exclude Maintainerr-handled media for its current watchlisters, or globally for every user
          * @enum {string}
@@ -3929,6 +4350,11 @@ export interface components {
             user_name: string;
             count: number;
         };
+        /**
+         * @description Channels an admin notification goes to, legacy aliases included
+         * @enum {string}
+         */
+        NotifyOption: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
         /** @description Orphaned tag reference cleanup result for one instance */
         OrphanedTagRefInstanceResult: {
             instanceName: string;
@@ -3936,6 +4362,41 @@ export interface components {
             orphanedTagsFound: number;
             itemsUpdated: number;
             error?: string;
+        };
+        /**
+         * @description Plex relationship of a user to the server owner, from friends, server shares and pending requests
+         * @enum {string}
+         */
+        PlexFriendStatus: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
+        /** @description How Plex labels are synced from user watchlists, always returned with defaults filled in */
+        PlexLabelSyncConfig: {
+            enabled: boolean;
+            labelPrefix: string;
+            labelNamingSource: components["schemas"]["UserNamingSource"];
+            cleanupOrphanedLabels: boolean;
+            removedLabelMode: components["schemas"]["RemovedLabelMode"];
+            removedLabelPrefix: string;
+            autoResetOnScheduledSync: boolean;
+            tagSync: {
+                enabled: boolean;
+                syncRadarrTags: boolean;
+                syncSonarrTags: boolean;
+            };
+        };
+        /** @description Writable Plex label sync settings. Send the whole object, it replaces the stored one. */
+        PlexLabelSyncConfigPayload: {
+            enabled: boolean;
+            labelPrefix: string;
+            labelNamingSource: components["schemas"]["UserNamingSource"];
+            cleanupOrphanedLabels: boolean;
+            removedLabelMode: components["schemas"]["RemovedLabelMode"];
+            removedLabelPrefix: string;
+            autoResetOnScheduledSync: boolean;
+            tagSync: {
+                enabled: boolean;
+                syncRadarrTags: boolean;
+                syncSonarrTags: boolean;
+            };
         };
         /** @description Plex Media Server connection to add to every Radarr and Sonarr instance, left out to use the saved Plex server and linked token */
         PlexNotificationConfigPayload: {
@@ -4017,6 +4478,17 @@ export interface components {
         PlexServerDiscoveryPayload: {
             plexToken: string;
         };
+        /** @description How Plex viewing sessions drive rolling Sonarr monitoring and its automatic resets */
+        PlexSessionMonitoringConfig: {
+            enabled: boolean;
+            pollingIntervalMinutes: number;
+            remainingEpisodes: number;
+            filterUsers?: string[];
+            enableAutoReset?: boolean;
+            inactivityResetDays?: number;
+            autoResetIntervalHours?: number;
+            enableProgressiveCleanup?: boolean;
+        };
         /** @description Plex server connection test result for the address Pulsarr uses */
         PlexTestConnectionResponse: {
             success: boolean;
@@ -4043,10 +4515,112 @@ export interface components {
             }[];
         };
         /**
-         * @description Quota window, a calendar day, rolling 7 days, or calendar month
+         * @description How a monthly quota resets when its reset day is past the end of a short month
+         * @enum {string}
+         */
+        QuotaMonthEnd: "last-day" | "skip-month" | "next-month";
+        /** @description Quota settings, always returned with defaults filled in */
+        QuotaSettings: {
+            cleanup: {
+                enabled: boolean;
+                retentionDays: number;
+            };
+            weeklyRolling: {
+                resetDays: number;
+            };
+            monthly: {
+                resetDay: number;
+                handleMonthEnd: components["schemas"]["QuotaMonthEnd"];
+            };
+        };
+        /** @description Writable quota settings. Send the whole object, it replaces the stored one. */
+        QuotaSettingsPayload: {
+            cleanup: {
+                enabled: boolean;
+                retentionDays: number;
+            };
+            weeklyRolling: {
+                resetDays: number;
+            };
+            monthly: {
+                resetDay: number;
+                handleMonthEnd: components["schemas"]["QuotaMonthEnd"];
+            };
+        };
+        /**
+         * @description Quota window, the current day, a rolling run of days, or a monthly period from the configured reset day
          * @enum {string}
          */
         QuotaType: "daily" | "weekly_rolling" | "monthly";
+        /** @description A configured Radarr instance */
+        RadarrInstance: {
+            name: string;
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored: boolean;
+            /** @default true */
+            searchOnAdd: boolean;
+            /** @default released */
+            minimumAvailability: components["schemas"]["RadarrMinimumAvailability"];
+            /** @default movieOnly */
+            monitor: components["schemas"]["RadarrMonitor"];
+            /** @default [] */
+            tags: string[];
+            /** @default false */
+            isDefault: boolean;
+            syncedInstances?: number[];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch: boolean;
+            id: number;
+        };
+        /** @description Id of the newly created Radarr instance */
+        RadarrInstanceCreateResponse: {
+            id: number;
+        };
+        /** @description All configured Radarr instances */
+        RadarrInstanceListResponse: components["schemas"]["RadarrInstance"][];
+        /** @description A new Radarr instance, omitted settings take their defaults */
+        RadarrInstancePayload: {
+            name: string;
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored?: boolean;
+            /** @default true */
+            searchOnAdd?: boolean;
+            /** @default released */
+            minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+            /** @default movieOnly */
+            monitor?: components["schemas"]["RadarrMonitor"];
+            /** @default [] */
+            tags?: string[];
+            /** @default false */
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
+        /** @description Partial Radarr instance update, omitted fields keep their stored value */
+        RadarrInstanceUpdatePayload: {
+            name?: string;
+            baseUrl?: string;
+            apiKey?: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            bypassIgnored?: boolean;
+            searchOnAdd?: boolean;
+            minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+            monitor?: components["schemas"]["RadarrMonitor"];
+            tags?: string[];
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
         /**
          * @description Release stage at which Radarr considers a movie available
          * @enum {string}
@@ -4090,25 +4664,20 @@ export interface components {
                 type: "user" | "critic";
             };
         };
-        /** @description One arr instance a recent request was routed to, with its collapsed and raw status */
+        /** @description One arr instance a recent request was routed to, with its watchlist status on that instance */
         RecentRequestInstance: {
             id: number;
             name: string;
             instanceType: components["schemas"]["InstanceType"];
-            status: components["schemas"]["RecentRequestInstanceStatus"];
             junctionStatus: components["schemas"]["WatchlistStatus"];
         };
-        /**
-         * @description Collapsed per-instance status, never pending_approval since approvals are not routed yet
-         * @enum {string}
-         */
-        RecentRequestInstanceStatus: "pending" | "requested" | "available";
         /** @description A pending approval or routed watchlist item shown in recent requests */
         RecentRequestItem: {
             id: number;
             /** @enum {string} */
             source: "approval" | "watchlist";
             title: string;
+            key: string;
             contentType: components["schemas"]["ContentType"];
             guids: string[];
             thumb: string | null;
@@ -4116,18 +4685,37 @@ export interface components {
             userId: number;
             userName: string;
             createdAt: string;
+            statusTimes: components["schemas"]["RecentRequestStatusTimes"];
             primaryInstance: components["schemas"]["RecentRequestInstance"] | null;
             allInstances: components["schemas"]["RecentRequestInstance"][];
         };
         /**
-         * @description Collapsed request status, where pending_approval comes from the approval queue
+         * @description Request status, pending_approval from the approval queue, otherwise the highest watchlist status across routed instances
          * @enum {string}
          */
-        RecentRequestStatus: "pending_approval" | "pending" | "requested" | "available";
+        RecentRequestStatus: "pending_approval" | "pending" | "requested" | "grabbed" | "notified";
+        /** @description When the item first reached each watchlist status, null when there is no record */
+        RecentRequestStatusTimes: {
+            requested: string | null;
+            grabbed: string | null;
+            notified: string | null;
+        };
         /** @description Recent requests for the dashboard, newest first */
         RecentRequestsResponse: {
             success: boolean;
             items: components["schemas"]["RecentRequestItem"][];
+        };
+        /** @description Result of removing every Pulsarr label from Plex */
+        RemovePlexLabelsResponse: {
+            success: boolean;
+            message: string;
+            /** @constant */
+            mode: "remove";
+            results: {
+                processed: number;
+                removed: number;
+                failed: number;
+            };
         };
         /** @description Options for removing user tags */
         RemoveTagsPayload: {
@@ -4152,6 +4740,16 @@ export interface components {
             failed: number;
             instances: number;
         };
+        /**
+         * @description What happens to a user label once that user drops the content
+         * @enum {string}
+         */
+        RemovedLabelMode: "remove" | "keep" | "special-label";
+        /**
+         * @description What happens to a user tag once that user drops the content
+         * @enum {string}
+         */
+        RemovedTagMode: "remove" | "keep" | "special-tag";
         /** @description Days from request to a file on disk for a content type */
         RequestToReadyTime: {
             content_type: string;
@@ -4179,6 +4777,9 @@ export interface components {
             plex_user_id?: string | null;
             plex_username?: string | null;
             plex_user_uuid?: string | null;
+            season_episode_counts: {
+                [key: string]: number;
+            } | null;
             created_at: string;
             updated_at: string;
             last_updated_at: string;
@@ -4190,23 +4791,18 @@ export interface components {
             value: components["schemas"]["ConditionValue"];
             /** @default false */
             negate?: boolean;
-            _cid?: string;
         };
         /** @description Boolean grouping of router conditions, nestable to 20 levels */
         RouterConditionGroup: {
-            /** @enum {string} */
-            operator: "AND" | "OR";
+            operator: components["schemas"]["RouterGroupOperator"];
             conditions: (components["schemas"]["RouterCondition"] | {
-                /** @enum {string} */
-                operator: "AND" | "OR";
+                operator: components["schemas"]["RouterGroupOperator"];
                 conditions: unknown[];
                 /** @default false */
                 negate?: boolean;
-                _cid?: string;
             })[];
             /** @default false */
             negate?: boolean;
-            _cid?: string;
         };
         /** @description Router outcome for a request, holding the routing used on approval */
         RouterDecision: {
@@ -4234,6 +4830,11 @@ export interface components {
                 additionalRouting?: components["schemas"]["ApprovalRoutingOutput"][];
             };
         };
+        /**
+         * @description How a condition group joins its children
+         * @enum {string}
+         */
+        RouterGroupOperator: "AND" | "OR";
         /** @description A stored content router rule */
         RouterRule: {
             name: string;
@@ -4249,24 +4850,13 @@ export interface components {
                     id: string | number;
                     name: string;
                 } | {
-                    rating?: number | number[] | {
-                        min?: number;
-                        max?: number;
-                    };
-                    votes?: number | number[] | {
-                        min?: number;
-                        max?: number;
-                    };
-                } | {
-                    min?: number;
-                    max?: number;
-                } | null;
+                    rating?: number | number[] | components["schemas"]["ConditionRange"];
+                    votes?: number | number[] | components["schemas"]["ConditionRange"];
+                } | components["schemas"]["ConditionRange"] | null;
                 /** @default false */
                 negate: boolean;
-                _cid?: string;
             } | {
-                /** @enum {string} */
-                operator: "AND" | "OR";
+                operator: components["schemas"]["RouterGroupOperator"];
                 conditions: ({
                     field: string;
                     operator: components["schemas"]["ConditionOperator"];
@@ -4277,32 +4867,19 @@ export interface components {
                         id: string | number;
                         name: string;
                     } | {
-                        rating?: number | number[] | {
-                            min?: number;
-                            max?: number;
-                        };
-                        votes?: number | number[] | {
-                            min?: number;
-                            max?: number;
-                        };
-                    } | {
-                        min?: number;
-                        max?: number;
-                    } | null;
+                        rating?: number | number[] | components["schemas"]["ConditionRange"];
+                        votes?: number | number[] | components["schemas"]["ConditionRange"];
+                    } | components["schemas"]["ConditionRange"] | null;
                     /** @default false */
                     negate: boolean;
-                    _cid?: string;
                 } | {
-                    /** @enum {string} */
-                    operator: "AND" | "OR";
+                    operator: components["schemas"]["RouterGroupOperator"];
                     conditions: unknown[];
                     /** @default false */
                     negate: boolean;
-                    _cid?: string;
                 })[];
                 /** @default false */
                 negate: boolean;
-                _cid?: string;
             };
             root_folder?: string | null;
             quality_profile?: number | string | null;
@@ -4330,8 +4907,39 @@ export interface components {
             message: string;
             rules: components["schemas"]["RouterRule"][];
         };
-        /** @description Full router rule payload used to create or replace a rule */
+        /** @description Priorities to store on several router rules at once */
+        RouterRuleOrderPayload: {
+            orders: {
+                id: number;
+                order: number;
+            }[];
+        };
+        /** @description Full router rule payload used to create a rule */
         RouterRulePayload: {
+            name: string;
+            target_type: components["schemas"]["InstanceType"];
+            target_instance_id: number | null;
+            condition?: components["schemas"]["RouterCondition"] | components["schemas"]["RouterConditionGroup"];
+            root_folder?: string | null;
+            quality_profile?: (number | string) | null;
+            tags?: string[];
+            /** @description Left out, the rule is placed after every existing rule of its type */
+            order?: number;
+            enabled?: boolean;
+            search_on_add?: boolean | null;
+            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
+            /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            series_type?: components["schemas"]["SonarrSeriesType"] | null;
+            /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
+            monitor?: components["schemas"]["RadarrMonitor"] | null;
+            always_require_approval?: boolean;
+            bypass_user_quotas?: boolean;
+            approval_reason?: string;
+            exclude_from_routing?: boolean;
+        };
+        /** @description Full router rule payload used to replace a rule. An order outside 1 to 100 is accepted only when it is the value already stored on the rule. */
+        RouterRuleReplacePayload: {
             name: string;
             target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
@@ -4359,6 +4967,117 @@ export interface components {
             message: string;
             rule: components["schemas"]["RouterRule"];
         };
+        /** @description Result of a router rule write that returns no rule */
+        RouterRuleSuccess: {
+            success: boolean;
+            message: string;
+        };
+        /** @description Turns a router rule on or off */
+        RouterRuleTogglePayload: {
+            enabled: boolean;
+        };
+        /** @description Days without viewing activity before a rolling show is reset */
+        SessionMonitoringResetInactivePayload: {
+            inactivityDays?: number;
+        };
+        /** @description Outcome of one session monitoring run */
+        SessionMonitoringResult: {
+            processedSessions: number;
+            triggeredSearches: number;
+            errors: string[];
+            rollingUpdates: components["schemas"]["SessionMonitoringRollingUpdate"][];
+        };
+        /** @description A monitoring change made to one rolling show during a run */
+        SessionMonitoringRollingUpdate: {
+            showTitle: string;
+            /** @enum {string} */
+            action: "expanded_to_season" | "expanded_to_next_season" | "switched_to_all";
+            details: string;
+        };
+        /** @description A configured Sonarr instance */
+        SonarrInstance: {
+            name: string;
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored: boolean;
+            /** @default all */
+            seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"];
+            /** @default all */
+            monitorNewItems: components["schemas"]["SonarrMonitorNewItems"];
+            /** @default true */
+            searchOnAdd: boolean;
+            /** @default false */
+            createSeasonFolders: boolean;
+            /** @default [] */
+            tags: string[];
+            /** @default false */
+            isDefault: boolean;
+            syncedInstances?: number[];
+            /** @default standard */
+            seriesType: components["schemas"]["SonarrSeriesType"];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch: boolean;
+            id: number;
+        };
+        /** @description Id of the newly created Sonarr instance */
+        SonarrInstanceCreateResponse: {
+            id: number;
+        };
+        /** @description All configured Sonarr instances */
+        SonarrInstanceListResponse: components["schemas"]["SonarrInstance"][];
+        /** @description A new Sonarr instance, omitted settings take their defaults */
+        SonarrInstancePayload: {
+            name: string;
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored?: boolean;
+            /** @default all */
+            seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
+            /** @default all */
+            monitorNewItems?: components["schemas"]["SonarrMonitorNewItems"];
+            /** @default true */
+            searchOnAdd?: boolean;
+            /** @default false */
+            createSeasonFolders?: boolean;
+            /** @default [] */
+            tags?: string[];
+            /** @default false */
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            /** @default standard */
+            seriesType?: components["schemas"]["SonarrSeriesType"];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
+        /** @description Partial Sonarr instance update, omitted fields keep their stored value */
+        SonarrInstanceUpdatePayload: {
+            name?: string;
+            baseUrl?: string;
+            apiKey?: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            bypassIgnored?: boolean;
+            seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
+            monitorNewItems?: components["schemas"]["SonarrMonitorNewItems"];
+            searchOnAdd?: boolean;
+            createSeasonFolders?: boolean;
+            tags?: string[];
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            seriesType?: components["schemas"]["SonarrSeriesType"];
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
+        /**
+         * @description Whether Sonarr monitors seasons added to a series later
+         * @enum {string}
+         */
+        SonarrMonitorNewItems: "all" | "none";
         /**
          * @description Rolling monitoring strategy for a show
          * @enum {string}
@@ -4405,6 +5124,19 @@ export interface components {
             min_days: number;
             max_days: number;
             count: number;
+        };
+        /** @description Result of a full label sync. Pending counts items not in Plex yet. */
+        SyncPlexLabelsResponse: {
+            success: boolean;
+            message: string;
+            /** @constant */
+            mode: "sync";
+            results: {
+                processed: number;
+                updated: number;
+                failed: number;
+                pending: number;
+            };
         };
         /** @description Result of syncing user tags onto Sonarr and Radarr content */
         SyncTaggingResponse: {
@@ -4724,12 +5456,85 @@ export interface components {
              */
             newEmail: string;
         };
+        /**
+         * @description Channels an admin notification goes to
+         * @enum {string}
+         */
+        UpdateNotifyOption: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
         /** @description Change the current admin username */
         UpdateUsernamePayload: {
             /** @description Current password for verification */
             currentPassword: string;
             /** @description New username to set */
             newUsername: string;
+        };
+        /**
+         * @description Which user name a per-user tag or label is built from
+         * @enum {string}
+         */
+        UserNamingSource: "username" | "alias";
+        /** @description A user quota for one content type */
+        UserQuota: {
+            userId: number;
+            contentType: components["schemas"]["ContentType"];
+            quotaType: components["schemas"]["QuotaType"];
+            quotaLimit: number;
+            bypassApproval: boolean;
+            watchlistCap: number | null;
+        };
+        /** @description Quotas to set on, or delete from, several users at once */
+        UserQuotaBulkOperationPayload: {
+            userIds: number[];
+            /** @enum {string} */
+            operation: "update" | "delete";
+            movieQuota?: components["schemas"]["UserQuotaPayload"];
+            showQuota?: components["schemas"]["UserQuotaPayload"];
+        };
+        /** @description Requests counted against a user quota on one day */
+        UserQuotaDailyStats: {
+            date: string;
+            movies: number;
+            shows: number;
+            total: number;
+        };
+        /** @description One content type quota for a user, switched on with its settings or switched off */
+        UserQuotaPayload: {
+            quotaType?: components["schemas"]["QuotaType"];
+            quotaLimit?: number;
+            bypassApproval?: boolean;
+            watchlistCap?: number | null;
+            enabled: boolean;
+        };
+        /** @description Current usage of a user quota against its limit and cap */
+        UserQuotaStatus: {
+            quotaType: components["schemas"]["QuotaType"];
+            quotaLimit: number;
+            currentUsage: number;
+            exceeded: boolean;
+            resetDate: string | null;
+            bypassApproval: boolean;
+            watchlistCap: number | null;
+            watchlistUsage: number | null;
+            watchlistCapExceeded: boolean;
+        };
+        /** @description One request counted against a user quota */
+        UserQuotaUsage: {
+            userId: number;
+            contentType: components["schemas"]["ContentType"];
+            /** @description Date as YYYY-MM-DD */
+            requestDate: string;
+        };
+        /** @description A user's movie and show quotas, each absent when not set */
+        UserQuotas: {
+            userId: number;
+            movieQuota?: components["schemas"]["UserQuota"];
+            showQuota?: components["schemas"]["UserQuota"];
+        };
+        /** @description Movie and show quotas to set for one user */
+        UserQuotasUpdatePayload: {
+            movieQuota?: components["schemas"]["UserQuotaPayload"];
+            showQuota?: components["schemas"]["UserQuotaPayload"];
+            autoApproveHeld?: boolean;
         };
         /** @description A user with their total watchlist item count in the range and its movie and show split */
         UserStat: {
@@ -4738,6 +5543,18 @@ export interface components {
             movies: number;
             shows: number;
         };
+        /** @description Counts for one user across their watchlist, notifications and approvals */
+        UserStats: {
+            watchlist: {
+                pending: number;
+                requested: number;
+                grabbed: number;
+                notified: number;
+                total: number;
+            };
+            notificationsSent: number;
+            pendingApprovals: number;
+        };
         /** @description Saved user notification channel to test */
         UserTestPayload: {
             /**
@@ -4745,6 +5562,53 @@ export interface components {
              * @enum {string}
              */
             channel: "apprise" | "discord-dm" | "plex-mobile";
+        };
+        /** @description User with their Plex friend status and watchlist item count */
+        UserWithCount: {
+            id: number;
+            name: string;
+            apprise: string | null;
+            alias: string | null;
+            discord_id: string | null;
+            notify_apprise: boolean;
+            notify_discord: boolean;
+            notify_discord_mention: boolean;
+            notify_plex_mobile: boolean;
+            can_sync: boolean;
+            requires_approval: boolean;
+            is_primary_token: boolean;
+            plex_uuid?: string | null;
+            avatar?: string | null;
+            display_name?: string | null;
+            friend_created_at?: string | null;
+            created_at: string;
+            updated_at: string;
+            friendStatus: components["schemas"]["PlexFriendStatus"] | null;
+            pendingSince: string | null;
+            watchlist_count: number;
+        };
+        /** @description User with their Plex friend status, null when Plex cannot classify them */
+        UserWithFriendStatus: {
+            id: number;
+            name: string;
+            apprise: string | null;
+            alias: string | null;
+            discord_id: string | null;
+            notify_apprise: boolean;
+            notify_discord: boolean;
+            notify_discord_mention: boolean;
+            notify_plex_mobile: boolean;
+            can_sync: boolean;
+            requires_approval: boolean;
+            is_primary_token: boolean;
+            plex_uuid?: string | null;
+            avatar?: string | null;
+            display_name?: string | null;
+            friend_created_at?: string | null;
+            created_at: string;
+            updated_at: string;
+            friendStatus: components["schemas"]["PlexFriendStatus"] | null;
+            pendingSince: string | null;
         };
         /** @description A watchlist exclusion row. user_id 0 is the global exclusion */
         WatchlistExclusion: {
@@ -4857,6 +5721,32 @@ export interface components {
          * @enum {string}
          */
         WatchlistStatus: "pending" | "requested" | "grabbed" | "notified";
+        /** @description The latest sync of one watchlist type */
+        WatchlistSyncStatus: {
+            state: components["schemas"]["BackgroundRunState"];
+            startedAt: string | null;
+            finishedAt: string | null;
+            /** @description Why the latest run failed, null unless state is failed */
+            error: string | null;
+            /** @description Items read by the latest finished sync */
+            total: number | null;
+            /** @description Friends read by the latest finished sync, always null for your own watchlist */
+            friends: number | null;
+        };
+        /**
+         * @description Your own watchlist or the watchlists of your Plex friends
+         * @enum {string}
+         */
+        WatchlistSyncType: "self-watchlist" | "others-watchlist";
+        /** @description The watchlist workflow state and why its latest start failed */
+        WatchlistWorkflowStatus: {
+            success: boolean;
+            /** @enum {string} */
+            status: "running" | "stopped" | "starting" | "stopping";
+            message?: string;
+            /** @description Why the latest start fell back to stopped, null once the next start begins */
+            lastError: string | null;
+        };
         /** @description Movie or show the event is about */
         WebhookContent: {
             title: string;
@@ -4864,6 +5754,74 @@ export interface components {
             key: string;
             guids: string[];
             posterUrl?: string;
+        };
+        /** @description A native webhook endpoint, auth header value included */
+        WebhookEndpoint: {
+            id: number;
+            name: string;
+            url: string;
+            authHeaderName: string | null;
+            authHeaderValue: string | null;
+            eventTypes: components["schemas"]["WebhookEventType"][];
+            enabled: boolean;
+            createdAt: string;
+            updatedAt: string;
+        };
+        /** @description A new native webhook endpoint */
+        WebhookEndpointCreatePayload: {
+            name: string;
+            url: string;
+            authHeaderName?: string;
+            authHeaderValue?: string;
+            eventTypes: components["schemas"]["WebhookEventType"][];
+            /** @default true */
+            enabled?: boolean;
+        };
+        /** @description Result of deleting a native webhook endpoint */
+        WebhookEndpointDeleteResponse: {
+            success: boolean;
+            message: string;
+        };
+        /** @description Every native webhook endpoint */
+        WebhookEndpointList: {
+            /** @constant */
+            success: true;
+            data: components["schemas"]["WebhookEndpoint"][];
+        };
+        /** @description One native webhook endpoint */
+        WebhookEndpointResponse: {
+            /** @constant */
+            success: true;
+            data: components["schemas"]["WebhookEndpoint"];
+        };
+        /** @description An unsaved webhook URL and auth header to send a test event to */
+        WebhookEndpointTestPayload: {
+            url: string;
+            authHeaderName?: string;
+            authHeaderValue?: string;
+        };
+        /** @description Changes to a native webhook endpoint, null clears a header */
+        WebhookEndpointUpdatePayload: {
+            name?: string;
+            url?: string;
+            authHeaderName?: string | null;
+            authHeaderValue?: string | null;
+            eventTypes?: components["schemas"]["WebhookEventType"][];
+            enabled?: boolean;
+        };
+        /**
+         * @description A Pulsarr event a webhook endpoint can receive
+         * @enum {string}
+         */
+        WebhookEventType: "media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached";
+        /** @description Every webhook event type with what triggers it */
+        WebhookEventTypeList: {
+            /** @constant */
+            success: true;
+            data: {
+                type: components["schemas"]["WebhookEventType"];
+                description: string;
+            }[];
         };
         /** @description Pulsarr user the event is about, alias only when set */
         WebhookUser: {
@@ -4954,14 +5912,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        apiKeys: {
-                            id: number;
-                            name: string;
-                            key: string;
-                            user_id: number;
-                            created_at: string;
-                            is_active: boolean;
-                        }[];
+                        apiKeys: components["schemas"]["ApiKey"][];
                     };
                 };
             };
@@ -4992,11 +5943,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Name for a new API key */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                };
+                "application/json": components["schemas"]["ApiKeyCreatePayload"];
             };
         };
         responses: {
@@ -5009,14 +5959,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        apiKey: {
-                            id: number;
-                            name: string;
-                            key: string;
-                            user_id: number;
-                            created_at: string;
-                            is_active: boolean;
-                        };
+                        apiKey: components["schemas"]["ApiKey"];
                     };
                 };
             };
@@ -5099,7 +6042,9 @@ export interface operations {
     getApprovalRequests: {
         parameters: {
             query?: {
+                /** @description One status or a comma-separated list */
                 status?: string;
+                /** @description One user id or a comma-separated list */
                 userId?: string;
                 contentType?: string;
                 triggeredBy?: string;
@@ -5121,14 +6066,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequests: components["schemas"]["ApprovalRequest"][];
-                        total: number;
-                        limit: number;
-                        offset: number;
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestListResponse"];
                 };
             };
             /** @description Default Response */
@@ -5167,20 +6105,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Fields for creating an approval request */
         requestBody: {
             content: {
-                "application/json": {
-                    userId: number;
-                    contentType: components["schemas"]["ContentType"];
-                    contentTitle: string;
-                    contentKey: string;
-                    contentGuids?: string[];
-                    routerDecision: components["schemas"]["RouterDecision"];
-                    routerRuleId?: number;
-                    approvalReason?: string;
-                    triggeredBy: components["schemas"]["ApprovalTrigger"];
-                    expiresAt?: string;
-                };
+                "application/json": components["schemas"]["ApprovalRequestCreatePayload"];
             };
         };
         responses: {
@@ -5190,11 +6118,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequest: components["schemas"]["ApprovalRequest"];
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestResult"];
                 };
             };
             /** @description Default Response */
@@ -5242,12 +6166,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Approval requests to approve, with optional notes */
         requestBody: {
             content: {
-                "application/json": {
-                    requestIds: number[];
-                    notes?: string;
-                };
+                "application/json": components["schemas"]["ApprovalBulkApprovePayload"];
             };
         };
         responses: {
@@ -5257,16 +6179,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalBulkOperationResponse"];
                 };
             };
             /** @description Default Response */
@@ -5323,11 +6236,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Approval requests to delete */
         requestBody: {
             content: {
-                "application/json": {
-                    requestIds: number[];
-                };
+                "application/json": components["schemas"]["ApprovalBulkDeletePayload"];
             };
         };
         responses: {
@@ -5337,16 +6249,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalBulkOperationResponse"];
                 };
             };
             /** @description Default Response */
@@ -5385,12 +6288,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Approval requests to reject, with an optional reason */
         requestBody: {
             content: {
-                "application/json": {
-                    requestIds: number[];
-                    reason?: string;
-                };
+                "application/json": components["schemas"]["ApprovalBulkRejectPayload"];
             };
         };
         responses: {
@@ -5400,16 +6301,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalBulkOperationResponse"];
                 };
             };
             /** @description Default Response */
@@ -5467,11 +6359,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequest: components["schemas"]["ApprovalRequest"];
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestResult"];
                 };
             };
             /** @description Default Response */
@@ -5529,10 +6417,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ApprovalSuccessResponse"];
                 };
             };
             /** @description Default Response */
@@ -5582,13 +6467,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Fields to change on an approval request */
         requestBody: {
             content: {
-                "application/json": {
-                    status?: components["schemas"]["ApprovalStatus"];
-                    approvalNotes?: string;
-                    proposedRouterDecision?: components["schemas"]["RouterDecision"];
-                };
+                "application/json": components["schemas"]["ApprovalRequestUpdatePayload"];
             };
         };
         responses: {
@@ -5598,11 +6480,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequest: components["schemas"]["ApprovalRequest"];
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestResult"];
                 };
             };
             /** @description Default Response */
@@ -5693,10 +6571,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ApprovalSuccessResponse"];
                 };
             };
             /** @description Default Response */
@@ -5778,10 +6653,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ApprovalSuccessResponse"];
                 };
             };
             /** @description Default Response */
@@ -5846,18 +6718,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        stats: {
-                            pending: number;
-                            approved: number;
-                            rejected: number;
-                            expired: number;
-                            auto_approved: number;
-                            totalRequests: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalStatsResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -6146,7 +7007,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description Full router rule payload used to create or replace a rule */
+        /** @description Full router rule payload used to create a rule */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RouterRulePayload"];
@@ -6164,6 +7025,58 @@ export interface operations {
             };
             /** @description Default Response */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    reorderRouterRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Priorities to store on several router rules at once */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouterRuleOrderPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
+                };
+            };
+            /** @description Default Response */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6383,10 +7296,10 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description Full router rule payload used to create or replace a rule */
+        /** @description Full router rule payload used to replace a rule. An order outside 1 to 100 is accepted only when it is the value already stored on the rule. */
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RouterRulePayload"];
+                "application/json": components["schemas"]["RouterRuleReplacePayload"];
             };
         };
         responses: {
@@ -6454,10 +7367,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["RouterRuleSuccess"];
                 };
             };
             /** @description Default Response */
@@ -6498,11 +7408,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Turns a router rule on or off */
         requestBody: {
             content: {
-                "application/json": {
-                    enabled: boolean;
-                };
+                "application/json": components["schemas"]["RouterRuleTogglePayload"];
             };
         };
         responses: {
@@ -6512,10 +7421,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["RouterRuleSuccess"];
                 };
             };
             /** @description Default Response */
@@ -6562,18 +7468,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        pending: {
-                            removed: number;
-                            failed: number;
-                        };
-                        orphaned: {
-                            removed: number;
-                            failed: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["CleanupPlexLabelsResponse"];
                 };
             };
             /** @description Default Response */
@@ -6620,17 +7515,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @constant */
-                        mode: "remove";
-                        results: {
-                            processed: number;
-                            removed: number;
-                            failed: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["RemovePlexLabelsResponse"];
                 };
             };
             /** @description Default Response */
@@ -6677,18 +7562,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @constant */
-                        mode: "sync";
-                        results: {
-                            processed: number;
-                            updated: number;
-                            failed: number;
-                            pending: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["SyncPlexLabelsResponse"];
                 };
             };
             /** @description Default Response */
@@ -6821,12 +7695,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["DiscordBotControlResponse"];
                 };
             };
             /** @description Default Response */
@@ -6873,12 +7742,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["DiscordBotControlResponse"];
                 };
             };
             /** @description Default Response */
@@ -7261,11 +8125,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Comma-separated Discord webhook URLs to check */
         requestBody: {
             content: {
-                "application/json": {
-                    webhookUrls: string;
-                };
+                "application/json": components["schemas"]["DiscordWebhookValidationPayload"];
             };
         };
         responses: {
@@ -7275,17 +8138,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        valid: boolean;
-                        urls: {
-                            url: string;
-                            valid: boolean;
-                            error?: string;
-                        }[];
-                        duplicateCount?: number;
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["DiscordWebhookValidationResponse"];
                 };
             };
             /** @description Default Response */
@@ -8369,8 +9222,7 @@ export interface operations {
                             username: string;
                             avatar: string;
                             displayName: string;
-                            /** @enum {string} */
-                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
+                            status: components["schemas"]["PlexFriendStatus"];
                             friendCreatedAt: string | null;
                             pendingSince: string | null;
                         }[];
@@ -8378,11 +9230,101 @@ export interface operations {
                             uuid: string;
                             username: string;
                             avatar: string;
-                            /** @enum {string} */
-                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
+                            status: components["schemas"]["PlexFriendStatus"];
                             pendingSince: string | null;
                         }[];
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startWatchlistSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Your own watchlist or the watchlists of your Plex friends */
+                type: components["schemas"]["WatchlistSyncType"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWatchlistSyncStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Your own watchlist or the watchlists of your Plex friends */
+                type: components["schemas"]["WatchlistSyncType"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistSyncStatus"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -8458,12 +9400,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        dailyStats: {
-                            date: string;
-                            movies: number;
-                            shows: number;
-                            total: number;
-                        }[];
+                        dailyStats: components["schemas"]["UserQuotaDailyStats"][];
                     };
                 };
             };
@@ -8512,11 +9449,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        quotaUsage: {
-                            userId: number;
-                            contentType: components["schemas"]["ContentType"];
-                            requestDate: string;
-                        }[];
+                        quotaUsage: components["schemas"]["UserQuotaUsage"][];
                         total: number;
                         limit: number;
                         offset: number;
@@ -8604,14 +9537,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            contentType: components["schemas"]["ContentType"];
-                            quotaType: components["schemas"]["QuotaType"];
-                            quotaLimit: number;
-                            bypassApproval: boolean;
-                            watchlistCap: number | null;
-                        }[];
+                        userQuotas: components["schemas"]["UserQuota"][];
                     };
                 };
             };
@@ -8664,25 +9590,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
@@ -8722,27 +9630,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Quotas to set on, or delete from, several users at once */
         requestBody: {
             content: {
-                "application/json": {
-                    userIds: number[];
-                    /** @enum {string} */
-                    operation: "update" | "delete";
-                    movieQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                    showQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                };
+                "application/json": components["schemas"]["UserQuotaBulkOperationPayload"];
             };
         };
         responses: {
@@ -8816,17 +9707,7 @@ export interface operations {
                         message: string;
                         quotaStatuses: {
                             userId: number;
-                            quotaStatus: {
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                currentUsage: number;
-                                exceeded: boolean;
-                                resetDate: string | null;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                                watchlistUsage: number | null;
-                                watchlistCapExceeded: boolean;
-                            } | null;
+                            quotaStatus: components["schemas"]["UserQuotaStatus"] | null;
                         }[];
                     };
                 };
@@ -8880,30 +9761,12 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
-            /** @description Default Response */
-            404: {
+            /** @description Rate limit exceeded */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8911,8 +9774,8 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Rate limit exceeded */
-            429: {
+            /** @description Default Response */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8996,25 +9859,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
@@ -9092,25 +9937,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Movie and show quotas to set for one user */
         requestBody: {
             content: {
-                "application/json": {
-                    movieQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                    showQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                    autoApproveHeld?: boolean;
-                };
+                "application/json": components["schemas"]["UserQuotasUpdatePayload"];
             };
         };
         responses: {
@@ -9123,25 +9953,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
@@ -9187,17 +9999,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        quotaStatus: {
-                            quotaType: components["schemas"]["QuotaType"];
-                            quotaLimit: number;
-                            currentUsage: number;
-                            exceeded: boolean;
-                            resetDate: string | null;
-                            bypassApproval: boolean;
-                            watchlistCap: number | null;
-                            watchlistUsage: number | null;
-                            watchlistCapExceeded: boolean;
-                        } | null;
+                        quotaStatus: components["schemas"]["UserQuotaStatus"] | null;
                     };
                 };
             };
@@ -9279,12 +10081,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Tag to create on a saved Radarr or Sonarr instance */
         requestBody: {
             content: {
-                "application/json": {
-                    instanceId: number;
-                    label: string;
-                };
+                "application/json": components["schemas"]["ArrCreateTagBody"];
             };
         };
         responses: {
@@ -9294,10 +10094,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                        label: string;
-                    };
+                    "application/json": components["schemas"]["ArrCreateTagResponse"];
                 };
             };
             /** @description Default Response */
@@ -9353,30 +10150,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        name: string;
-                        /** Format: uri */
-                        baseUrl: string;
-                        apiKey: string;
-                        qualityProfile?: string | number | null;
-                        rootFolder?: string | null;
-                        /** @default false */
-                        bypassIgnored: boolean;
-                        /** @default true */
-                        searchOnAdd: boolean;
-                        /** @default released */
-                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"];
-                        /** @default movieOnly */
-                        monitor: components["schemas"]["RadarrMonitor"];
-                        /** @default [] */
-                        tags: string[];
-                        /** @default false */
-                        isDefault: boolean;
-                        syncedInstances?: number[];
-                        /** @default false */
-                        skipDefaultRoutingWhenNoMatch: boolean;
-                        id: number;
-                    }[];
+                    "application/json": components["schemas"]["RadarrInstanceListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -9397,31 +10171,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description A new Radarr instance, omitted settings take their defaults */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** Format: uri */
-                    baseUrl: string;
-                    apiKey: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    /** @default false */
-                    bypassIgnored?: boolean;
-                    /** @default true */
-                    searchOnAdd?: boolean;
-                    /** @default released */
-                    minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
-                    /** @default movieOnly */
-                    monitor?: components["schemas"]["RadarrMonitor"];
-                    /** @default [] */
-                    tags?: string[];
-                    /** @default false */
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    /** @default false */
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["RadarrInstancePayload"];
             };
         };
         responses: {
@@ -9431,9 +10184,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                    };
+                    "application/json": components["schemas"]["RadarrInstanceCreateResponse"];
                 };
             };
             /** @description Default Response */
@@ -9452,6 +10203,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -9483,24 +10243,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Partial Radarr instance update, omitted fields keep their stored value */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    /** Format: uri */
-                    baseUrl?: string;
-                    apiKey?: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    bypassIgnored?: boolean;
-                    searchOnAdd?: boolean;
-                    minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
-                    monitor?: components["schemas"]["RadarrMonitor"];
-                    tags?: string[];
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["RadarrInstanceUpdatePayload"];
             };
         };
         responses: {
@@ -9536,6 +10282,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -9605,6 +10360,58 @@ export interface operations {
             };
         };
     };
+    probeRadarr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Radarr or Sonarr address and API key to check before saving */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrProbeResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getRadarrQualityProfiles: {
         parameters: {
             query: {
@@ -9622,20 +10429,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        qualityProfiles: ({
-                            id: number;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrQualityProfilesResponse"];
                 };
             };
             /** @description Default Response */
@@ -9693,20 +10487,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        rootFolders: ({
-                            id: number;
-                            path: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrRootFoldersResponse"];
                 };
             };
             /** @description Default Response */
@@ -9764,18 +10545,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        tags: {
-                            id: number;
-                            label: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["ArrTagsResponse"];
                 };
             };
             /** @description Default Response */
@@ -9823,12 +10593,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Radarr or Sonarr address and API key to check before saving */
         requestBody: {
             content: {
-                "application/json": {
-                    baseUrl: string;
-                    apiKey: string;
-                };
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
             };
         };
         responses: {
@@ -9838,10 +10606,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ArrTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -9879,61 +10644,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": ({
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "interval";
-                        config: {
-                            days?: number;
-                            hours?: number;
-                            minutes?: number;
-                            seconds?: number;
-                            runImmediately?: boolean;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    } | {
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "cron";
-                        config: {
-                            expression: string;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    })[];
+                    "application/json": components["schemas"]["JobStatus"][];
                 };
             };
             /** @description Rate limit exceeded */
@@ -10038,40 +10749,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            total: {
-                                deleted: number;
-                                skipped: number;
-                                processed: number;
-                                protected?: number;
-                            };
-                            movies: {
-                                deleted: number;
-                                skipped: number;
-                                protected?: number;
-                                readonly items: {
-                                    title: string;
-                                    guid: string;
-                                    instance: string;
-                                }[];
-                            };
-                            shows: {
-                                deleted: number;
-                                skipped: number;
-                                protected?: number;
-                                readonly items: {
-                                    title: string;
-                                    guid: string;
-                                    instance: string;
-                                }[];
-                            };
-                            safetyTriggered?: boolean;
-                            safetyMessage?: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["DeleteSyncDryRunResponse"];
                 };
             };
             /** @description Default Response */
@@ -10081,6 +10759,100 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startDeleteSyncDryRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getDeleteSyncDryRunStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteSyncDryRunStatus"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -10120,61 +10892,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "interval";
-                        config: {
-                            days?: number;
-                            hours?: number;
-                            minutes?: number;
-                            seconds?: number;
-                            runImmediately?: boolean;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    } | {
-                        id: number;
-                        name: string;
-                        /** @constant */
-                        type: "cron";
-                        config: {
-                            expression: string;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    };
+                    "application/json": components["schemas"]["JobStatus"];
                 };
             };
             /** @description Default Response */
@@ -10357,6 +11075,64 @@ export interface operations {
             };
             /** @description Default Response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10584,11 +11360,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Days without viewing activity before a rolling show is reset */
         requestBody: {
             content: {
-                "application/json": {
-                    inactivityDays?: number;
-                };
+                "application/json": components["schemas"]["SessionMonitoringResetInactivePayload"];
             };
         };
         responses: {
@@ -10748,17 +11523,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        result: {
-                            processedSessions: number;
-                            triggeredSearches: number;
-                            errors: string[];
-                            rollingUpdates: {
-                                showTitle: string;
-                                /** @enum {string} */
-                                action: "expanded_to_season" | "expanded_to_next_season" | "switched_to_all";
-                                details: string;
-                            }[];
-                        };
+                        result: components["schemas"]["SessionMonitoringResult"];
                     };
                 };
             };
@@ -10832,12 +11597,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Tag to create on a saved Radarr or Sonarr instance */
         requestBody: {
             content: {
-                "application/json": {
-                    instanceId: number;
-                    label: string;
-                };
+                "application/json": components["schemas"]["ArrCreateTagBody"];
             };
         };
         responses: {
@@ -10847,10 +11610,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                        label: string;
-                    };
+                    "application/json": components["schemas"]["ArrCreateTagResponse"];
                 };
             };
             /** @description Default Response */
@@ -10906,37 +11666,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        name: string;
-                        /** Format: uri */
-                        baseUrl: string;
-                        apiKey: string;
-                        qualityProfile?: string | number | null;
-                        rootFolder?: string | null;
-                        /** @default false */
-                        bypassIgnored: boolean;
-                        /** @default all */
-                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"];
-                        /**
-                         * @default all
-                         * @enum {string}
-                         */
-                        monitorNewItems: "all" | "none";
-                        /** @default true */
-                        searchOnAdd: boolean;
-                        /** @default false */
-                        createSeasonFolders: boolean;
-                        /** @default [] */
-                        tags: string[];
-                        /** @default false */
-                        isDefault: boolean;
-                        syncedInstances?: number[];
-                        /** @default standard */
-                        seriesType: components["schemas"]["SonarrSeriesType"];
-                        /** @default false */
-                        skipDefaultRoutingWhenNoMatch: boolean;
-                        id: number;
-                    }[];
+                    "application/json": components["schemas"]["SonarrInstanceListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -10957,38 +11687,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description A new Sonarr instance, omitted settings take their defaults */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** Format: uri */
-                    baseUrl: string;
-                    apiKey: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    /** @default false */
-                    bypassIgnored?: boolean;
-                    /** @default all */
-                    seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
-                    /**
-                     * @default all
-                     * @enum {string}
-                     */
-                    monitorNewItems?: "all" | "none";
-                    /** @default true */
-                    searchOnAdd?: boolean;
-                    /** @default false */
-                    createSeasonFolders?: boolean;
-                    /** @default [] */
-                    tags?: string[];
-                    /** @default false */
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    /** @default standard */
-                    seriesType?: components["schemas"]["SonarrSeriesType"];
-                    /** @default false */
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["SonarrInstancePayload"];
             };
         };
         responses: {
@@ -10998,9 +11700,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                    };
+                    "application/json": components["schemas"]["SonarrInstanceCreateResponse"];
                 };
             };
             /** @description Default Response */
@@ -11019,6 +11719,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11050,27 +11759,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Partial Sonarr instance update, omitted fields keep their stored value */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    /** Format: uri */
-                    baseUrl?: string;
-                    apiKey?: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    bypassIgnored?: boolean;
-                    seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
-                    /** @enum {string} */
-                    monitorNewItems?: "all" | "none";
-                    searchOnAdd?: boolean;
-                    createSeasonFolders?: boolean;
-                    tags?: string[];
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    seriesType?: components["schemas"]["SonarrSeriesType"];
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["SonarrInstanceUpdatePayload"];
             };
         };
         responses: {
@@ -11106,6 +11798,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11175,6 +11876,58 @@ export interface operations {
             };
         };
     };
+    probeSonarr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Radarr or Sonarr address and API key to check before saving */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrProbeResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getSonarrQualityProfiles: {
         parameters: {
             query: {
@@ -11192,20 +11945,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        qualityProfiles: ({
-                            id: number;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrQualityProfilesResponse"];
                 };
             };
             /** @description Default Response */
@@ -11263,20 +12003,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        rootFolders: ({
-                            id: number;
-                            path: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
+                    "application/json": components["schemas"]["ArrRootFoldersResponse"];
                 };
             };
             /** @description Default Response */
@@ -11334,18 +12061,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        tags: {
-                            id: number;
-                            label: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["ArrTagsResponse"];
                 };
             };
             /** @description Default Response */
@@ -11393,12 +12109,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Radarr or Sonarr address and API key to check before saving */
         requestBody: {
             content: {
-                "application/json": {
-                    baseUrl: string;
-                    apiKey: string;
-                };
+                "application/json": components["schemas"]["ArrTestConnectionBody"];
             };
         };
         responses: {
@@ -11408,10 +12122,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ArrTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11502,55 +12213,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardStats"];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getAvailabilityStats: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AvailabilityTime"][];
                 };
             };
             /** @description Default Response */
@@ -13077,27 +13739,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        users: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            watchlist_count: number;
-                        }[];
+                        users: components["schemas"]["UserWithCount"][];
                     };
                 };
             };
@@ -13513,26 +14155,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
+                        user: components["schemas"]["UserWithFriendStatus"];
                     };
                 };
             };
@@ -13600,26 +14223,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
+                        user: components["schemas"]["UserWithFriendStatus"];
                     };
                 };
             };
@@ -13634,6 +14238,67 @@ export interface operations {
             };
             /** @description Default Response */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getUserStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        stats: components["schemas"]["UserStats"];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13686,16 +14351,7 @@ export interface operations {
                                 id: number;
                                 name: string;
                             };
-                            watchlistItems: {
-                                title: string;
-                                key: string;
-                                type: string;
-                                thumb: string | null;
-                                guids: string[];
-                                genres: string[];
-                                status: components["schemas"]["WatchlistStatus"];
-                                added: string | null;
-                            }[];
+                            items: components["schemas"]["RecentRequestItem"][];
                             total: number;
                         };
                     };
@@ -14147,6 +14803,59 @@ export interface operations {
             };
         };
     };
+    startWatchlistWorkflowInBackground: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    autoStart?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getWatchlistWorkflowStatus: {
         parameters: {
             query?: never;
@@ -14162,12 +14871,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping";
-                        message?: string;
-                    };
+                    "application/json": components["schemas"]["WatchlistWorkflowStatus"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -14257,21 +14961,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointList"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -14301,17 +14991,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description A new native webhook endpoint */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    url: string;
-                    authHeaderName?: string;
-                    authHeaderValue?: string;
-                    eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                    /** @default true */
-                    enabled?: boolean;
-                };
+                "application/json": components["schemas"]["WebhookEndpointCreatePayload"];
             };
         };
         responses: {
@@ -14321,21 +15004,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointResponse"];
                 };
             };
             /** @description Default Response */
@@ -14374,13 +15043,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description An unsaved webhook URL and auth header to send a test event to */
         requestBody: {
             content: {
-                "application/json": {
-                    url: string;
-                    authHeaderName?: string;
-                    authHeaderValue?: string;
-                };
+                "application/json": components["schemas"]["WebhookEndpointTestPayload"];
             };
         };
         responses: {
@@ -14430,21 +15096,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointResponse"];
                 };
             };
             /** @description Default Response */
@@ -14485,16 +15137,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Changes to a native webhook endpoint, null clears a header */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    url?: string;
-                    authHeaderName?: string | null;
-                    authHeaderValue?: string | null;
-                    eventTypes?: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                    enabled?: boolean;
-                };
+                "application/json": components["schemas"]["WebhookEndpointUpdatePayload"];
             };
         };
         responses: {
@@ -14504,21 +15150,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointResponse"];
                 };
             };
             /** @description Default Response */
@@ -14567,10 +15199,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["WebhookEndpointDeleteResponse"];
                 };
             };
             /** @description Default Response */
@@ -14666,15 +15295,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        data: {
-                            /** @enum {string} */
-                            type: "media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached";
-                            description: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["WebhookEventTypeList"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -14954,8 +15575,7 @@ export interface operations {
                         username: string | null;
                         alias?: string;
                     };
-                    /** @enum {string} */
-                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+                    triggeredBy: components["schemas"]["ApprovalTrigger"];
                     approvalReason: string | null;
                     pendingCount: number;
                     proposedRouting?: {
@@ -15076,8 +15696,7 @@ export interface operations {
                         userId: number | null;
                     };
                     approvalNotes?: string;
-                    /** @enum {string} */
-                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+                    triggeredBy: components["schemas"]["ApprovalTrigger"];
                     createdAt: string;
                     resolvedAt: string;
                     routing?: {

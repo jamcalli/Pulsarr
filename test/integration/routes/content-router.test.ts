@@ -1105,4 +1105,204 @@ describe('Content Router Rules API', () => {
       expect(res.json().message).toBe('Target instance does not exist')
     })
   })
+
+  describe('priority bounds', () => {
+    it('rejects a new rule with an order outside 1 to 100', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, order: 101 },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('accepts the bounds themselves', async () => {
+      for (const order of [1, 100]) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/content-router/rules',
+          payload: { ...radarrRule, order },
+        })
+        expect(res.statusCode).toBe(201)
+        expect(res.json().rule.order).toBe(order)
+      }
+    })
+
+    it('rejects an update that moves an in-range order out of range', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, order: 50 },
+      })
+      const res = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${createRes.json().rule.id}`,
+        payload: { ...radarrRule, order: 0 },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Priority must be 1 to 100.')
+    })
+
+    it('keeps round-tripping an out-of-range order already stored on the rule', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: radarrRule,
+      })
+      const id = createRes.json().rule.id
+      await getTestDatabase()('router_rules')
+        .where({ id })
+        .update({ order: 150 })
+
+      const getRes = await app.inject({
+        method: 'GET',
+        url: `/v1/content-router/rules/${id}`,
+      })
+      expect(getRes.json().rule.order).toBe(150)
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: { ...radarrRule, name: 'Renamed', order: 150 },
+      })
+      expect(putRes.statusCode).toBe(200)
+      expect(putRes.json().rule.order).toBe(150)
+    })
+  })
+
+  describe('create without an order', () => {
+    async function createdOrder(payload: object): Promise<number> {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload,
+      })
+      expect(res.statusCode).toBe(201)
+      return res.json().rule.order
+    }
+
+    it('places each new rule after the ones before it', async () => {
+      expect(await createdOrder(radarrRule)).toBe(50)
+      expect(await createdOrder(radarrRule)).toBe(49)
+      expect(await createdOrder(radarrRule)).toBe(48)
+    })
+
+    it('stays at the lowest priority once a rule sits there', async () => {
+      await getTestDatabase()('router_rules').insert({
+        name: 'Bottom',
+        type: 'conditional',
+        criteria: JSON.stringify({
+          condition: { operator: 'AND', conditions: [], negate: false },
+        }),
+        target_type: 'radarr',
+        target_instance_id: 1,
+        tags: JSON.stringify([]),
+        order: 1,
+        enabled: true,
+      })
+
+      expect(await createdOrder({ ...radarrRule, name: 'Newest' })).toBe(1)
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+      expect(
+        res.json().rules.map((rule: { name: string }) => rule.name),
+      ).toEqual(['Bottom', 'Newest'])
+    })
+
+    it('counts sonarr and radarr rules separately', async () => {
+      for (let i = 0; i < 3; i++) await createdOrder(radarrRule)
+
+      expect(await createdOrder(sonarrRule)).toBe(50)
+    })
+
+    it('still honors an explicit order', async () => {
+      await createdOrder(radarrRule)
+
+      expect(await createdOrder({ ...radarrRule, order: 70 })).toBe(70)
+    })
+  })
+
+  describe('PATCH /rules/order', () => {
+    async function createRules(names: readonly string[]): Promise<number[]> {
+      const ids: number[] = []
+      for (const name of names) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/content-router/rules',
+          payload: { ...radarrRule, name },
+        })
+        expect(res.statusCode).toBe(201)
+        ids.push(res.json().rule.id)
+      }
+      return ids
+    }
+
+    async function listedRules(): Promise<
+      Array<{ id: number; name: string; order: number }>
+    > {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+      expect(res.statusCode).toBe(200)
+      return res.json().rules
+    }
+
+    it('stores the new priorities and lists the rules in that order', async () => {
+      const [a, b, c] = await createRules(['A', 'B', 'C'])
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/v1/content-router/rules/order',
+        payload: {
+          orders: [
+            { id: c, order: 100 },
+            { id: a, order: 99 },
+          ],
+        },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.json().success).toBe(true)
+
+      const rules = await listedRules()
+      expect(rules.map((rule) => rule.id)).toEqual([c, a, b])
+      expect(rules.map((rule) => rule.order)).toEqual([100, 99, 49])
+    })
+
+    it('rejects an unknown id and leaves every order unchanged', async () => {
+      const [a, b] = await createRules(['A', 'B'])
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/v1/content-router/rules/order',
+        payload: {
+          orders: [
+            { id: a, order: 100 },
+            { id: 9999, order: 99 },
+          ],
+        },
+      })
+      expect(res.statusCode).toBe(404)
+
+      const rules = await listedRules()
+      expect(rules.map((rule) => [rule.id, rule.order])).toEqual([
+        [a, 50],
+        [b, 49],
+      ])
+    })
+
+    it('rejects a priority above 100', async () => {
+      const [a] = await createRules(['A'])
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/v1/content-router/rules/order',
+        payload: { orders: [{ id: a, order: 101 }] },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+  })
 })

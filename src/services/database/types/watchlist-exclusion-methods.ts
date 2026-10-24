@@ -46,11 +46,6 @@ declare module '@services/database.service.js' {
     getExclusionMap(): Promise<Map<string, Set<number>>>
 
     /**
-     * Returns the subset of given keys that the user currently has excluded.
-     */
-    findExcludedKeys(userId: number, keys: string[]): Promise<string[]>
-
-    /**
      * Returns all exclusions for a user, most recent first.
      */
     getExclusionsForUser(userId: number): Promise<WatchlistExclusion[]>
@@ -95,13 +90,5 @@ declare module '@services/database.service.js' {
      * exclusions without mutating watchlist_items.
      */
     getExclusionDrivenDeletionGuids(): Promise<Set<string>>
-
-    /**
-     * Deletes routed watchlist_items rows whose key is excluded for the same
-     * user or globally. Exclusion rows themselves are preserved.
-     *
-     * @returns Number of watchlist_items rows deleted
-     */
-    cleanupExcludedWatchlistItems(): Promise<number>
   }
 }

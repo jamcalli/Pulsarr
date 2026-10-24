@@ -5,6 +5,7 @@ import type {
   UPDATE_NOTIFY_OPTIONS,
 } from '@root/schemas/config/config.schema.js'
 import type { PlexLabelSyncConfig } from '@root/schemas/plex/label-sync-config.schema.js'
+import type { LogLevel } from '@root/types/logs.types.js'
 
 export interface User {
   id: number
@@ -27,14 +28,7 @@ export interface User {
   updated_at: string
 }
 
-export type LogLevel =
-  | 'fatal'
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'silent'
+export type ConfigLogLevel = LogLevel | 'silent'
 
 export type UpdateNotifyOption = (typeof UPDATE_NOTIFY_OPTIONS)[number]
 
@@ -97,7 +91,7 @@ export interface Config {
   cookieName: string
   cookieSecured: boolean
   webhookSecret: string
-  logLevel: LogLevel
+  logLevel: ConfigLogLevel
   closeGraceDelay: number
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
   rateLimitMax: number
@@ -253,18 +247,18 @@ export interface Config {
   // Quota System Configuration
   quotaSettings?: {
     // Cleanup configuration
-    cleanup?: {
-      enabled?: boolean
-      retentionDays?: number
+    cleanup: {
+      enabled: boolean
+      retentionDays: number
     }
     // Weekly rolling quota configuration
-    weeklyRolling?: {
-      resetDays?: number
+    weeklyRolling: {
+      resetDays: number
     }
     // Monthly quota configuration
-    monthly?: {
-      resetDay?: number
-      handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
+    monthly: {
+      resetDay: number
+      handleMonthEnd: 'last-day' | 'skip-month' | 'next-month'
     }
   }
   // Approval System Configuration

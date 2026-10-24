@@ -62,43 +62,6 @@
       }
     },
     {
-      "includes": [
-        "**/src/client/components/ui/**/*",
-        "**/src/client/hooks/**/*"
-      ],
-      "formatter": {
-        "enabled": false
-      },
-      "linter": {
-        "rules": {
-          "complexity": {
-            "noForEach": "off",
-            "useOptionalChain": "off"
-          },
-          "correctness": {
-            "useExhaustiveDependencies": "off",
-            "noUnusedImports": "off"
-          },
-          "security": {
-            "noDangerouslySetInnerHtml": "off"
-          },
-          "suspicious": {
-            "noExplicitAny": "off",
-            "noArrayIndexKey": "off"
-          },
-          "a11y": {
-            "noSvgWithoutTitle": "off",
-            "useKeyWithClickEvents": "off",
-            "useSemanticElements": "off"
-          },
-          "style": {
-            "noUselessElse": "off",
-            "useSingleVarDeclarator": "off"
-          }
-        }
-      }
-    },
-    {
       "includes": ["**/*.css"],
       "linter": {
         "rules": {
@@ -130,7 +93,6 @@
         "**/src/client/lib/basePath.ts",
         "**/src/client/lib/queryClient.ts",
         "**/src/client/lib/tanstackApi.ts",
-        "**/src/client/hooks/arr/instanceMutations.ts",
         "!**/src/client/components/ui/**"
       ],
       "linter": {
@@ -148,12 +110,54 @@
       }
     },
     {
+      "includes": ["**/src/client/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/**", "!**/src/client/lib/format.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Intl": "Format dates, numbers, counts and relative times through @/lib/format so one locale setting reaches every page."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "**/src/client/components/**",
         "**/src/client/hooks/**",
         "**/src/client/lib/**",
         "**/src/client/stores/**",
-        "**/src/client/layouts/**"
+        "**/src/client/layouts/**",
+        "!**/src/client/layouts/root.tsx"
       ],
       "linter": {
         "rules": {
@@ -165,6 +169,42 @@
                   {
                     "group": ["@/features", "@/features/**", "../**"],
                     "message": "Shared client code cannot depend on a feature; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/layouts/root.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features", "@/features/**", "../**"],
+                    "message": "Shared client code cannot depend on a feature; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -190,6 +230,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -215,6 +263,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -240,6 +296,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -265,6 +329,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -290,6 +362,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -315,6 +395,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -340,6 +428,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -365,6 +461,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -390,6 +494,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -415,6 +527,14 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }

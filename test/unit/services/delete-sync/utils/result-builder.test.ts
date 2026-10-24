@@ -1,7 +1,7 @@
 import {
   createEmptyResult,
   createSafetyTriggeredResult,
-} from '@services/delete-sync/utils/index.js'
+} from '@services/delete-sync/utils/result-builder.js'
 import { describe, expect, it } from 'vitest'
 
 describe('result-builder', () => {

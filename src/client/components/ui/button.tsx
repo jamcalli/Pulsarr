@@ -1,44 +1,41 @@
-import { Slot } from '@radix-ui/react-slot'
+import { Button as ButtonPrimitive } from '@base-ui/react/button'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from 'cn'
 
-import * as React from 'react'
-
-import { cn } from '@/lib/utils'
+const linkUnderline =
+  'text-foreground underline underline-offset-4 decoration-1 hover:decoration-2'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border-2 border-transparent bg-clip-padding text-sm font-bold whitespace-nowrap transition-all select-none outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          'text-main-foreground bg-main border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
-        clear:
-          'text-main-foreground bg-error border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
-        noShadow: 'text-main-foreground bg-main border-2 border-border',
+          'border-border bg-clip-border bg-primary text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
+        warn: 'border-border bg-clip-border bg-gold text-primary-foreground',
+        plex: 'border-border bg-clip-border bg-plex text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
         neutral:
-          'bg-secondary-background text-foreground border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
-        neutralnoShadow: 'bg-secondary-background text-foreground border-2 border-border',
-        reverse:
-          'text-main-foreground bg-main border-2 border-border hover:translate-x-reverseBoxShadowX hover:translate-y-reverseBoxShadowY hover:shadow-shadow',
-        fun:
-            'text-main-foreground bg-fun border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
-        error: 'text-main-foreground bg-error border-2 border-border',
-        blue:
-            'text-main-foreground bg-blue border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
-        bluenoShadow:
-            'text-main-foreground bg-blue border-2 border-border',
-        plex:
-            'text-main-foreground bg-plex border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
-        cancel:
-            'text-main-foreground bg-fun border-2 border-border',
-        approveNoShadow: 'text-black bg-green-500 border-2 border-border',
-        rejectNoShadow: 'text-black bg-red-500 border-2 border-border',
+          'border-border bg-clip-border bg-inset text-foreground hover:bg-accent aria-expanded:bg-accent',
+        ghost:
+          'text-muted-foreground hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground',
+        outline:
+          'border-border bg-clip-border bg-inset text-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none aria-expanded:bg-accent',
+        secondary:
+          'bg-surface text-foreground hover:bg-accent aria-expanded:bg-accent',
+        destructive:
+          'border-border bg-clip-border bg-destructive text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
+        link: linkUnderline,
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 px-3',
-        lg: 'h-11 px-8',
-        icon: 'h-10 w-10',
+        default:
+          'h-10 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3',
+        xs: "h-6 gap-1 rounded-md px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: 'h-8 gap-1 px-3 text-sm has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
+        lg: 'h-10 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
+        icon: 'size-9',
+        'icon-xs': "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
+        'icon-sm': 'size-8 rounded-md',
+        'icon-lg': 'size-10',
       },
     },
     defaultVariants: {
@@ -48,24 +45,19 @@ const buttonVariants = cva(
   },
 )
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean
+function Button({
+  className,
+  variant = 'default',
+  size = 'default',
+  ...props
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  return (
+    <ButtonPrimitive
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button'
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  },
-)
-Button.displayName = 'Button'
-
-export { Button, buttonVariants }
+export { Button, buttonVariants, linkUnderline }

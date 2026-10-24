@@ -1,19 +1,12 @@
-import type { AliasReadinessResponse } from '@root/schemas/users/alias-readiness.schema'
-import { AlertTriangle, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import {
-  Credenza,
-  CredenzaBody,
-  CredenzaClose,
-  CredenzaContent,
-  CredenzaDescription,
-  CredenzaFooter,
-  CredenzaHeader,
-  CredenzaTitle,
-} from '@/components/ui/credenza'
-import { apiFetch } from '@/lib/tanstackApi'
+import { TriangleAlert } from 'lucide-react'
+import { ConfirmCredenza } from '@/components/confirm-credenza'
+import { InlineLink } from '@/components/inline-link'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Spinner } from '@/components/ui/spinner'
+import { useMinLoading } from '@/hooks/useMinLoading'
+import { formatCount } from '@/lib/format'
+import { NAV_PAGES, pageHref } from '@/lib/navigation'
+import { $api, apiErrorMessage } from '@/lib/tanstackApi'
 
 interface AliasReadinessCredenzaProps {
   open: boolean
@@ -26,141 +19,78 @@ export function AliasReadinessCredenza({
   onOpenChange,
   onConfirm,
 }: AliasReadinessCredenzaProps) {
-  const [data, setData] = useState<AliasReadinessResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-
-    setData(null)
-    setIsLoading(true)
-    setError(null)
-
-    const fetchData = async () => {
-      try {
-        const { data: result, error: fetchError } = await apiFetch.GET(
-          '/v1/users/alias-readiness',
-        )
-        if (fetchError) throw fetchError
-
-        setData(result)
-      } catch {
-        setError('Failed to check alias readiness')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [open])
-
-  const hasIssues =
-    data && (data.missingAliasCount > 0 || data.duplicateAliasCount > 0)
+  const readiness = useMinLoading(
+    $api.useQuery('get', '/v1/users/alias-readiness', undefined, {
+      enabled: open,
+    }),
+  )
+  const data = readiness.data
+  const errorMessage = readiness.error
+    ? (apiErrorMessage(readiness.error) ?? "Couldn't check alias readiness.")
+    : null
+  const ready =
+    data !== undefined &&
+    data.missingAliasCount === 0 &&
+    data.duplicateAliasCount === 0
+  const usersLink = (
+    <InlineLink to={pageHref(NAV_PAGES.plexUsers)}>
+      {data?.missingAliasCount ? 'Set aliases' : 'Review users'}
+    </InlineLink>
+  )
 
   return (
-    <Credenza open={open} onOpenChange={onOpenChange}>
-      <CredenzaContent>
-        <CredenzaHeader>
-          <CredenzaTitle className="text-foreground flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            Switch to Alias Naming
-          </CredenzaTitle>
-          <CredenzaDescription>
-            Tags and labels will use user aliases instead of Plex usernames.
-          </CredenzaDescription>
-        </CredenzaHeader>
-        <CredenzaBody className="text-sm font-base text-foreground">
-          {isLoading && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </div>
+    <ConfirmCredenza
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Switch to alias naming"
+      description="Tags and labels will use user aliases instead of Plex usernames."
+      confirmLabel="Confirm"
+      confirmDisabled={!data || errorMessage !== null}
+      onConfirm={onConfirm}
+      errorMessage={errorMessage}
+    >
+      {readiness.isLoading && (
+        <div className="flex justify-center py-4">
+          <Spinner
+            aria-label="Checking aliases"
+            className="size-5 text-muted-foreground"
+          />
+        </div>
+      )}
+      {data && (
+        <>
+          {data.missingAliasCount > 0 && (
+            <p>
+              <span className="font-bold">
+                {formatCount(data.missingAliasCount, 'user')} missing an alias.
+              </span>{' '}
+              They fall back to their Plex username, so naming will be mixed.
+            </p>
           )}
-
-          {error && <p className="text-red-500">{error}</p>}
-
-          {data && !isLoading && (
-            <>
-              {hasIssues && (
-                <ul className="space-y-2 mb-4">
-                  {data.missingAliasCount > 0 && (
-                    <li className="flex items-start gap-2">
-                      <span className="mt-0.5">•</span>
-                      <div className="flex-1">
-                        <span className="font-semibold">
-                          {data.missingAliasCount} user
-                          {data.missingAliasCount === 1 ? '' : 's'} missing
-                          aliases.
-                        </span>
-                        <span>
-                          {' '}
-                          These users will fall back to their Plex username,
-                          resulting in mixed naming.{' '}
-                        </span>
-                        <Link
-                          to="/plex/users"
-                          className="text-blue-400 hover:text-blue-500"
-                        >
-                          Set Aliases
-                        </Link>
-                      </div>
-                    </li>
-                  )}
-                  {data.duplicateAliasCount > 0 && (
-                    <li className="flex items-start gap-2">
-                      <span className="mt-0.5">•</span>
-                      <div className="flex-1">
-                        <span className="font-semibold">
-                          {data.duplicateAliasCount} user
-                          {data.duplicateAliasCount === 1 ? '' : 's'} share
-                          duplicate aliases.
-                        </span>
-                        <span>
-                          {' '}
-                          These users will share tags/labels, making content
-                          attribution ambiguous.{' '}
-                        </span>
-                        <Link
-                          to="/plex/users"
-                          className="text-blue-400 hover:text-blue-500"
-                        >
-                          Review Users
-                        </Link>
-                      </div>
-                    </li>
-                  )}
-                </ul>
-              )}
-
-              {!hasIssues && (
-                <p className="mb-4">
-                  All sync-enabled users have unique aliases set.
-                </p>
-              )}
-
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-md">
-                <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                  <span className="font-bold">Note:</span> If you add or change
-                  aliases later, existing tags/labels won't update
-                  automatically. You'll need to remove all and resync.
-                </p>
-              </div>
-            </>
+          {data.duplicateAliasCount > 0 && (
+            <p>
+              <span className="font-bold">
+                {formatCount(data.duplicateAliasCount, 'user')} share an alias.
+              </span>{' '}
+              They will share tags and labels, so you can't tell who asked for
+              what.
+            </p>
           )}
-        </CredenzaBody>
-        <CredenzaFooter>
-          <CredenzaClose asChild>
-            <Button variant="neutral">Cancel</Button>
-          </CredenzaClose>
-          <Button
-            variant="default"
-            onClick={onConfirm}
-            disabled={isLoading || !!error}
-          >
-            Confirm
-          </Button>
-        </CredenzaFooter>
-      </CredenzaContent>
-    </Credenza>
+          {ready ? (
+            <p>All sync-enabled users have unique aliases set.</p>
+          ) : (
+            <p>{usersLink}</p>
+          )}
+          <Alert variant="warn">
+            <TriangleAlert />
+            <AlertDescription>
+              If you add or change aliases later, existing tags and labels won't
+              update on their own. You'll need to remove them all and sync
+              again.
+            </AlertDescription>
+          </Alert>
+        </>
+      )}
+    </ConfirmCredenza>
   )
 }

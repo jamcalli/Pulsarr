@@ -16,54 +16,45 @@ export const useProgress = (type: ProgressType): ProgressState => {
     progress: 0,
     message: '',
     phase: '',
-    isConnected: false
+    isConnected: false,
   })
-  
-  const mountedRef = useRef(true)
-  
-  const subscribeToType = useProgressStore(state => state.subscribeToType)
-  const isStoreConnected = useProgressStore(state => state.isConnected)
+
+  const subscribeToType = useProgressStore((state) => state.subscribeToType)
+  const isStoreConnected = useProgressStore((state) => state.isConnected)
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined
-    
-    if (mountedRef.current) {
-      unsubscribe = subscribeToType(type, (event: ProgressEvent) => {
-        if (mountedRef.current) {
-          setState({
-            progress: event.progress || 0,
-            message: event.message || '',
-            phase: event.phase || '',
-            isConnected: true
-          })
-        }
+    const unsubscribe = subscribeToType(type, (event: ProgressEvent) => {
+      setState({
+        progress: event.progress || 0,
+        message: event.message || '',
+        phase: event.phase || '',
+        isConnected: true,
       })
-      
-      setState(prev => ({ ...prev, isConnected: isStoreConnected }))
-    }
+    })
 
-    return () => {
-      mountedRef.current = false
-      if (unsubscribe) unsubscribe()
-    }
+    setState((prev) => ({ ...prev, isConnected: isStoreConnected }))
+
+    return unsubscribe
   }, [type, subscribeToType, isStoreConnected])
-  
+
   return state
 }
 
-export const useWatchlistProgress = (type: ProgressType): ProgressState & {
+export const useWatchlistProgress = (
+  type: ProgressType,
+): ProgressState & {
   isProcessing: boolean
   isComplete: boolean
 } => {
   const progress = useProgress(type)
-  
+
   const isProcessing = progress.phase === 'processing'
   const isComplete = progress.phase === 'complete'
 
   return {
     ...progress,
     isProcessing,
-    isComplete
+    isComplete,
   }
 }
 
@@ -72,12 +63,14 @@ export const useOperationProgress = (operationId: string): ProgressState => {
     progress: 0,
     message: '',
     phase: '',
-    isConnected: false
+    isConnected: false,
   })
   const mountedRef = useRef(true)
 
-  const subscribeToOperation = useProgressStore(state => state.subscribeToOperation)
-  const isStoreConnected = useProgressStore(state => state.isConnected)
+  const subscribeToOperation = useProgressStore(
+    (state) => state.subscribeToOperation,
+  )
+  const isStoreConnected = useProgressStore((state) => state.isConnected)
 
   const handleProgress = useCallback((event: ProgressEvent) => {
     if (mountedRef.current) {
@@ -85,17 +78,17 @@ export const useOperationProgress = (operationId: string): ProgressState => {
         progress: event.progress || 0,
         message: event.message || '',
         phase: event.phase || '',
-        isConnected: true
+        isConnected: true,
       })
     }
   }, [])
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined
-    
+
     if (mountedRef.current) {
       unsubscribe = subscribeToOperation(operationId, handleProgress)
-      setState(prev => ({ ...prev, isConnected: isStoreConnected }))
+      setState((prev) => ({ ...prev, isConnected: isStoreConnected }))
     }
 
     return () => {

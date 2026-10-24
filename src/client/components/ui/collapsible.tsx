@@ -1,41 +1,18 @@
-import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
+import { Collapsible as CollapsiblePrimitive } from '@base-ui/react/collapsible'
 
-import type * as React from "react"
-
-/**
- * Renders a collapsible container by wrapping Radix UI's Collapsible primitive and adds a `data-slot="collapsible"` attribute.
- */
-function Collapsible({
-  ...props
-}: React.ComponentProps<typeof CollapsiblePrimitive.Root>) {
+function Collapsible({ ...props }: CollapsiblePrimitive.Root.Props) {
   return <CollapsiblePrimitive.Root data-slot="collapsible" {...props} />
 }
 
-/**
- * Renders a trigger element that toggles the collapsible state, forwarding all props and adding a `data-slot="collapsible-trigger"` attribute.
- */
-function CollapsibleTrigger({
-  ...props
-}: React.ComponentProps<typeof CollapsiblePrimitive.CollapsibleTrigger>) {
+function CollapsibleTrigger({ ...props }: CollapsiblePrimitive.Trigger.Props) {
   return (
-    <CollapsiblePrimitive.CollapsibleTrigger
-      data-slot="collapsible-trigger"
-      {...props}
-    />
+    <CollapsiblePrimitive.Trigger data-slot="collapsible-trigger" {...props} />
   )
 }
 
-/**
- * Renders the collapsible content area using the Radix UI primitive and adds a `data-slot="collapsible-content"` attribute.
- */
-function CollapsibleContent({
-  ...props
-}: React.ComponentProps<typeof CollapsiblePrimitive.CollapsibleContent>) {
+function CollapsibleContent({ ...props }: CollapsiblePrimitive.Panel.Props) {
   return (
-    <CollapsiblePrimitive.CollapsibleContent
-      data-slot="collapsible-content"
-      {...props}
-    />
+    <CollapsiblePrimitive.Panel data-slot="collapsible-content" {...props} />
   )
 }
 

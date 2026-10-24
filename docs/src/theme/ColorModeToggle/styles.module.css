@@ -7,7 +7,7 @@
   width: 40px;
   padding: 0;
   border-radius: 5px;
-  background-color: var(--main);
+  background-color: var(--primary);
   border: 2px solid var(--border);
   box-shadow: var(--shadow);
   cursor: pointer;
@@ -29,7 +29,7 @@
 }
 
 .neutral {
-  background-color: var(--bw);
+  background-color: var(--card);
   color: var(--text);
 }
 
@@ -42,7 +42,7 @@
   width: 40px;
   padding: 0;
   border-radius: 5px;
-  background-color: var(--bw);
+  background-color: var(--card);
   border: 2px solid var(--border);
   color: var(--text);
   cursor: pointer;

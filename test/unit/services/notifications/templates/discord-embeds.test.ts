@@ -1,11 +1,17 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { DiscordEmbed } from '@root/types/discord.types.js'
 import {
+  createApprovalBatchDm,
+  createApprovalRequestEmbed,
   createDeleteSyncEmbed,
   createMediaAddedEmbed,
   createMediaNotificationEmbed,
+  createPublicMediaWebhookPayload,
   createSystemDm,
   createUpdateAvailableEmbed,
+  createWatchlistCapDm,
+  createWatchlistCapEmbed,
 } from '@services/notifications/templates/discord-embeds.js'
 import { describe, expect, it } from 'vitest'
 
@@ -36,8 +42,66 @@ function deletedItems(count: number, prefix: string) {
   }))
 }
 
+function approvalRequest(
+  overrides: Partial<ApprovalRequest> = {},
+): ApprovalRequest {
+  return {
+    id: 1,
+    userId: 2,
+    userName: 'friend',
+    contentType: 'movie',
+    contentTitle: 'Nosferatu',
+    contentKey: 'nosferatu-key',
+    contentGuids: ['tmdb:426063'],
+    thumb: null,
+    proposedRouterDecision: { action: 'require_approval' },
+    triggeredBy: 'manual_flag',
+    approvalReason: null,
+    status: 'pending',
+    createdAt: '2026-10-01T10:00:00.000Z',
+    updatedAt: '2026-10-01T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
 describe('discord-embeds', () => {
   describe('createMediaNotificationEmbed', () => {
+    it.each([
+      [
+        'an episode',
+        {
+          type: 'show',
+          title: 'Severance',
+          username: 'alice',
+          episodeDetails: { seasonNumber: 1, episodeNumber: 2 },
+        },
+        'New episode available: Severance',
+      ],
+      [
+        'a season',
+        {
+          type: 'show',
+          title: 'Severance',
+          username: 'alice',
+          episodeDetails: { seasonNumber: 2 },
+        },
+        'New season available: Severance',
+      ],
+      [
+        'a movie',
+        { type: 'movie', title: 'Dune', username: 'alice' },
+        'Movie available: Dune',
+      ],
+    ] as const)(
+      'should title %s with the event and name',
+      (_, notification, title) => {
+        const embed = createMediaNotificationEmbed(notification)
+
+        expect(embed.title).toBe(title)
+        expect(embed.description).toBeUndefined()
+      },
+    )
+
     it('should quote the episode title in the episode field', () => {
       const embed = createMediaNotificationEmbed({
         type: 'show',
@@ -50,7 +114,7 @@ describe('discord-embeds', () => {
         },
       })
 
-      expect(fieldValue(embed, 'Episode')).toBe('S01E02 - "Half Loop"')
+      expect(fieldValue(embed, 'Episode')).toBe('S01E02 "Half Loop"')
     })
 
     it('should truncate an oversized episode title to the field limit', () => {
@@ -126,7 +190,7 @@ describe('discord-embeds', () => {
         },
       })
 
-      expect(fieldNames(embed)).toContain('Air Date')
+      expect(fieldNames(embed)).toContain('Air date')
       expect(fieldValue(embed, 'More Info')).toBe(
         '[View on TMDB](https://www.themoviedb.org/tv/95396)',
       )
@@ -140,7 +204,7 @@ describe('discord-embeds', () => {
         episodeDetails: { seasonNumber: 1, episodeNumber: 2 },
       })
 
-      expect(fieldNames(embed)).not.toContain('Air Date')
+      expect(fieldNames(embed)).not.toContain('Air date')
       expect(fieldNames(embed)).not.toContain('More Info')
     })
 
@@ -156,14 +220,114 @@ describe('discord-embeds', () => {
     })
   })
 
+  describe('createPublicMediaWebhookPayload', () => {
+    it('should repeat the title sentence after the mentions', () => {
+      const payload = createPublicMediaWebhookPayload(
+        { type: 'movie', title: 'Dune', username: 'alice' },
+        ['111', '222'],
+      )
+
+      expect(payload.content).toBe('<@111> <@222> Movie available: Dune')
+      expect(payload.embeds?.[0].title).toBe('Movie available: Dune')
+    })
+
+    it('should only let the mentioned users be pinged', () => {
+      const payload = createPublicMediaWebhookPayload(
+        { type: 'movie', title: '@everyone Dune', username: 'alice' },
+        ['111'],
+      )
+
+      expect(payload.allowed_mentions).toEqual({ users: ['111'] })
+    })
+
+    it('should leave content empty and ping nobody without mentions', () => {
+      const payload = createPublicMediaWebhookPayload(
+        { type: 'movie', title: 'Dune', username: 'alice' },
+        [],
+      )
+
+      expect(payload.content).toBe('')
+      expect(payload.allowed_mentions).toEqual({ users: [] })
+    })
+  })
+
+  describe('createApprovalRequestEmbed', () => {
+    it('should title the request with the event and content', () => {
+      const embed = createApprovalRequestEmbed(
+        approvalRequest(),
+        1,
+        undefined,
+        'friend',
+      )
+
+      expect(embed.title).toBe('Approval request: Nosferatu')
+    })
+
+    it('should name the requester by the given display name', () => {
+      const embed = createApprovalRequestEmbed(
+        approvalRequest(),
+        1,
+        undefined,
+        'Friendly',
+      )
+
+      expect(fieldValue(embed, 'Requested by')).toBe('Friendly')
+    })
+  })
+
+  describe('createApprovalBatchDm', () => {
+    it('should title a single request with the event and content', () => {
+      const { embed } = createApprovalBatchDm(
+        [approvalRequest()],
+        1,
+        (request) => request.userName,
+      )
+
+      expect(embed.title).toBe('Approval request: Nosferatu')
+    })
+
+    it('should name a single requester through the resolver', () => {
+      const { embed } = createApprovalBatchDm(
+        [approvalRequest()],
+        1,
+        () => 'Friendly',
+      )
+
+      expect(fieldValue(embed, 'Requested by')).toBe('Friendly')
+    })
+
+    it('should title a batch with the event and count', () => {
+      const { embed } = createApprovalBatchDm(
+        [
+          approvalRequest(),
+          approvalRequest({ id: 2, contentTitle: 'Sherlock' }),
+          approvalRequest({ id: 3, contentTitle: 'Dune' }),
+        ],
+        3,
+        (request) => request.userName,
+      )
+
+      expect(embed.title).toBe('Approval requests: 3 new')
+    })
+  })
+
   describe('createMediaAddedEmbed', () => {
+    it('should title the embed with the event and name', () => {
+      const embed = createMediaAddedEmbed(
+        { type: 'movie', title: 'Dune', username: 'alice' },
+        'Alice',
+      )
+
+      expect(embed.title).toBe('Watchlist add: Dune')
+    })
+
     it('should label a movie', () => {
       const embed = createMediaAddedEmbed(
         { type: 'movie', title: 'Dune', username: 'alice' },
         'Alice',
       )
 
-      expect(embed.description).toBe('🎬 New Movie Added')
+      expect(embed.description).toBeUndefined()
       expect(fieldValue(embed, 'Type')).toBe('Movie')
     })
 
@@ -173,7 +337,7 @@ describe('discord-embeds', () => {
         'Alice',
       )
 
-      expect(embed.description).toBe('📺 New Show Added')
+      expect(embed.description).toBeUndefined()
       expect(fieldValue(embed, 'Type')).toBe('Show')
     })
   })
@@ -182,17 +346,19 @@ describe('discord-embeds', () => {
     it('should title a live run', () => {
       const embed = createDeleteSyncEmbed(deleteSyncResult(), false)
 
-      expect(embed.title).toBe('🗑️ Delete Sync Results')
+      expect(embed.title).toBe('Delete sync results')
       expect(embed.color).toBe(0x00ff00)
     })
 
     it('should title a dry run', () => {
       const embed = createDeleteSyncEmbed(deleteSyncResult(), true)
 
-      expect(embed.title).toBe('🔍 Delete Sync Simulation Results')
+      expect(embed.title).toBe('Delete sync simulation results')
       expect(embed.description).toBe(
         'This was a dry run, so nothing was deleted.',
       )
+      expect(embed.fields?.[0]?.value).toContain('Would delete: ')
+      expect(embed.fields?.[0]?.value).not.toContain('Deleted: ')
     })
 
     it('should title a safety triggered run and colour it red', () => {
@@ -204,12 +370,12 @@ describe('discord-embeds', () => {
         false,
       )
 
-      expect(embed.title).toBe('⚠️ Delete Sync Safety Triggered')
+      expect(embed.title).toBe('Delete sync safety triggered')
       expect(embed.color).toBe(0xff0000)
       expect(fieldValue(embed, 'Safety Reason')).toBe('Too many deletions')
     })
 
-    it('should truncate a long safety message in the description', () => {
+    it('should keep a long safety message out of the description and truncate its field', () => {
       const embed = createDeleteSyncEmbed(
         deleteSyncResult({
           safetyTriggered: true,
@@ -219,8 +385,22 @@ describe('discord-embeds', () => {
         false,
       )
 
-      expect(embed.description).toHaveLength(4096)
-      expect(embed.description?.endsWith('...')).toBe(true)
+      expect(embed.description).toBe(
+        '4 items were preserved because they are in protected playlists.',
+      )
+      expect(fieldValue(embed, 'Safety Reason')).toHaveLength(1024)
+    })
+
+    it('should omit the description when safety triggered with nothing protected', () => {
+      const embed = createDeleteSyncEmbed(
+        deleteSyncResult({ safetyTriggered: true }),
+        false,
+      )
+
+      expect(embed.description).toBeUndefined()
+      expect(fieldValue(embed, 'Safety Reason')).toBe(
+        'A safety check prevented the delete sync operation from running.',
+      )
     })
 
     it('should build the summary field from the totals', () => {
@@ -263,7 +443,7 @@ describe('discord-embeds', () => {
         false,
       )
 
-      const movies = fieldValue(embed, 'Movies (12 deleted (2 protected))')
+      const movies = fieldValue(embed, 'Movies (12 deleted, 2 protected)')
       expect(movies?.split('\n')).toHaveLength(10)
       expect(movies).toContain('• Movie 1')
       expect(fieldValue(embed, 'Movies (continued)')).toBe('... and 2 more')
@@ -296,10 +476,10 @@ describe('discord-embeds', () => {
     it('should report an empty shows section', () => {
       const embed = createDeleteSyncEmbed(deleteSyncResult(), false)
 
-      expect(fieldValue(embed, 'TV Shows')).toBe('No TV shows deleted')
+      expect(fieldValue(embed, 'TV shows')).toBe('No TV shows deleted')
     })
 
-    it('should add the protected suffix to an empty section', () => {
+    it('should leave the protected count off an empty section', () => {
       const embed = createDeleteSyncEmbed(
         deleteSyncResult({
           shows: { deleted: 0, skipped: 0, protected: 3, items: [] },
@@ -307,9 +487,7 @@ describe('discord-embeds', () => {
         false,
       )
 
-      expect(fieldValue(embed, 'TV Shows')).toBe(
-        'No TV shows deleted (3 protected)',
-      )
+      expect(fieldValue(embed, 'TV shows')).toBe('No TV shows deleted')
     })
   })
 
@@ -398,6 +576,31 @@ describe('discord-embeds', () => {
           },
         ],
       })
+    })
+  })
+
+  describe('createWatchlistCapEmbed', () => {
+    const event = {
+      userId: 3,
+      userName: 'plex_user',
+      contentType: 'show' as const,
+      currentCount: 6,
+      cap: 5,
+    }
+
+    it('should name the user by the given display name', () => {
+      const embed = createWatchlistCapEmbed(event, 'Alex')
+
+      expect(embed.title).toBe('Watchlist cap reached: Alex')
+      expect(embed.description).toBe('**Alex** reached their show cap (6/5)')
+      expect(fieldValue(embed, 'User')).toBe('Alex')
+    })
+
+    it('should name the user in the DM title and User field', () => {
+      const { embed } = createWatchlistCapDm(event, 'Alex')
+
+      expect(embed.title).toBe('Watchlist cap reached: Alex')
+      expect(fieldValue(embed, 'User')).toBe('Alex')
     })
   })
 })

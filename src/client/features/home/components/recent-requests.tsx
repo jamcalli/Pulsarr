@@ -1,91 +1,102 @@
-import { ArrowRight } from 'lucide-react'
-import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { DashboardMediaCarousel } from '@/features/home/components/dashboard-media-carousel'
-import { MediaViewToggle } from '@/features/home/components/media-view-toggle'
-import { RecentRequestCard } from '@/features/home/components/recent-request-card'
-import { useMediaViewMode } from '@/features/home/hooks/useMediaViewMode'
+import { CardHeaderSkeleton } from '@/components/card-header-skeleton'
+import { CompactSelect } from '@/components/compact-select'
+import { ErrorAlert } from '@/components/error-alert'
+import { NavPageButton } from '@/components/nav-page-button'
 import {
-  getLimitLabel,
-  LIMIT_PRESETS,
-  STATUS_FILTER_OPTIONS,
-  useRecentRequests,
-} from '@/features/home/hooks/useRecentRequests'
+  RequestBrowserDetail,
+  RequestBrowserItems,
+} from '@/components/request-list/request-browser'
+import { RequestListSkeleton } from '@/components/request-list/request-list-skeleton'
+import {
+  ViewToggle,
+  ViewToggleSkeleton,
+} from '@/components/request-list/view-toggle'
+import { StatusFilter, StatusFilterSkeleton } from '@/components/status-filter'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { RecentRequestsState } from '@/features/home/hooks/useRecentRequests'
+import { useRequestBrowser } from '@/hooks/useRequestBrowser'
+import { formatCount } from '@/lib/format'
+import { NAV_PAGES } from '@/lib/navigation'
+import { usePref } from '@/lib/prefs'
+import { REQUEST_STATUS_OPTIONS } from '@/lib/request-labels'
+import {
+  RECENT_LIMITS,
+  recentLimitPref,
+  recentViewPref,
+} from '@/lib/request-list-prefs'
 
-/**
- * Recent Requests section for the dashboard.
- * Status/limit filters plus a shared media carousel (list view on mobile).
- */
-export function RecentRequests() {
-  const navigate = useNavigate()
-  const { items, isLoading, error, status, setStatus, limit, setLimit } =
-    useRecentRequests()
-  const { view, setView } = useMediaViewMode('recent-requests')
+const LIMIT_OPTIONS = RECENT_LIMITS.map((limit) => ({
+  value: limit,
+  label: formatCount(limit, 'item'),
+}))
 
-  const filterOptions = useMemo(
-    () =>
-      STATUS_FILTER_OPTIONS.map((opt) => ({
-        label: opt.label,
-        value: opt.value,
-      })),
-    [],
+export function RecentRequestsCardSkeleton() {
+  const [view] = usePref(recentViewPref)
+  const [limit] = usePref(recentLimitPref)
+  return (
+    <Card>
+      <CardHeaderSkeleton action={<Skeleton className="h-8 w-28" />} />
+      <CardContent className="gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusFilterSkeleton className="w-80" />
+          <Skeleton className="h-8 w-24" />
+          <ViewToggleSkeleton />
+        </div>
+        <RequestListSkeleton view={view} limit={limit} />
+      </CardContent>
+    </Card>
   )
+}
 
-  const limitOptions = useMemo(
-    () =>
-      LIMIT_PRESETS.map((preset) => ({
-        label: getLimitLabel(preset),
-        value: preset.toString(),
-      })),
-    [],
+export function RecentRequests({ recent }: { recent: RecentRequestsState }) {
+  const { items, view, status } = recent
+  const browser = useRequestBrowser(items)
+  const emptyMessage =
+    status === 'all' ? 'No requests yet.' : 'No requests match this filter.'
+
+  const content = recent.errorMessage ? (
+    <ErrorAlert message={recent.errorMessage} />
+  ) : recent.isLoading ? (
+    <RequestListSkeleton view={view} limit={recent.limit} />
+  ) : items === undefined ? null : items.length === 0 ? (
+    <p className="text-muted-foreground">{emptyMessage}</p>
+  ) : (
+    <RequestBrowserItems browser={browser} items={items} view={view} />
   )
 
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h2 className="text-2xl font-bold text-foreground">Recent Requests</h2>
-        <Select
-          value={status}
-          onValueChange={setStatus}
-          options={filterOptions}
-          disabled={isLoading}
-          className="w-40"
-        />
-        <Select
-          value={limit.toString()}
-          onValueChange={(value) => setLimit(Number(value))}
-          options={limitOptions}
-          disabled={isLoading}
-          className="w-27.5"
-        />
-        <MediaViewToggle view={view} onViewChange={setView} />
-        <Button
-          variant="neutralnoShadow"
-          className="flex items-center gap-2"
-          onClick={() => navigate('/approvals')}
-        >
-          <span>View All</span>
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* grid-cols-1's minmax(0,1fr) keeps the carousel's intrinsic width from stretching the page */}
-      <div className="grid grid-cols-1">
-        <DashboardMediaCarousel
-          items={items}
-          loading={isLoading}
-          error={error}
-          emptyMessage="No recent requests"
-          fullWidth
-          view={view}
-          getKey={(item) => `${item.source}-${item.id}`}
-          renderItem={(item, orientation) => (
-            <RecentRequestCard item={item} orientation={orientation} />
-          )}
-        />
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Recent requests</CardTitle>
+        <CardAction>
+          <NavPageButton page={NAV_PAGES.approvalQueue} />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusFilter
+            options={REQUEST_STATUS_OPTIONS}
+            value={status}
+            onValueChange={recent.setStatus}
+          />
+          <CompactSelect
+            label="Number of requests"
+            value={recent.limit}
+            options={LIMIT_OPTIONS}
+            onValueChange={recent.setLimit}
+          />
+          <ViewToggle value={view} onValueChange={recent.setView} />
+        </div>
+        {content}
+      </CardContent>
+      <RequestBrowserDetail browser={browser} />
+    </Card>
   )
 }

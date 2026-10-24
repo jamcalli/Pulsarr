@@ -13,7 +13,8 @@
       "@root/*": ["./src/*"],
       "@utils/*": ["./src/utils/*"],
       "@schemas/*": ["./src/schemas/*"],
-      "@services/*": ["./src/services/*"]
+      "@services/*": ["./src/services/*"],
+      "@/*": ["./src/client/*"]
     }
   },
   "include": ["src/**/*", "config"],

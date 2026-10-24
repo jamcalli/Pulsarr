@@ -1,3 +1,4 @@
+import { isDiscordSnowflake } from '@root/schemas/common/discord-id.schema.js'
 import type { User } from '@root/types/config.types.js'
 import type { NotificationResult } from '@root/types/notification.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
@@ -72,8 +73,9 @@ export async function recordAvailability(
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
   watchlistItems: TokenWatchlistItem[],
-): Promise<void> {
+): Promise<number[]> {
   const instanceUpdate = instanceUpdateFor(options)
+  const recordedUserIds: number[] = []
 
   for (const item of watchlistItems) {
     const userId = Number(item.user_id)
@@ -84,6 +86,7 @@ export async function recordAvailability(
         status: 'grabbed',
         ...instanceUpdate,
       })
+      recordedUserIds.push(userId)
     } catch (error) {
       deps.logger.error(
         { error, userId, key: item.key, title: mediaInfo.title },
@@ -91,6 +94,7 @@ export async function recordAvailability(
       )
     }
   }
+  return recordedUserIds
 }
 
 /** Marks each item notified and inserts its row in one transaction, skipping duplicates and users with nothing to receive. */
@@ -122,7 +126,7 @@ export async function claimUserNotifications(
     const mentionEligible =
       publicMentionsPossible &&
       user.notify_discord_mention &&
-      Boolean(user.discord_id?.trim())
+      isDiscordSnowflake(user.discord_id ?? '')
 
     if (
       !user.notify_discord &&

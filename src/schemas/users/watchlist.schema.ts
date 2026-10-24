@@ -1,50 +1,32 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
-import { WatchlistStatusSchema } from '@root/schemas/common/watchlist-status.schema.js'
+import { RecentRequestItemSchema } from '@root/schemas/shared/recent-request.schema.js'
 import { z } from 'zod'
 
-// Watchlist item schema for the response
-const WatchlistItemSchema = z.object({
-  title: z.string(),
-  key: z.string(),
-  type: z.string(),
-  thumb: z.string().nullable(),
-  guids: z.array(z.string()),
-  genres: z.array(z.string()),
-  status: WatchlistStatusSchema,
-  added: z.string().nullable(),
-})
-
-// User info schema
 const UserInfoSchema = z.object({
   id: z.number(),
   name: z.string(),
 })
 
-// Request params schema
 export const GetUserWatchlistParamsSchema = z.object({
   userId: z.coerce.number(),
 })
 
-// Success response schema
 export const GetUserWatchlistResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   data: z.object({
     user: UserInfoSchema,
-    watchlistItems: z.array(WatchlistItemSchema),
+    items: z.array(RecentRequestItemSchema),
     total: z.number(),
   }),
 })
 
-// Export types
 export type GetUserWatchlistParams = z.infer<
   typeof GetUserWatchlistParamsSchema
 >
 export type GetUserWatchlistResponse = z.infer<
   typeof GetUserWatchlistResponseSchema
 >
-export type WatchlistItem = z.infer<typeof WatchlistItemSchema>
 
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as GetUserWatchlistErrorSchema }
 export type GetUserWatchlistError = z.infer<typeof ErrorSchema>

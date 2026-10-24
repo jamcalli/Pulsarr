@@ -5,6 +5,7 @@
  * and triggering Sonarr searches based on viewing patterns
  */
 
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
 import { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -96,7 +97,8 @@ export default fp(
         if (schedule?.enabled) {
           const config = fastify.config
           const intervalMinutes =
-            config?.plexSessionMonitoring?.pollingIntervalMinutes || 15
+            config?.plexSessionMonitoring?.pollingIntervalMinutes ||
+            PLEX_SESSION_MONITORING_DEFAULTS.pollingIntervalMinutes
 
           fastify.log.debug(
             `Scheduling Plex session monitoring to run every ${intervalMinutes} minutes`,
@@ -128,7 +130,9 @@ export default fp(
                 return
               }
 
-              const inactivityDays = sessionConfig.inactivityResetDays ?? 7
+              const inactivityDays =
+                sessionConfig.inactivityResetDays ??
+                PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
               fastify.log.debug(
                 `Starting automatic reset of rolling shows inactive for ${inactivityDays} days`,
@@ -154,7 +158,9 @@ export default fp(
         if (autoResetSchedule?.enabled) {
           const config = fastify.config
           const sessionConfig = config?.plexSessionMonitoring
-          const intervalHours = sessionConfig?.autoResetIntervalHours || 24
+          const intervalHours =
+            sessionConfig?.autoResetIntervalHours ||
+            PLEX_SESSION_MONITORING_DEFAULTS.autoResetIntervalHours
 
           fastify.log.debug(
             `Scheduling Plex rolling auto reset to run every ${intervalHours} hours`,
@@ -205,7 +211,9 @@ export default fp(
         if (pilotSyncSchedule?.enabled) {
           const config = fastify.config
           const sessionConfig = config?.plexSessionMonitoring
-          const intervalHours = sessionConfig?.autoResetIntervalHours || 24
+          const intervalHours =
+            sessionConfig?.autoResetIntervalHours ||
+            PLEX_SESSION_MONITORING_DEFAULTS.autoResetIntervalHours
 
           fastify.log.debug(
             `Scheduling Plex rolling pilot sync to run every ${intervalHours} hours`,

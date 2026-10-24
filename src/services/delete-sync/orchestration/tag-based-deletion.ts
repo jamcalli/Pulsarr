@@ -1,11 +1,9 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { TagCache } from '@services/delete-sync/cache/index.js'
-import {
-  isAnyGuidProtected,
-  isAnyGuidTracked,
-} from '@services/delete-sync/cache/index.js'
+import { isAnyGuidProtected } from '@services/delete-sync/cache/protected-cache.js'
+import type { TagCache } from '@services/delete-sync/cache/tag-cache.js'
+import { isAnyGuidTracked } from '@services/delete-sync/cache/tracked-cache.js'
 import {
   processMovieDeletions,
   processShowDeletions,
@@ -13,14 +11,14 @@ import {
 import {
   countTaggedMovies,
   countTaggedSeries,
-  getRemovalTagPrefixNormalized,
-} from '@services/delete-sync/tag-operations/index.js'
+} from '@services/delete-sync/tag-operations/tag-counter.js'
+import { getRemovalTagPrefixNormalized } from '@services/delete-sync/tag-operations/tag-matcher.js'
 import { DeletionCounters } from '@services/delete-sync/utils/deletion-counters.js'
 import {
   createEmptyResult,
   createSafetyTriggeredResult,
-} from '@services/delete-sync/utils/index.js'
-import { performTagBasedSafetyCheck } from '@services/delete-sync/validation/index.js'
+} from '@services/delete-sync/utils/result-builder.js'
+import { performTagBasedSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyBaseLogger } from 'fastify'

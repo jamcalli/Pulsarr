@@ -3,6 +3,7 @@ import {
   UpdateUserSchema,
   UserErrorSchema,
   UserResponseSchema,
+  UserWithFriendStatusResponseSchema,
 } from '@schemas/users/users.schema.js'
 import { isUniqueViolation } from '@utils/db-errors.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -69,7 +70,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }),
         body: UpdateUserSchema,
         response: {
-          200: UserResponseSchema,
+          200: UserWithFriendStatusResponseSchema,
           404: UserErrorSchema,
           409: UserErrorSchema,
           500: UserErrorSchema,
@@ -103,10 +104,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           throw new Error('Failed to fetch updated user')
         }
 
+        const [user] = await fastify.plexWatchlist.withFriendStatus([
+          updatedUser,
+        ])
+
         return {
           success: true,
           message: 'User updated successfully',
-          user: updatedUser,
+          user,
         }
       } catch (error) {
         if (isUniqueViolation(error)) {
@@ -131,7 +136,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           id: z.coerce.number().int().positive(),
         }),
         response: {
-          200: UserResponseSchema,
+          200: UserWithFriendStatusResponseSchema,
           404: UserErrorSchema,
           500: UserErrorSchema,
         },
@@ -145,10 +150,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('User not found')
         }
 
+        const [userWithStatus] = await fastify.plexWatchlist.withFriendStatus([
+          user,
+        ])
+
         return {
           success: true,
           message: 'User retrieved successfully',
-          user,
+          user: userWithStatus,
         }
       } catch (error) {
         logRouteError(fastify.log, request, error, {

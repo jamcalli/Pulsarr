@@ -2,6 +2,7 @@ export type WorkflowMetadata = {
   status: string
   syncMode: 'polling' | 'rss'
   rssAvailable: boolean
+  lastError: string | null
 }
 
 export type SystemStatusMetadata = {
@@ -16,6 +17,17 @@ export type ApprovalMetadata = {
   contentTitle: string
   contentType: 'movie' | 'show'
   status: 'pending' | 'approved' | 'rejected' | 'expired' | 'auto_approved'
+}
+
+export type UsersMetadata = {
+  action: 'added' | 'removed'
+  userId: number
+  plexUuid: string | null
+}
+
+export type WatchlistMetadata = {
+  action: 'added' | 'status'
+  userIds: number[]
 }
 
 export type WatchlistSyncMetadata = {
@@ -34,11 +46,18 @@ export type WatchlistSyncMetadata = {
   } | null
 }
 
+export type ScheduledJobMetadata = {
+  job: string
+}
+
 export type ProgressMetadata =
   | WorkflowMetadata
   | WatchlistSyncMetadata
   | ApprovalMetadata
+  | UsersMetadata
+  | WatchlistMetadata
   | SystemStatusMetadata
+  | ScheduledJobMetadata
   | Record<string, never>
 
 export interface ProgressEvent {
@@ -55,11 +74,20 @@ export interface ProgressEvent {
     | 'plex-label-sync'
     | 'plex-label-removal'
     | 'approval'
+    | 'users'
+    | 'watchlist'
+    | 'delete-sync-dry-run'
+    | 'scheduled-job'
   phase: string
   progress: number
   message: string
   metadata?: ProgressMetadata
 }
+
+export type WatchlistSyncType = Extract<
+  ProgressEvent['type'],
+  'self-watchlist' | 'others-watchlist'
+>
 
 export interface ProgressService {
   emit(event: ProgressEvent): void
@@ -72,8 +100,3 @@ export interface ProgressOptions {
   /** must match one of the ProgressEvent.type values */
   type: ProgressEvent['type']
 }
-
-export type WatchlistSyncType = Extract<
-  ProgressEvent['type'],
-  'self-watchlist' | 'others-watchlist'
->

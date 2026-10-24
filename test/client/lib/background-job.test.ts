@@ -1,0 +1,297 @@
+import type { ProgressEvent } from '@root/types/progress.types.js'
+import {
+  type ProgressStream,
+  STATUS_POLL_INTERVAL_MS,
+  startAndAwaitStatus,
+} from '@/lib/background-job'
+
+interface Status {
+  state: 'running' | 'done' | 'failed'
+}
+
+function fakeStream() {
+  const listeners = new Map<string, Set<(event: ProgressEvent) => void>>()
+  const reconnects = new Set<() => void>()
+  const stream: ProgressStream = {
+    onEvent: (type, callback) => {
+      const set = listeners.get(type) ?? new Set()
+      set.add(callback)
+      listeners.set(type, set)
+      return () => set.delete(callback)
+    },
+    onReconnect: (callback) => {
+      reconnects.add(callback)
+      return () => reconnects.delete(callback)
+    },
+  }
+  const emit = (
+    type: ProgressEvent['type'],
+    phase: string,
+    metadata?: ProgressEvent['metadata'],
+  ) => {
+    for (const callback of listeners.get(type) ?? []) {
+      callback({
+        operationId: type,
+        type,
+        phase,
+        progress: 100,
+        message: '',
+        metadata,
+      })
+    }
+  }
+  const reconnect = () => {
+    for (const callback of reconnects) callback()
+  }
+  const subscribers = () =>
+    [...listeners.values()].reduce((sum, set) => sum + set.size, 0) +
+    reconnects.size
+  return { stream, emit, reconnect, subscribers }
+}
+
+function job(reads: Status[]) {
+  const readStatus = vi.fn(
+    async (): Promise<Status> => reads.shift() ?? { state: 'running' },
+  )
+  return {
+    readStatus,
+    options: {
+      eventType: 'delete-sync-dry-run' as const,
+      start: vi.fn(async () => undefined),
+      readStatus,
+      isSettled: (status: Status) => status.state !== 'running',
+    },
+  }
+}
+
+function pendingJob() {
+  const reads: Array<PromiseWithResolvers<Status>> = []
+  let pending = 0
+  let maxPending = 0
+  const readStatus = vi.fn((): Promise<Status> => {
+    const read = Promise.withResolvers<Status>()
+    reads.push(read)
+    pending += 1
+    maxPending = Math.max(maxPending, pending)
+    return read.promise.finally(() => {
+      pending -= 1
+    })
+  })
+  return {
+    reads,
+    readStatus,
+    maxPending: () => maxPending,
+    options: {
+      eventType: 'delete-sync-dry-run' as const,
+      start: vi.fn(async () => undefined),
+      readStatus,
+      isSettled: (status: Status) => status.state !== 'running',
+    },
+  }
+}
+
+describe('startAndAwaitStatus', () => {
+  it('resolves with a status that is already settled after the start', async () => {
+    const { stream, subscribers } = fakeStream()
+    const { options } = job([{ state: 'done' }])
+
+    await expect(startAndAwaitStatus(options, stream)).resolves.toEqual({
+      state: 'done',
+    })
+    expect(options.start).toHaveBeenCalledOnce()
+    expect(subscribers()).toBe(0)
+  })
+
+  it('rereads on a settled event of the job and resolves failed too', async () => {
+    const { stream, emit } = fakeStream()
+    const { options, readStatus } = job([
+      { state: 'running' },
+      { state: 'failed' },
+    ])
+
+    const result = startAndAwaitStatus(options, stream)
+    await vi.waitFor(() => expect(readStatus).toHaveBeenCalledTimes(1))
+    emit('delete-sync-dry-run', 'complete')
+
+    await expect(result).resolves.toEqual({ state: 'failed' })
+  })
+
+  it('rereads when the stream reconnects', async () => {
+    const { stream, reconnect } = fakeStream()
+    const { options, readStatus } = job([
+      { state: 'running' },
+      { state: 'done' },
+    ])
+
+    const result = startAndAwaitStatus(options, stream)
+    await vi.waitFor(() => expect(readStatus).toHaveBeenCalledTimes(1))
+    reconnect()
+
+    await expect(result).resolves.toEqual({ state: 'done' })
+  })
+
+  it('ignores progress phases, other event types and other jobs', async () => {
+    const { stream, emit } = fakeStream()
+    const { options, readStatus } = job([{ state: 'running' }])
+    void startAndAwaitStatus(
+      {
+        ...options,
+        eventType: 'scheduled-job',
+        isJobEvent: (event) =>
+          event.metadata !== undefined &&
+          'job' in event.metadata &&
+          event.metadata.job === 'delete-sync',
+      },
+      stream,
+    )
+    await vi.waitFor(() => expect(readStatus).toHaveBeenCalledTimes(1))
+
+    emit('scheduled-job', 'running', { job: 'delete-sync' })
+    emit('scheduled-job', 'complete', { job: 'quota-maintenance' })
+    emit('delete-sync-dry-run', 'complete')
+    await Promise.resolve()
+
+    expect(readStatus).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores events from before the start was accepted', async () => {
+    const { stream, emit } = fakeStream()
+    let accept: () => void = () => undefined
+    const { options, readStatus } = job([{ state: 'done' }])
+    options.start.mockReturnValue(
+      new Promise<undefined>((resolve) => {
+        accept = () => resolve(undefined)
+      }),
+    )
+
+    const result = startAndAwaitStatus(options, stream)
+    emit('delete-sync-dry-run', 'complete')
+    expect(readStatus).not.toHaveBeenCalled()
+
+    accept()
+    await expect(result).resolves.toEqual({ state: 'done' })
+  })
+
+  it('rejects with the start error and unsubscribes', async () => {
+    const { stream, subscribers } = fakeStream()
+    const { options, readStatus } = job([])
+    options.start.mockRejectedValue({ message: 'already running' })
+
+    await expect(startAndAwaitStatus(options, stream)).rejects.toEqual({
+      message: 'already running',
+    })
+    expect(readStatus).not.toHaveBeenCalled()
+    expect(subscribers()).toBe(0)
+  })
+
+  describe('slow poll', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('settles from the poll with no events or reconnect, then stops polling', async () => {
+      const { stream } = fakeStream()
+      const { options, readStatus } = job([
+        { state: 'running' },
+        { state: 'done' },
+      ])
+
+      const result = startAndAwaitStatus(options, stream)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(readStatus).toHaveBeenCalledTimes(1)
+
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS)
+      await expect(result).resolves.toEqual({ state: 'done' })
+      expect(readStatus).toHaveBeenCalledTimes(2)
+
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS * 3)
+      expect(readStatus).toHaveBeenCalledTimes(2)
+      expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('clears the poll when the start fails', async () => {
+      const { stream } = fakeStream()
+      const { options, readStatus } = job([])
+      options.start.mockRejectedValue({ message: 'already running' })
+
+      await expect(startAndAwaitStatus(options, stream)).rejects.toEqual({
+        message: 'already running',
+      })
+      expect(vi.getTimerCount()).toBe(0)
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS * 2)
+      expect(readStatus).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('one read in flight', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('never overlaps reads when an event, a reconnect and a poll fire during one read', async () => {
+      const { stream, emit, reconnect } = fakeStream()
+      const { options, readStatus, reads, maxPending } = pendingJob()
+
+      const result = startAndAwaitStatus(options, stream)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(readStatus).toHaveBeenCalledTimes(1)
+
+      emit('delete-sync-dry-run', 'complete')
+      reconnect()
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS)
+      expect(readStatus).toHaveBeenCalledTimes(1)
+
+      reads[0]?.resolve({ state: 'running' })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(readStatus).toHaveBeenCalledTimes(2)
+
+      reads[1]?.resolve({ state: 'done' })
+      await expect(result).resolves.toEqual({ state: 'done' })
+      expect(maxPending()).toBe(1)
+    })
+
+    it('rereads right after a running read when an event arrived during it', async () => {
+      const { stream, emit } = fakeStream()
+      const { options, readStatus, reads } = pendingJob()
+
+      const result = startAndAwaitStatus(options, stream)
+      await vi.advanceTimersByTimeAsync(0)
+      emit('delete-sync-dry-run', 'complete')
+      expect(readStatus).toHaveBeenCalledOnce()
+
+      reads[0]?.resolve({ state: 'running' })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(readStatus).toHaveBeenCalledTimes(2)
+
+      reads[1]?.resolve({ state: 'done' })
+      await expect(result).resolves.toEqual({ state: 'done' })
+      expect(readStatus).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps a pending done read from being overtaken by a later rejecting read', async () => {
+      const { stream, emit } = fakeStream()
+      const { options } = job([])
+      const first = Promise.withResolvers<Status>()
+      options.readStatus
+        .mockReturnValueOnce(first.promise)
+        .mockRejectedValueOnce({ message: 'network down' })
+
+      const result = startAndAwaitStatus(options, stream)
+      await vi.advanceTimersByTimeAsync(0)
+      emit('delete-sync-dry-run', 'complete')
+      await vi.advanceTimersByTimeAsync(0)
+
+      first.resolve({ state: 'done' })
+      await expect(result).resolves.toEqual({ state: 'done' })
+      expect(options.readStatus).toHaveBeenCalledOnce()
+    })
+  })
+})

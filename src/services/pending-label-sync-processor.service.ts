@@ -18,8 +18,6 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
  * - cleanupInterval: How often to clean expired syncs in seconds (default: 60)
  * - maxAge: Maximum age for pending syncs before expiration in minutes (default: 10)
  *
- * Note: Concurrency control is handled by the PlexLabelSyncService using config.plexLabelSync.concurrencyLimit
- *
  * Performance Improvements:
  * - Uses watchlist_item_id instead of GUID for direct database access
  * - Eliminates expensive Plex GUID searching

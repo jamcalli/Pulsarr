@@ -1,15 +1,6 @@
 import { ErrorSchema as CommonErrorSchema } from '@root/schemas/common/error.schema.js'
+import { PlexFriendStatusSchema } from '@root/schemas/shared/plex-friend-status.schema.js'
 import { z } from 'zod'
-
-export const PlexFriendStatusSchema = z.enum([
-  'friend',
-  'server_only',
-  'pending_sent',
-  'pending_received',
-  'friend_only',
-  'self',
-  'managed',
-])
 
 const PlexClassifiedUserSchema = z.object({
   uuid: z.string(),
@@ -49,7 +40,6 @@ export const userStatusSchema = {
 
 export { PlexClassifiedUserSchema, PlexUntrackedUserSchema }
 
-export type PlexFriendStatus = z.infer<typeof PlexFriendStatusSchema>
 export type PlexClassifiedUser = z.infer<typeof PlexClassifiedUserSchema>
 export type PlexUntrackedUser = z.infer<typeof PlexUntrackedUserSchema>
 export type UserStatusResponse = z.infer<typeof UserStatusResponseSchema>

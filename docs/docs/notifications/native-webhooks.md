@@ -39,24 +39,32 @@ Full payload schemas with examples are available in the [API Reference](/docs/ap
 
 ### Creating a Webhook Endpoint
 
-1. Navigate to **Settings** → **Notifications**
-2. Scroll to the **Native Webhooks** section
-3. Click **Add Webhook Endpoint**
-4. Configure the endpoint:
+1. Open **Notifications** > **Webhooks** in the sidebar
+2. Press **Add endpoint**
+3. Fill in the endpoint:
    - **Name**: A friendly identifier (e.g., "Home Assistant", "n8n Workflow")
    - **URL**: The full webhook URL to receive payloads
-   - **Authentication** (optional): Add a custom header for authentication
-   - **Events**: Select which events trigger this webhook
-5. Click the **Test** button to verify connectivity
-6. Click **Create** to save the endpoint
+   - **Auth header** (optional): A header name and value for secured endpoints
+   - **Events**: Pick at least one event to trigger this webhook
+4. Optionally press **Send test** beside the URL. It posts a test event using the URL and header as typed
+5. Press **Add endpoint** to save
 
-:::warning Test Required
-You must successfully test the connection before saving. This ensures your endpoint is reachable and responding correctly.
-:::
+### Managing Endpoints
+
+Each endpoint in the list has these controls:
+
+- **Enabled** switch: Turn it off to pause deliveries without deleting the endpoint
+- **Send test**: Posts a test event (`"event": "test"`) to the saved URL and header
+- **Edit**: Change any setting of the endpoint
+- **Delete**: Remove the endpoint after a confirmation
+
+### Delivery and Retries
+
+Endpoints must respond within 10 seconds. Timeouts, network errors, 5xx and 429 responses are retried, three attempts in total. The payload for every event is documented in the [API Reference](/docs/api/webhook-payloads).
 
 ### Authentication Options
 
-For secured endpoints, enable the authentication header option:
+For secured endpoints, fill in both parts of the auth header. Leave both empty to send none.
 
 - **Header Name**: The header key (e.g., `Authorization`, `X-Webhook-Secret`)
 - **Header Value**: The secret value (e.g., `Bearer your-token-here`)
@@ -160,7 +168,7 @@ https://your-home-assistant.local/api/webhook/pulsarr_media_available
 ### Payloads Not Received
 
 1. **Endpoint response**: Your endpoint must return a 2xx status code
-2. **Timeout**: Endpoints must respond within 10 seconds. Timeouts, network errors, 5xx and 429 responses are retried, three attempts in total
+2. **Timeout**: Your endpoint must respond in time. See [Delivery and Retries](#delivery-and-retries) for the limit and retry rules
 3. **Payload size**: Ensure your receiver can handle the payload size
 
 ### Debugging Payloads

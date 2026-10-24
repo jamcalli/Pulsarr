@@ -391,6 +391,120 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       expect([...unmonitoredSeasons].sort((a, b) => a - b)).toEqual([4, 5])
     })
 
+    it.each([
+      { otherSeason: 1, otherActive: true, cleaned: [] },
+      { otherSeason: 2, otherActive: true, cleaned: [] },
+      { otherSeason: 2, otherActive: false, cleaned: [2] },
+    ])(
+      'should raise a late viewer mark past seasons another viewer grabbed and clean only unprotected ones (other on S$otherSeason, active $otherActive)',
+      async ({ otherSeason, otherActive, cleaned }) => {
+        const knex = getTestDatabase()
+
+        await app.updateConfig({
+          plexSessionMonitoring: sessionMonitoringConfig(),
+        })
+
+        const yesterday = new Date(
+          Date.now() - 24 * 60 * 60 * 1000,
+        ).toISOString()
+        const longAgo = new Date(
+          Date.now() - 30 * 24 * 60 * 60 * 1000,
+        ).toISOString()
+
+        await insertRollingShow(knex, {
+          show_title: 'Stella',
+          monitoring_type: 'firstSeasonRolling',
+          sonarr_series_id: 1566,
+          sonarr_instance_id: 1,
+          tvdb_id: '90210',
+          current_monitored_season: 2,
+        })
+        await insertRollingShow(knex, {
+          show_title: 'Stella',
+          monitoring_type: 'firstSeasonRolling',
+          sonarr_series_id: 1566,
+          sonarr_instance_id: 1,
+          tvdb_id: '90210',
+          plex_user_id: 'u_storm',
+          plex_username: 'stormshaker',
+          last_watched_season: otherSeason,
+          last_watched_episode: 3,
+          current_monitored_season: 2,
+          last_session_date: otherActive ? yesterday : longAgo,
+        })
+        const nicoleId = await insertRollingShow(knex, {
+          show_title: 'Stella',
+          monitoring_type: 'firstSeasonRolling',
+          sonarr_series_id: 1566,
+          sonarr_instance_id: 1,
+          tvdb_id: '90210',
+          plex_user_id: 'u_nicole',
+          plex_username: 'nicole3876',
+          last_watched_season: 1,
+          last_watched_episode: 1,
+          current_monitored_season: 1,
+          last_session_date: yesterday,
+        })
+
+        app.plexServerService.getShowMetadata = vi
+          .fn()
+          .mockResolvedValue(makeShowMetadata('90210'))
+
+        const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
+        const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
+        const mockSearchSeason = vi.fn().mockResolvedValue(true)
+        const fakeSonarr = makeFakeSonarr({
+          getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 3)),
+          getEpisodes: vi
+            .fn()
+            .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
+          updateSeasonMonitoring: mockUpdateSeasonMonitoring,
+          deleteEpisodeFiles: mockDeleteEpisodeFiles,
+          searchSeason: mockSearchSeason,
+        })
+
+        app.sonarrManager.getAllInstances = vi
+          .fn()
+          .mockResolvedValue([
+            { id: 1, name: 'Test Sonarr', baseUrl: 'http://x', apiKey: 'k' },
+          ])
+        app.sonarrManager.getSonarrService = vi
+          .fn()
+          .mockReturnValue(
+            fakeSonarr as unknown as ReturnType<
+              typeof app.sonarrManager.getSonarrService
+            >,
+          )
+
+        const watch = async (season: number, episode: number) => {
+          app.plexServerService.getActiveSessions = vi
+            .fn()
+            .mockResolvedValue([makeEpisodeSession({ season, episode })])
+          await app.plexSessionMonitor.monitorSessions()
+        }
+        const nicoleMark = async () =>
+          (
+            await knex('rolling_monitored_shows')
+              .where({ id: nicoleId })
+              .first()
+          ).current_monitored_season
+
+        await watch(1, 14)
+        expect(await nicoleMark()).toBe(2)
+        await watch(2, 1)
+        await watch(2, 14)
+        expect(await nicoleMark()).toBe(3)
+        await watch(3, 1)
+
+        const unmonitoredSeasons = mockUpdateSeasonMonitoring.mock.calls
+          .filter((call) => call[2] === false)
+          .map((call) => call[1])
+        expect(unmonitoredSeasons).toEqual(cleaned)
+        expect(mockDeleteEpisodeFiles).toHaveBeenCalledTimes(cleaned.length)
+        expect(mockSearchSeason).not.toHaveBeenCalled()
+      },
+    )
+
     it('should not protect seasons when only the master record exists for other users', async () => {
       const knex = getTestDatabase()
 
