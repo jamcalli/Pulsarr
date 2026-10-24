@@ -1,0 +1,34 @@
+# Pulsarr API (/api)
+
+Every route Pulsarr's own interface uses is part of the API, documented in the pages below. Your Pulsarr also serves an interactive reference at `/api/docs`.
+
+## Authentication [#authentication]
+
+Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. Every `/v1` route accepts it.
+
+```bash
+curl -H "X-API-Key: <your-key>" http://<your-server>:3003/v1/approval/requests
+```
+
+Routes can change between releases. Check the release notes when you upgrade.
+
+## Limits and paging [#limits-and-paging]
+
+Requests are rate limited per IP address. Routes that check credentials or test connections have tighter limits than the rest.
+
+Long lists take `limit` and `offset` to page through results. These include the approval requests, quota usage, exclusions and the movie and show stats.
+
+## Live streams [#live-streams]
+
+`/v1/progress` and `/v1/logs/stream` are server-sent event streams. They tell clients to reconnect after 3 seconds and send the current state when you connect. They send no heartbeat, so a reverse proxy in front of Pulsarr must not buffer them.
+
+## Common routes [#common-routes]
+
+- `GET /v1/approval/requests` lists requests, with filters for status, user, content type and trigger.
+- `POST /v1/approval/requests/{id}/approve` and `POST /v1/approval/requests/{id}/reject` decide one.
+- `GET /v1/stats/all` returns the dashboard statistics.
+- `POST /v1/plex/watchlist-sync/{type}/start` starts a watchlist sync.
+
+## Home Assistant [#home-assistant]
+
+The community-maintained [Pulsarr Enhanced Requests](https://github.com/SpaceFrags/pulsarr_enhanced_requests) integration and its [requests card](https://github.com/SpaceFrags/pulsarr-requests-card) manage requests from Home Assistant.

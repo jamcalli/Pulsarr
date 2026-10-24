@@ -1,0 +1,53 @@
+# Sonarr and Radarr (/library/sonarr-radarr)
+
+Shows go to Sonarr and movies go to Radarr. Manage them under **Library** > **Sonarr** and **Library** > **Radarr**. Both pages work the same way, and the differences are noted below.
+
+## Add an instance [#add-an-instance]
+
+Select **Add instance**, then fill in **Connection**:
+
+- **Name** is shown across Pulsarr, for example in the Content router.
+- **URL** is the instance's address, including the port.
+- **API key** is in Sonarr or Radarr under Settings > General.
+
+Select **Test connection**. Pulsarr needs a passing test before it can save, and the test also loads the quality profiles, root folders and tags for the next section.
+
+The test also checks that Sonarr or Radarr can reach Pulsarr, which it needs to report finished downloads. If it can't, select **Fix the address** and choose how your servers reach Pulsarr. You can also change that address in the **Webhooks** section of the page.
+
+## Where content lands [#where-content-lands]
+
+These settings apply to everything Pulsarr sends to the instance, unless a Content router route overrides them.
+
+For both:
+
+- **Quality profile** and **Root folder**.
+- **Search on add** searches as soon as an item is added.
+- **Tags** are added to every item Pulsarr sends here.
+- **Bypass ignored** adds content even when it's on the instance's import list exclusions.
+
+For Sonarr:
+
+- **Season monitoring** picks which episodes to monitor. The rolling options, **Pilot rolling**, **First season rolling** and **All seasons pilot rolling**, start small and monitor more as people watch. They only grow while [session monitoring](/library/session-monitoring) is on.
+- **Series type** is **Standard**, **Anime** or **Daily**.
+- **Monitor new items** decides whether seasons that air later are monitored.
+- **Season folders** puts each season in its own folder.
+
+For Radarr:
+
+- **Minimum availability** is **Announced**, **In cinemas** or **Released**.
+- **Monitor** is **Movie only**, **Movie and collection** or **None**.
+
+## The default instance [#the-default-instance]
+
+Content that no Content router route claims goes to the **Default instance**. There's one default per type, and the first instance you add is always the default.
+
+Only the default instance has these two settings:
+
+- **Synced instances** also receive everything that reaches the default, for example to keep a 4K copy. Each synced instance uses its own settings.
+- **Skip content no route matches**, when on, skips content that no route claims instead of sending it to the default.
+
+When you add a synced instance, **Copy existing content** sends everything already on the default to it. New content syncs on its own.
+
+## Remove an instance [#remove-an-instance]
+
+Removing an instance also deletes the Content router routes that send to it, its place in other instances' synced instances, and Pulsarr's record of which watchlist items are on it. The watchlist items themselves stay. For Sonarr, rolling monitored shows on the instance are removed too.

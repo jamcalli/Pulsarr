@@ -1,0 +1,50 @@
+3:"$Sreact.fragment"
+4:"/Pulsarr/next/_next/static/chunks/0qytrj7fle8hy.js"
+5:"/Pulsarr/next/_next/static/chunks/2u9ne6nu73jx5.js"
+6:"/Pulsarr/next/_next/static/chunks/1hkeatsjrpmiz.js"
+7:"/Pulsarr/next/_next/static/chunks/3unn9q7qbug5v.js"
+8:"/Pulsarr/next/_next/static/chunks/3ytmr9exvi66v.js"
+9:I[929713,["$4","$5","$6","$7","$8"],"default"]
+a:I[759292,["$4","$5","$6","$7","$8"],"default"]
+f:"/Pulsarr/next/_next/static/chunks/3uajxsple_7yh.js"
+10:"/Pulsarr/next/_next/static/chunks/43e1cfzgelx-n.js"
+11:"/Pulsarr/next/_next/static/chunks/2hzm0uaqorhrd.js"
+12:"/Pulsarr/next/_next/static/chunks/1ga6a56_xyl10.js"
+13:"/Pulsarr/next/_next/static/chunks/125akcrvtufnd.js"
+14:I[788185,["$4","$5","$6","$7","$8","$f","$10","$11","$12","$13"],"DocsPage"]
+15:I[788185,["$4","$5","$6","$7","$8","$f","$10","$11","$12","$13"],"DocsTitle"]
+16:I[788185,["$4","$5","$6","$7","$8","$f","$10","$11","$12","$13"],"DocsDescription"]
+17:I[228634,["$4","$5","$6","$7","$8","$f","$10","$11","$12","$13"],"Separator"]
+18:I[788185,["$4","$5","$6","$7","$8","$f","$10","$11","$12","$13"],"DocsBody"]
+19:I[555254,["$4","$5","$6","$7","$8","$f","$10","$11","$12","$13"],"default"]
+1a:I[500074,["$4","$5","$6","$7","$8","$f","$10","$11","$12","$13"],"Heading"]
+24:"ViewportBoundary"
+25:I[81896,["$4","$5","$6","$7","$8"],"$24"]
+26:"MetadataBoundary"
+27:I[81896,["$4","$5","$6","$7","$8"],"$26"]
+28:"$Sreact.suspense"
+29:I[404094,["$4","$5","$6","$7","$8"],"IconMark"]
+c:X
+c:C
+d:X
+e:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$3","c",{"children":[["$","$L14",null,{"toc":[{"depth":2,"url":"#not-yet-friends","title":"Not yet friends"},{"depth":2,"url":"#change-one-user","title":"Change one user"},{"depth":2,"url":"#change-several-users","title":"Change several users"}],"footer":{"enabled":true},"children":[["$","$L15",null,{"children":"Plex users"}],["$","$L16",null,{"className":"mb-0","children":"Set sync, approval, notifications and quotas for each person."}],["$","$L17",null,{}],["$","$L18",null,{"children":[["$","p",null,{"children":[["$","strong",null,{"children":"Users"}]," > ",["$","strong",null,{"children":"Plex users"}]," lists you, your Plex friends, and anyone with access to your Plex server. Pulsarr adds friends on its own, with your ",["$","$L19",null,{"href":"/users/new-user-defaults","children":"new user defaults"}],"."]}],"\n",["$","p",null,{"children":["The table shows each user's ",["$","strong",null,{"children":"Relationship"}],", ",["$","strong",null,{"children":"Watchlist"}]," size, whether they ",["$","strong",null,{"children":"Sync"}],", whether they need ",["$","strong",null,{"children":"Approval"}],", their ",["$","strong",null,{"children":"Notifications"}]," and their ",["$","strong",null,{"children":"Quotas"}],". Use ",["$","strong",null,{"children":"Search users"}]," and the filters to narrow it."]}],"\n",["$","$L1a",null,{"as":"h2","id":"not-yet-friends","children":"Not yet friends"}],"\n",["$","p",null,{"children":["Pulsarr can only read the watchlists of your Plex friends. People with access to your server who aren't friends, and pending friend requests, show under ",["$","strong",null,{"children":"Not yet friends"}],"."]}],"\n",["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"No friend"}]," has access to your server but isn't a Plex friend. Select ",["$","strong",null,{"children":"Send friend request"}],"."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Pending"}]," is a request you sent that they haven't accepted. You can ",["$","strong",null,{"children":"Cancel request"}]," or ",["$","strong",null,{"children":"Resend request"}],"."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Incoming"}]," is a request they sent you. Accept it in Plex."]}],"\n"]}],"\n",["$","p",null,{"children":["A friend whose ",["$","strong",null,{"children":"Watchlist"}]," shows 0 may have an empty watchlist or a private one. Pulsarr can't tell which. See the ",["$","$L19",null,{"href":"/installation/quick-start#before-you-start","children":"quick start"}]," for the Plex privacy setting."]}],"\n",["$","$L1a",null,{"as":"h2","id":"change-one-user","children":"Change one user"}],"\n",["$","p",null,{"children":"Select a user to open their page."}],"\n",["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Identity"}]," shows their ",["$","strong",null,{"children":"Plex username"}],", which can't be changed here, and an ",["$","strong",null,{"children":"Alias"}]," shown instead of it in Pulsarr and notifications."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Access"}]," has ",["$","strong",null,{"children":"Sync watchlist"}],", which requests what they add, and ",["$","strong",null,{"children":"Require approval"}],", which holds their requests in the ",["$","$L19",null,{"href":"/requests/approval-queue","children":"approval queue"}],"."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Notifications"}]," has their ",["$","strong",null,{"children":"Discord user ID"}]," and ",["$","strong",null,{"children":"Apprise URL"}],", and switches for ",["$","strong",null,{"children":"Discord"}],", ",["$","strong",null,{"children":"Discord mention"}],", ",["$","strong",null,{"children":"Apprise"}]," and ",["$","strong",null,{"children":"Plex mobile"}],". ",["$","strong",null,{"children":"Send a test"}]," sends through the channels saved for them."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Movies"}]," and ",["$","strong",null,{"children":"Shows"}]," set their ",["$","$L19",null,{"href":"/requests/quotas","children":"quota and watchlist cap"}],"."]}],"\n"]}],"\n",["$","p",null,{"children":"The page also shows what's on their watchlist, their requests by status and their quota usage."}],"\n","$L1b","\n","$L1c","\n","$L1d","\n","$L1e"]}]]}],["$L1f","$L20","$L21"],"$L22"]}],"p":"$@23","v":null,"s":"$d"}}]]
+2:[["children",{"s":{"n":"slug","t":"oc","k":"users/plex-users","s":["api","docs","llms-full.txt","llms.mdx","llms.txt","og"]},"h":64,"d":{"r":["$","$3","c",{"children":[null,["$","$L9",null,{"parallelRouterKey":"children","template":["$","$La",null,{}]}]]}],"p":"$@b","v":"$c","s":"$d"},"c":"$Qe"}]]
+1:[["children",{"s":"(docs)","h":32,"c":"$Q2"}]]
+0:{"t":{"t":{"s":"","h":80,"c":"$Q1"},"h":{"r":["$","$3","h",{"children":[null,["$","$L25",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L27",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$28",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Plex users | Pulsarr"}],["$","meta","1",{"name":"description","content":"Set sync, approval, notifications and quotas for each person."}],["$","meta","2",{"name":"robots","content":"noindex, nofollow"}],["$","link","3",{"rel":"canonical","href":"https://jamcalli.github.io/Pulsarr/next/users/plex-users/"}],["$","meta","4",{"property":"og:title","content":"Plex users | Pulsarr"}],["$","meta","5",{"property":"og:description","content":"Set sync, approval, notifications and quotas for each person."}],["$","meta","6",{"property":"og:url","content":"https://jamcalli.github.io/Pulsarr/next/users/plex-users/"}],["$","meta","7",{"property":"og:site_name","content":"Pulsarr"}],["$","meta","8",{"property":"og:image","content":"https://jamcalli.github.io/Pulsarr/next/og/docs/users/plex-users/image.png"}],["$","meta","9",{"property":"og:type","content":"website"}],["$","meta","10",{"name":"twitter:card","content":"summary_large_image"}],["$","meta","11",{"name":"twitter:title","content":"Plex users | Pulsarr"}],["$","meta","12",{"name":"twitter:description","content":"Set sync, approval, notifications and quotas for each person."}],["$","meta","13",{"name":"twitter:image","content":"https://jamcalli.github.io/Pulsarr/next/og/docs/users/plex-users/image.png"}],["$","link","14",{"rel":"icon","href":"/Pulsarr/next/favicon.ico?favicon.0b7unjwu1fikl.ico","sizes":"144x144","type":"image/x-icon"}],["$","link","15",{"rel":"icon","href":"/Pulsarr/next/icon.svg?icon.1gh3ozbeqj7fl.svg","sizes":"any","type":"image/svg+xml"}],["$","$L29","16",{}]]}]}],null]}],null]}],"p":"$@2a","v":null,"s":"$d"}},"a":"$@2b","u":"$@2c","b":"0ASHgtKykHOZPk8iLuTMi"}
+2d:I[81896,["$4","$5","$6","$7","$8"],"OutletBoundary"]
+1b:["$","p",null,{"children":[["$","strong",null,{"children":"Remove friend"}]," ends the Plex friendship. Their Pulsarr record, watchlist and quotas are deleted at the next sync."]}]
+1c:["$","$L1a",null,{"as":"h2","id":"change-several-users","children":"Change several users"}]
+1d:["$","p",null,{"children":"Select users in the table, then:"}]
+1e:["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Edit settings"}]," changes access and notifications for all of them. Fields left as is keep each user's current value."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Edit quotas"}]," sets or removes their quotas."]}],"\n"]}]
+1f:["$","script","script-0",{"src":"/Pulsarr/next/_next/static/chunks/2hzm0uaqorhrd.js","async":true}]
+20:["$","script","script-1",{"src":"/Pulsarr/next/_next/static/chunks/1ga6a56_xyl10.js","async":true}]
+21:["$","script","script-2",{"src":"/Pulsarr/next/_next/static/chunks/125akcrvtufnd.js","async":true}]
+22:["$","$L2d",null,{"children":["$","$28",null,{"name":"Next.MetadataOutlet","children":"$@2e"}]}]
+2c:true
+d:300
+2e:null
+d:C
+2b:0
+b:"$undefined"
+2a:"$undefined"
+23:"$undefined"

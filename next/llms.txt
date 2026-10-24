@@ -1,0 +1,261 @@
+# Docs
+
+- [Welcome to Pulsarr](/): Pulsarr turns Plex watchlists into Sonarr and Radarr requests.
+- [How Pulsarr works](/how-it-works): What happens between someone adding a title to their Plex watchlist and being told it's ready.
+- Installation
+  - [Installation](/installation): Install Pulsarr with Docker or the native installers, or find it in the Unraid and TrueNAS app catalogs.
+  - [Quick start](/installation/quick-start): Install Pulsarr with Docker and get your first watchlist item into Sonarr or Radarr.
+  - [Docker](/installation/docker): Run Pulsarr in Docker with Compose or docker run, and keep it updated.
+  - [Native installers](/installation/native): Install Pulsarr on Linux, Windows or macOS without Docker.
+  - [PostgreSQL](/installation/postgresql): Run Pulsarr on PostgreSQL instead of SQLite, from the start or by moving an existing install.
+  - [Environment variables](/installation/environment-variables): Every setting Pulsarr reads from .env, with its default.
+- [Home](/home): The dashboard you land on, with what needs your attention and how requests are flowing.
+- Requests
+  - [Requests](/requests): Hold requests for your approval and limit how much each user can request.
+  - [Approval queue](/requests/approval-queue): Review the requests waiting for your decision, and look back at past ones.
+  - [Approval settings](/requests/approval-settings): Decide what happens to requests nobody approves, where approval notifications go, and how long history is kept.
+  - [Quotas](/requests/quotas): Limit how many movies and shows each user can request, and cap the size of their watchlist.
+- Library
+  - [Library](/library): Where requests go in Sonarr and Radarr, what's kept out, and what's removed.
+  - [Sonarr and Radarr](/library/sonarr-radarr): Connect Sonarr and Radarr instances, set where content lands, and copy content between instances.
+  - [Content router](/library/content-router): Send each request to the right Sonarr or Radarr instance based on what it is and who asked for it.
+  - [Exclusions](/library/exclusions): Stop watchlisted titles from being requested, for one user or for everyone.
+  - [Delete sync](/library/delete-sync): Remove movies and shows from Sonarr and Radarr once nobody wants them.
+  - [Session monitoring](/library/session-monitoring): Request the next season before people reach it, and grow rolling shows as they're watched.
+- Users
+  - [Users](/users): Your Plex friends, what each one can request, and how their requests are tagged and labeled.
+  - [Plex users](/users/plex-users): Set sync, approval, notifications and quotas for each person.
+  - [New user defaults](/users/new-user-defaults): Set what users start with when Pulsarr first sees them.
+  - [User tags](/users/user-tags): Tag content in Sonarr and Radarr by who requested it.
+  - [Plex labels](/users/plex-labels): Label movies and shows in Plex by who has them on their watchlist.
+- Notifications
+  - [Notifications](/notifications): Tell users when their requests are ready, and keep admins informed.
+  - [Discord](/notifications/discord): Post admin notifications to Discord channels, and message users through a bot.
+  - [Apprise](/notifications/apprise): Send notifications to Telegram, Slack, email and many other services through an Apprise server.
+  - [Webhooks](/notifications/webhooks): Post a JSON payload to your own service, such as Home Assistant or n8n, when something happens in Pulsarr.
+  - [Plex mobile](/notifications/plex-mobile): Push a notification to users' Plex app when something on their watchlist is ready.
+  - [Public content](/notifications/public-content): Announce every title that becomes available in shared Discord channels and Apprise targets.
+  - [Delivery](/notifications/delivery): Group episodes into fewer notifications, and choose where admin and user notifications go.
+- System
+  - [System](/system): The Plex connection, API keys, logs and your admin account.
+  - [Plex connection](/system/plex-connection): Link the Plex account and server Pulsarr reads watchlists through, and set up library refresh.
+  - [API keys](/system/api-keys): Let other apps and scripts call the Pulsarr API.
+  - [Logs](/system/logs): Read Pulsarr's log as it's written, and set how much it records.
+  - [Account](/system/account): Change the email, username and password of your Pulsarr admin account.
+- Pulsarr API
+  - [Pulsarr API](/api): Call Pulsarr from Home Assistant, scripts and other apps.
+  - System: System health and monitoring endpoints
+    - [Health check endpoint](/api/system/getHealth)
+    - [Get cached Pulsarr update status](/api/system/getUpdateStatus)
+  - A P I Keys: API key management endpoints
+    - [Get API keys](/api/api-keys/getApiKeys)
+    - [Create API key](/api/api-keys/createApiKey)
+    - [Revoke API key](/api/api-keys/revokeApiKey)
+  - Approval: Content approval system endpoints
+    - [Get approval requests](/api/approval/getApprovalRequests)
+    - [Create approval request](/api/approval/createApprovalRequest)
+    - [Bulk approve requests](/api/approval/bulkApproveRequests)
+    - [Bulk delete requests](/api/approval/bulkDeleteRequests)
+    - [Bulk reject requests](/api/approval/bulkRejectRequests)
+    - [Get approval request by ID](/api/approval/getApprovalRequestById)
+    - [Update approval request](/api/approval/updateApprovalRequest)
+    - [Delete approval request](/api/approval/deleteApprovalRequest)
+    - [Approve and execute request](/api/approval/approveAndExecuteRequest)
+    - [Reject approval request](/api/approval/rejectApprovalRequest)
+    - [Get approval statistics](/api/approval/getApprovalStats)
+  - Config: Configuration management endpoints
+    - [Get configuration](/api/config/getConfig)
+    - [Update configuration](/api/config/updateConfig)
+  - Content Router: Content routing and rule management endpoints
+    - [Get router plugins](/api/content-router/getRouterPlugins)
+    - [Get plugin metadata](/api/content-router/getPluginMetadata)
+    - [Get all router rules](/api/content-router/getAllRouterRules)
+    - [Create router rule](/api/content-router/createRouterRule)
+    - [Reorder router rules](/api/content-router/reorderRouterRules)
+    - [Get router rules by target](/api/content-router/getRouterRulesByTarget)
+    - [Get router rules by target type](/api/content-router/getRouterRulesByTargetType)
+    - [Get router rules by type](/api/content-router/getRouterRulesByType)
+    - [Get router rule by ID](/api/content-router/getRouterRuleById)
+    - [Delete router rule](/api/content-router/deleteRouterRule)
+    - [Update router rule](/api/content-router/updateRouterRule)
+    - [Toggle router rule](/api/content-router/toggleRouterRule)
+  - Labels: Plex label synchronization and management endpoints
+    - [Cleanup orphaned plex labels](/api/labels/cleanupOrphanedPlexLabels)
+    - [Remove Pulsarr labels from Plex content](/api/labels/removePulsarrPlexLabels)
+    - [Sync plex labels](/api/labels/syncPlexLabels)
+  - Logs: Log streaming and monitoring endpoints
+    - [Stream log entries](/api/logs/streamLogs)
+  - Metadata: Metadata refresh and management endpoints
+    - [Start a metadata refresh for all watchlist items](/api/metadata/refreshMetadata)
+  - Notifications: Notification system endpoints
+    - [Start Discord bot](/api/notifications/startDiscordBot)
+    - [Stop Discord bot](/api/notifications/stopDiscordBot)
+    - [Get Maintainerr status](/api/notifications/getMaintainerrStatus)
+    - [Sync Maintainerr](/api/notifications/syncMaintainerr)
+    - [Test Apprise URL](/api/notifications/testAppriseNotification)
+    - [Test Discord direct message](/api/notifications/testDiscordDmNotification)
+    - [Test Discord webhook](/api/notifications/testDiscordWebhookNotification)
+    - [Test saved system notification](/api/notifications/testSystemNotification)
+    - [Test saved user notification](/api/notifications/testUserNotification)
+    - [Validate Discord webhooks](/api/notifications/validateDiscordWebhooks)
+    - [Process media webhook](/api/notifications/processMediaWebhook)
+    - [Process Maintainerr webhook](/api/notifications/processMaintainerrWebhook)
+  - Plex: Plex server integration endpoints
+    - [Cancel a Plex friend request](/api/plex/cancelPlexFriendRequest)
+    - [Configure Plex notifications](/api/plex/configurePlexNotifications)
+    - [Discover Plex servers](/api/plex/discoverPlexServers)
+    - [Generate RSS feeds](/api/plex/generateRssFeeds)
+    - [Get watchlist genres](/api/plex/getWatchlistGenres)
+    - [Get Plex notification status](/api/plex/getPlexNotificationStatus)
+    - [Get others watchlist tokens](/api/plex/getOthersWatchlistTokens)
+    - [Generate Plex PIN for authentication](/api/plex/generatePlexPin)
+    - [Poll Plex PIN for auth token](/api/plex/pollPlexPin)
+    - [Test Plex server connection](/api/plex/pingPlex)
+    - [Get Plex Pass status](/api/plex/getPlexPassStatus)
+    - [Remove Plex notifications](/api/plex/removePlexNotifications)
+    - [Parse RSS watchlists](/api/plex/parseRssWatchlists)
+    - [Get self watchlist items](/api/plex/getSelfWatchlistItems)
+    - [Send a Plex friend request](/api/plex/sendPlexFriendRequest)
+    - [Test Plex server connection](/api/plex/testPlexConnection)
+    - [Get classified Plex user status](/api/plex/getPlexUserStatus)
+    - [Start a watchlist sync](/api/plex/startWatchlistSync)
+    - [Get watchlist sync status](/api/plex/getWatchlistSyncStatus)
+  - Progress: Operation progress tracking endpoints
+    - [Stream progress events](/api/progress/streamProgress)
+  - Quota: User quota management endpoints
+    - [Get daily usage statistics](/api/quota/getDailyUsageStats)
+    - [Get quota usage history](/api/quota/getQuotaUsageHistory)
+    - [Cleanup old quota usage](/api/quota/cleanupOldQuotaUsage)
+    - [Get all users with quotas](/api/quota/getUsersWithQuotas)
+    - [Create user quota](/api/quota/createUserQuota)
+    - [Bulk quota operations](/api/quota/bulkQuotaOperations)
+    - [Get quota status for multiple users](/api/quota/getBulkUserQuotaStatus)
+    - [Get user quotas](/api/quota/getUserQuotas)
+    - [Update user quotas](/api/quota/updateUserQuotas)
+    - [Delete user quota](/api/quota/deleteUserQuota)
+    - [Get pending held count for user](/api/quota/getPendingHeldCount)
+    - [Update separate movie and show quotas](/api/quota/updateSeparateUserQuotas)
+    - [Get user quota status](/api/quota/getUserQuotaStatus)
+    - [Record quota usage](/api/quota/recordQuotaUsage)
+  - Radarr: Radarr integration endpoints
+    - [Create Radarr tag](/api/radarr/createRadarrTag)
+    - [Get Radarr instances](/api/radarr/getRadarrInstances)
+    - [Create Radarr instance](/api/radarr/createRadarrInstance)
+    - [Delete Radarr instance](/api/radarr/deleteRadarrInstance)
+    - [Update Radarr instance](/api/radarr/updateRadarrInstance)
+    - [Probe Radarr routing options](/api/radarr/probeRadarr)
+    - [Get Radarr quality profiles](/api/radarr/getRadarrQualityProfiles)
+    - [Get Radarr root folders](/api/radarr/getRadarrRootFolders)
+    - [Get Radarr tags](/api/radarr/getRadarrTags)
+    - [Test Radarr connection](/api/radarr/testRadarrConnection)
+  - Scheduler: Job scheduling and management endpoints
+    - [Get all job schedules](/api/scheduler/getAllSchedules)
+    - [Create job schedule](/api/scheduler/createSchedule)
+    - [Dry-run delete sync](/api/scheduler/dryRunDeleteSync)
+    - [Start delete sync dry run](/api/scheduler/startDeleteSyncDryRun)
+    - [Get delete sync dry run status](/api/scheduler/getDeleteSyncDryRunStatus)
+    - [Get job schedule by name](/api/scheduler/getScheduleByName)
+    - [Delete job schedule](/api/scheduler/deleteSchedule)
+    - [Update job schedule](/api/scheduler/updateSchedule)
+    - [Run job immediately](/api/scheduler/runJobNow)
+    - [Start job in the background](/api/scheduler/startJob)
+    - [Toggle job schedule](/api/scheduler/toggleSchedule)
+  - Session Monitoring: Plex session monitoring and rolling show management endpoints
+    - [Get rolling monitored shows](/api/session-monitoring/getRollingMonitoredShows)
+    - [Bulk manage rolling monitored shows](/api/session-monitoring/bulkManageRollingMonitoredShows)
+    - [Get inactive rolling monitored shows](/api/session-monitoring/getInactiveRollingMonitoredShows)
+    - [Reset inactive rolling monitored shows](/api/session-monitoring/resetInactiveRollingMonitoredShows)
+    - [Delete rolling monitored show](/api/session-monitoring/deleteRollingMonitoredShow)
+    - [Reset rolling monitored show](/api/session-monitoring/resetRollingMonitoredShow)
+    - [Run session monitor manually](/api/session-monitoring/runSessionMonitor)
+    - [Get Sonarr shows with enrollment status](/api/session-monitoring/getSonarrShows)
+  - Sonarr: Sonarr integration endpoints
+    - [Create Sonarr tag](/api/sonarr/createSonarrTag)
+    - [Get Sonarr instances](/api/sonarr/getSonarrInstances)
+    - [Create Sonarr instance](/api/sonarr/createSonarrInstance)
+    - [Delete Sonarr instance](/api/sonarr/deleteSonarrInstance)
+    - [Update Sonarr instance](/api/sonarr/updateSonarrInstance)
+    - [Probe Sonarr routing options](/api/sonarr/probeSonarr)
+    - [Get Sonarr quality profiles](/api/sonarr/getSonarrQualityProfiles)
+    - [Get Sonarr root folders](/api/sonarr/getSonarrRootFolders)
+    - [Get Sonarr tags](/api/sonarr/getSonarrTags)
+    - [Test Sonarr connection](/api/sonarr/testSonarrConnection)
+  - Statistics: Analytics and statistics endpoints
+    - [Get recent activity](/api/statistics/getRecentActivity)
+    - [Get all dashboard statistics](/api/statistics/getAllDashboardStats)
+    - [Get top genres](/api/statistics/getTopGenres)
+    - [Get instance content breakdown](/api/statistics/getInstanceContentBreakdown)
+    - [Get most watched movies](/api/statistics/getMostWatchedMovies)
+    - [Get notification statistics](/api/statistics/getNotificationStats)
+    - [Get recent requests](/api/statistics/getRecentRequests)
+    - [Get request to ready time stats](/api/statistics/getRequestToReadyStats)
+    - [Get most watched shows](/api/statistics/getMostWatchedShows)
+    - [Get status transition metrics](/api/statistics/getStatusTransitions)
+    - [Get top users](/api/statistics/getTopUsers)
+  - Sync: Synchronization control endpoints
+    - [Sync all instances](/api/sync/syncAllInstances)
+    - [Sync specific instance](/api/sync/syncInstance)
+  - Tags: Tag management endpoints
+    - [Cleanup orphaned tags](/api/tags/cleanupOrphanedTags)
+    - [Cleanup orphaned tag references](/api/tags/cleanupOrphanedTagReferences)
+    - [Create user tags](/api/tags/createUserTags)
+    - [Remove all user tags](/api/tags/removeAllUserTags)
+    - [Get user tag status](/api/tags/getUserTagStatus)
+    - [Sync user tags](/api/tags/syncUserTags)
+  - T M D B: The Movie Database (TMDB) integration endpoints
+    - [Get TMDB metadata by GUID](/api/tmdb/getTmdbMetadataByGuid)
+    - [Get movie metadata from TMDB](/api/tmdb/getTmdbMovieMetadata)
+    - [Get streaming providers](/api/tmdb/getTmdbProviders)
+    - [Get available TMDB regions](/api/tmdb/getTmdbRegions)
+    - [Get TV show metadata from TMDB](/api/tmdb/getTmdbTvMetadata)
+  - Users: User management endpoints
+    - [Create user](/api/users/createUser)
+    - [Check alias readiness for tag/label naming](/api/users/getAliasReadiness)
+    - [Bulk update users](/api/users/bulkUpdateUsers)
+    - [Get users list](/api/users/getUsersList)
+    - [Get users with watchlist counts](/api/users/getUsersWithCounts)
+    - [Get current user information](/api/users/getCurrentUser)
+    - [Get user by ID](/api/users/getUserById)
+    - [Update user](/api/users/updateUser)
+    - [Get user stats](/api/users/getUserStats)
+    - [Get user watchlist items](/api/users/getUserWatchlist)
+  - Authentication: Authentication and authorization endpoints
+    - [Check authentication status](/api/authentication/checkAuth)
+    - [Create admin user](/api/authentication/createAdminUser)
+    - [User login](/api/authentication/loginUser)
+    - [User logout](/api/authentication/logoutUser)
+    - [Update user email](/api/authentication/updateUserEmail)
+    - [Update user password](/api/authentication/updateUserPassword)
+    - [Update user username](/api/authentication/updateUserUsername)
+  - Watchlist Exclusions: Watchlist exclusion management endpoints
+    - [Get all watchlist exclusions](/api/watchlist-exclusions/getAllWatchlistExclusions)
+    - [Create watchlist exclusion](/api/watchlist-exclusions/createWatchlistExclusion)
+    - [Bulk create watchlist exclusions](/api/watchlist-exclusions/bulkCreateWatchlistExclusions)
+    - [Bulk remove watchlist exclusions](/api/watchlist-exclusions/bulkRemoveWatchlistExclusions)
+    - [List watchlist items with their exclusion state](/api/watchlist-exclusions/getWatchlistExclusionItems)
+    - [Get user watchlist exclusions](/api/watchlist-exclusions/getUserWatchlistExclusions)
+    - [Remove watchlist exclusion](/api/watchlist-exclusions/removeWatchlistExclusion)
+  - Watchlist Workflow: Watchlist processing workflow endpoints
+    - [Start watchlist workflow](/api/watchlist-workflow/startWatchlistWorkflow)
+    - [Start watchlist workflow in the background](/api/watchlist-workflow/startWatchlistWorkflowInBackground)
+    - [Get watchlist workflow status](/api/watchlist-workflow/getWatchlistWorkflowStatus)
+    - [Stop watchlist workflow](/api/watchlist-workflow/stopWatchlistWorkflow)
+  - Webhooks: Native webhook endpoint management
+    - [List webhook endpoints](/api/webhooks/listWebhookEndpoints)
+    - [Create webhook endpoint](/api/webhooks/createWebhookEndpoint)
+    - [Test webhook endpoint](/api/webhooks/testWebhookEndpoint)
+    - [Get webhook endpoint](/api/webhooks/getWebhookEndpoint)
+    - [Delete webhook endpoint](/api/webhooks/deleteWebhookEndpoint)
+    - [Update webhook endpoint](/api/webhooks/updateWebhookEndpoint)
+    - [Test existing webhook endpoint](/api/webhooks/testExistingWebhookEndpoint)
+    - [List webhook event types](/api/webhooks/listWebhookEventTypes)
+  - Webhook Payloads: Outgoing webhook payload schemas sent to configured endpoints
+    - [Media available](/api/webhook-payloads/webhookMediaAvailable)
+    - [Watchlist added](/api/webhook-payloads/webhookWatchlistAdded)
+    - [Watchlist removed](/api/webhook-payloads/webhookWatchlistRemoved)
+    - [Approval created](/api/webhook-payloads/webhookApprovalCreated)
+    - [Approval resolved](/api/webhook-payloads/webhookApprovalResolved)
+    - [Auto approved](/api/webhook-payloads/webhookApprovalAuto)
+    - [Delete sync complete](/api/webhook-payloads/webhookDeleteSyncCompleted)
+    - [User created](/api/webhook-payloads/webhookUserCreated)
+    - [Watchlist cap reached](/api/webhook-payloads/webhookQuotaCapReached)

@@ -1,0 +1,34 @@
+# How Pulsarr works (/how-it-works)
+
+Pulsarr sits between Plex watchlists and Sonarr and Radarr. Your users never use Pulsarr directly. They add titles to their watchlist in the Plex app, and Pulsarr decides what to request, where to send it, and who to tell when it's ready.
+
+## From watchlist to Plex [#from-watchlist-to-plex]
+
+1. **Pulsarr spots the change,** within seconds with Plex Pass, or within about 5 minutes without it. [How changes are spotted](#how-changes-are-spotted) explains how.
+2. **It filters.** A title with an [exclusion](/library/exclusions) isn't requested. With **Skip content already on Plex** on, nor is anything your server already has.
+3. **It routes.** The [Content router](/library/content-router) picks the Sonarr or Radarr instance, or several, and their settings. A Skip route stops the request here. With no matching route, the request goes to the default instance.
+4. **It checks limits.** A user past their [watchlist cap](/requests/quotas) is skipped. Some requests need your approval first, because of a route, the user's **Require approval** setting, or their quota. Those wait in the [approval queue](/requests/approval-queue).
+5. **It sends the request** to Sonarr or Radarr, which search and download as usual.
+6. **It notifies.** When Sonarr or Radarr finish importing, they tell Pulsarr through a webhook. Pulsarr then tells everyone who has the title on their watchlist, through [their channels](/notifications).
+
+## How changes are spotted [#how-changes-are-spotted]
+
+When it starts, Pulsarr reads every watchlist. Yours comes from Plex's watchlist API. Your friends' come from Plex's community GraphQL API.
+
+With Plex Pass, Pulsarr then checks your two watchlist RSS feeds about every 10 seconds. Each new item says which friend added it, so Pulsarr requests it straight away.
+
+Without Plex Pass, Pulsarr asks those same APIs whether each watchlist changed, working through everyone every 5 minutes.
+
+Either way, Pulsarr reads every watchlist in full again every 2 hours. Plex's friends feed sometimes leaves out a particular friend's items, and the full read picks them up.
+
+## Users [#users]
+
+Pulsarr reads your own watchlist and those of your Plex friends. It adds friends as users by itself, the first time it sees them, with your [new user defaults](/users/new-user-defaults). People with access to your server who aren't friends yet show on [Plex users](/users/plex-users), where you can send them a friend request.
+
+## After the download [#after-the-download]
+
+A few features keep working once content is in your library:
+
+- [Session monitoring](/library/session-monitoring) watches what people play, and requests the next season before they reach it.
+- [User tags](/users/user-tags) and [Plex labels](/users/plex-labels) mark content with who asked for it.
+- [Delete sync](/library/delete-sync) removes content once nobody has it on their watchlist anymore.

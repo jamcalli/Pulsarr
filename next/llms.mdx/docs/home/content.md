@@ -1,0 +1,25 @@
+# Home (/home)
+
+Home is the first page you see. The line under the title says whether watchlist sync is running, and the cards show what needs your attention and how requests are flowing.
+
+## Date range [#date-range]
+
+The range menu, for example **Last 30 days** or **All time**, sets the period the activity cards cover.
+
+## Cards [#cards]
+
+- **Needs your approval** lists requests waiting in the [approval queue](/requests/approval-queue).
+- **Most active** shows who requests the most.
+- **Recent requests** lists the latest requests with their status. You can filter by status and change the sort order.
+- **Request pipeline** counts requests at each stage. **Requested** means it's in Sonarr or Radarr with no file yet. **Grabbed** means it's downloaded but nobody has been told. **Notified** means it's ready and the user was told.
+- **Request to ready** shows how long movies and shows take to become available.
+- **Popularity rankings** list the most watchlisted movies and shows. Select a title to see its details, where it streams, and its state in Pulsarr and in your instances.
+- **Top genres** and **Library mix** break down what gets requested.
+- **Placements by instance** shows where the router sent requests.
+- **Notifications** counts what was sent, and through which channels.
+
+## Customize home [#customize-home]
+
+**Customize home** opens the cards as a board of rows. Drag a row by its handle to move it, or drag a card into another row. Full-width cards move with their row. **Hide** puts a card under **Hidden cards**, **Show** brings it back, and **Reset layout** restores the default. Changes apply as you make them. Select **Done** to close.
+
+The layout is saved in your browser, so each browser keeps its own.

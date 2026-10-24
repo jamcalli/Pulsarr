@@ -1,0 +1,10 @@
+# Logs (/system/logs)
+
+**System** > **Logs** shows Pulsarr's log as it's written. Use **Search lines** and the **Level** filter to find what you need.
+
+Under **Log settings**:
+
+- **Application log level** sets how much Pulsarr records, from `fatal` to `trace`. Raise it to `debug` when you're chasing a problem, and set it back afterwards. A `logLevel` set in [`.env`](/installation/environment-variables) replaces this every time Pulsarr starts.
+- **Initial lines** is how many earlier lines load when you open the page.
+
+The log files themselves are in the `logs` folder of Pulsarr's data folder, for example `./data/logs` in Docker.

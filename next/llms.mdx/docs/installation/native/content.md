@@ -1,0 +1,118 @@
+# Native installers (/installation/native)
+
+Each release includes builds for Linux, Windows and macOS with the runtime included, so there's nothing else to install. Download them from the [latest release](https://github.com/jamcalli/Pulsarr/releases/latest). After installing, open `http://<your-server>:3003`, or `http://localhost:3003` on the same machine, and continue with [Create the admin account](/installation/quick-start#create-the-admin-account) in the quick start.
+
+## Linux [#linux]
+
+The install script needs `curl`, `unzip` and systemd, and supports x64 and arm64:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash
+```
+
+It installs the latest release to `/opt/pulsarr`, creates a `pulsarr` system user, and starts Pulsarr as a systemd service. On systems without systemd, use [Docker](/installation/docker) instead.
+
+Manage the service with `systemctl`:
+
+```bash
+sudo systemctl status pulsarr
+sudo systemctl restart pulsarr
+sudo journalctl -u pulsarr -f
+```
+
+To update, run the install script again. It keeps your `.env` and data.
+
+To uninstall, add `--uninstall` to keep your data, or `--purge` to delete it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash -s -- --uninstall
+```
+
+Where files live:
+
+- `/opt/pulsarr/.env`
+- `/opt/pulsarr/data/db/`
+- `/opt/pulsarr/data/logs/`
+
+## Windows [#windows]
+
+Download and run `pulsarr-vX.Y.Z-windows-x64-setup.exe`. The installer isn't code-signed, so Windows SmartScreen may warn you. Select **More info**, then **Run anyway**.
+
+The **Full installation** runs Pulsarr as a Windows service, so it starts without anyone logging in. **Compact installation** skips the service and you start Pulsarr yourself. The installer also adds a Windows Firewall rule by default, so other devices on your network can reach Pulsarr. Sonarr and Radarr on another machine need it to send webhooks.
+
+Manage the service in `services.msc`, or from an administrator prompt:
+
+```batch
+net stop pulsarr
+net start pulsarr
+```
+
+To update, run the new installer. It stops the service, replaces the program files and keeps your settings and data.
+
+To uninstall, use **Add or remove programs**. The uninstaller asks whether to delete your data as well.
+
+Pulsarr installs to `C:\Program Files\Pulsarr`. Where files live:
+
+- `C:\ProgramData\Pulsarr\.env`
+- `C:\ProgramData\Pulsarr\db\`
+- `C:\ProgramData\Pulsarr\logs\`
+
+## macOS [#macos]
+
+macOS 13 (Ventura) or later is required.
+
+1. Download `pulsarr-vX.Y.Z-macos-arm64.dmg` for Apple silicon, or `pulsarr-vX.Y.Z-macos-x64.dmg` for Intel.
+2. Open the DMG and drag **Pulsarr** to **Applications**.
+3. The app isn't signed, so remove the quarantine flag macOS adds to downloads:
+
+   ```bash
+   xattr -rd com.apple.quarantine /Applications/Pulsarr.app
+   ```
+
+4. Open Pulsarr. It runs in the background, with no window or Dock icon.
+
+To stop Pulsarr, run `pkill -f Pulsarr.app`.
+
+To update, stop Pulsarr, drag the new version over the old one, and run the `xattr` command again.
+
+Where files live:
+
+- `~/.config/Pulsarr/.env`, created from a template the first time Pulsarr starts
+- `~/.config/Pulsarr/db/`
+- `~/.config/Pulsarr/logs/`
+
+### Start on login [#start-on-login]
+
+To start Pulsarr when you log in, add a LaunchAgent:
+
+```bash
+cat > ~/Library/LaunchAgents/com.pulsarr.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.pulsarr</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Applications/Pulsarr.app/Contents/MacOS/pulsarr</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
+EOF
+launchctl load ~/Library/LaunchAgents/com.pulsarr.plist
+```
+
+`KeepAlive` restarts Pulsarr if it stops, so stop it with `launchctl unload ~/Library/LaunchAgents/com.pulsarr.plist` instead of `pkill`.
+
+## Portable zips [#portable-zips]
+
+Each platform also has a plain zip, such as `pulsarr-vX.Y.Z-linux-x64.zip`. Extract it anywhere and run `./start.sh`, or `start.bat` on Windows. On macOS, remove the quarantine flag first, as the zip's `README.txt` explains. To update, stop Pulsarr, then run `./update.sh` or `update.bat` with the path to the new zip. Each zip has a `README.txt` that covers running it as a service.
+
+## Settings in .env [#settings-in-env]
+
+Almost every setting can also be set in `.env`. See [environment variables](/installation/environment-variables) for the full list. The installers and the macOS app create it for you, at the paths listed above. Restart Pulsarr after changing it.

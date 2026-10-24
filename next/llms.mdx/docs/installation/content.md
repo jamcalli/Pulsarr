@@ -1,0 +1,15 @@
+# Installation (/installation)
+
+New to Pulsarr? Start with the quick start. It goes from install to your first watchlist item reaching Sonarr or Radarr.
+
+<Cards>
+  <Card title="Quick start" href="/installation/quick-start" description="Install with Docker and run first-run setup." />
+  <Card title="Docker" href="/installation/docker" description="Compose, docker run, image tags, file ownership and updates." />
+  <Card title="Native installers" href="/installation/native" description="Linux, Windows and macOS builds that need no Docker." />
+  <Card title="PostgreSQL" href="/installation/postgresql" description="Use PostgreSQL instead of SQLite, or move an existing install." />
+  <Card title="Environment variables" href="/installation/environment-variables" description="Every setting Pulsarr reads from .env, with its default." />
+</Cards>
+
+Pulsarr is also in the Unraid Community Applications and TrueNAS community app catalogs. Search for Pulsarr in either one.
+
+For hosted Pulsarr, [ElfHosted](https://store.elfhosted.com/product/pulsarr/elf/jamcalli/) runs it for you.

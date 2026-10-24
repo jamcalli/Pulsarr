@@ -1,0 +1,198 @@
+# Environment variables (/installation/environment-variables)
+
+Pulsarr reads these from `.env`, or from the container's environment in Docker. Most of them are also settings in the app, and you only need `.env` to fix a value before first start or to keep it under version control.
+
+:::warning
+A variable in `.env` replaces the value saved in the app every time Pulsarr starts. This happens even when the variable is set to an empty value. A change you make in the app lasts only until the next restart, so remove the variable from `.env` if you want to manage that setting in the app.
+:::
+
+Restart Pulsarr after changing `.env`. Values marked JSON take one line of JSON, for example `sonarrTags=["4k","kids"]`.
+
+## Server [#server]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `TZ` | | Time zone for the container, for example `America/Los_Angeles`. Docker only. |
+| `listenPort` | `3003` | Port Pulsarr listens on. |
+| `baseUrl` | `http://localhost` | Address Sonarr and Radarr use to reach Pulsarr for webhooks. Set in the app through **Fix the address**. |
+| `port` | `3003` | Port Sonarr and Radarr use to reach Pulsarr for webhooks. |
+| `basePath` | `/` | Path prefix when Pulsarr is served under a subfolder by a reverse proxy, for example `/pulsarr`. |
+| `dataDir` | | Folder for the database and logs. Defaults to `./data` in Docker and Linux, `C:\ProgramData\Pulsarr` on Windows and `~/.config/Pulsarr` on macOS. |
+| `logLevel` | `info` | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`. |
+| `enableConsoleOutput` | `true` | Set to `false` to log only to files. |
+| `enableRequestLogging` | `false` | Log every HTTP request. |
+| `rateLimitMax` | `500` | Requests allowed per client per minute. |
+| `closeGraceDelay` | `10000` | Milliseconds to wait for work to finish on shutdown. |
+| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. |
+
+## Database [#database]
+
+To set up PostgreSQL or move to it from SQLite, see [PostgreSQL](/installation/postgresql).
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `dbType` | `sqlite` | `sqlite` or `postgres`. |
+| `dbPath` | `<dataDir>/db/pulsarr.db` | SQLite database file. |
+| `dbHost` | `localhost` | PostgreSQL host. |
+| `dbPort` | `5432` | PostgreSQL port. |
+| `dbName` | `pulsarr` | PostgreSQL database. |
+| `dbUser` | `postgres` | PostgreSQL user. |
+| `dbPassword` | `pulsarrpostgrespw` | PostgreSQL password. |
+| `dbConnectionString` | | Full PostgreSQL connection string. Used instead of the five settings above. |
+
+## Security [#security]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `authenticationMethod` | `required` | `required`, `requiredExceptLocal` (no sign-in from your local network) or `disabled`. |
+| `cookieSecret` | Generated | Signs session cookies. At least 32 characters. |
+| `cookieName` | `pulsarr` | Name of the session cookie. |
+| `cookieSecured` | `false` | Send the session cookie over HTTPS only. Turn on when Pulsarr is behind HTTPS. |
+| `webhookSecret` | Generated | Authenticates webhooks from Sonarr and Radarr. |
+
+Pulsarr generates the secrets on first start and stores them, so they stay the same across restarts. Set them in `.env` only if you need fixed values.
+
+## Plex [#plex]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `plexTokens` | `[]` | JSON. Plex tokens. Set in the app by linking a Plex account. |
+| `plexServerUrl` | | Plex server address. Empty means automatic. |
+| `skipIfExistsOnPlex` | `false` | Skip requests your server or shared servers already have. |
+| `skipFriendSync` | `false` | Don't create the friends' watchlist RSS feed. |
+| `selfRss` | | Your watchlist RSS feed. Filled in by Pulsarr. |
+| `friendsRss` | | Friends' watchlist RSS feed. Filled in by Pulsarr. |
+
+## Sonarr and Radarr [#sonarr-and-radarr]
+
+Pulsarr uses these only to create a first Sonarr or Radarr instance when there is none. After that, manage instances on the **Sonarr** and **Radarr** pages.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `sonarrBaseUrl` | `http://localhost:8989` | Sonarr address. |
+| `sonarrApiKey` | | Sonarr API key. |
+| `sonarrQualityProfile` | | Quality profile. |
+| `sonarrRootFolder` | | Root folder path. |
+| `sonarrSeasonMonitoring` | `all` | Season monitoring. |
+| `sonarrMonitorNewItems` | `all` | `all` or `none`. |
+| `sonarrCreateSeasonFolders` | `false` | Put each season in its own folder. |
+| `sonarrBypassIgnored` | `false` | Add content even when it's on Sonarr's import list exclusions. |
+| `sonarrTags` | `[]` | JSON. Tags added to every show. |
+| `radarrBaseUrl` | `http://localhost:7878` | Radarr address. |
+| `radarrApiKey` | | Radarr API key. |
+| `radarrQualityProfile` | | Quality profile. |
+| `radarrRootFolder` | | Root folder path. |
+| `radarrBypassIgnored` | `false` | Add content even when it's on Radarr's import list exclusions. |
+| `radarrTags` | `[]` | JSON. Tags added to every movie. |
+
+## TMDB [#tmdb]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `tmdbApiKey` | Built in | TMDB API read access token. The Docker images include one. |
+| `tmdbRegion` | `US` | Region for streaming provider lookups. |
+
+## Notifications [#notifications]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `discordBotToken` | | Discord bot token. |
+| `discordClientId` | | Discord application client ID. |
+| `discordWebhookUrl` | | Discord webhook URLs, comma-separated. |
+| `appriseUrl` | | Address of your Apprise server. |
+| `systemAppriseUrl` | | Apprise URLs for admin notifications. |
+| `appriseEmailSender` | | Sender address used when a user's Apprise setting is a plain email address. |
+| `enableApprise` | `false` | Set by Pulsarr when it can reach the Apprise server. |
+| `plexMobileEnabled` | `false` | Send Plex mobile push notifications. Needs Plex Pass. |
+| `approvalNotify` | `none` | Where to send approval requests. See the options below. |
+| `queueWaitTime` | `120000` | Milliseconds to collect episodes into one notification. |
+| `newEpisodeThreshold` | `172800000` | Episodes that aired within this many milliseconds count as new. |
+| `pendingWebhookRetryInterval` | `20` | Seconds between retries of webhooks Pulsarr couldn't match yet. |
+| `pendingWebhookMaxAge` | `10` | Minutes to keep retrying them. |
+| `pendingWebhookCleanupInterval` | `60` | Seconds between clean-ups of expired ones. |
+| `publicContentNotifications` | All off | JSON. Settings from the **Public content** page. |
+
+`approvalNotify` takes `none`, `all`, `discord-only`, `apprise-only`, `webhook-only`, `dm-only`, `discord-webhook`, `discord-message` or `discord-both`.
+
+## User tags [#user-tags]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `tagUsersInSonarr` | `false` | Tag shows in Sonarr with the users who requested them. |
+| `tagUsersInRadarr` | `false` | Tag movies in Radarr with the users who requested them. |
+| `tagPrefix` | `pulsarr-user` | Prefix for user tags. |
+| `tagNamingSource` | `username` | `username` or `alias`. |
+| `cleanupOrphanedTags` | `true` | Remove tags of users who no longer exist. |
+| `removedTagMode` | `remove` | What happens to a tag when a user removes the item. One of `remove`, `keep` or `special-tag`. |
+| `removedTagPrefix` | `pulsarr-removed` | Prefix used by `special-tag`. |
+
+## Delete sync [#delete-sync]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `deletionMode` | `watchlist` | `watchlist` or `tag-based`. |
+| `deleteMovie` | `false` | Delete movies. |
+| `deleteEndedShow` | `false` | Delete ended shows. |
+| `deleteContinuingShow` | `false` | Delete continuing shows. |
+| `deleteFiles` | `true` | Delete files from disk too. |
+| `respectUserSyncSetting` | `true` | Only delete content from users with sync on. |
+| `deleteSyncTrackedOnly` | `false` | Only delete content Pulsarr requested. |
+| `deleteSyncCleanupApprovals` | `false` | Remove approval records for deleted content. |
+| `deleteSyncRequiredTagRegex` | | In `tag-based` mode, only content with a tag matching this regular expression is deleted. |
+| `maxDeletionPrevention` | `10` | Stop a run that would delete more than this percentage of your library. |
+| `enablePlexPlaylistProtection` | `false` | Never delete content on a protection playlist. |
+| `plexProtectionPlaylistName` | `Do Not Delete` | Name of that playlist. |
+| `deleteSyncNotify` | `none` | Where to send delete sync results. One of `none`, `message`, `webhook`, `both`, or any `approvalNotify` option. |
+| `deleteSyncNotifyOnlyOnDeletion` | `false` | Only notify when something was deleted. |
+
+## Maintainerr [#maintainerr]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `maintainerrEnabled` | `false` | Turn on the Maintainerr integration. |
+| `maintainerrUrl` | | Maintainerr address. |
+| `maintainerrExclusionMode` | `watchlisters` | `watchlisters` excludes handled media for its current watchlisters. `global` excludes it for every user. |
+| `maintainerrWebhookSecret` | Generated | Authenticates webhooks from Maintainerr. |
+
+## New user defaults [#new-user-defaults]
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `newUserDefaultCanSync` | `true` | New users' watchlists sync. |
+| `newUserDefaultRequiresApproval` | `false` | New users' requests need approval. |
+| `newUserDefaultMovieQuotaEnabled` | `false` | New users get a movie quota. |
+| `newUserDefaultMovieQuotaType` | `monthly` | `daily`, `weekly_rolling` or `monthly`. |
+| `newUserDefaultMovieQuotaLimit` | `10` | Movies allowed per quota period. |
+| `newUserDefaultMovieBypassApproval` | `false` | Movie requests over the quota are approved anyway. |
+| `newUserDefaultShowQuotaEnabled` | `false` | New users get a show quota. |
+| `newUserDefaultShowQuotaType` | `monthly` | `daily`, `weekly_rolling` or `monthly`. |
+| `newUserDefaultShowQuotaLimit` | `10` | Shows allowed per quota period. |
+| `newUserDefaultShowBypassApproval` | `false` | Show requests over the quota are approved anyway. |
+
+## JSON settings [#json-settings]
+
+These take one line of JSON. `quotaSettings` and `plexLabelSync` fill in any field you leave out from the defaults shown. `approvalExpiration`, `plexSessionMonitoring` and `publicContentNotifications` need every field.
+
+`quotaSettings`, from the **Quotas** page:
+
+```json
+{"cleanup":{"enabled":true,"retentionDays":90},"weeklyRolling":{"resetDays":7},"monthly":{"resetDay":1,"handleMonthEnd":"last-day"}}
+```
+
+`approvalExpiration`, from the **Approval settings** page. `expirationAction` is `expire` or `auto_approve`:
+
+```json
+{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","autoApproveOnQuotaAvailable":false,"cleanupExpiredDays":30}
+```
+
+`plexLabelSync`, from the **Plex labels** page:
+
+```json
+{"enabled":false,"labelPrefix":"pulsarr","labelNamingSource":"username","cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","autoResetOnScheduledSync":false,"tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}
+```
+
+`plexSessionMonitoring`, from the **Session monitoring** page:
+
+```json
+{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24,"enableProgressiveCleanup":false}
+```

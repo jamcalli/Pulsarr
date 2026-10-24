@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,902705,i=>{"use strict";i.S([60695,"isSpecialLang,isSpecialLang"])}]);
