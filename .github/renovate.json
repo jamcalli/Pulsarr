@@ -360,7 +360,7 @@
       "allowedVersions": "< 1.0.0"
     },
     {
-      "description": "undici override must track discord.js's v6 pin - block majors until discord.js moves to undici 7+",
+      "description": "undici override stays on v6 because @scalar/json-magic pins an exact, vulnerable 7.29.1. Lift it once nothing pins a vulnerable undici 7",
       "matchPackageNames": [
         "undici"
       ],
