@@ -1,0 +1,16 @@
+---
+title: How Pulsarr works
+description: What happens between someone adding a title to their Plex watchlist and being told it's ready.
+---
+
+Pulsarr sits between Plex watchlists and Sonarr and Radarr. Users add titles to their watchlist in Plex. Pulsarr requests them and tells users when they're ready.
+
+## From watchlist to Plex
+
+A new watchlist item is checked against [exclusions](/library/exclusions) and the user's [limits](/requests/quotas), routed by the [Content router](/library/content-router) to a Sonarr or Radarr instance, and sent there. Items that need approval wait in the [approval queue](/requests/approval-queue). When Sonarr or Radarr finish importing, they tell Pulsarr through a webhook, and Pulsarr notifies everyone with the title on their watchlist through [their channels](/notifications).
+
+## How changes are spotted
+
+Pulsarr reads your watchlist from Plex's watchlist API and your friends' watchlists from Plex's community GraphQL API. The RSS feeds only speed up noticing changes. With Plex Pass, Pulsarr watches the watchlist RSS feeds about every ten seconds and fetches new items from those APIs. The feeds are static files that Plex regenerates when a watchlist changes and serves from a content delivery network, built to keep polling off Plex's own servers, so checking them this often is safe. Without Plex Pass, it polls the same APIs for changes about every five minutes.
+
+About every two hours, Pulsarr reads every watchlist in full. That is when it notices removed titles. Everything tied to a watchlist follows the removal, such as [user tags](/users/user-tags), [Plex labels](/users/plex-labels) and what [delete sync](/library/delete-sync) may remove.

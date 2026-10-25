@@ -6,7 +6,13 @@
       "**",
       "!**/dist",
       "!**/tests",
-      "!**/docs",
+      "!docs/content/docs/api",
+      "!docs/.next",
+      "!docs/.source",
+      "!docs/out",
+      "!docs/node_modules",
+      "!docs/next-env.d.ts",
+      "!docs/public/openapi.json",
       "!**/src/client/dist",
       "!**/src/client/types/api.d.ts",
       "!**/tmp",
@@ -42,16 +48,6 @@
     }
   },
   "overrides": [
-    {
-      "includes": ["**/docs/src/**/*.tsx", "**/docs/src/**/*.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "useImportType": "off"
-          }
-        }
-      }
-    },
     {
       "includes": ["**/.github/renovate.json"],
       "formatter": {

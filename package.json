@@ -25,7 +25,7 @@
     "test:coverage": "bun run --bun vitest run --coverage",
     "fix": "biome format --write . && biome lint --write .",
     "fix:unsafe": "biome check --write --unsafe .",
-    "typecheck": "bun run typecheck:server && bun run typecheck:client && bun run typecheck:tests && bun run typecheck:client-tests && bun run typecheck:scripts && bun run typecheck:migrations && bun run typecheck:packages",
+    "typecheck": "bun run typecheck:server && bun run typecheck:client && bun run typecheck:tests && bun run typecheck:client-tests && bun run typecheck:scripts && bun run typecheck:migrations && bun run typecheck:packages && bun run typecheck:docs",
     "typecheck:server": "tsc --noEmit",
     "typecheck:client": "tsc --noEmit -p src/client/tsconfig.json",
     "typecheck:tests": "tsc --noEmit -p test/tsconfig.json",
@@ -33,6 +33,7 @@
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "typecheck:migrations": "tsc --noEmit -p migrations/tsconfig.json",
     "typecheck:packages": "tsc --noEmit -p packages/better-sqlite3-bun/tsconfig.json",
+    "typecheck:docs": "cd docs && npx --no-install next typegen && tsc --noEmit -p tsconfig.json",
     "migrate": "bun run --bun migrations/migrate.ts",
     "migrate:make": "knex migrate:make -x ts",
     "migrate:rollback": "bun run --bun migrations/rollback.ts",
@@ -48,8 +49,9 @@
     "openapi:types": "bun install --cwd scripts/openapi-codegen --silent && bun run --cwd scripts/openapi-codegen generate",
     "openapi:dev": "bun run openapi:generate && bun run openapi:types",
     "build:native": "bun run --bun scripts/build-native.ts",
-    "docs:build": "./scripts/build-docs.sh",
-    "docs:start": "npm --prefix docs run start"
+    "docs:build": "npm --prefix docs run build",
+    "docs:start": "npm --prefix docs run dev -- --port 3001 --hostname 0.0.0.0",
+    "docs:sync": "bun scripts/sync-docs-shared.ts"
   },
   "repository": {
     "type": "git",
@@ -118,7 +120,7 @@
   "devDependencies": {
     "@base-ui/react": "^1.8.0",
     "@base-ui/utils": "^0.5.0",
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "2.5.15",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "@dnd-kit/core": "^6.3.1",

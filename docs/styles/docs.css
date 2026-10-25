@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@import "./globals.css";
+@import "./fonts.css";
+@import "@fumadocs/base-ui/css/lib/default-colors.css";
+@import "@fumadocs/base-ui/css/generated/spacious.css";
+@import "@fumadocs/base-ui/css/preset.css";
+@import "fumadocs-openapi/css/preset.css";
+
+/* Our raw tokens are not shadcn-named, so Fumadocs colors read the theme layer instead. */
+:root,
+.dark {
+  --color-fd-background: var(--color-inset);
+  --color-fd-foreground: var(--color-foreground);
+  --color-fd-muted: var(--color-muted);
+  --color-fd-muted-foreground: var(--color-muted-foreground);
+  --color-fd-popover: var(--color-popover);
+  --color-fd-popover-foreground: var(--color-popover-foreground);
+  --color-fd-card: var(--color-card);
+  --color-fd-card-foreground: var(--color-card-foreground);
+  --color-fd-border: var(--color-border);
+  --color-fd-primary: var(--color-primary);
+  --color-fd-primary-foreground: var(--color-primary-foreground);
+  --color-fd-secondary: var(--color-secondary);
+  --color-fd-secondary-foreground: var(--color-secondary-foreground);
+  --color-fd-accent: var(--color-accent);
+  --color-fd-accent-foreground: var(--color-accent-foreground);
+  --color-fd-ring: var(--color-ring);
+  --color-fd-overlay: var(--color-overlay);
+  --color-fd-error: var(--color-destructive);
+  --color-fd-info: var(--color-info);
+  --color-fd-warning: var(--color-gold);
+  --color-fd-success: var(--color-ok);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  /* biome-ignore lint/complexity/noImportantStyles: the scroll lock injects its own !important margin, which only !important overrides */
+  margin-right: 0px !important;
+  /* biome-ignore lint/complexity/noImportantStyles: the scroll lock injects this variable with !important too */
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+.prose {
+  @apply prose-tokens;
+  max-width: none;
+}
+
+/* The typography plugin wraps inline code in literal backticks. */
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after {
+  content: none;
+}
+
+.prose img {
+  @apply rounded-lg border-2 border-border shadow-shadow;
+}
+
+/* Our typography plugin styles every link, but Fumadocs exempts heading anchors and Cards by data-card. */
+.prose a[data-card] {
+  font-weight: inherit;
+  text-decoration: none;
+}
