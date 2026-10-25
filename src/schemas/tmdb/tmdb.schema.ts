@@ -248,11 +248,24 @@ export const TmdbWatchProviderDataSchema = z
       'Watch providers for one region, split by streaming, rental, and purchase.',
   })
 
+export const MovieReleaseDatesSchema = z
+  .object({
+    theatrical: z.string().optional(),
+    digital: z.string().optional(),
+    physical: z.string().optional(),
+  })
+  .meta({
+    id: 'MovieReleaseDates',
+    description:
+      'Theatrical, digital and physical release days for a movie, as Radarr reports them.',
+  })
+
 // TMDB Movie Metadata Schema (combined details + watch providers + ratings)
 export const TmdbMovieMetadataSchema = z
   .object({
     details: TmdbMovieDetailsSchema,
     watchProviders: TmdbWatchProviderDataSchema.optional(),
+    releaseDates: MovieReleaseDatesSchema.optional(),
     radarrRatings: RadarrRatingsSchema.optional(),
     plexRatings: PlexRatingsSchema.optional(),
   })
@@ -351,6 +364,7 @@ export type TmdbSeason = z.infer<typeof TmdbSeasonSchema>
 export type TmdbMovieDetails = z.infer<typeof TmdbMovieDetailsSchema>
 export type TmdbTvDetails = z.infer<typeof TmdbTvDetailsSchema>
 export type TmdbWatchProviderData = z.infer<typeof TmdbWatchProviderDataSchema>
+export type MovieReleaseDates = z.infer<typeof MovieReleaseDatesSchema>
 export type TmdbMovieMetadata = z.infer<typeof TmdbMovieMetadataSchema>
 export type TmdbTvMetadata = z.infer<typeof TmdbTvMetadataSchema>
 export type TmdbContentMetadata = z.infer<typeof TmdbContentMetadataSchema>

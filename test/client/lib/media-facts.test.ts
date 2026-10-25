@@ -105,7 +105,7 @@ describe('media facts', () => {
   })
 
   it('lists the show facts TMDB filled in', () => {
-    const facts = mediaFacts(show)
+    const facts = mediaFacts({ details: show })
     expect(facts.map((fact) => fact.label)).toEqual([
       'Seasons',
       'Episodes',
@@ -125,6 +125,47 @@ describe('media facts', () => {
     expect(facts.find((fact) => fact.label === 'Language')?.value).toBe(
       'English',
     )
+  })
+
+  it('lists theatrical, digital and physical release rows', () => {
+    const facts = mediaFacts({
+      details: movie,
+      releaseDates: {
+        theatrical: '1994-10-14',
+        digital: '1999-03-09',
+        physical: '1995-01-27',
+      },
+    })
+    expect(facts.slice(0, 3)).toEqual([
+      { label: 'Theatrical (US)', value: 'Oct 14, 1994' },
+      { label: 'Digital (US)', value: 'Mar 9, 1999' },
+      { label: 'Physical (US)', value: 'Jan 27, 1995' },
+    ])
+  })
+
+  it('falls back to the primary release date for the theatrical row', () => {
+    const facts = mediaFacts({
+      details: movie,
+      releaseDates: { digital: '1999-03-09' },
+    })
+    expect(facts.map((fact) => fact.label).slice(0, 2)).toEqual([
+      'Theatrical',
+      'Digital (US)',
+    ])
+    expect(facts[0]?.value).toBe('Sep 23, 1994')
+  })
+
+  it('shows only the theatrical row without Radarr release dates', () => {
+    const labels = mediaFacts({ details: movie }).map((fact) => fact.label)
+    expect(labels).toEqual(['Theatrical', 'Status', 'Language'])
+  })
+
+  it('shows no release rows when nothing has a date', () => {
+    const labels = mediaFacts({
+      details: { ...movie, release_date: '' },
+      releaseDates: {},
+    }).map((fact) => fact.label)
+    expect(labels).toEqual(['Status', 'Language'])
   })
 
   it('picks the Rotten Tomatoes icon at 60 percent', () => {
