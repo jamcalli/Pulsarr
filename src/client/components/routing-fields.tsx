@@ -112,7 +112,7 @@ export const RoutingFields = withFieldGroup({
     showMinimumAvailability,
     inherit = false,
     showInstance = true,
-    tagsDescription = "Leave empty to apply the instance's tags. Listed tags replace them.",
+    tagsDescription = 'Leave empty for no tags. Instance tags apply only when no route matches.',
     onCreateTag,
     onInstanceChange,
   }) {

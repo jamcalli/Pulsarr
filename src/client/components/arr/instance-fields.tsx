@@ -195,7 +195,7 @@ export const InstanceFields = withFieldGroup({
           {(field) => (
             <field.TagsField
               label="Synced instances"
-              description="These also receive everything that reaches this instance, for example a 4K copy."
+              description="These receive content that falls back to this instance when no route matches, for example a 4K copy."
               placeholder="Add an instance"
               emptyText="No more instances"
               disabled={disabled || syncedLock !== null}
