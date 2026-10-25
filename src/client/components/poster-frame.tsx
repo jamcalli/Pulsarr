@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useImageFallback } from '@/hooks/useImageFallback'
 import { posterCardUrl } from '@/lib/poster-url'
 
-const posterSizes = cva('aspect-2/3 shrink-0', {
+const posterSizes = cva('shrink-0', {
   variants: {
     size: {
       thumb: 'w-10 rounded-sm',

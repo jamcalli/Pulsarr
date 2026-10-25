@@ -9,7 +9,7 @@ import { formatTime } from '@/lib/format'
 import { plexLinkHref, spokenCode } from '@/lib/plex/plex-pin'
 import type { components } from '@/types/api.js'
 
-const QR_FRAME = 'aspect-square w-full rounded-md border-2 border-border'
+const QR_FRAME = 'w-full rounded-md border-2 border-border'
 const DESKTOP_GRID = 'grid grid-cols-[10.5rem_minmax(0,1fr)] gap-6'
 
 interface PinLinkPanelProps {
