@@ -23,6 +23,7 @@ await generateFiles({
       {
         ...meta,
         title: spec.info.title,
+        root: true,
         pages: ['index', ...(meta.pages ?? [])],
       },
       null,

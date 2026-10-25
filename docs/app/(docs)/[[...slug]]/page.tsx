@@ -3,6 +3,7 @@ import {
   DocsDescription,
   DocsPage,
   DocsTitle,
+  PageLastUpdate,
 } from '@fumadocs/base-ui/layouts/spacious/page'
 import { createRelativeLink } from '@fumadocs/base-ui/mdx'
 import type { Metadata } from 'next'
@@ -54,6 +55,9 @@ export default async function Page(props: PageProps) {
           })}
         />
       </DocsBody>
+      {page.data.lastModified && (
+        <PageLastUpdate date={page.data.lastModified} />
+      )}
     </DocsPage>
   )
 }

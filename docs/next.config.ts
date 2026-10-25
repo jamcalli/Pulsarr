@@ -8,6 +8,7 @@ const withMDX = createMDX()
 const config: NextConfig = {
   output: 'export',
   basePath,
+  agentRules: false,
   trailingSlash: true,
   images: { unoptimized: true },
   reactStrictMode: true,

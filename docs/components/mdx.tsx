@@ -1,3 +1,4 @@
+import { ImageZoom } from '@fumadocs/base-ui/components/image-zoom'
 import defaultMdxComponents from '@fumadocs/base-ui/mdx'
 import type { MDXComponents } from 'mdx/types'
 import { CalloutContainer, CalloutDescription } from '@/components/callout'
@@ -9,6 +10,9 @@ export function getMDXComponents(components?: MDXComponents) {
     CalloutContainer,
     CalloutTitle: AlertTitle,
     CalloutDescription,
+    img: ({ src, ...props }) => (
+      <ImageZoom src={src instanceof Blob ? undefined : src} {...props} />
+    ),
     ...components,
   } satisfies MDXComponents
 }

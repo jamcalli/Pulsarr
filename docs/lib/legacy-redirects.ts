@@ -36,7 +36,7 @@ const pages: Record<string, string> = {
   'category/installation': '/installation/',
   'category/features': '/library/',
   'category/notifications': '/notifications/',
-  'category/utilities': '/',
+  'category/utilities': '/library/',
   'category/development': 'https://github.com/jamcalli/Pulsarr',
 }
 
