@@ -46,8 +46,8 @@ export class StatusService {
    *   When provided, this method will use the already-fetched series/movies data instead of
    *   making new API requests to Sonarr/Radarr. This is useful when the caller has already
    *   fetched this data (e.g., during reconciliation workflows) to improve performance.
-   * @param prefetchedData.existingSeries - Pre-fetched Sonarr series data (bypasses exclusions)
-   * @param prefetchedData.existingMovies - Pre-fetched Radarr movies data (bypasses exclusions)
+   * @param prefetchedData.existingSeries - Pre-fetched Sonarr series data (may include import-list exclusions, which are filtered out)
+   * @param prefetchedData.existingMovies - Pre-fetched Radarr movies data (may include import-list exclusions, which are filtered out)
    * @returns Promise resolving to counts of updated shows and movies
    */
   async syncAllStatuses(prefetchedData?: {
@@ -74,8 +74,10 @@ export class StatusService {
     prefetchedSeries?: SonarrItem[],
   ): Promise<StatusUpdateResult> {
     try {
-      const existingSeries =
+      // Prefetched data may include import-list exclusions, which are not library content
+      const existingSeries = (
         prefetchedSeries ?? (await this.sonarrManager.fetchAllSeries(true))
+      ).filter((item) => !item.isExclusion)
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 
@@ -118,8 +120,10 @@ export class StatusService {
     prefetchedMovies?: RadarrItem[],
   ): Promise<StatusUpdateResult> {
     try {
-      const existingMovies =
+      // Prefetched data may include import-list exclusions, which are not library content
+      const existingMovies = (
         prefetchedMovies ?? (await this.radarrManager.fetchAllMovies(true))
+      ).filter((item) => !item.isExclusion)
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 

@@ -1,3 +1,5 @@
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
 import type { FastifyInstance } from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -154,5 +156,40 @@ describe('StatusService.syncAllStatuses', () => {
         metadata: { action: 'status', userIds: [5] },
       }),
     )
+  })
+})
+
+describe('StatusService import-list exclusions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const arrGuids = (mock: ReturnType<typeof vi.fn>) =>
+    mock.mock.calls.map(([, , arrItems]) =>
+      (arrItems as Array<{ guids: string[] }>).flatMap((item) => item.guids),
+    )
+
+  it('ignores excluded series in prefetched data', async () => {
+    const { service } = createService([1], [])
+
+    await service.syncSonarrStatuses([
+      { guids: ['tvdb:100'], status: 'grabbed' },
+      { guids: ['tvdb:200'], status: 'requested', isExclusion: true },
+    ] as SonarrItem[])
+
+    expect(arrGuids(vi.mocked(processStatusUpdates))).toEqual([['tvdb:100']])
+    expect(arrGuids(vi.mocked(processJunctionUpdates))).toEqual([['tvdb:100']])
+  })
+
+  it('ignores excluded movies in prefetched data', async () => {
+    const { service } = createService([], [1])
+
+    await service.syncRadarrStatuses([
+      { guids: ['tmdb:300'], status: 'grabbed' },
+      { guids: ['tmdb:400'], status: 'requested', isExclusion: true },
+    ] as RadarrItem[])
+
+    expect(arrGuids(vi.mocked(processStatusUpdates))).toEqual([['tmdb:300']])
+    expect(arrGuids(vi.mocked(processJunctionUpdates))).toEqual([['tmdb:300']])
   })
 })
