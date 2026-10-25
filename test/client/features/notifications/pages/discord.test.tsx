@@ -120,7 +120,7 @@ describe('DiscordPage', () => {
     ).toBeEnabled()
     expect(screen.getByRole('link', { name: 'Discord setup' })).toHaveAttribute(
       'href',
-      'https://jamcalli.github.io/Pulsarr/docs/notifications/discord#user-notification-setup',
+      'https://jamcalli.github.io/Pulsarr/notifications/discord#user-notification-setup',
     )
   })
 

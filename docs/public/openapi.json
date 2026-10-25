@@ -23227,6 +23227,7 @@
         "summary": "Media available",
         "description": "Fired when content becomes available to watch",
         "operationId": "webhookMediaAvailable",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -23344,6 +23345,7 @@
         "summary": "Watchlist added",
         "description": "Fired when a user adds content to their Plex watchlist",
         "operationId": "webhookWatchlistAdded",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -23543,6 +23545,7 @@
         "summary": "Watchlist removed",
         "description": "Fired when a user removes content from their watchlist",
         "operationId": "webhookWatchlistRemoved",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -23603,6 +23606,7 @@
         "summary": "Approval created",
         "description": "Fired when a new approval request is submitted",
         "operationId": "webhookApprovalCreated",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -24035,6 +24039,7 @@
         "summary": "Approval resolved",
         "description": "Fired when an approval is approved or rejected",
         "operationId": "webhookApprovalResolved",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -24463,6 +24468,7 @@
         "summary": "Auto approved",
         "description": "Fired when content is auto-approved",
         "operationId": "webhookApprovalAuto",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -24851,6 +24857,7 @@
         "summary": "Delete sync complete",
         "description": "Fired when a delete sync job finishes",
         "operationId": "webhookDeleteSyncCompleted",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -25042,6 +25049,7 @@
         "summary": "User created",
         "description": "Fired when a new user is added",
         "operationId": "webhookUserCreated",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -25118,6 +25126,7 @@
         "summary": "Watchlist cap reached",
         "description": "Fired when a user reaches their watchlist cap",
         "operationId": "webhookQuotaCapReached",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {

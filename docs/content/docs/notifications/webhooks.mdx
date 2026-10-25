@@ -34,17 +34,7 @@ The switch on each saved endpoint pauses deliveries without deleting it.
 
 ## Payloads
 
-Every payload has the same envelope:
-
-```json
-{
-  "event": "media.available",
-  "timestamp": "2026-10-23T10:30:00.000Z",
-  "data": { }
-}
-```
-
-`data` depends on the event. The [webhook payloads](/api/webhook-payloads/webhookMediaAvailable) in the API reference document each one, with examples. Pulsarr validates every payload against that schema before sending it, so the shape you see there is what arrives.
+Every payload shares one envelope, with `event`, `timestamp` and a `data` object that depends on the event. The [webhook payloads](/api/webhook-payloads) reference documents the envelope and each event's `data`, with examples. Pulsarr validates every payload against that schema before sending it, so the shape you see there is what arrives.
 
 ## Delivery
 

@@ -202,7 +202,7 @@ describe('WebhooksPage', () => {
       }),
     ).toHaveAttribute(
       'href',
-      'https://jamcalli.github.io/Pulsarr/docs/api/webhook-payloads',
+      'https://jamcalli.github.io/Pulsarr/api/webhook-payloads',
     )
   })
 
@@ -252,7 +252,7 @@ describe('WebhooksPage', () => {
       }),
     ).toHaveAttribute(
       'href',
-      'https://jamcalli.github.io/Pulsarr/docs/api/webhook-payloads',
+      'https://jamcalli.github.io/Pulsarr/api/webhook-payloads',
     )
   })
 

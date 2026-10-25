@@ -109,7 +109,7 @@ describe('ApprisePage', () => {
     expect(screen.getByLabelText('Apprise URLs, URL 1')).toBeDisabled()
     expect(screen.getByRole('link', { name: 'Apprise setup' })).toHaveAttribute(
       'href',
-      'https://jamcalli.github.io/Pulsarr/docs/notifications/apprise',
+      'https://jamcalli.github.io/Pulsarr/notifications/apprise',
     )
   })
 
