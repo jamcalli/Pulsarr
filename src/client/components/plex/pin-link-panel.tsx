@@ -9,7 +9,7 @@ import { formatTime } from '@/lib/format'
 import { plexLinkHref, spokenCode } from '@/lib/plex/plex-pin'
 import type { components } from '@/types/api.js'
 
-const QR_FRAME = 'aspect-square w-full rounded-md border-2 border-border'
+const QR_FRAME = 'w-full rounded-md border-2 border-border'
 const DESKTOP_GRID = 'grid grid-cols-[10.5rem_minmax(0,1fr)] gap-6'
 
 interface PinLinkPanelProps {
@@ -114,7 +114,9 @@ function CreatingBody({ phone }: { phone: boolean }) {
   return (
     <div className={`${DESKTOP_GRID} w-full`}>
       {status}
-      <Skeleton className={QR_FRAME} />
+      <div className={`${QR_FRAME} overflow-hidden`}>
+        <Skeleton className="aspect-square w-full rounded-none" />
+      </div>
       <div className="flex flex-col items-start gap-3">
         <Skeleton className="h-5 w-72" />
         <Skeleton className="h-9 w-32" />

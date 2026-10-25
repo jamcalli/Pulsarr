@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useImageFallback } from '@/hooks/useImageFallback'
 import { posterCardUrl } from '@/lib/poster-url'
 
-const posterSizes = cva('aspect-2/3 shrink-0', {
+const posterSizes = cva('shrink-0', {
   variants: {
     size: {
       thumb: 'w-10 rounded-sm',
@@ -65,5 +65,14 @@ export function PosterFrame({ thumb, type, size = 'fill' }: PosterFrameProps) {
 }
 
 export function PosterFrameSkeleton({ size = 'fill' }: { size?: PosterSize }) {
-  return <Skeleton className={posterSizes({ size })} />
+  return (
+    <div
+      className={cn(
+        posterSizes({ size }),
+        'overflow-hidden border-2 border-border',
+      )}
+    >
+      <Skeleton className="aspect-2/3 w-full rounded-none" />
+    </div>
+  )
 }
