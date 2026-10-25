@@ -111,8 +111,8 @@ function DiscordSettings({
                 </ExternalLink>
               }
             >
-              Run <InlineCode>/notifications</InlineCode> in your server to link
-              your Plex username, then have your users do the same.
+              Add your own Discord user ID on your user page, then have your
+              users run <InlineCode>/notifications</InlineCode> in your server.
             </InfoLine>
           </SettingsSection>
           <SaveBar

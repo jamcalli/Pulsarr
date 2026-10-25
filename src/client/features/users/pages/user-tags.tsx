@@ -85,7 +85,7 @@ const REMOVED_TAG_OPTIONS = [
     value: 'special-tag',
     label: REMOVED_TAG_MODE_LABELS['special-tag'],
     description:
-      "The user's tag comes off and a marker tag goes on, so you can find leftovers.",
+      'Once nobody has the item, its user tags swap for one marker you can find.',
   },
 ] as const satisfies Array<{
   value: components['schemas']['RemovedTagMode']
