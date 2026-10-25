@@ -61,7 +61,7 @@ Open `http://<your-server>:3003`. On first visit Pulsarr asks you to create the 
 
 After you sign in, the setup dialog opens. It has six steps. The other steps stay locked until you link a Plex account.
 
-1. **Plex account.** Select **Sign in with Plex**, then **Open plex.tv/link** and approve the code. If you'd rather paste a Plex token, use **Paste a token**.
+1. **Plex account.** Select **Open plex.tv/link** and approve the code. To paste a Plex token instead, use the **Paste a token** tab.
 
    ![The Plex account step with a link code and QR code](/img/quick-start/plex-account.webp)
 2. **Plex server.** The connection starts on **Automatic**, which lets Pulsarr pick the best connection. Select **Test connection** to check it, then **Continue**. Choose **Address** only if you want to enter the server address yourself.
@@ -88,4 +88,4 @@ To stop or start the workflow later, select **Sync running** at the bottom of th
 
 Add a movie to your Plex watchlist, then open Radarr. The movie shows up there once Pulsarr picks up the change. With Plex Pass that takes seconds. Without it, Pulsarr checks watchlists on a schedule.
 
-If someone's watchlist isn't syncing, check their row on [Plex users](/users/plex-users). It shows whether they're a Plex friend yet, and whether their watchlist is coming through.
+If someone's watchlist isn't syncing, check their row on [Plex users](/users/plex-users). It shows whether they're a Plex friend yet, and the **Watchlist** column counts the items Pulsarr has for them.

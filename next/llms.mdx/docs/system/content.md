@@ -1,6 +1,6 @@
 # System (/system)
 
-These pages cover Pulsarr's own connections and housekeeping.
+These pages cover Pulsarr's link to Plex, access to its API, its log and your admin login.
 
 <Cards>
   <Card title="Plex connection" href="/system/plex-connection" description="The Plex account and server, watchlist feeds and library refresh." />

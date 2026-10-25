@@ -1,6 +1,6 @@
 # Public content (/notifications/public-content)
 
-Public content announces every title that becomes available, whoever asked for it, in shared channels. It works alongside each user's own notifications. Set it up under **Notifications** > **Public content** and turn on **Broadcast to shared channels**.
+Public content announces every title that becomes available, whoever asked for it, in shared channels. Users still get their own notifications. Set it up under **Notifications** > **Public content** and turn on **Broadcast to shared channels**.
 
 Each tab, **All content**, **Movies** and **Shows**, has two lists:
 
@@ -11,4 +11,4 @@ Movies and shows use their own tab's lists when they have any, and the **All con
 
 **Send test** next to a URL sends a test announcement to it, and **Test saved URLs** tests the URLs already saved.
 
-On Discord, the announcement mentions the users who have the title on their watchlist, if they have **Discord mention** turned on and a Discord ID saved on their page under [Plex users](/users/plex-users).
+On Discord, the announcement mentions the users who have the title on their watchlist, if they have **Discord mention** turned on and a **Discord user ID** saved on their page under [Plex users](/users/plex-users).

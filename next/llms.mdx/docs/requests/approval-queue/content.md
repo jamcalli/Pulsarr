@@ -30,6 +30,6 @@ Notes you add stay with the request and appear in webhook notifications. The req
 
 ## Act on several requests [#act-on-several-requests]
 
-Select requests with their checkboxes, then use **Approve**, **Deny** or **Delete** in the bar that appears.
+Select requests with their checkboxes, then use **Approve**, **Deny** or **Delete** in the bar that appears. On **History**, only denied requests can be approved, and the button shows the count, for example **Approve 3 requests**.
 
 You can also approve and deny requests from Discord with the bot's `/approvals` command.

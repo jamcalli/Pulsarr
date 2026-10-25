@@ -4,7 +4,7 @@ Plex labels mark each movie and show in Plex with the users who have it on their
 
 ## Labeling [#labeling]
 
-**Label content in Plex** labels each item with who watchlists it, once the item is in Plex. A label is the **Prefix** and the user's name, for example `pulsarr:jamie`. **Name from** picks **Username** or **Alias**.
+**Label content in Plex** labels each item with who watchlists it, once the item is in Plex. A label is the **Prefix** and the user's name, for example `pulsarr:jamie`. **Name from** picks **Username** or **Alias**. Labels also apply when Sonarr or Radarr reports an import to Pulsarr.
 
 The format can't change while Pulsarr's labels exist. Remove them first with **Remove all Pulsarr labels**.
 
@@ -20,11 +20,11 @@ The format can't change while Pulsarr's labels exist. Remove them first with **R
 
 ## Tag sync [#tag-sync]
 
-**Sync tags as labels** copies Sonarr and Radarr tags to Plex as labels, except user tags. Each tag on an item becomes a label on it, with the same prefix. **Radarr tags on movies** and **Sonarr tags on shows** pick which ones.
+**Sync tags as labels** copies Sonarr and Radarr tags to Plex as labels, except user tags. Pulsarr pairs a Plex item with its Sonarr or Radarr entry by file path, so Plex and the arrs must see the media under the same paths. Each tag on an item becomes a label on it, with the same prefix. **Radarr tags on movies** and **Sonarr tags on shows** pick which ones.
 
 ## Full sync [#full-sync]
 
-**Full label sync** rechecks every watchlisted item and fixes its labels. It needs labeling on. **Run on a schedule** runs it at the time you set in **Run at**, in the server's time zone.
+**Full sync** rechecks every watchlisted item and fixes its labels. It needs labeling on. **Run on a schedule** runs it at the time and, if you like, the day of the week set in **Run at**, in the server's time zone.
 
 ## Remove labels [#remove-labels]
 

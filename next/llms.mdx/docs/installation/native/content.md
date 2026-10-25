@@ -47,6 +47,8 @@ net stop pulsarr
 net start pulsarr
 ```
 
+`pulsarr-service.exe stop`, `start` and `restart` in `C:\Program Files\Pulsarr` do the same.
+
 To update, run the new installer. It stops the service, replaces the program files and keeps your settings and data.
 
 To uninstall, use **Add or remove programs**. The uninstaller asks whether to delete your data as well.
@@ -107,12 +109,18 @@ EOF
 launchctl load ~/Library/LaunchAgents/com.pulsarr.plist
 ```
 
-`KeepAlive` restarts Pulsarr if it stops, so stop it with `launchctl unload ~/Library/LaunchAgents/com.pulsarr.plist` instead of `pkill`.
+Manage it with `launchctl stop com.pulsarr` and `launchctl start com.pulsarr`. `KeepAlive` restarts Pulsarr whenever it stops, so to keep it stopped run `launchctl unload ~/Library/LaunchAgents/com.pulsarr.plist` instead of `pkill`.
+
+## Backups [#backups]
+
+Stop Pulsarr and copy the `.env` file and the `db` folder from the paths above. Logs can be left out.
 
 ## Portable zips [#portable-zips]
 
-Each platform also has a plain zip, such as `pulsarr-vX.Y.Z-linux-x64.zip`. Extract it anywhere and run `./start.sh`, or `start.bat` on Windows. On macOS, remove the quarantine flag first, as the zip's `README.txt` explains. To update, stop Pulsarr, then run `./update.sh` or `update.bat` with the path to the new zip. Each zip has a `README.txt` that covers running it as a service.
+Each platform also has a plain zip, such as `pulsarr-vX.Y.Z-linux-x64.zip`. Extract it anywhere. Before the first start, copy `.env.example` to `.env`, since the template carries the built-in TMDB key. On Linux the copy goes next to `start.sh`. On Windows and macOS it goes in the data folder, `C:\ProgramData\Pulsarr` or `~/.config/Pulsarr`. Then run `./start.sh`, or `start.bat` on Windows. On macOS, remove the quarantine flag first, as the zip's `README.txt` explains. To update, stop Pulsarr, then run `./update.sh` or `update.bat` with the path to the new zip. Each zip has a `README.txt` that covers running it as a service.
 
 ## Settings in .env [#settings-in-env]
 
 Almost every setting can also be set in `.env`. See [environment variables](/installation/environment-variables) for the full list. The installers and the macOS app create it for you, at the paths listed above. Restart Pulsarr after changing it.
+
+`dataDir` is the exception, because it decides which folder Pulsarr reads `.env` from. Set it as a real environment variable.

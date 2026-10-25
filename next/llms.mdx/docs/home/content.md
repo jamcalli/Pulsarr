@@ -11,11 +11,10 @@ The range menu, for example **Last 30 days** or **All time**, sets the period th
 - **Needs your approval** lists requests waiting in the [approval queue](/requests/approval-queue).
 - **Most active** shows who requests the most.
 - **Recent requests** lists the latest requests with their status. You can filter by status and change the sort order.
-- **Request pipeline** counts requests at each stage. **Requested** means it's in Sonarr or Radarr with no file yet. **Grabbed** means it's downloaded but nobody has been told. **Notified** means it's ready and the user was told.
+- **Request pipeline** counts requests at each stage. **Requested** means it's in Sonarr or Radarr with no file yet. **Grabbed** means it's downloaded but nobody has been told. **Notified** means it's ready and the user was told. Its **Placements by instance** section shows the same stages for each Sonarr and Radarr instance.
 - **Request to ready** shows how long movies and shows take to become available.
 - **Popularity rankings** list the most watchlisted movies and shows. Select a title to see its details, where it streams, and its state in Pulsarr and in your instances.
 - **Top genres** and **Library mix** break down what gets requested.
-- **Placements by instance** shows where the router sent requests.
 - **Notifications** counts what was sent, and through which channels.
 
 ## Customize home [#customize-home]

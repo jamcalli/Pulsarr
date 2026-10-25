@@ -1,6 +1,6 @@
 # Quotas (/requests/quotas)
 
-A quota limits how many requests a user can make in a period. Requests over the limit wait in the [approval queue](/requests/approval-queue). A watchlist cap limits how many items a user can have at once. Items past the cap are skipped, not held for approval.
+A quota limits how many requests a user can make in a period. Requests over the limit wait in the [approval queue](/requests/approval-queue). A watchlist cap skips new watchlist items past the cap instead of requesting them. Skipped items are not held for approval.
 
 ## Set a user's quota [#set-a-users-quota]
 
@@ -10,7 +10,7 @@ Open a user from **Users** > **Plex users**. Movies and shows have separate quot
 - **Quota period** is **Daily**, **Weekly rolling** or **Monthly**.
 - **Requests per period** is the limit.
 - **Bypass approval over the limit** sends requests over the limit straight through, and turns the cap off.
-- **Cap the watchlist** and **Watchlist cap** set the most items the user can have on their watchlist.
+- **Cap the watchlist** and **Watchlist cap** skip new watchlist items past the cap. These fields show only while **Limit requests** is on.
 
 **Remove quotas** deletes the user's quotas and caps. It can also approve the requests their quota was holding.
 
@@ -34,6 +34,6 @@ Each request a quota counts is kept as a usage record. **Delete old usage histor
 
 **Quota maintenance** runs that cleanup. **Run on a schedule** turns it on or off, and **Run at** sets the time, in the server's time zone.
 
-## Cap notifications [#cap-notifications]
+## Watchlist cap notifications [#watchlist-cap-notifications]
 
 **Send cap notifications to** picks where admins hear that a user reached their watchlist cap. **Notify the user** also tells the user, by Discord or Apprise if they use them.

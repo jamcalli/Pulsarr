@@ -1,6 +1,6 @@
 # Exclusions (/library/exclusions)
 
-An exclusion stops Pulsarr requesting a title even though it's on someone's watchlist. The title stays on their watchlist in Plex. Manage exclusions under **Library** > **Exclusions**, which lists every title on any watchlist.
+An exclusion blocks a title, so Pulsarr never requests it even though it's on someone's watchlist. The title stays on their watchlist in Plex. Manage exclusions under **Library** > **Exclusions**, which lists every title on any watchlist.
 
 ## Exclude a title [#exclude-a-title]
 
@@ -21,7 +21,7 @@ Use **Search titles** and the **User**, **Content type**, **Status** and **Exclu
 
 Pulsarr can add exclusions for media that Maintainerr deletes, so stale watchlists don't request it again. It needs Maintainerr 3.23.0 or later, and Maintainerr must be able to reach Pulsarr.
 
-In the **Maintainerr** section, turn on **Use Maintainerr**, enter the **Maintainerr URL** and save. Pulsarr then sets up a webhook named "Pulsarr" in Maintainerr and connects it to the rule groups whose collections delete media. Groups that only unmonitor aren't connected, because the webhook doesn't say which action ran. Pulsarr reconnects on its own every hour, and **Sync now** does it straight away.
+In the **Maintainerr** section, turn on **Use Maintainerr**, enter the **Maintainerr URL** and save. Pulsarr then sets up a webhook named "Pulsarr" in Maintainerr and connects it to the rule groups whose collections delete media. Groups that only unmonitor aren't connected, because the webhook doesn't say which action ran. Pulsarr reconnects on its own on a schedule, and **Sync now** does it straight away.
 
 **Exclude for** decides what Pulsarr adds when Maintainerr deletes a title:
 

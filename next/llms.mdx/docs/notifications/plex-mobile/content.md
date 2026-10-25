@@ -1,6 +1,6 @@
 # Plex mobile (/notifications/plex-mobile)
 
-Pulsarr can push a notification straight to a user's Plex app on iOS or Android when something on their watchlist becomes available. Tapping it opens the title in Plex. It needs Plex Pass on your server.
+Pulsarr pushes a notification to a user's Plex mobile app when something on their watchlist becomes available. Tapping it opens the title in Plex. It needs Plex Pass on your server.
 
 ## Turn it on [#turn-it-on]
 
@@ -8,9 +8,9 @@ Under **Notifications** > **Plex mobile**, turn on **Send to Plex mobile apps**.
 
 **Send a test push** pushes to one user's Plex app to check it works.
 
-If a title isn't in Plex yet when it's ready, Pulsarr keeps trying for up to 10 minutes.
+If a title isn't in Plex yet when it's ready, Pulsarr keeps trying for about ten minutes.
 
-## In the Plex app [#in-the-plex-app]
+## Mobile app setup [#mobile-app-setup]
 
 Users need push notifications turned on in the Plex app, under **Settings** > **Notifications**.
 

@@ -1,6 +1,6 @@
 # Notifications (/notifications)
 
-Pulsarr tells users when something they asked for is ready, and tells admins about requests, deletions and updates. Pick the channels that suit you.
+Pulsarr tells users when something they asked for is ready, and tells admins about requests, deletions and updates.
 
 <Cards>
   <Card title="Discord" href="/notifications/discord" description="Admin webhooks, and a bot that messages users." />

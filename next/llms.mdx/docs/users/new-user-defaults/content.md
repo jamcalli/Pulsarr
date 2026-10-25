@@ -7,4 +7,4 @@ Under **Access**:
 - **Sync watchlist** is on by default. Turn it off to add new users without requesting what they watchlist.
 - **Require approval** holds every request from new users in the [approval queue](/requests/approval-queue).
 
-Under **Movies** and **Shows**, **Limit requests** gives new users a [quota](/requests/quotas) with a **Quota period** and **Requests per period**. **Bypass approval over the limit** sends their requests over the limit straight through. **Cap the watchlist** and **Watchlist cap** set the most items new users can have on their watchlist.
+Under **Movies** and **Shows**, **Limit requests** gives new users a [quota](/requests/quotas) with a **Quota period** and **Requests per period**. **Bypass approval over the limit** sends their requests over the limit straight through and turns the cap off. With **Cap the watchlist** on, new watchlist items past the **Watchlist cap** are skipped instead of requested. The cap fields show only while **Limit requests** is on.

@@ -1,19 +1,19 @@
 # Webhooks (/notifications/webhooks)
 
-Webhooks post a JSON payload to a URL you choose when an event happens. Use them to connect Pulsarr to Home Assistant, n8n or your own scripts. Set them up under **Notifications** > **Webhooks**.
+Webhooks post a JSON payload to a URL you choose when an event happens, for Home Assistant, n8n or your own scripts. They are an admin channel, so every endpoint gets its events for all users. Set them up under **Notifications** > **Webhooks**.
 
 ## Add an endpoint [#add-an-endpoint]
 
 Select **Add endpoint**, then fill in:
 
-- **Name**, for example "Home Assistant".
+- **Name**, any label you like.
 - **URL**, where Pulsarr posts.
 - **Auth header**, optional. Fill in both **Header name** and **Header value**, for example `Authorization` and `Bearer <token>`, and Pulsarr sends it with every request.
 - The events to send. Pick at least one.
 
 **Send test** posts a test event, with `"event": "test"`, to the URL and header as typed. Save the endpoint when you're done.
 
-On each saved endpoint, **Enabled** pauses deliveries without deleting it.
+The switch on each saved endpoint pauses deliveries without deleting it.
 
 ## Events [#events]
 
@@ -41,8 +41,10 @@ Every payload has the same envelope:
 }
 ```
 
-`data` depends on the event. The [webhook payloads](/api/webhook-payloads/webhookMediaAvailable) in the API reference document each one, with examples.
+`data` depends on the event. The [webhook payloads](/api/webhook-payloads/webhookMediaAvailable) in the API reference document each one, with examples. Pulsarr validates every payload against that schema before sending it, so the shape you see there is what arrives.
 
 ## Delivery [#delivery]
 
-Your endpoint must answer within 10 seconds. Pulsarr tries each delivery up to three times.
+Your endpoint must answer with a 2xx status within about ten seconds. Timeouts, network errors, 5xx and 429 are retried for up to three attempts, a 4xx gets one attempt, and retries stop when `Retry-After` asks for more than a minute.
+
+Pulsarr checks HTTPS certificates, so an endpoint with a self-signed certificate fails.

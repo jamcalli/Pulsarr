@@ -18,7 +18,7 @@ The format can't change while the tags exist in Sonarr or Radarr. Remove them fi
 
 - **Remove the tag** removes it.
 - **Keep the tag** keeps it as a record of who asked.
-- **Swap for a removed tag** replaces it with the **Removed tag**. [Delete sync](/library/delete-sync) in tag based mode deletes content with that tag.
+- **Swap for a removed tag** removes it, and adds the **Removed tag** once nobody wants the item, so you can find it. [Delete sync](/library/delete-sync) in tag based mode deletes content with that tag.
 
 **Clean up orphaned tags on sync** removes the tags of users who were deleted or renamed in Plex.
 

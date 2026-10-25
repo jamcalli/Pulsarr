@@ -16,7 +16,7 @@ These pick where notices for admins go. The choices are **All channels**, **Appr
 - **Watchlist additions** tells you when a user adds something.
 - **Update notifications** tells you when a new Pulsarr release comes out. Pulsarr never updates itself.
 
-Webhook delivery uses the [Discord](/notifications/discord) admin webhooks, direct messages need the Discord bot, and Apprise uses the [Apprise](/notifications/apprise) system notifications.
+Webhook delivery uses the [Discord](/notifications/discord) admin webhooks, and Apprise uses the [Apprise](/notifications/apprise) system notifications. Direct messages need the Discord bot and a **Discord user ID** saved on the server owner's Plex user, otherwise they are dropped without an error.
 
 ## User notifications [#user-notifications]
 

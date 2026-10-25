@@ -175,38 +175,25 @@
 
 # Pulsarr API (/api)
 
-Every route Pulsarr's own interface uses is part of the API, documented in the pages below. Your Pulsarr also serves an interactive reference at `/api/docs`.
+Every route the web UI uses is part of the API. Your Pulsarr serves an interactive reference at `/api/docs`, behind your `basePath` if you set one. Try calls and download the spec there. The pages here are a read-only reference. Routes can change between releases.
 
 ## Authentication [#authentication]
 
-Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. Every `/v1` route accepts it.
+Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. A signed-in browser session also works. A request body that fails validation returns a 400 with the reason.
 
 ```bash
 curl -H "X-API-Key: <your-key>" http://<your-server>:3003/v1/approval/requests
 ```
 
-Routes can change between releases. Check the release notes when you upgrade.
+`/health` needs no key and reports whether Pulsarr can reach its database.
 
 ## Limits and paging [#limits-and-paging]
 
-Requests are rate limited per IP address. Routes that check credentials or test connections have tighter limits than the rest.
-
-Long lists take `limit` and `offset` to page through results. These include the approval requests, quota usage, exclusions and the movie and show stats.
+Requests are rate limited per IP address, with the global limit set by [`rateLimitMax`](/installation/environment-variables). Sign-in, account changes and inbound webhooks with a bad secret have tighter limits, and webhooks with a valid secret are never limited. A `429` carries `Retry-After` and the `X-RateLimit` headers. List routes page with `limit` and `offset`.
 
 ## Live streams [#live-streams]
 
-`/v1/progress` and `/v1/logs/stream` are server-sent event streams. They tell clients to reconnect after 3 seconds and send the current state when you connect. They send no heartbeat, so a reverse proxy in front of Pulsarr must not buffer them.
-
-## Common routes [#common-routes]
-
-- `GET /v1/approval/requests` lists requests, with filters for status, user, content type and trigger.
-- `POST /v1/approval/requests/{id}/approve` and `POST /v1/approval/requests/{id}/reject` decide one.
-- `GET /v1/stats/all` returns the dashboard statistics.
-- `POST /v1/plex/watchlist-sync/{type}/start` starts a watchlist sync.
-
-## Home Assistant [#home-assistant]
-
-The community-maintained [Pulsarr Enhanced Requests](https://github.com/SpaceFrags/pulsarr_enhanced_requests) integration and its [requests card](https://github.com/SpaceFrags/pulsarr-requests-card) manage requests from Home Assistant.
+`/v1/progress` and `/v1/logs/stream` are server-sent event streams. They ask clients to reconnect after a few seconds and send a keep-alive comment about every half minute. The logs stream starts with a tail of recent lines. A reverse proxy in front of Pulsarr must not buffer them.
 
 
 # Cleanup orphaned plex labels (/api/labels/cleanupOrphanedPlexLabels)
@@ -992,11 +979,10 @@ The range menu, for example **Last 30 days** or **All time**, sets the period th
 - **Needs your approval** lists requests waiting in the [approval queue](/requests/approval-queue).
 - **Most active** shows who requests the most.
 - **Recent requests** lists the latest requests with their status. You can filter by status and change the sort order.
-- **Request pipeline** counts requests at each stage. **Requested** means it's in Sonarr or Radarr with no file yet. **Grabbed** means it's downloaded but nobody has been told. **Notified** means it's ready and the user was told.
+- **Request pipeline** counts requests at each stage. **Requested** means it's in Sonarr or Radarr with no file yet. **Grabbed** means it's downloaded but nobody has been told. **Notified** means it's ready and the user was told. Its **Placements by instance** section shows the same stages for each Sonarr and Radarr instance.
 - **Request to ready** shows how long movies and shows take to become available.
 - **Popularity rankings** list the most watchlisted movies and shows. Select a title to see its details, where it streams, and its state in Pulsarr and in your instances.
 - **Top genres** and **Library mix** break down what gets requested.
-- **Placements by instance** shows where the router sent requests.
 - **Notifications** counts what was sent, and through which channels.
 
 ## Customize home [#customize-home]
@@ -1008,45 +994,24 @@ The layout is saved in your browser, so each browser keeps its own.
 
 # How Pulsarr works (/how-it-works)
 
-Pulsarr sits between Plex watchlists and Sonarr and Radarr. Your users never use Pulsarr directly. They add titles to their watchlist in the Plex app, and Pulsarr decides what to request, where to send it, and who to tell when it's ready.
+Pulsarr sits between Plex watchlists and Sonarr and Radarr. Users add titles to their watchlist in Plex. Pulsarr requests them and tells users when they're ready.
 
 ## From watchlist to Plex [#from-watchlist-to-plex]
 
-1. **Pulsarr spots the change,** within seconds with Plex Pass, or within about 5 minutes without it. [How changes are spotted](#how-changes-are-spotted) explains how.
-2. **It filters.** A title with an [exclusion](/library/exclusions) isn't requested. With **Skip content already on Plex** on, nor is anything your server already has.
-3. **It routes.** The [Content router](/library/content-router) picks the Sonarr or Radarr instance, or several, and their settings. A Skip route stops the request here. With no matching route, the request goes to the default instance.
-4. **It checks limits.** A user past their [watchlist cap](/requests/quotas) is skipped. Some requests need your approval first, because of a route, the user's **Require approval** setting, or their quota. Those wait in the [approval queue](/requests/approval-queue).
-5. **It sends the request** to Sonarr or Radarr, which search and download as usual.
-6. **It notifies.** When Sonarr or Radarr finish importing, they tell Pulsarr through a webhook. Pulsarr then tells everyone who has the title on their watchlist, through [their channels](/notifications).
+A new watchlist item is checked against [exclusions](/library/exclusions) and the user's [limits](/requests/quotas), routed by the [Content router](/library/content-router) to a Sonarr or Radarr instance, and sent there. Items that need approval wait in the [approval queue](/requests/approval-queue). When Sonarr or Radarr finish importing, they tell Pulsarr through a webhook, and Pulsarr notifies everyone with the title on their watchlist through [their channels](/notifications).
 
 ## How changes are spotted [#how-changes-are-spotted]
 
-When it starts, Pulsarr reads every watchlist. Yours comes from Plex's watchlist API. Your friends' come from Plex's community GraphQL API.
+Pulsarr reads your watchlist from Plex's watchlist API and your friends' watchlists from Plex's community GraphQL API. The RSS feeds only speed up noticing changes. With Plex Pass, Pulsarr watches the watchlist RSS feeds about every ten seconds and fetches new items from those APIs. The feeds are static files that Plex regenerates when a watchlist changes and serves from a content delivery network, built to keep polling off Plex's own servers, so checking them this often is safe. Without Plex Pass, it polls the same APIs for changes about every five minutes.
 
-With Plex Pass, Pulsarr then checks your two watchlist RSS feeds about every 10 seconds. Each new item says which friend added it, so Pulsarr requests it straight away.
-
-Without Plex Pass, Pulsarr asks those same APIs whether each watchlist changed, working through everyone every 5 minutes.
-
-Either way, Pulsarr reads every watchlist in full again every 2 hours. Plex's friends feed sometimes leaves out a particular friend's items, and the full read picks them up.
-
-## Users [#users]
-
-Pulsarr reads your own watchlist and those of your Plex friends. It adds friends as users by itself, the first time it sees them, with your [new user defaults](/users/new-user-defaults). People with access to your server who aren't friends yet show on [Plex users](/users/plex-users), where you can send them a friend request.
-
-## After the download [#after-the-download]
-
-A few features keep working once content is in your library:
-
-- [Session monitoring](/library/session-monitoring) watches what people play, and requests the next season before they reach it.
-- [User tags](/users/user-tags) and [Plex labels](/users/plex-labels) mark content with who asked for it.
-- [Delete sync](/library/delete-sync) removes content once nobody has it on their watchlist anymore.
+About every two hours, Pulsarr reads every watchlist in full. That is when it notices removed titles. Everything tied to a watchlist follows the removal, such as [user tags](/users/user-tags), [Plex labels](/users/plex-labels) and what [delete sync](/library/delete-sync) may remove.
 
 
 # Welcome to Pulsarr (/)
 
 ## Introduction [#introduction]
 
-Pulsarr watches your Plex watchlist and the watchlists of your Plex friends. When a movie or show is added, Pulsarr sends it to Radarr or Sonarr. When it's available, Pulsarr can notify the person who added it through Discord, Plex mobile push, Apprise or webhooks. Your users request content from the Plex app they already use, with no extra account.
+Pulsarr watches your Plex watchlist and the watchlists of your Plex friends. When a movie or show is added, Pulsarr sends it to Radarr or Sonarr. When it's available, Pulsarr can notify the person who added it through Discord, Apprise or Plex mobile push.
 
 :::info
 Pulsarr can only read the watchlist of someone who is a friend of your Plex account. People with access to your server who aren't friends yet show up under **Not yet friends** on the **Plex users** page, where you can send them a friend request.
@@ -1054,11 +1019,7 @@ Pulsarr can only read the watchlist of someone who is a friend of your Plex acco
 
 With Plex Pass, watchlist changes arrive within seconds. Without it, Pulsarr checks each watchlist on a schedule.
 
-The Content router decides which Sonarr or Radarr instance each title goes to, with which quality profile and root folder. Approvals and quotas let you control what gets added.
-
 ![The Pulsarr home page](/img/home.webp)
-
-Pulsarr runs in Docker or as a native install on Linux, macOS and Windows, and stores its data in SQLite or PostgreSQL.
 
 ## First time? [#first-time]
 
@@ -1116,7 +1077,9 @@ Start it:
 docker compose up -d
 ```
 
-Then open `http://<your-server>:3003`. Pulsarr keeps its database and logs in `./data`.
+Then open `http://<your-server>:3003`. Pulsarr keeps its database and logs in `./data`. To back up Pulsarr, stop the container and copy that folder.
+
+Pulsarr reads its settings from the container's environment. `env_file` passes `.env` into it, so the file must sit next to `docker-compose.yml`. A `.env` inside `./data` is not read. A variable can also go under `environment:`, which wins when both set it.
 
 ## docker run [#docker-run]
 
@@ -1139,17 +1102,17 @@ docker run -d \
 - `latest` is the newest release.
 - `beta` is the newest pre-release.
 - `0.20.0` pins an exact version, and `0.20` follows the newest patch of that minor version.
-- `node`, `beta-node`, `0.20.0-node` and `0.20-node` are the same tags for the Node.js image.
-
-### Synology and older kernels [#synology-and-older-kernels]
-
-On a Synology NAS, or any host with a Linux kernel older than 4.11, use the Node.js image, `lakker/pulsarr:node`. The default image needs a newer kernel. Both images run the same app.
+- `node`, `beta-node`, `0.20.0-node` and `0.20-node` are the same tags for the Node.js image. It exists for hosts where the default image once failed to start, such as some Synology NAS models. That is fixed, so use the default image. The `node` tags will point at it in a future release.
 
 ## File ownership [#file-ownership]
 
 Pulsarr runs as the user and group set by `PUID` and `PGID`, which both default to `1000`. On start it takes ownership of anything in `./data` that has a different owner. Set them to your user on the host, which `id -u` and `id -g` print.
 
 If you run the container with Compose's `user:` option instead, Pulsarr skips the ownership change. `./data` must then already be writable by that user, or the container stops with an error.
+
+## Health check [#health-check]
+
+The image checks `/health` on its own, so `docker ps` shows the container as healthy or unhealthy. The route needs no sign-in and returns `200` when the database answers and `503` when it does not, so a proxy status page or an uptime monitor can use it too.
 
 ## Ports [#ports]
 
@@ -1171,9 +1134,7 @@ Pulsarr updates its database on start, so there's nothing else to run.
 
 Pulsarr reads these from `.env`, or from the container's environment in Docker. Most of them are also settings in the app, and you only need `.env` to fix a value before first start or to keep it under version control.
 
-:::warning
 A variable in `.env` replaces the value saved in the app every time Pulsarr starts. This happens even when the variable is set to an empty value. A change you make in the app lasts only until the next restart, so remove the variable from `.env` if you want to manage that setting in the app.
-:::
 
 Restart Pulsarr after changing `.env`. Values marked JSON take one line of JSON, for example `sonarrTags=["4k","kids"]`.
 
@@ -1185,14 +1146,14 @@ Restart Pulsarr after changing `.env`. Values marked JSON take one line of JSON,
 | `listenPort` | `3003` | Port Pulsarr listens on. |
 | `baseUrl` | `http://localhost` | Address Sonarr and Radarr use to reach Pulsarr for webhooks. Set in the app through **Fix the address**. |
 | `port` | `3003` | Port Sonarr and Radarr use to reach Pulsarr for webhooks. |
-| `basePath` | `/` | Path prefix when Pulsarr is served under a subfolder by a reverse proxy, for example `/pulsarr`. |
+| `basePath` | `/` | Path prefix when Pulsarr is served under a subfolder by a reverse proxy, for example `/pulsarr`. See [Reverse proxy](#reverse-proxy). |
 | `dataDir` | | Folder for the database and logs. Defaults to `./data` in Docker and Linux, `C:\ProgramData\Pulsarr` on Windows and `~/.config/Pulsarr` on macOS. |
 | `logLevel` | `info` | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`. |
 | `enableConsoleOutput` | `true` | Set to `false` to log only to files. |
 | `enableRequestLogging` | `false` | Log every HTTP request. |
-| `rateLimitMax` | `500` | Requests allowed per client per minute. |
+| `rateLimitMax` | `500` | Requests allowed per client per minute. Sign-in and account routes have their own smaller fixed limit this does not change. |
 | `closeGraceDelay` | `10000` | Milliseconds to wait for work to finish on shutdown. |
-| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. |
+| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. Removes the `X-Frame-Options` header, which otherwise allows framing only from the same origin. |
 
 ## Database [#database]
 
@@ -1215,11 +1176,27 @@ To set up PostgreSQL or move to it from SQLite, see [PostgreSQL](/installation/p
 | --- | --- | --- |
 | `authenticationMethod` | `required` | `required`, `requiredExceptLocal` (no sign-in from your local network) or `disabled`. |
 | `cookieSecret` | Generated | Signs session cookies. At least 32 characters. |
-| `cookieName` | `pulsarr` | Name of the session cookie. |
+| `cookieName` | `pulsarr` | Name of the session cookie. Two Pulsarr instances on one host need different names. |
 | `cookieSecured` | `false` | Send the session cookie over HTTPS only. Turn on when Pulsarr is behind HTTPS. |
-| `webhookSecret` | Generated | Authenticates webhooks from Sonarr and Radarr. |
+| `webhookSecret` | Generated | Authenticates webhooks from Sonarr and Radarr. At least 16 characters. |
 
 Pulsarr generates the secrets on first start and stores them, so they stay the same across restarts. Set them in `.env` only if you need fixed values.
+
+For `requiredExceptLocal`, local means loopback, the private IPv4 ranges `10.0.0.0/8`, `172.16.0.0/12` and `192.168.0.0/16`, IPv4 link-local `169.254.0.0/16`, and IPv6 unique local `fc00::/7` and link-local `fe80::/10`.
+
+## Reverse proxy [#reverse-proxy]
+
+The proxy must pass the path through unchanged, `basePath` prefix included.
+
+Pulsarr trusts forwarded headers only from loopback, link-local and private addresses. The proxy must send `X-Forwarded-For`, or every visitor shares the proxy's address and trips the per-IP rate limits together. Traefik, Caddy and Nginx Proxy Manager send it by default. Plain nginx needs `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+
+:::warning
+With `requiredExceptLocal`, a proxy on a private address that doesn't send `X-Forwarded-For` makes every request look local, so nobody is asked to sign in.
+:::
+
+Behind Cloudflare, the proxy must trust Cloudflare's address ranges to pass on real client addresses. Local sign-in bypass then works only for LAN clients that reach the proxy directly.
+
+An authentication proxy in front of Pulsarr must let `/v1/notifications/webhook` and `/v1/notifications/webhook/maintainerr` through, after any `basePath`. Otherwise Sonarr, Radarr and Maintainerr webhooks get 401.
 
 ## Plex [#plex]
 
@@ -1234,21 +1211,21 @@ Pulsarr generates the secrets on first start and stores them, so they stay the s
 
 ## Sonarr and Radarr [#sonarr-and-radarr]
 
-Pulsarr uses these only to create a first Sonarr or Radarr instance when there is none. After that, manage instances on the **Sonarr** and **Radarr** pages.
+Pulsarr uses these only to create a first Sonarr or Radarr instance when there is none. After that, manage instances on the **Sonarr** and **Radarr** pages, and remove these variables from `.env`.
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `sonarrBaseUrl` | `http://localhost:8989` | Sonarr address. |
-| `sonarrApiKey` | | Sonarr API key. |
+| `sonarrApiKey` | `placeholder` | Sonarr API key. |
 | `sonarrQualityProfile` | | Quality profile. |
 | `sonarrRootFolder` | | Root folder path. |
-| `sonarrSeasonMonitoring` | `all` | Season monitoring. |
+| `sonarrSeasonMonitoring` | `all` | Season monitoring. One of `all`, `future`, `missing`, `existing`, `recent`, `pilot`, `firstSeason`, `lastSeason`, `monitorSpecials`, `unmonitorSpecials` or `none`, or a rolling mode, `pilotRolling`, `firstSeasonRolling` or `allSeasonPilotRolling`. |
 | `sonarrMonitorNewItems` | `all` | `all` or `none`. |
 | `sonarrCreateSeasonFolders` | `false` | Put each season in its own folder. |
 | `sonarrBypassIgnored` | `false` | Add content even when it's on Sonarr's import list exclusions. |
 | `sonarrTags` | `[]` | JSON. Tags added to every show. |
 | `radarrBaseUrl` | `http://localhost:7878` | Radarr address. |
-| `radarrApiKey` | | Radarr API key. |
+| `radarrApiKey` | `placeholder` | Radarr API key. |
 | `radarrQualityProfile` | | Quality profile. |
 | `radarrRootFolder` | | Root folder path. |
 | `radarrBypassIgnored` | `false` | Add content even when it's on Radarr's import list exclusions. |
@@ -1258,7 +1235,7 @@ Pulsarr uses these only to create a first Sonarr or Radarr instance when there i
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `tmdbApiKey` | Built in | TMDB API read access token. The Docker images include one. |
+| `tmdbApiKey` | | TMDB API read access token. Docker images and native builds include one. Builds from source do not. |
 | `tmdbRegion` | `US` | Region for streaming provider lookups. |
 
 ## Notifications [#notifications]
@@ -1321,7 +1298,7 @@ Pulsarr uses these only to create a first Sonarr or Radarr instance when there i
 | `maintainerrEnabled` | `false` | Turn on the Maintainerr integration. |
 | `maintainerrUrl` | | Maintainerr address. |
 | `maintainerrExclusionMode` | `watchlisters` | `watchlisters` excludes handled media for its current watchlisters. `global` excludes it for every user. |
-| `maintainerrWebhookSecret` | Generated | Authenticates webhooks from Maintainerr. |
+| `maintainerrWebhookSecret` | Generated | Authenticates webhooks from Maintainerr. At least 16 characters. |
 
 ## New user defaults [#new-user-defaults]
 
@@ -1433,6 +1410,8 @@ net stop pulsarr
 net start pulsarr
 ```
 
+`pulsarr-service.exe stop`, `start` and `restart` in `C:\Program Files\Pulsarr` do the same.
+
 To update, run the new installer. It stops the service, replaces the program files and keeps your settings and data.
 
 To uninstall, use **Add or remove programs**. The uninstaller asks whether to delete your data as well.
@@ -1493,27 +1472,34 @@ EOF
 launchctl load ~/Library/LaunchAgents/com.pulsarr.plist
 ```
 
-`KeepAlive` restarts Pulsarr if it stops, so stop it with `launchctl unload ~/Library/LaunchAgents/com.pulsarr.plist` instead of `pkill`.
+Manage it with `launchctl stop com.pulsarr` and `launchctl start com.pulsarr`. `KeepAlive` restarts Pulsarr whenever it stops, so to keep it stopped run `launchctl unload ~/Library/LaunchAgents/com.pulsarr.plist` instead of `pkill`.
+
+## Backups [#backups]
+
+Stop Pulsarr and copy the `.env` file and the `db` folder from the paths above. Logs can be left out.
 
 ## Portable zips [#portable-zips]
 
-Each platform also has a plain zip, such as `pulsarr-vX.Y.Z-linux-x64.zip`. Extract it anywhere and run `./start.sh`, or `start.bat` on Windows. On macOS, remove the quarantine flag first, as the zip's `README.txt` explains. To update, stop Pulsarr, then run `./update.sh` or `update.bat` with the path to the new zip. Each zip has a `README.txt` that covers running it as a service.
+Each platform also has a plain zip, such as `pulsarr-vX.Y.Z-linux-x64.zip`. Extract it anywhere. Before the first start, copy `.env.example` to `.env`, since the template carries the built-in TMDB key. On Linux the copy goes next to `start.sh`. On Windows and macOS it goes in the data folder, `C:\ProgramData\Pulsarr` or `~/.config/Pulsarr`. Then run `./start.sh`, or `start.bat` on Windows. On macOS, remove the quarantine flag first, as the zip's `README.txt` explains. To update, stop Pulsarr, then run `./update.sh` or `update.bat` with the path to the new zip. Each zip has a `README.txt` that covers running it as a service.
 
 ## Settings in .env [#settings-in-env]
 
 Almost every setting can also be set in `.env`. See [environment variables](/installation/environment-variables) for the full list. The installers and the macOS app create it for you, at the paths listed above. Restart Pulsarr after changing it.
+
+`dataDir` is the exception, because it decides which folder Pulsarr reads `.env` from. Set it as a real environment variable.
 
 
 # PostgreSQL (/installation/postgresql)
 
 Pulsarr uses SQLite by default and needs no setup for it. You can use PostgreSQL instead, either from the first start or by moving an existing SQLite install across.
 
-Pulsarr creates the tables, but not the database. Create an empty database and give your user full rights on it first:
+Pulsarr creates the tables, but not the database. Create an empty database owned by your user first:
 
 ```sql
-CREATE DATABASE pulsarr;
-GRANT ALL PRIVILEGES ON DATABASE pulsarr TO your_username;
+CREATE DATABASE pulsarr OWNER your_username;
 ```
+
+On PostgreSQL 15 and later, `GRANT ALL PRIVILEGES ON DATABASE` does not allow creating tables in the `public` schema, so make the user the owner instead.
 
 ## Start on PostgreSQL [#start-on-postgresql]
 
@@ -1548,17 +1534,17 @@ These steps use Docker and the [`docker-compose.migration.yml`](https://github.c
    docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-postgres-setup
    ```
 
-5. Copy the data across. It asks you to confirm before it starts:
+5. Copy the data across. It asks you to confirm before it copies:
 
    ```bash
    docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data
    ```
 
-   It checks both connections, backs up the SQLite database to `./data/backups/`, copies every table and checks that the row counts match.
+   It checks both connections, backs up the SQLite database to `./data/backups/`, copies every table and checks that the row counts match. After the copy it moves each PostgreSQL ID sequence up to the highest copied ID, so new rows don't collide. It refuses a table that already has rows and stops at the first table that fails. After a failed run, recreate the database and run step 4 again.
 
 6. Start Pulsarr with `docker compose up -d`.
 
-To see progress for each batch, run the copy step with the script's full command and `--verbose`. `--help` lists the other options.
+To see progress for each batch, run the copy step with the script's full command and `--verbose`. `--batch-size=N` sets how many rows go per insert. `--help` lists the options.
 
 ```bash
 docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data bun run --bun migrations/scripts/sqlite-to-postgresql.ts --verbose
@@ -1632,7 +1618,7 @@ Open `http://<your-server>:3003`. On first visit Pulsarr asks you to create the 
 
 After you sign in, the setup dialog opens. It has six steps. The other steps stay locked until you link a Plex account.
 
-1. **Plex account.** Select **Sign in with Plex**, then **Open plex.tv/link** and approve the code. If you'd rather paste a Plex token, use **Paste a token**.
+1. **Plex account.** Select **Open plex.tv/link** and approve the code. To paste a Plex token instead, use the **Paste a token** tab.
 
    ![The Plex account step with a link code and QR code](/img/quick-start/plex-account.webp)
 2. **Plex server.** The connection starts on **Automatic**, which lets Pulsarr pick the best connection. Select **Test connection** to check it, then **Continue**. Choose **Address** only if you want to enter the server address yourself.
@@ -1659,14 +1645,61 @@ To stop or start the workflow later, select **Sync running** at the bottom of th
 
 Add a movie to your Plex watchlist, then open Radarr. The movie shows up there once Pulsarr picks up the change. With Plex Pass that takes seconds. Without it, Pulsarr checks watchlists on a schedule.
 
-If someone's watchlist isn't syncing, check their row on [Plex users](/users/plex-users). It shows whether they're a Plex friend yet, and whether their watchlist is coming through.
+If someone's watchlist isn't syncing, check their row on [Plex users](/users/plex-users). It shows whether they're a Plex friend yet, and the **Watchlist** column counts the items Pulsarr has for them.
+
+
+# Troubleshooting (/installation/troubleshooting)
+
+## Discord direct messages don't arrive [#discord-direct-messages-dont-arrive]
+
+The bot won't start until **Message Content Intent** is turned on for it in the Discord developer portal. A user gets direct messages only with a **Discord user ID** saved on their page and their **Discord** switch on. Discord refuses the message when the user has turned off direct messages from server members in their privacy settings.
+
+## Plex live connection shows Polling [#plex-live-connection-shows-polling]
+
+With **Automatic**, Pulsarr uses the connections plex.tv lists for your server, and none of them may be reachable from where Pulsarr runs. Under **System** > **Plex connection**, choose **Address**, enter one Pulsarr can reach, and select **Test connection**.
+
+## Plex mobile notifications are missing or doubled [#plex-mobile-notifications-are-missing-or-doubled]
+
+Plex mobile notifications need Plex Pass on the server, and users need notifications turned on in the Plex app. Doubles come from the Plex app's own new content notifications, which users turn off per library in the app. See [Plex mobile](/notifications/plex-mobile).
+
+## Apprise shows as not reachable [#apprise-shows-as-not-reachable]
+
+Pulsarr checks the Apprise server only while it starts. Start Apprise first, or restart Pulsarr once Apprise is up. In the same Compose file, `appriseUrl` uses the container name and port, for example `http://apprise:8000`.
+
+## A webhook doesn't fire or its test fails [#a-webhook-doesnt-fire-or-its-test-fails]
+
+The endpoint must answer with a 2xx status. Deliveries are retried only after a timeout, a network error, a 5xx or a 429, and a test is sent once with no retry. HTTPS endpoints need a trusted certificate, so a self-signed one fails.
+
+## Labels or tags don't appear [#labels-or-tags-dont-appear]
+
+Labels and user tags apply only to items on a user's watchlist. Labels need the Plex connection and appear once the item is in Plex. User tags apply when watchlists sync, or straight away with **Sync tags**.
+
+## Tag labels don't appear on some items [#tag-labels-dont-appear-on-some-items]
+
+**Sync tags as labels** pairs each Plex item with its Sonarr or Radarr entry by path. A movie needs the exact same file path in Plex and Radarr. A show matches on its folder path, or failing that on the folder name alone. Give the Plex and arr containers identical path mappings.
+
+## Delete sync removed protected content [#delete-sync-removed-protected-content]
+
+**Playlist protection** matches the **Playlist name** exactly, including case, in each user's own Plex account. Items in a playlist with any other spelling aren't protected.
+
+## Sign-in never prompts or rate limits trip behind a reverse proxy [#sign-in-never-prompts-or-rate-limits-trip-behind-a-reverse-proxy]
+
+The proxy isn't sending `X-Forwarded-For`, so every visitor shares the proxy's address. See [Reverse proxy](/installation/environment-variables#reverse-proxy).
+
+## The PostgreSQL migration fails [#the-postgresql-migration-fails]
+
+On PostgreSQL 15 and later, create the database with `OWNER` instead of granting privileges on it. Create the tables before copying the data. The copy refuses tables that already have rows, so after a failed run recreate the database and start from the table step. See [PostgreSQL](/installation/postgresql#move-from-sqlite).
+
+## The API returns 401 [#the-api-returns-401]
+
+Send the key in the `X-API-Key` header, exactly as copied. A revoked key always gets a 401.
 
 
 # Content router (/library/content-router)
 
 Without routes, every request goes to the default Sonarr or Radarr instance. Routes send matching requests somewhere else, with their own settings, or skip them. Manage them under **Library** > **Content router**, which has a **Movies** tab for Radarr routes and a **TV shows** tab for Sonarr routes.
 
-![Four movie routes: a Skip route first, then three ranked routes](/img/library/content-router.webp)
+![Four movie routes with a Skip route first and three ranked routes below it](/img/library/content-router.webp)
 
 Each route shows its conditions and where matching requests go. The switch on a route turns it on or off without deleting it.
 
@@ -1674,10 +1707,10 @@ Each route shows its conditions and where matching requests go. The switch on a 
 
 Select **Add route**, or the arrow on an existing route to edit it. Give it a **Route name**, set its conditions, then choose what happens **When a request matches**:
 
-- **Send to Sonarr** or **Send to Radarr** sends it to the **Instance** you pick. The route has its own quality profile, root folder, tags and other settings. Leave any of them on **Use instance default** to keep the instance's setting. Tags you list replace the instance's tags.
+- **Send to Sonarr** or **Send to Radarr** sends it to the **Instance** you pick. The route sets its own **Quality profile**, **Root folder**, **Search on add** and **Tags**, plus **Season monitoring** and **Series type** for Sonarr or **Monitor** for Radarr. Leave any but **Tags** on **Use instance default** to keep the instance's setting. An empty **Tags** list adds no tags.
 - **Skip** never sends it anywhere.
 
-Select **Save route** when you're done.
+Select **Create route** for a new route or **Save route** for an edited one.
 
 ![Editing a route with a nested group and a Not condition](/img/library/content-router-route.webp)
 
@@ -1698,6 +1731,14 @@ Fields for movies and TV shows:
 
 TV shows also have **Season** and **Series status**. Movies also have **Movie status**.
 
+## How conditions are judged [#how-conditions-are-judged]
+
+The editor offers only the operators a field supports. Every field takes some of **is**, **is not**, **is any of** and **is none of**. Number fields also take **is above**, **is below** and **is between**. Text fields can also take **contains**, **does not contain** or **matches regex**.
+
+A condition on missing data is unknown, not false. **Not** leaves it unknown. An **All** group with an unknown and no failure is unknown, and so is an **Any** group with an unknown and no pass. A route that ends up unknown doesn't match.
+
+**Season** checks every season number the show has. **is not** and **is none of** match only when no season does, the rest match when any season does. **Series status** is **Continuing**, **Ended**, **Upcoming** or **Deleted**. **Movie status** is **TBA**, **Announced**, **In cinemas**, **Released** or **Deleted**. **Streaming services** counts subscription streaming only. **Plex list** ignores case and surrounding spaces.
+
 ## Approval and quotas [#approval-and-quotas]
 
 A route can also change how matching requests are approved:
@@ -1717,7 +1758,7 @@ To change the order, select **Reorder**, drag the routes into place and select *
 
 ## When nothing matches [#when-nothing-matches]
 
-A request no route sends anywhere goes to the default instance, as the note at the bottom of the list says. To skip it instead, turn on **Skip content no route matches** on the default instance under [Sonarr and Radarr](/library/sonarr-radarr#the-default-instance). Movies and TV shows are set separately.
+A request no route sends anywhere goes to the default instance, as the note at the bottom of the list says. To skip it instead, turn on **Skip content no route matches** on the default instance under [Sonarr and Radarr](/library/sonarr-radarr#behavior). Movies and TV shows are set separately.
 
 
 # Delete sync (/library/delete-sync)
@@ -1728,8 +1769,8 @@ Delete sync removes content from Sonarr and Radarr when nobody wants it anymore.
 
 **Decide by** sets what counts as no longer wanted:
 
-- **Watchlist based** deletes anything that isn't on any counted user's watchlist. With **Respect user sync settings** on, only the watchlists of users with sync on count.
-- **Tag based** deletes anything carrying the **Removal tag**, which comes from [User tags](/users/user-tags). Matching ignores case. **Required tag pattern** is an optional regular expression, and when set, content also needs a tag that matches it.
+- **Watchlist based** deletes anything that isn't on any user's watchlist.
+- **Tag based** deletes anything carrying the **Removal tag**, which comes from [User tags](/users/user-tags). Matching ignores case. **Required tag pattern** is an optional regular expression, and when set, content also needs a tag that matches it. Patterns use JavaScript syntax, are limited to 1024 characters, and a backtracking check rejects unsafe ones.
 
 Either way, a title [excluded](/library/exclusions) for all its watchlisters, or for everyone, counts as unwanted. In tag based mode it doesn't need the removal tag.
 
@@ -1740,16 +1781,17 @@ Nothing outside these choices is deleted:
 - **Delete movies** removes movies from Radarr.
 - **Delete ended shows** removes shows Sonarr marks as ended.
 - **Delete continuing shows** removes every other show.
-- **Delete files** also deletes the media files from disk.
-- **Tracked content only** limits deletion to content requested through Pulsarr.
-- **Clean up approval records** removes approval records for deleted content.
+- **Delete files** also deletes the media files from disk. It's on by default.
+- **Clean up approval records** removes approval records for deleted content and content already gone.
 
 ## What protects content [#what-protects-content]
 
 Anything a guard covers is skipped:
 
-- **Playlist protection** skips anything in a Plex playlist with the **Playlist name**, in any user's account. Each run creates the playlist for users who don't have it yet.
-- **Max deletion** aborts a run that would delete more than this percentage of your library.
+- **Respect user sync settings** counts only the watchlists of users with sync on.
+- **Tracked content only** limits deletion to content requested through Pulsarr.
+- **Playlist protection** skips anything in a Plex playlist named exactly the **Playlist name**, in any user's account. Each run creates the playlist for users who don't have it yet.
+- **Max deletion** aborts a run that would delete more than this percentage of eligible items, meaning items of the types chosen under **What may be deleted**.
 
 ## Runs and schedule [#runs-and-schedule]
 
@@ -1764,7 +1806,7 @@ Select **Dry run** to preview a run without deleting anything. A dry run still r
 
 # Exclusions (/library/exclusions)
 
-An exclusion stops Pulsarr requesting a title even though it's on someone's watchlist. The title stays on their watchlist in Plex. Manage exclusions under **Library** > **Exclusions**, which lists every title on any watchlist.
+An exclusion blocks a title, so Pulsarr never requests it even though it's on someone's watchlist. The title stays on their watchlist in Plex. Manage exclusions under **Library** > **Exclusions**, which lists every title on any watchlist.
 
 ## Exclude a title [#exclude-a-title]
 
@@ -1785,7 +1827,7 @@ Use **Search titles** and the **User**, **Content type**, **Status** and **Exclu
 
 Pulsarr can add exclusions for media that Maintainerr deletes, so stale watchlists don't request it again. It needs Maintainerr 3.23.0 or later, and Maintainerr must be able to reach Pulsarr.
 
-In the **Maintainerr** section, turn on **Use Maintainerr**, enter the **Maintainerr URL** and save. Pulsarr then sets up a webhook named "Pulsarr" in Maintainerr and connects it to the rule groups whose collections delete media. Groups that only unmonitor aren't connected, because the webhook doesn't say which action ran. Pulsarr reconnects on its own every hour, and **Sync now** does it straight away.
+In the **Maintainerr** section, turn on **Use Maintainerr**, enter the **Maintainerr URL** and save. Pulsarr then sets up a webhook named "Pulsarr" in Maintainerr and connects it to the rule groups whose collections delete media. Groups that only unmonitor aren't connected, because the webhook doesn't say which action ran. Pulsarr reconnects on its own on a schedule, and **Sync now** does it straight away.
 
 **Exclude for** decides what Pulsarr adds when Maintainerr deletes a title:
 
@@ -1804,21 +1846,21 @@ These pages control what happens after a request leaves Pulsarr. They decide whi
 <Cards>
   <Card title="Sonarr and Radarr" href="/library/sonarr-radarr" description="Connect instances and set where content lands." />
   <Card title="Content router" href="/library/content-router" description="Send requests to different instances based on what they are and who asked." />
-  <Card title="Exclusions" href="/library/exclusions" description="Stop watchlisted titles from being requested, including after Maintainerr deletes them." />
+  <Card title="Exclusions" href="/library/exclusions" description="Block watchlisted titles from being requested, including after Maintainerr deletes them." />
   <Card title="Delete sync" href="/library/delete-sync" description="Remove content from Sonarr and Radarr once nobody wants it." />
-  <Card title="Session monitoring" href="/library/session-monitoring" description="Request the next season before people reach it, and grow rolling shows." />
+  <Card title="Session monitoring" href="/library/session-monitoring" description="Grow rolling shows in Sonarr as people watch them." />
 </Cards>
 
 
 # Session monitoring (/library/session-monitoring)
 
-Session monitoring reads what's playing on Plex. When someone nears the end of a season, Pulsarr asks Sonarr for the next one. It also grows rolling shows as people watch them. Set it up under **Library** > **Session monitoring**.
+Session monitoring reads what's playing on Plex and grows rolling shows in Sonarr as people watch them. For **Pilot rolling** and **First season rolling** shows, it also requests the next season when a viewer nears the end of the current one. Set it up under **Library** > **Session monitoring**.
 
 ## Monitoring [#monitoring]
 
 Turn on **Session monitoring**, then set:
 
-- **Remaining episodes threshold**. Pulsarr requests the next season when this many episodes of the current one are left.
+- **Remaining episodes threshold**. A **Pilot rolling** or **First season rolling** show gets its next season when this many episodes of the current one are left.
 - **Monitored users**. Leave it empty to monitor everyone.
 - **Polling interval**. Pulsarr normally gets playback from the live Plex connection, and only polls at this interval while that connection is down.
 
@@ -1826,7 +1868,7 @@ Turn on **Session monitoring**, then set:
 
 ## Rolling shows [#rolling-shows]
 
-A rolling show starts small in Sonarr and grows as people watch it. Pick a rolling mode as the **Season monitoring** of a [Sonarr instance](/library/sonarr-radarr#where-content-lands) or a [Content router route](/library/content-router), or enroll shows already in Sonarr with **Manage enrollment**.
+A rolling show starts small in Sonarr and grows as people watch it. Pick a rolling mode as the **Season monitoring** of a [Sonarr instance](/library/sonarr-radarr#where-content-lands) or a [Content router route](/library/content-router), or enroll shows Pulsarr already sent to Sonarr with **Manage enrollment**.
 
 - **Pilot rolling** starts with the first episode. Watching it adds the rest of the season, and later seasons are added as viewers near the end of each one.
 - **First season rolling** starts with the whole first season, then adds later seasons the same way.
@@ -1840,14 +1882,14 @@ Shows only grow while session monitoring is on.
 
 The **Rolling shows** table shows each show's mode, season, viewers and last activity. From a show you can:
 
-- **Reset** it to its mode's starting point. Episode files rolling added are deleted and viewing progress is cleared.
-- **Stop rolling**. Pulsarr stops tracking the show and nothing is deleted. The episodes stay in Sonarr.
+- **Reset show** returns it to its mode's starting point. Episode files rolling added are deleted and viewing progress is cleared.
+- **Stop rolling** stops tracking the show and drops its viewing progress. Nothing is deleted and the episodes stay in Sonarr.
 
 ## Resets and cleanup [#resets-and-cleanup]
 
 These decide what happens to shows nobody is watching:
 
-- **Automatic reset** resets shows that nobody has watched for the **Inactivity period**. **Check every** sets how often Pulsarr looks for them.
+- **Automatic reset** resets shows with no watching or changes for the **Inactivity period**. **Check every** sets how often Pulsarr looks for them.
 - **Progressive cleanup** deletes earlier seasons once no viewer is still on them.
 
 When some shows are inactive, the **Rolling shows** card has a button that resets all of them at once, for example **Reset 3 inactive**.
@@ -1867,22 +1909,21 @@ Select **Add instance**, then fill in **Connection**:
 
 Select **Test connection**. Pulsarr needs a passing test before it can save, and the test also loads the quality profiles, root folders and tags for the next section.
 
-The test also checks that Sonarr or Radarr can reach Pulsarr, which it needs to report finished downloads. If it can't, select **Fix the address** and choose how your servers reach Pulsarr. You can also change that address in the **Webhooks** section of the page.
+The test also checks that Sonarr or Radarr can reach Pulsarr, which it needs to report finished downloads. If it can't, select **Fix the address** and choose how your servers reach Pulsarr. You can also change that address in the **Webhooks** section of the page. Sonarr and Radarr don't say why a webhook check failed, so look in their own log for the reason. An https address with no port is called on 443, not on Pulsarr's port. Pulsarr adds a secret header to the webhook it creates and rejects calls without it, so there is nothing to set up by hand.
 
 ## Where content lands [#where-content-lands]
 
-These settings apply to everything Pulsarr sends to the instance, unless a Content router route overrides them.
+These settings apply to everything Pulsarr sends to the instance. A Content router route can override **Quality profile**, **Root folder**, **Search on add** and **Tags**, plus **Season monitoring** and **Series type** for Sonarr and **Monitor** for Radarr.
 
 For both:
 
 - **Quality profile** and **Root folder**.
 - **Search on add** searches as soon as an item is added.
-- **Tags** are added to every item Pulsarr sends here.
-- **Bypass ignored** adds content even when it's on the instance's import list exclusions.
+- **Tags** are added to items that reach the instance because no route matched. A matching route uses its own tags instead.
 
 For Sonarr:
 
-- **Season monitoring** picks which episodes to monitor. The rolling options, **Pilot rolling**, **First season rolling** and **All seasons pilot rolling**, start small and monitor more as people watch. They only grow while [session monitoring](/library/session-monitoring) is on.
+- **Season monitoring** picks which episodes to monitor. The rolling options, **Pilot rolling**, **First season rolling** and **All seasons pilot rolling**, start small and monitor more as people watch. They stay disabled until [session monitoring](/library/session-monitoring) is on.
 - **Series type** is **Standard**, **Anime** or **Daily**.
 - **Monitor new items** decides whether seasons that air later are monitored.
 - **Season folders** puts each season in its own folder.
@@ -1892,18 +1933,26 @@ For Radarr:
 - **Minimum availability** is **Announced**, **In cinemas** or **Released**.
 - **Monitor** is **Movie only**, **Movie and collection** or **None**.
 
-## The default instance [#the-default-instance]
+Before sending, Pulsarr checks only the instances the request is routed to. A title already on some other instance is still sent.
+
+**Skip content already on Plex**, under [Plex connection](/system/plex-connection), checks Plex servers, not Sonarr or Radarr. Shared servers count only for the admin's own watchlist.
+
+## Behavior [#behavior]
+
+**Bypass ignored** adds content even when it's on the instance's import list exclusions.
 
 Content that no Content router route claims goes to the **Default instance**. There's one default per type, and the first instance you add is always the default.
 
 Only the default instance has these two settings:
 
-- **Synced instances** also receive everything that reaches the default, for example to keep a 4K copy. Each synced instance uses its own settings.
+- **Synced instances** also receive content that falls back to the default because no route matched, for example to keep a 4K copy. Each synced instance uses its own settings.
 - **Skip content no route matches**, when on, skips content that no route claims instead of sending it to the default.
 
 When you add a synced instance, **Copy existing content** sends everything already on the default to it. New content syncs on its own.
 
 ## Remove an instance [#remove-an-instance]
+
+The default instance can't be removed while other instances exist. Make another instance the default first.
 
 Removing an instance also deletes the Content router routes that send to it, its place in other instances' synced instances, and Pulsarr's record of which watchlist items are on it. The watchlist items themselves stay. For Sonarr, rolling monitored shows on the instance are removed too.
 
@@ -1957,7 +2006,7 @@ Then point Pulsarr at it in `.env` and restart Pulsarr:
 appriseUrl=http://apprise:8000
 ```
 
-If Apprise runs somewhere else, use its full address instead, for example `http://192.168.1.100:8000`. Pulsarr reads `appriseUrl` only at startup. **Notifications** > **Apprise** shows the address in use and whether Pulsarr can reach it.
+If Apprise runs somewhere else, use its full address instead, for example `http://192.168.1.100:8000`. Pulsarr reads `appriseUrl` and checks that Apprise is reachable only at startup, so start Apprise first or restart Pulsarr once it is up. **Notifications** > **Apprise** shows the address in use and whether Pulsarr reached it.
 
 ## System notifications [#system-notifications]
 
@@ -2003,7 +2052,7 @@ These pick where notices for admins go. The choices are **All channels**, **Appr
 - **Watchlist additions** tells you when a user adds something.
 - **Update notifications** tells you when a new Pulsarr release comes out. Pulsarr never updates itself.
 
-Webhook delivery uses the [Discord](/notifications/discord) admin webhooks, direct messages need the Discord bot, and Apprise uses the [Apprise](/notifications/apprise) system notifications.
+Webhook delivery uses the [Discord](/notifications/discord) admin webhooks, and Apprise uses the [Apprise](/notifications/apprise) system notifications. Direct messages need the Discord bot and a **Discord user ID** saved on the server owner's Plex user, otherwise they are dropped without an error.
 
 ## User notifications [#user-notifications]
 
@@ -2027,7 +2076,7 @@ Discord has two parts, set up under **Notifications** > **Discord**. Admin webho
 
 1. In the [Discord Developer Portal](https://discord.com/developers/applications), create a new application. You can use the [Pulsarr icon](/img/discord-bot-icon.png) as its picture.
 2. On the **Bot** page, turn on **Message Content Intent** and copy the bot token.
-3. On **OAuth2** > **URL Generator**, select the `bot` and `applications.commands` scopes, and the **Send Messages**, **Embed Links** and **Use Slash Commands** permissions.
+3. On **OAuth2** > **URL Generator**, select the `bot` and `applications.commands` scopes. The bot needs no permissions, because it only answers its own slash commands and sends direct messages.
 4. Open the generated URL and add the bot to your server.
 
 ### Connect it to Pulsarr [#connect-it-to-pulsarr]
@@ -2036,11 +2085,11 @@ Enter the **Bot token** and the **Client ID**, which is on the application's **G
 
 **Send a test direct message** messages one Discord user through the bot to check it works.
 
-### Link users [#link-users]
+### User notification setup [#user-notification-setup]
 
-Each user runs `/notifications` in your Discord server and enters their Plex username to link their account. After that, `/notifications` lets them change their own notification settings.
+Your own account cannot be linked from Discord. Paste your **Discord user ID** on your page under [Plex users](/users/plex-users). Everyone else runs `/notifications` in your Discord server and enters their Plex username to link their account. After that, `/notifications` lets them change their own notification settings.
 
-You can also paste a user's Discord user ID on their page under [Plex users](/users/plex-users). Users get direct messages only once a Discord ID is saved for them.
+You can also paste a user's **Discord user ID** on their page under [Plex users](/users/plex-users). Users get direct messages only once a Discord user ID is saved for them, and only while they share a server with the bot. A user who turns off direct messages from server members in their Discord privacy settings gets none.
 
 ### Approve requests from Discord [#approve-requests-from-discord]
 
@@ -2049,7 +2098,7 @@ You can also paste a user's Discord user ID on their page under [Plex users](/us
 
 # Notifications (/notifications)
 
-Pulsarr tells users when something they asked for is ready, and tells admins about requests, deletions and updates. Pick the channels that suit you.
+Pulsarr tells users when something they asked for is ready, and tells admins about requests, deletions and updates.
 
 <Cards>
   <Card title="Discord" href="/notifications/discord" description="Admin webhooks, and a bot that messages users." />
@@ -2063,7 +2112,7 @@ Pulsarr tells users when something they asked for is ready, and tells admins abo
 
 # Plex mobile (/notifications/plex-mobile)
 
-Pulsarr can push a notification straight to a user's Plex app on iOS or Android when something on their watchlist becomes available. Tapping it opens the title in Plex. It needs Plex Pass on your server.
+Pulsarr pushes a notification to a user's Plex mobile app when something on their watchlist becomes available. Tapping it opens the title in Plex. It needs Plex Pass on your server.
 
 ## Turn it on [#turn-it-on]
 
@@ -2071,9 +2120,9 @@ Under **Notifications** > **Plex mobile**, turn on **Send to Plex mobile apps**.
 
 **Send a test push** pushes to one user's Plex app to check it works.
 
-If a title isn't in Plex yet when it's ready, Pulsarr keeps trying for up to 10 minutes.
+If a title isn't in Plex yet when it's ready, Pulsarr keeps trying for about ten minutes.
 
-## In the Plex app [#in-the-plex-app]
+## Mobile app setup [#mobile-app-setup]
 
 Users need push notifications turned on in the Plex app, under **Settings** > **Notifications**.
 
@@ -2082,7 +2131,7 @@ Plex can also notify about every new item in a library, under **New Content Adde
 
 # Public content (/notifications/public-content)
 
-Public content announces every title that becomes available, whoever asked for it, in shared channels. It works alongside each user's own notifications. Set it up under **Notifications** > **Public content** and turn on **Broadcast to shared channels**.
+Public content announces every title that becomes available, whoever asked for it, in shared channels. Users still get their own notifications. Set it up under **Notifications** > **Public content** and turn on **Broadcast to shared channels**.
 
 Each tab, **All content**, **Movies** and **Shows**, has two lists:
 
@@ -2093,25 +2142,25 @@ Movies and shows use their own tab's lists when they have any, and the **All con
 
 **Send test** next to a URL sends a test announcement to it, and **Test saved URLs** tests the URLs already saved.
 
-On Discord, the announcement mentions the users who have the title on their watchlist, if they have **Discord mention** turned on and a Discord ID saved on their page under [Plex users](/users/plex-users).
+On Discord, the announcement mentions the users who have the title on their watchlist, if they have **Discord mention** turned on and a **Discord user ID** saved on their page under [Plex users](/users/plex-users).
 
 
 # Webhooks (/notifications/webhooks)
 
-Webhooks post a JSON payload to a URL you choose when an event happens. Use them to connect Pulsarr to Home Assistant, n8n or your own scripts. Set them up under **Notifications** > **Webhooks**.
+Webhooks post a JSON payload to a URL you choose when an event happens, for Home Assistant, n8n or your own scripts. They are an admin channel, so every endpoint gets its events for all users. Set them up under **Notifications** > **Webhooks**.
 
 ## Add an endpoint [#add-an-endpoint]
 
 Select **Add endpoint**, then fill in:
 
-- **Name**, for example "Home Assistant".
+- **Name**, any label you like.
 - **URL**, where Pulsarr posts.
 - **Auth header**, optional. Fill in both **Header name** and **Header value**, for example `Authorization` and `Bearer <token>`, and Pulsarr sends it with every request.
 - The events to send. Pick at least one.
 
 **Send test** posts a test event, with `"event": "test"`, to the URL and header as typed. Save the endpoint when you're done.
 
-On each saved endpoint, **Enabled** pauses deliveries without deleting it.
+The switch on each saved endpoint pauses deliveries without deleting it.
 
 ## Events [#events]
 
@@ -2139,11 +2188,13 @@ Every payload has the same envelope:
 }
 ```
 
-`data` depends on the event. The [webhook payloads](/api/webhook-payloads/webhookMediaAvailable) in the API reference document each one, with examples.
+`data` depends on the event. The [webhook payloads](/api/webhook-payloads/webhookMediaAvailable) in the API reference document each one, with examples. Pulsarr validates every payload against that schema before sending it, so the shape you see there is what arrives.
 
 ## Delivery [#delivery]
 
-Your endpoint must answer within 10 seconds. Pulsarr tries each delivery up to three times.
+Your endpoint must answer with a 2xx status within about ten seconds. Timeouts, network errors, 5xx and 429 are retried for up to three attempts, a 4xx gets one attempt, and retries stop when `Retry-After` asks for more than a minute.
+
+Pulsarr checks HTTPS certificates, so an endpoint with a self-signed certificate fails.
 
 
 # Approval queue (/requests/approval-queue)
@@ -2178,7 +2229,7 @@ Notes you add stay with the request and appear in webhook notifications. The req
 
 ## Act on several requests [#act-on-several-requests]
 
-Select requests with their checkboxes, then use **Approve**, **Deny** or **Delete** in the bar that appears.
+Select requests with their checkboxes, then use **Approve**, **Deny** or **Delete** in the bar that appears. On **History**, only denied requests can be approved, and the button shows the count, for example **Approve 3 requests**.
 
 You can also approve and deny requests from Discord with the bot's `/approvals` command.
 
@@ -2186,6 +2237,16 @@ You can also approve and deny requests from Discord with the bot's `/approvals` 
 # Approval settings (/requests/approval-settings)
 
 Find these under **Requests** > **Approval settings**.
+
+## Order of checks [#order-of-checks]
+
+Pulsarr checks each new watchlist item in this order.
+
+1. **Watchlist cap**. An item past the user's cap is skipped.
+2. Approval. A route with **Always require approval**, or the user's **Require approval**, holds the item. No route can turn **Require approval** off.
+3. Quota. An item over the user's [quota](/requests/quotas) waits for approval, unless the user has **Bypass approval over the limit** or the route has **Bypass user quotas**.
+
+An item the user already had approved skips these checks and goes where it was approved to go, even if a cap was set later.
 
 ## Expiration [#expiration]
 
@@ -2224,7 +2285,7 @@ Pulsarr sends most watchlist items straight to Sonarr or Radarr. An item waits i
 
 # Quotas (/requests/quotas)
 
-A quota limits how many requests a user can make in a period. Requests over the limit wait in the [approval queue](/requests/approval-queue). A watchlist cap limits how many items a user can have at once. Items past the cap are skipped, not held for approval.
+A quota limits how many requests a user can make in a period. Requests over the limit wait in the [approval queue](/requests/approval-queue). A watchlist cap skips new watchlist items past the cap instead of requesting them. Skipped items are not held for approval.
 
 ## Set a user's quota [#set-a-users-quota]
 
@@ -2234,7 +2295,7 @@ Open a user from **Users** > **Plex users**. Movies and shows have separate quot
 - **Quota period** is **Daily**, **Weekly rolling** or **Monthly**.
 - **Requests per period** is the limit.
 - **Bypass approval over the limit** sends requests over the limit straight through, and turns the cap off.
-- **Cap the watchlist** and **Watchlist cap** set the most items the user can have on their watchlist.
+- **Cap the watchlist** and **Watchlist cap** skip new watchlist items past the cap. These fields show only while **Limit requests** is on.
 
 **Remove quotas** deletes the user's quotas and caps. It can also approve the requests their quota was holding.
 
@@ -2258,7 +2319,7 @@ Each request a quota counts is kept as a usage record. **Delete old usage histor
 
 **Quota maintenance** runs that cleanup. **Run on a schedule** turns it on or off, and **Run at** sets the time, in the server's time zone.
 
-## Cap notifications [#cap-notifications]
+## Watchlist cap notifications [#watchlist-cap-notifications]
 
 **Send cap notifications to** picks where admins hear that a user reached their watchlist cap. **Notify the user** also tells the user, by Discord or Apprise if they use them.
 
@@ -2281,12 +2342,14 @@ An API key lets another app, such as Home Assistant or your own script, call the
 
 Enter a **Name** that says what will use the key, then select **Create key**. **Copy key** copies it. Send it in the `X-API-Key` header with each request.
 
+A wrong or revoked key gets a 401, even on a network where sign-in is skipped.
+
 **Revoke** cuts off anything using a key straight away, and it can't be undone.
 
 
 # System (/system)
 
-These pages cover Pulsarr's own connections and housekeeping.
+These pages cover Pulsarr's link to Plex, access to its API, its log and your admin login.
 
 <Cards>
   <Card title="Plex connection" href="/system/plex-connection" description="The Plex account and server, watchlist feeds and library refresh." />
@@ -2302,7 +2365,7 @@ These pages cover Pulsarr's own connections and housekeeping.
 
 Under **Log settings**:
 
-- **Application log level** sets how much Pulsarr records, from `fatal` to `trace`. Raise it to `debug` when you're chasing a problem, and set it back afterwards. A `logLevel` set in [`.env`](/installation/environment-variables) replaces this every time Pulsarr starts.
+- **Application log level** sets how much Pulsarr records, from **Fatal** to **Trace**, or **Silent** to record nothing. Raise it to **Debug** when you're chasing a problem, and set it back afterwards. A `logLevel` set in [`.env`](/installation/environment-variables) replaces this every time Pulsarr starts.
 - **Initial lines** is how many earlier lines load when you open the page.
 
 The log files themselves are in the `logs` folder of Pulsarr's data folder, for example `./data/logs` in Docker.
@@ -2310,7 +2373,7 @@ The log files themselves are in the `logs` folder of Pulsarr's data folder, for 
 
 # Plex connection (/system/plex-connection)
 
-**System** > **Plex connection** holds what you set up in the first two steps of setup, plus a few things you only need later.
+Find these under **System** > **Plex connection**.
 
 ## Plex account [#plex-account]
 
@@ -2322,19 +2385,21 @@ Pulsarr reads watchlists through the Plex account that owns your server. To link
 
 **Connection** starts on **Automatic**, which lets Pulsarr pick the best connection to your server. Choose **Address** to enter it yourself. **Test connection** checks it.
 
-**Skip content already on Plex** skips requests for titles your server or a shared server already has.
+**Skip content already on Plex** skips requests for titles your server already has. Servers shared with you count only for the admin's own watchlist.
 
 **Plex live connection** shows whether Pulsarr is getting live updates from your server. While it's down, Pulsarr polls Plex instead.
 
 ## Watchlist feeds [#watchlist-feeds]
 
-With Plex Pass, Pulsarr watches two RSS feeds, **Your watchlist feed** and **Friends' watchlist feed**, so new watchlist items arrive within seconds. Without Plex Pass, Pulsarr checks each watchlist on a schedule. **Generate feeds again** asks Plex for new feed URLs and replaces the old ones.
+With Plex Pass, Pulsarr watches two RSS feeds, **Your watchlist feed** and **Friends' watchlist feed**, so new watchlist items arrive within seconds. Without Plex Pass, Pulsarr checks each watchlist about every five minutes. **Generate feeds** asks Plex for the feed URLs. **Generate again** asks for new ones and replaces the old ones.
 
 **Sync watchlists** reads your and your friends' watchlists from Plex again.
 
 ## Plex library refresh [#plex-library-refresh]
 
 Sonarr and Radarr can tell Plex to refresh its library after they import something. **Set up** adds that Plex Media Server connection to every Sonarr and Radarr instance, and **Remove** takes it off all of them, including ones added by hand.
+
+The Plex connection Pulsarr adds uses the host, port and SSL setting of your **Address**, or of the connection **Automatic** picked. An address without a port gets 443 with SSL and 80 without.
 
 
 # Users (/users)
@@ -2344,7 +2409,7 @@ Pulsarr adds your Plex friends as users on its own. These pages set what each us
 <Cards>
   <Card title="Plex users" href="/users/plex-users" description="Sync, approval, notifications and quotas for each person." />
   <Card title="New user defaults" href="/users/new-user-defaults" description="What users start with when Pulsarr first sees them." />
-  <Card title="User tags" href="/users/user-tags" description="Tag content in Sonarr and Radarr by who requested it." />
+  <Card title="User tags" href="/users/user-tags" description="Tag content in Sonarr and Radarr by who has it on their watchlist." />
   <Card title="Plex labels" href="/users/plex-labels" description="Label movies and shows in Plex by who has them on their watchlist." />
 </Cards>
 
@@ -2358,7 +2423,7 @@ Under **Access**:
 - **Sync watchlist** is on by default. Turn it off to add new users without requesting what they watchlist.
 - **Require approval** holds every request from new users in the [approval queue](/requests/approval-queue).
 
-Under **Movies** and **Shows**, **Limit requests** gives new users a [quota](/requests/quotas) with a **Quota period** and **Requests per period**. **Bypass approval over the limit** sends their requests over the limit straight through. **Cap the watchlist** and **Watchlist cap** set the most items new users can have on their watchlist.
+Under **Movies** and **Shows**, **Limit requests** gives new users a [quota](/requests/quotas) with a **Quota period** and **Requests per period**. **Bypass approval over the limit** sends their requests over the limit straight through and turns the cap off. With **Cap the watchlist** on, new watchlist items past the **Watchlist cap** are skipped instead of requested. The cap fields show only while **Limit requests** is on.
 
 
 # Plex labels (/users/plex-labels)
@@ -2367,7 +2432,7 @@ Plex labels mark each movie and show in Plex with the users who have it on their
 
 ## Labeling [#labeling]
 
-**Label content in Plex** labels each item with who watchlists it, once the item is in Plex. A label is the **Prefix** and the user's name, for example `pulsarr:jamie`. **Name from** picks **Username** or **Alias**.
+**Label content in Plex** labels each item with who watchlists it, once the item is in Plex. A label is the **Prefix** and the user's name, for example `pulsarr:jamie`. **Name from** picks **Username** or **Alias**. Labels also apply when Sonarr or Radarr reports an import to Pulsarr.
 
 The format can't change while Pulsarr's labels exist. Remove them first with **Remove all Pulsarr labels**.
 
@@ -2383,11 +2448,11 @@ The format can't change while Pulsarr's labels exist. Remove them first with **R
 
 ## Tag sync [#tag-sync]
 
-**Sync tags as labels** copies Sonarr and Radarr tags to Plex as labels, except user tags. Each tag on an item becomes a label on it, with the same prefix. **Radarr tags on movies** and **Sonarr tags on shows** pick which ones.
+**Sync tags as labels** copies Sonarr and Radarr tags to Plex as labels, except user tags. Pulsarr pairs a Plex item with its Sonarr or Radarr entry by file path, so Plex and the arrs must see the media under the same paths. Each tag on an item becomes a label on it, with the same prefix. **Radarr tags on movies** and **Sonarr tags on shows** pick which ones.
 
 ## Full sync [#full-sync]
 
-**Full label sync** rechecks every watchlisted item and fixes its labels. It needs labeling on. **Run on a schedule** runs it at the time you set in **Run at**, in the server's time zone.
+**Full sync** rechecks every watchlisted item and fixes its labels. It needs labeling on. **Run on a schedule** runs it at the time and, if you like, the day of the week set in **Run at**, in the server's time zone.
 
 ## Remove labels [#remove-labels]
 
@@ -2400,13 +2465,19 @@ The format can't change while Pulsarr's labels exist. Remove them first with **R
 
 The table shows each user's **Relationship**, **Watchlist** size, whether they **Sync**, whether they need **Approval**, their **Notifications** and their **Quotas**. Use **Search users** and the filters to narrow it.
 
+## Relationship [#relationship]
+
+- **Owner** is your own Plex account.
+- **Friend** is a Plex friend with access to your server.
+- **No server** is a Plex friend without server access. Their requests sync, but they can't watch.
+- **No friend** has access to your server but isn't a Plex friend.
+- **Pending** is a friend request you sent that they haven't accepted.
+- **Incoming** is a friend request they sent you. Accept it in Plex.
+- **Managed** is a Plex Home account without a watchlist.
+
 ## Not yet friends [#not-yet-friends]
 
-Pulsarr can only read the watchlists of your Plex friends. People with access to your server who aren't friends, and pending friend requests, show under **Not yet friends**.
-
-- **No friend** has access to your server but isn't a Plex friend. Select **Send friend request**.
-- **Pending** is a request you sent that they haven't accepted. You can **Cancel request** or **Resend request**.
-- **Incoming** is a request they sent you. Accept it in Plex.
+Pulsarr can only read the watchlists of your Plex friends. People it can't track yet show under **Not yet friends**, except **Managed** accounts. Select **Send friend request** for a **No friend** account, or **Cancel request** or **Resend request** for a **Pending** one.
 
 A friend whose **Watchlist** shows 0 may have an empty watchlist or a private one. Pulsarr can't tell which. See the [quick start](/installation/quick-start#before-you-start) for the Plex privacy setting.
 
@@ -2427,7 +2498,7 @@ The page also shows what's on their watchlist, their requests by status and thei
 
 Select users in the table, then:
 
-- **Edit settings** changes access and notifications for all of them. Fields left as is keep each user's current value.
+- **Edit settings** changes access and notifications for all of them. Fields left as is keep each user's current value. **Clear values** removes their alias, Discord user ID or Apprise URL.
 - **Edit quotas** sets or removes their quotas.
 
 
@@ -2451,7 +2522,7 @@ The format can't change while the tags exist in Sonarr or Radarr. Remove them fi
 
 - **Remove the tag** removes it.
 - **Keep the tag** keeps it as a record of who asked.
-- **Swap for a removed tag** replaces it with the **Removed tag**. [Delete sync](/library/delete-sync) in tag based mode deletes content with that tag.
+- **Swap for a removed tag** removes it, and adds the **Removed tag** once nobody wants the item, so you can find it. [Delete sync](/library/delete-sync) in tag based mode deletes content with that tag.
 
 **Clean up orphaned tags on sync** removes the tags of users who were deleted or renamed in Plex.
 

@@ -4,7 +4,7 @@
 
 Under **Log settings**:
 
-- **Application log level** sets how much Pulsarr records, from `fatal` to `trace`. Raise it to `debug` when you're chasing a problem, and set it back afterwards. A `logLevel` set in [`.env`](/installation/environment-variables) replaces this every time Pulsarr starts.
+- **Application log level** sets how much Pulsarr records, from **Fatal** to **Trace**, or **Silent** to record nothing. Raise it to **Debug** when you're chasing a problem, and set it back afterwards. A `logLevel` set in [`.env`](/installation/environment-variables) replaces this every time Pulsarr starts.
 - **Initial lines** is how many earlier lines load when you open the page.
 
 The log files themselves are in the `logs` folder of Pulsarr's data folder, for example `./data/logs` in Docker.

@@ -1,34 +1,21 @@
 # Pulsarr API (/api)
 
-Every route Pulsarr's own interface uses is part of the API, documented in the pages below. Your Pulsarr also serves an interactive reference at `/api/docs`.
+Every route the web UI uses is part of the API. Your Pulsarr serves an interactive reference at `/api/docs`, behind your `basePath` if you set one. Try calls and download the spec there. The pages here are a read-only reference. Routes can change between releases.
 
 ## Authentication [#authentication]
 
-Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. Every `/v1` route accepts it.
+Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. A signed-in browser session also works. A request body that fails validation returns a 400 with the reason.
 
 ```bash
 curl -H "X-API-Key: <your-key>" http://<your-server>:3003/v1/approval/requests
 ```
 
-Routes can change between releases. Check the release notes when you upgrade.
+`/health` needs no key and reports whether Pulsarr can reach its database.
 
 ## Limits and paging [#limits-and-paging]
 
-Requests are rate limited per IP address. Routes that check credentials or test connections have tighter limits than the rest.
-
-Long lists take `limit` and `offset` to page through results. These include the approval requests, quota usage, exclusions and the movie and show stats.
+Requests are rate limited per IP address, with the global limit set by [`rateLimitMax`](/installation/environment-variables). Sign-in, account changes and inbound webhooks with a bad secret have tighter limits, and webhooks with a valid secret are never limited. A `429` carries `Retry-After` and the `X-RateLimit` headers. List routes page with `limit` and `offset`.
 
 ## Live streams [#live-streams]
 
-`/v1/progress` and `/v1/logs/stream` are server-sent event streams. They tell clients to reconnect after 3 seconds and send the current state when you connect. They send no heartbeat, so a reverse proxy in front of Pulsarr must not buffer them.
-
-## Common routes [#common-routes]
-
-- `GET /v1/approval/requests` lists requests, with filters for status, user, content type and trigger.
-- `POST /v1/approval/requests/{id}/approve` and `POST /v1/approval/requests/{id}/reject` decide one.
-- `GET /v1/stats/all` returns the dashboard statistics.
-- `POST /v1/plex/watchlist-sync/{type}/start` starts a watchlist sync.
-
-## Home Assistant [#home-assistant]
-
-The community-maintained [Pulsarr Enhanced Requests](https://github.com/SpaceFrags/pulsarr_enhanced_requests) integration and its [requests card](https://github.com/SpaceFrags/pulsarr-requests-card) manage requests from Home Assistant.
+`/v1/progress` and `/v1/logs/stream` are server-sent event streams. They ask clients to reconnect after a few seconds and send a keep-alive comment about every half minute. The logs stream starts with a tail of recent lines. A reverse proxy in front of Pulsarr must not buffer them.
