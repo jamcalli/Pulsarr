@@ -186,7 +186,8 @@
         "fumadocs-mdx",
         "fumadocs-openapi",
         "@fumadocs/base-ui",
-        "@fumadocs/cli"
+        "@fumadocs/cli",
+        "fumadocs-ui"
       ]
     },
     {
@@ -664,13 +665,14 @@
         "!fumadocs-openapi",
         "!@fumadocs/base-ui",
         "!@fumadocs/cli",
+        "!fumadocs-ui",
         "!react",
         "!react-dom",
         "!/^@types\\/react/"
       ]
     },
     {
-      "description": "Keep docs PRs apart from app PRs and review them by hand, since CI typechecks the docs site but never builds it",
+      "description": "Keep docs PRs apart from app PRs and review them by hand",
       "matchFileNames": [
         "docs/**"
       ],
