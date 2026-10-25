@@ -20,10 +20,11 @@ import {
   type TmdbApiDeps,
 } from './tmdb/api.js'
 import {
-  fetchPlexRatings,
-  fetchRadarrRatings,
-  type RadarrRatingsDeps,
-} from './tmdb/ratings.js'
+  fetchRadarrLookup,
+  type RadarrLookupDeps,
+} from './tmdb/radarr-lookup.js'
+import { fetchPlexRatings } from './tmdb/ratings.js'
+import { pickReleaseDates } from './tmdb/release-dates.js'
 import { TmdbRequestQueue } from './tmdb/request-queue.js'
 
 const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -72,7 +73,7 @@ export class TmdbService {
     return this.fastify.config.tmdbRegion || 'US'
   }
 
-  private get ratingsDeps(): RadarrRatingsDeps {
+  private get lookupDeps(): RadarrLookupDeps {
     return {
       db: this.fastify.db,
       radarrManager: this.fastify.radarrManager,
@@ -103,12 +104,12 @@ export class TmdbService {
     try {
       const movieRegion = region || this.defaultRegion
 
-      const [details, watchProviders, radarrRatings, plexRatings] =
+      const [details, watchProviders, radarrLookup, plexRatings] =
         await Promise.allSettled([
           fetchDetails(this.api, 'movie', tmdbId),
           fetchWatchProviders(this.api, 'movie', tmdbId, movieRegion),
-          fetchRadarrRatings(this.ratingsDeps, tmdbId),
-          fetchPlexRatings(this.ratingsDeps, tmdbId),
+          fetchRadarrLookup(this.lookupDeps, tmdbId),
+          fetchPlexRatings(this.lookupDeps, tmdbId),
         ])
 
       if (details.status === 'rejected') {
@@ -124,17 +125,20 @@ export class TmdbService {
         return null
       }
 
+      const lookup = this.settled(
+        radarrLookup,
+        'Radarr lookup for movie',
+        tmdbId,
+      )
+
       return {
         details: details.value,
         watchProviders: selectRegion(
           this.settled(watchProviders, 'watch providers for movie', tmdbId),
           movieRegion,
         ),
-        radarrRatings: this.settled(
-          radarrRatings,
-          'Radarr ratings for movie',
-          tmdbId,
-        ),
+        releaseDates: pickReleaseDates(lookup),
+        radarrRatings: lookup?.ratings,
         plexRatings: this.settled(
           plexRatings,
           'Plex ratings for movie',
@@ -157,7 +161,7 @@ export class TmdbService {
       const [details, watchProviders, plexRatings] = await Promise.allSettled([
         fetchDetails(this.api, 'tv', tmdbId),
         fetchWatchProviders(this.api, 'tv', tmdbId, tvRegion),
-        fetchPlexRatings(this.ratingsDeps, tmdbId),
+        fetchPlexRatings(this.lookupDeps, tmdbId),
       ])
 
       if (details.status === 'rejected') {

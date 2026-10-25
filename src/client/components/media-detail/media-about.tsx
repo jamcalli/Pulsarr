@@ -79,7 +79,7 @@ function ProviderLogo({ path }: { path: string | null }) {
 
 export function MediaAbout({ metadata }: { metadata: MediaMetadata }) {
   const { overview } = metadata.details
-  const facts = mediaFacts(metadata.details)
+  const facts = mediaFacts(metadata)
 
   return (
     <section className={SECTION}>
