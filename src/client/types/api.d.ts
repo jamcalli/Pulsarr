@@ -4328,6 +4328,12 @@ export interface components {
             success: boolean;
             message: string;
         };
+        /** @description Theatrical, digital and physical release days for a movie, as Radarr reports them. */
+        MovieReleaseDates: {
+            theatrical?: string;
+            digital?: string;
+            physical?: string;
+        };
         /** @description Notifications sent through one channel */
         NotificationChannelStat: {
             channel: string;
@@ -5306,6 +5312,7 @@ export interface components {
         TmdbMovieMetadata: {
             details: components["schemas"]["TmdbMovieDetails"];
             watchProviders?: components["schemas"]["TmdbWatchProviderData"];
+            releaseDates?: components["schemas"]["MovieReleaseDates"];
             radarrRatings?: components["schemas"]["RadarrRatings"];
             plexRatings?: components["schemas"]["PlexRatings"];
         };

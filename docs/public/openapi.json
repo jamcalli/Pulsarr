@@ -3398,6 +3398,22 @@
         "additionalProperties": false,
         "description": "The metadata refresh was started in the background."
       },
+      "MovieReleaseDates": {
+        "type": "object",
+        "properties": {
+          "theatrical": {
+            "type": "string"
+          },
+          "digital": {
+            "type": "string"
+          },
+          "physical": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Theatrical, digital and physical release days for a movie, as Radarr reports them."
+      },
       "NotificationChannelStat": {
         "type": "object",
         "properties": {
@@ -7267,6 +7283,9 @@
           },
           "watchProviders": {
             "$ref": "#/components/schemas/TmdbWatchProviderData"
+          },
+          "releaseDates": {
+            "$ref": "#/components/schemas/MovieReleaseDates"
           },
           "radarrRatings": {
             "$ref": "#/components/schemas/RadarrRatings"

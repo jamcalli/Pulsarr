@@ -16,6 +16,7 @@ type MovieDetails = components['schemas']['TmdbMovieDetails']
 type ShowDetails = components['schemas']['TmdbTvDetails']
 type MediaDetails = MovieDetails | ShowDetails
 type WatchProvider = components['schemas']['TmdbWatchProvider']
+type ReleaseDates = components['schemas']['MovieReleaseDates']
 
 interface Fact {
   label: string
@@ -90,13 +91,22 @@ export function heroMeta(details: MediaDetails): {
   }
 }
 
-function movieFacts(details: MovieDetails): Array<Fact | null> {
-  const released = tmdbDay(details.release_date)
+function dateFact(label: string, value: string | undefined): Fact | null {
+  const day = tmdbDay(value ?? null)
+  return day ? { label, value: formatDate(day) } : null
+}
+
+function movieFacts(
+  details: MovieDetails,
+  releaseDates: ReleaseDates | undefined,
+): Array<Fact | null> {
   return [
     details.original_title !== details.title
       ? { label: 'Original title', value: details.original_title }
       : null,
-    released ? { label: 'Released', value: formatDate(released) } : null,
+    dateFact('Theatrical', releaseDates?.theatrical ?? details.release_date),
+    dateFact('Digital', releaseDates?.digital),
+    dateFact('Physical', releaseDates?.physical),
     details.revenue > 0
       ? { label: 'Revenue', value: formatCurrency(details.revenue, 'USD') }
       : null,
@@ -137,7 +147,8 @@ function showFacts(details: ShowDetails): Array<Fact | null> {
   ]
 }
 
-export function mediaFacts(details: MediaDetails): Fact[] {
+export function mediaFacts(metadata: MediaMetadata): Fact[] {
+  const { details } = metadata
   const countries = names(details.production_countries)
   const studios = isMovieDetails(details)
     ? names(details.production_companies)
@@ -153,7 +164,11 @@ export function mediaFacts(details: MediaDetails): Fact[] {
     countries ? { label: 'Countries', value: countries } : null,
     studios ? { label: 'Studios', value: studios } : null,
   ]
-  const own = isMovieDetails(details) ? movieFacts(details) : showFacts(details)
+  const releaseDates =
+    'releaseDates' in metadata ? metadata.releaseDates : undefined
+  const own = isMovieDetails(details)
+    ? movieFacts(details, releaseDates)
+    : showFacts(details)
   return [...own, ...shared].filter((fact) => fact !== null)
 }
 
