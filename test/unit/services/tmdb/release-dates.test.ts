@@ -35,6 +35,14 @@ describe('pickReleaseDates', () => {
     expect(pickReleaseDates(lookup({}))).toBeUndefined()
   })
 
+  it('treats an empty date as absent', () => {
+    expect(
+      pickReleaseDates(
+        lookup({ inCinemas: '', digitalRelease: '2024-05-10T00:00:00Z' }),
+      ),
+    ).toEqual({ digital: '2024-05-10' })
+  })
+
   it('returns undefined without a lookup', () => {
     expect(pickReleaseDates(null)).toBeUndefined()
   })

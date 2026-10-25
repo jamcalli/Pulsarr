@@ -4,9 +4,13 @@ import type { MovieReleaseDates } from '@schemas/tmdb/tmdb.schema.js'
 export function pickReleaseDates(
   lookup: RadarrMovieLookupResponse | null | undefined,
 ): MovieReleaseDates | undefined {
-  const theatrical = lookup?.inCinemas?.slice(0, 10)
-  const digital = lookup?.digitalRelease?.slice(0, 10)
-  const physical = lookup?.physicalRelease?.slice(0, 10)
+  const theatrical = day(lookup?.inCinemas)
+  const digital = day(lookup?.digitalRelease)
+  const physical = day(lookup?.physicalRelease)
   if (!theatrical && !digital && !physical) return undefined
   return { theatrical, digital, physical }
+}
+
+function day(value: string | undefined): string | undefined {
+  return value ? value.slice(0, 10) : undefined
 }
