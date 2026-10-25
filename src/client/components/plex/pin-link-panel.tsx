@@ -114,7 +114,9 @@ function CreatingBody({ phone }: { phone: boolean }) {
   return (
     <div className={`${DESKTOP_GRID} w-full`}>
       {status}
-      <Skeleton className={QR_FRAME} />
+      <div className={`${QR_FRAME} overflow-hidden`}>
+        <Skeleton className="aspect-square w-full rounded-none" />
+      </div>
       <div className="flex flex-col items-start gap-3">
         <Skeleton className="h-5 w-72" />
         <Skeleton className="h-9 w-32" />

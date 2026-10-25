@@ -65,5 +65,14 @@ export function PosterFrame({ thumb, type, size = 'fill' }: PosterFrameProps) {
 }
 
 export function PosterFrameSkeleton({ size = 'fill' }: { size?: PosterSize }) {
-  return <Skeleton className={posterSizes({ size })} />
+  return (
+    <div
+      className={cn(
+        posterSizes({ size }),
+        'overflow-hidden border-2 border-border',
+      )}
+    >
+      <Skeleton className="aspect-2/3 w-full rounded-none" />
+    </div>
+  )
 }
