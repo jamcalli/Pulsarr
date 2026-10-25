@@ -152,7 +152,7 @@ describe('PlexMobilePage', () => {
       screen.getByRole('link', { name: 'Plex app settings' }),
     ).toHaveAttribute(
       'href',
-      'https://jamcalli.github.io/Pulsarr/docs/notifications/plex-mobile#mobile-app-setup',
+      'https://jamcalli.github.io/Pulsarr/notifications/plex-mobile#mobile-app-setup',
     )
   })
 

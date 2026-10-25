@@ -161,8 +161,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   },
 ]
 
-export const DOCS_ROOT = 'https://jamcalli.github.io/Pulsarr/docs'
-export const DOCS_URL = `${DOCS_ROOT}/intro`
+export const DOCS_ROOT = 'https://jamcalli.github.io/Pulsarr'
+export const DOCS_URL = DOCS_ROOT
 
 export const HELP_LINKS: readonly {
   label: string
