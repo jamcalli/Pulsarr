@@ -137,9 +137,9 @@ describe('media facts', () => {
       },
     })
     expect(facts.slice(0, 3)).toEqual([
-      { label: 'Theatrical (US)', value: 'Oct 14, 1994' },
-      { label: 'Digital (US)', value: 'Mar 9, 1999' },
-      { label: 'Physical (US)', value: 'Jan 27, 1995' },
+      { label: 'Theatrical', value: 'Oct 14, 1994' },
+      { label: 'Digital', value: 'Mar 9, 1999' },
+      { label: 'Physical', value: 'Jan 27, 1995' },
     ])
   })
 
@@ -150,7 +150,7 @@ describe('media facts', () => {
     })
     expect(facts.map((fact) => fact.label).slice(0, 2)).toEqual([
       'Theatrical',
-      'Digital (US)',
+      'Digital',
     ])
     expect(facts[0]?.value).toBe('Sep 23, 1994')
   })

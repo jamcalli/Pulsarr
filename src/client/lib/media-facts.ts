@@ -100,16 +100,13 @@ function movieFacts(
   details: MovieDetails,
   releaseDates: ReleaseDates | undefined,
 ): Array<Fact | null> {
-  const theatrical = releaseDates?.theatrical
-    ? dateFact('Theatrical (US)', releaseDates.theatrical)
-    : dateFact('Theatrical', details.release_date)
   return [
     details.original_title !== details.title
       ? { label: 'Original title', value: details.original_title }
       : null,
-    theatrical,
-    dateFact('Digital (US)', releaseDates?.digital),
-    dateFact('Physical (US)', releaseDates?.physical),
+    dateFact('Theatrical', releaseDates?.theatrical ?? details.release_date),
+    dateFact('Digital', releaseDates?.digital),
+    dateFact('Physical', releaseDates?.physical),
     details.revenue > 0
       ? { label: 'Revenue', value: formatCurrency(details.revenue, 'USD') }
       : null,
