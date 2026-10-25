@@ -40,7 +40,9 @@ Start it:
 docker compose up -d
 ```
 
-Then open `http://<your-server>:3003`. Pulsarr keeps its database and logs in `./data`.
+Then open `http://<your-server>:3003`. Pulsarr keeps its database and logs in `./data`. To back up Pulsarr, stop the container and copy that folder.
+
+Pulsarr reads its settings from the container's environment. `env_file` passes `.env` into it, so the file must sit next to `docker-compose.yml`. A `.env` inside `./data` is not read. A variable can also go under `environment:`, which wins when both set it.
 
 ## docker run
 
@@ -63,17 +65,17 @@ docker run -d \
 - `latest` is the newest release.
 - `beta` is the newest pre-release.
 - `0.20.0` pins an exact version, and `0.20` follows the newest patch of that minor version.
-- `node`, `beta-node`, `0.20.0-node` and `0.20-node` are the same tags for the Node.js image.
-
-### Synology and older kernels
-
-On a Synology NAS, or any host with a Linux kernel older than 4.11, use the Node.js image, `lakker/pulsarr:node`. The default image needs a newer kernel. Both images run the same app.
+- `node`, `beta-node`, `0.20.0-node` and `0.20-node` are the same tags for the Node.js image. It exists for hosts where the default image once failed to start, such as some Synology NAS models. That is fixed, so use the default image. The `node` tags will point at it in a future release.
 
 ## File ownership
 
 Pulsarr runs as the user and group set by `PUID` and `PGID`, which both default to `1000`. On start it takes ownership of anything in `./data` that has a different owner. Set them to your user on the host, which `id -u` and `id -g` print.
 
 If you run the container with Compose's `user:` option instead, Pulsarr skips the ownership change. `./data` must then already be writable by that user, or the container stops with an error.
+
+## Health check
+
+The image checks `/health` on its own, so `docker ps` shows the container as healthy or unhealthy. The route needs no sign-in and returns `200` when the database answers and `503` when it does not, so a proxy status page or an uptime monitor can use it too.
 
 ## Ports
 

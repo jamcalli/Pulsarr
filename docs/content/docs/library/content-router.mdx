@@ -5,7 +5,7 @@ description: Send each request to the right Sonarr or Radarr instance based on w
 
 Without routes, every request goes to the default Sonarr or Radarr instance. Routes send matching requests somewhere else, with their own settings, or skip them. Manage them under **Library** > **Content router**, which has a **Movies** tab for Radarr routes and a **TV shows** tab for Sonarr routes.
 
-![Four movie routes: a Skip route first, then three ranked routes](/img/library/content-router.webp)
+![Four movie routes with a Skip route first and three ranked routes below it](/img/library/content-router.webp)
 
 Each route shows its conditions and where matching requests go. The switch on a route turns it on or off without deleting it.
 
@@ -13,10 +13,10 @@ Each route shows its conditions and where matching requests go. The switch on a 
 
 Select **Add route**, or the arrow on an existing route to edit it. Give it a **Route name**, set its conditions, then choose what happens **When a request matches**:
 
-- **Send to Sonarr** or **Send to Radarr** sends it to the **Instance** you pick. The route has its own quality profile, root folder, tags and other settings. Leave any of them on **Use instance default** to keep the instance's setting. Tags you list replace the instance's tags.
+- **Send to Sonarr** or **Send to Radarr** sends it to the **Instance** you pick. The route sets its own **Quality profile**, **Root folder**, **Search on add** and **Tags**, plus **Season monitoring** and **Series type** for Sonarr or **Monitor** for Radarr. Leave any but **Tags** on **Use instance default** to keep the instance's setting. An empty **Tags** list adds no tags.
 - **Skip** never sends it anywhere.
 
-Select **Save route** when you're done.
+Select **Create route** for a new route or **Save route** for an edited one.
 
 ![Editing a route with a nested group and a Not condition](/img/library/content-router-route.webp)
 
@@ -37,6 +37,14 @@ Fields for movies and TV shows:
 
 TV shows also have **Season** and **Series status**. Movies also have **Movie status**.
 
+## How conditions are judged
+
+The editor offers only the operators a field supports. Every field takes some of **is**, **is not**, **is any of** and **is none of**. Number fields also take **is above**, **is below** and **is between**. Text fields can also take **contains**, **does not contain** or **matches regex**.
+
+A condition on missing data is unknown, not false. **Not** leaves it unknown. An **All** group with an unknown and no failure is unknown, and so is an **Any** group with an unknown and no pass. A route that ends up unknown doesn't match.
+
+**Season** checks every season number the show has. **is not** and **is none of** match only when no season does, the rest match when any season does. **Series status** is **Continuing**, **Ended**, **Upcoming** or **Deleted**. **Movie status** is **TBA**, **Announced**, **In cinemas**, **Released** or **Deleted**. **Streaming services** counts subscription streaming only. **Plex list** ignores case and surrounding spaces.
+
 ## Approval and quotas
 
 A route can also change how matching requests are approved:
@@ -56,4 +64,4 @@ To change the order, select **Reorder**, drag the routes into place and select *
 
 ## When nothing matches
 
-A request no route sends anywhere goes to the default instance, as the note at the bottom of the list says. To skip it instead, turn on **Skip content no route matches** on the default instance under [Sonarr and Radarr](/library/sonarr-radarr#the-default-instance). Movies and TV shows are set separately.
+A request no route sends anywhere goes to the default instance, as the note at the bottom of the list says. To skip it instead, turn on **Skip content no route matches** on the default instance under [Sonarr and Radarr](/library/sonarr-radarr#behavior). Movies and TV shows are set separately.

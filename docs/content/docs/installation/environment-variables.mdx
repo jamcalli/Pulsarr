@@ -5,9 +5,7 @@ description: Every setting Pulsarr reads from .env, with its default.
 
 Pulsarr reads these from `.env`, or from the container's environment in Docker. Most of them are also settings in the app, and you only need `.env` to fix a value before first start or to keep it under version control.
 
-:::warning
 A variable in `.env` replaces the value saved in the app every time Pulsarr starts. This happens even when the variable is set to an empty value. A change you make in the app lasts only until the next restart, so remove the variable from `.env` if you want to manage that setting in the app.
-:::
 
 Restart Pulsarr after changing `.env`. Values marked JSON take one line of JSON, for example `sonarrTags=["4k","kids"]`.
 
@@ -19,14 +17,14 @@ Restart Pulsarr after changing `.env`. Values marked JSON take one line of JSON,
 | `listenPort` | `3003` | Port Pulsarr listens on. |
 | `baseUrl` | `http://localhost` | Address Sonarr and Radarr use to reach Pulsarr for webhooks. Set in the app through **Fix the address**. |
 | `port` | `3003` | Port Sonarr and Radarr use to reach Pulsarr for webhooks. |
-| `basePath` | `/` | Path prefix when Pulsarr is served under a subfolder by a reverse proxy, for example `/pulsarr`. |
+| `basePath` | `/` | Path prefix when Pulsarr is served under a subfolder by a reverse proxy, for example `/pulsarr`. See [Reverse proxy](#reverse-proxy). |
 | `dataDir` | | Folder for the database and logs. Defaults to `./data` in Docker and Linux, `C:\ProgramData\Pulsarr` on Windows and `~/.config/Pulsarr` on macOS. |
 | `logLevel` | `info` | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`. |
 | `enableConsoleOutput` | `true` | Set to `false` to log only to files. |
 | `enableRequestLogging` | `false` | Log every HTTP request. |
-| `rateLimitMax` | `500` | Requests allowed per client per minute. |
+| `rateLimitMax` | `500` | Requests allowed per client per minute. Sign-in and account routes have their own smaller fixed limit this does not change. |
 | `closeGraceDelay` | `10000` | Milliseconds to wait for work to finish on shutdown. |
-| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. |
+| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. Removes the `X-Frame-Options` header, which otherwise allows framing only from the same origin. |
 
 ## Database
 
@@ -49,11 +47,27 @@ To set up PostgreSQL or move to it from SQLite, see [PostgreSQL](/installation/p
 | --- | --- | --- |
 | `authenticationMethod` | `required` | `required`, `requiredExceptLocal` (no sign-in from your local network) or `disabled`. |
 | `cookieSecret` | Generated | Signs session cookies. At least 32 characters. |
-| `cookieName` | `pulsarr` | Name of the session cookie. |
+| `cookieName` | `pulsarr` | Name of the session cookie. Two Pulsarr instances on one host need different names. |
 | `cookieSecured` | `false` | Send the session cookie over HTTPS only. Turn on when Pulsarr is behind HTTPS. |
-| `webhookSecret` | Generated | Authenticates webhooks from Sonarr and Radarr. |
+| `webhookSecret` | Generated | Authenticates webhooks from Sonarr and Radarr. At least 16 characters. |
 
 Pulsarr generates the secrets on first start and stores them, so they stay the same across restarts. Set them in `.env` only if you need fixed values.
+
+For `requiredExceptLocal`, local means loopback, the private IPv4 ranges `10.0.0.0/8`, `172.16.0.0/12` and `192.168.0.0/16`, IPv4 link-local `169.254.0.0/16`, and IPv6 unique local `fc00::/7` and link-local `fe80::/10`.
+
+## Reverse proxy
+
+The proxy must pass the path through unchanged, `basePath` prefix included.
+
+Pulsarr trusts forwarded headers only from loopback, link-local and private addresses. The proxy must send `X-Forwarded-For`, or every visitor shares the proxy's address and trips the per-IP rate limits together. Traefik, Caddy and Nginx Proxy Manager send it by default. Plain nginx needs `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+
+:::warning
+With `requiredExceptLocal`, a proxy on a private address that doesn't send `X-Forwarded-For` makes every request look local, so nobody is asked to sign in.
+:::
+
+Behind Cloudflare, the proxy must trust Cloudflare's address ranges to pass on real client addresses. Local sign-in bypass then works only for LAN clients that reach the proxy directly.
+
+An authentication proxy in front of Pulsarr must let `/v1/notifications/webhook` and `/v1/notifications/webhook/maintainerr` through, after any `basePath`. Otherwise Sonarr, Radarr and Maintainerr webhooks get 401.
 
 ## Plex
 
@@ -68,21 +82,21 @@ Pulsarr generates the secrets on first start and stores them, so they stay the s
 
 ## Sonarr and Radarr
 
-Pulsarr uses these only to create a first Sonarr or Radarr instance when there is none. After that, manage instances on the **Sonarr** and **Radarr** pages.
+Pulsarr uses these only to create a first Sonarr or Radarr instance when there is none. After that, manage instances on the **Sonarr** and **Radarr** pages, and remove these variables from `.env`.
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `sonarrBaseUrl` | `http://localhost:8989` | Sonarr address. |
-| `sonarrApiKey` | | Sonarr API key. |
+| `sonarrApiKey` | `placeholder` | Sonarr API key. |
 | `sonarrQualityProfile` | | Quality profile. |
 | `sonarrRootFolder` | | Root folder path. |
-| `sonarrSeasonMonitoring` | `all` | Season monitoring. |
+| `sonarrSeasonMonitoring` | `all` | Season monitoring. One of `all`, `future`, `missing`, `existing`, `recent`, `pilot`, `firstSeason`, `lastSeason`, `monitorSpecials`, `unmonitorSpecials` or `none`, or a rolling mode, `pilotRolling`, `firstSeasonRolling` or `allSeasonPilotRolling`. |
 | `sonarrMonitorNewItems` | `all` | `all` or `none`. |
 | `sonarrCreateSeasonFolders` | `false` | Put each season in its own folder. |
 | `sonarrBypassIgnored` | `false` | Add content even when it's on Sonarr's import list exclusions. |
 | `sonarrTags` | `[]` | JSON. Tags added to every show. |
 | `radarrBaseUrl` | `http://localhost:7878` | Radarr address. |
-| `radarrApiKey` | | Radarr API key. |
+| `radarrApiKey` | `placeholder` | Radarr API key. |
 | `radarrQualityProfile` | | Quality profile. |
 | `radarrRootFolder` | | Root folder path. |
 | `radarrBypassIgnored` | `false` | Add content even when it's on Radarr's import list exclusions. |
@@ -92,7 +106,7 @@ Pulsarr uses these only to create a first Sonarr or Radarr instance when there i
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `tmdbApiKey` | Built in | TMDB API read access token. The Docker images include one. |
+| `tmdbApiKey` | | TMDB API read access token. Docker images and native builds include one. Builds from source do not. |
 | `tmdbRegion` | `US` | Region for streaming provider lookups. |
 
 ## Notifications
@@ -155,7 +169,7 @@ Pulsarr uses these only to create a first Sonarr or Radarr instance when there i
 | `maintainerrEnabled` | `false` | Turn on the Maintainerr integration. |
 | `maintainerrUrl` | | Maintainerr address. |
 | `maintainerrExclusionMode` | `watchlisters` | `watchlisters` excludes handled media for its current watchlisters. `global` excludes it for every user. |
-| `maintainerrWebhookSecret` | Generated | Authenticates webhooks from Maintainerr. |
+| `maintainerrWebhookSecret` | Generated | Authenticates webhooks from Maintainerr. At least 16 characters. |
 
 ## New user defaults
 

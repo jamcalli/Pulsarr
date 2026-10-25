@@ -8,8 +8,6 @@
     "library",
     "users",
     "notifications",
-    "system",
-    "...",
-    "api"
+    "system"
   ]
 }

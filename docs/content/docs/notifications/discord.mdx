@@ -18,7 +18,7 @@ Discord has two parts, set up under **Notifications** > **Discord**. Admin webho
 
 1. In the [Discord Developer Portal](https://discord.com/developers/applications), create a new application. You can use the [Pulsarr icon](/img/discord-bot-icon.png) as its picture.
 2. On the **Bot** page, turn on **Message Content Intent** and copy the bot token.
-3. On **OAuth2** > **URL Generator**, select the `bot` and `applications.commands` scopes, and the **Send Messages**, **Embed Links** and **Use Slash Commands** permissions.
+3. On **OAuth2** > **URL Generator**, select the `bot` and `applications.commands` scopes. The bot needs no permissions, because it only answers its own slash commands and sends direct messages.
 4. Open the generated URL and add the bot to your server.
 
 ### Connect it to Pulsarr
@@ -27,11 +27,11 @@ Enter the **Bot token** and the **Client ID**, which is on the application's **G
 
 **Send a test direct message** messages one Discord user through the bot to check it works.
 
-### Link users
+### User notification setup
 
-Each user runs `/notifications` in your Discord server and enters their Plex username to link their account. After that, `/notifications` lets them change their own notification settings.
+Your own account cannot be linked from Discord. Paste your **Discord user ID** on your page under [Plex users](/users/plex-users). Everyone else runs `/notifications` in your Discord server and enters their Plex username to link their account. After that, `/notifications` lets them change their own notification settings.
 
-You can also paste a user's Discord user ID on their page under [Plex users](/users/plex-users). Users get direct messages only once a Discord ID is saved for them.
+You can also paste a user's **Discord user ID** on their page under [Plex users](/users/plex-users). Users get direct messages only once a Discord user ID is saved for them, and only while they share a server with the bot. A user who turns off direct messages from server members in their Discord privacy settings gets none.
 
 ### Approve requests from Discord
 

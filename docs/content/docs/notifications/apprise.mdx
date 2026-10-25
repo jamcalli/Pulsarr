@@ -50,7 +50,7 @@ Then point Pulsarr at it in `.env` and restart Pulsarr:
 appriseUrl=http://apprise:8000
 ```
 
-If Apprise runs somewhere else, use its full address instead, for example `http://192.168.1.100:8000`. Pulsarr reads `appriseUrl` only at startup. **Notifications** > **Apprise** shows the address in use and whether Pulsarr can reach it.
+If Apprise runs somewhere else, use its full address instead, for example `http://192.168.1.100:8000`. Pulsarr reads `appriseUrl` and checks that Apprise is reachable only at startup, so start Apprise first or restart Pulsarr once it is up. **Notifications** > **Apprise** shows the address in use and whether Pulsarr reached it.
 
 ## System notifications
 

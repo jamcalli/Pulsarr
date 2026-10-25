@@ -9,8 +9,8 @@ Delete sync removes content from Sonarr and Radarr when nobody wants it anymore.
 
 **Decide by** sets what counts as no longer wanted:
 
-- **Watchlist based** deletes anything that isn't on any counted user's watchlist. With **Respect user sync settings** on, only the watchlists of users with sync on count.
-- **Tag based** deletes anything carrying the **Removal tag**, which comes from [User tags](/users/user-tags). Matching ignores case. **Required tag pattern** is an optional regular expression, and when set, content also needs a tag that matches it.
+- **Watchlist based** deletes anything that isn't on any user's watchlist.
+- **Tag based** deletes anything carrying the **Removal tag**, which comes from [User tags](/users/user-tags). Matching ignores case. **Required tag pattern** is an optional regular expression, and when set, content also needs a tag that matches it. Patterns use JavaScript syntax, are limited to 1024 characters, and a backtracking check rejects unsafe ones.
 
 Either way, a title [excluded](/library/exclusions) for all its watchlisters, or for everyone, counts as unwanted. In tag based mode it doesn't need the removal tag.
 
@@ -21,16 +21,17 @@ Nothing outside these choices is deleted:
 - **Delete movies** removes movies from Radarr.
 - **Delete ended shows** removes shows Sonarr marks as ended.
 - **Delete continuing shows** removes every other show.
-- **Delete files** also deletes the media files from disk.
-- **Tracked content only** limits deletion to content requested through Pulsarr.
-- **Clean up approval records** removes approval records for deleted content.
+- **Delete files** also deletes the media files from disk. It's on by default.
+- **Clean up approval records** removes approval records for deleted content and content already gone.
 
 ## What protects content
 
 Anything a guard covers is skipped:
 
-- **Playlist protection** skips anything in a Plex playlist with the **Playlist name**, in any user's account. Each run creates the playlist for users who don't have it yet.
-- **Max deletion** aborts a run that would delete more than this percentage of your library.
+- **Respect user sync settings** counts only the watchlists of users with sync on.
+- **Tracked content only** limits deletion to content requested through Pulsarr.
+- **Playlist protection** skips anything in a Plex playlist named exactly the **Playlist name**, in any user's account. Each run creates the playlist for users who don't have it yet.
+- **Max deletion** aborts a run that would delete more than this percentage of eligible items, meaning items of the types chosen under **What may be deleted**.
 
 ## Runs and schedule
 
