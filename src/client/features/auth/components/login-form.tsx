@@ -1,87 +1,58 @@
-import { Check, Loader2 } from 'lucide-react'
-import { LoginErrorMessage } from '@/components/login-error'
+import { CredentialsSchema } from '@root/schemas/auth/login'
+import { BusyLabel } from '@/components/busy-label'
+import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { useLoginForm } from '@/features/auth/hooks/useLoginForm'
+import { FieldGroup } from '@/components/ui/field'
+import { useLogin } from '@/features/auth/hooks/useLogin'
+import { liveValidation, useAppForm } from '@/lib/form'
 
 export function LoginForm() {
-  const { form, status, backendError, loginInputRef, handleSubmit } =
-    useLoginForm()
+  const login = useLogin()
+  const form = useAppForm({
+    defaultValues: { login: '', password: '' },
+    validationLogic: liveValidation,
+    validators: { onDynamic: CredentialsSchema },
+    // The alert shows the error from the mutation, so this catch only ends the submit.
+    onSubmit: ({ value }) => login.mutateAsync(value).catch(() => undefined),
+  })
 
   return (
-    <Form {...form}>
-      <form
-        className="grid gap-4"
-        noValidate
-        onSubmit={form.handleSubmit(handleSubmit)}
-      >
-        <FormField
-          control={form.control}
-          name="login"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input
-                  {...field}
-                  ref={(el) => {
-                    field.ref(el)
-                    loginInputRef.current = el
-                  }}
-                  type="text"
-                  placeholder="Email or Username"
-                  autoComplete="username"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input
-                  {...field}
-                  type="password"
-                  placeholder="Password"
-                  autoComplete="current-password"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {backendError && <LoginErrorMessage message={backendError} />}
-        <Button
-          type="submit"
-          className="w-full h-12 font-heading"
-          disabled={status !== 'idle'}
-          variant="fun"
-        >
-          {status === 'loading' ? (
-            <>
-              <Loader2 className="animate-spin mr-2" />
-              Logging in...
-            </>
-          ) : status === 'success' ? (
-            <>
-              <Check className="animate-check mr-2" />
-              Success!
-            </>
-          ) : (
-            'Login'
-          )}
-        </Button>
-      </form>
-    </Form>
+    <form.AppForm>
+      <form.Form>
+        <FieldGroup className="gap-4">
+          <form.AppField name="login">
+            {(field) => (
+              <field.TextField
+                label="Email or username"
+                type="text"
+                autoComplete="username"
+                required
+                placeholder="Username or email address"
+                autoFocus
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="password">
+            {(field) => (
+              <field.TextField
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                required
+                placeholder="Your password"
+              />
+            )}
+          </form.AppField>
+          <ErrorAlert message={login.errorMessage} />
+          <Button type="submit" className="w-full" disabled={login.isPending}>
+            <BusyLabel
+              busy={login.isPending}
+              label="Sign in"
+              busyLabel="Signing in..."
+            />
+          </Button>
+        </FieldGroup>
+      </form.Form>
+    </form.AppForm>
   )
 }

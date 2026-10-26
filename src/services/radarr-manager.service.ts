@@ -1,4 +1,7 @@
-import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import {
+  ARR_API_KEY_PLACEHOLDER,
+  placeholderRadarrInstance,
+} from '@root/schemas/common/arr-placeholder.js'
 import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
 import type {
   MinimumAvailability,
@@ -19,10 +22,7 @@ import type {
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
-import {
-  PlaceholderResetError,
-  placeholderRadarrInstance,
-} from '@utils/arr-default-instance.js'
+import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -30,6 +30,7 @@ import {
   isSameServerEndpoint,
   normalizeEndpointWithPath,
 } from '@utils/url.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -289,6 +290,7 @@ export class RadarrManagerService {
         syncing: syncing,
         status: 'requested',
       })
+      emitWatchlistChange(this.fastify.progress, 'status', [userId])
 
       this.log.debug(
         {
@@ -309,6 +311,7 @@ export class RadarrManagerService {
         instanceId: targetInstanceId,
         instanceType: 'radarr',
         qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        qualityProfileName: added.qualityProfileName,
         rootFolder: added.rootFolder,
         tags: added.tags,
         searchOnAdd: targetSearchOnAdd,
@@ -316,7 +319,7 @@ export class RadarrManagerService {
         monitor: targetMonitor,
       }
     } catch (error) {
-      this.log.error(
+      this.log.debug(
         {
           error,
           instanceId: targetInstanceId,
@@ -679,12 +682,26 @@ export class RadarrManagerService {
       this.log.error({ error }, 'Error testing Radarr connection')
       return {
         success: false,
+        code: 'unreachable',
         message:
           error instanceof Error
             ? error.message
             : 'Unknown error testing connection',
       }
     }
+  }
+
+  async probe(
+    baseUrl: string,
+    apiKey: string,
+  ): ReturnType<RadarrService['probe']> {
+    const tempService = new RadarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    return tempService.probe(baseUrl, apiKey)
   }
 
   private async webhookResults(

@@ -1,3 +1,4 @@
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   Condition,
   ConditionGroup,
@@ -9,10 +10,9 @@ import type {
 import type { FastifyBaseLogger } from 'fastify'
 import { evaluateCondition } from './conditions.js'
 
-export interface RuleEvaluationResult {
-  decisions: RoutingDecision[]
-  skipReason?: 'excluded'
-}
+export type RuleEvaluationResult =
+  | { decisions: RoutingDecision[]; skipReason?: undefined }
+  | { decisions: []; skipReason: 'excluded'; ruleName: string }
 
 function isCondition(value: unknown): value is Condition {
   return (
@@ -83,8 +83,8 @@ export function evaluateRules(
   for (const rule of applicableRules) {
     if (!rule.exclude_from_routing) continue
     if (matches(rule)) {
-      log.info(`"${item.title}" excluded from routing by rule "${rule.name}"`)
-      return { decisions: [], skipReason: 'excluded' }
+      log.debug(`"${item.title}" excluded from routing by rule "${rule.name}"`)
+      return { decisions: [], skipReason: 'excluded', ruleName: rule.name }
     }
   }
 
@@ -108,7 +108,7 @@ export function evaluateRules(
       qualityProfile: rule.quality_profile,
       rootFolder: rule.root_folder,
       tags: rule.tags || [],
-      priority: rule.order ?? 50,
+      priority: rule.order ?? DEFAULT_ROUTE_PRIORITY,
       searchOnAdd: rule.search_on_add,
       seasonMonitoring: rule.season_monitoring,
       seriesType: rule.series_type,

@@ -1,3 +1,4 @@
+import type { UserStats } from '@root/schemas/users/user-stats.schema.js'
 import type { User } from '@root/types/config.types.js'
 import type { AdminUser } from '@schemas/auth/auth.js'
 
@@ -190,5 +191,8 @@ declare module '@services/database.service.js' {
     deleteUsers(
       userIds: number[],
     ): Promise<{ deletedCount: number; failedIds: number[] }>
+
+    /** All-time counts with no date window. */
+    getUserStats(userId: number): Promise<UserStats>
   }
 }

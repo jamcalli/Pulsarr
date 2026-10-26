@@ -21,6 +21,7 @@
  * });
  */
 
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import type {
   CronConfig,
   DbSchedule,
@@ -39,6 +40,8 @@ import {
 /** Handler function type for scheduled jobs */
 export type JobHandler = (jobName: string) => Promise<void>
 
+type ScheduleWithRunState = DbSchedule & { running: boolean }
+
 /** Map to track registered jobs and their handlers */
 type JobMap = Map<
   string,
@@ -54,6 +57,8 @@ export class SchedulerService {
 
   /** Map of job names to their job instances and handlers */
   private readonly jobs: JobMap = new Map()
+  /** Runs in progress per job, since a manual run can overlap a scheduled one. */
+  private readonly runningJobs = new Map<string, number>()
   private readonly log: FastifyBaseLogger
 
   /** Track if we're in the initial startup phase */
@@ -80,7 +85,7 @@ export class SchedulerService {
   ) {
     this.log = createServiceLogger(baseLog, 'SCHEDULER')
     this.scheduler = new ToadScheduler()
-    this.log.info('Scheduler service initialized')
+    this.log.debug('Scheduler service initialized')
   }
 
   /**
@@ -197,68 +202,75 @@ export class SchedulerService {
     // Create an async task that wraps the handler and adds error handling
     const task = new AsyncTask(
       `${name}-task`,
-      async () => {
-        try {
-          // Only log the start of the job at debug level for cleaner logs
-          this.log.debug(`Running scheduled job: ${name}`)
-          await handler(name)
+      () =>
+        this.trackRun(name, async () => {
+          try {
+            // Only log the start of the job at debug level for cleaner logs
+            this.log.debug(`Running scheduled job: ${name}`)
+            await handler(name)
 
-          // Update last run time
-          await this.fastify.db.updateSchedule(name, {
-            last_run: {
-              time: new Date().toISOString(),
-              status: 'completed',
-            },
-          })
-
-          // Calculate and update next run time
-          if (type === 'interval') {
-            const intervalConfig = config as IntervalConfig
-            const nextRun = new Date()
-            if (intervalConfig.days)
-              nextRun.setDate(nextRun.getDate() + intervalConfig.days)
-            if (intervalConfig.hours)
-              nextRun.setHours(nextRun.getHours() + intervalConfig.hours)
-            if (intervalConfig.minutes)
-              nextRun.setMinutes(nextRun.getMinutes() + intervalConfig.minutes)
-            if (intervalConfig.seconds)
-              nextRun.setSeconds(nextRun.getSeconds() + intervalConfig.seconds)
-
+            // Update last run time
             await this.fastify.db.updateSchedule(name, {
-              next_run: {
-                time: nextRun.toISOString(),
-                status: 'pending',
-                estimated: true,
+              last_run: {
+                time: new Date().toISOString(),
+                status: 'completed',
               },
             })
-          } else if (type === 'cron') {
-            // For cron jobs, use the calculateNextCronRun method
-            const cronConfig = config as CronConfig
-            const nextRun = this.calculateNextCronRun(cronConfig.expression)
 
+            // Calculate and update next run time
+            if (type === 'interval') {
+              const intervalConfig = config as IntervalConfig
+              const nextRun = new Date()
+              if (intervalConfig.days)
+                nextRun.setDate(nextRun.getDate() + intervalConfig.days)
+              if (intervalConfig.hours)
+                nextRun.setHours(nextRun.getHours() + intervalConfig.hours)
+              if (intervalConfig.minutes)
+                nextRun.setMinutes(
+                  nextRun.getMinutes() + intervalConfig.minutes,
+                )
+              if (intervalConfig.seconds)
+                nextRun.setSeconds(
+                  nextRun.getSeconds() + intervalConfig.seconds,
+                )
+
+              await this.fastify.db.updateSchedule(name, {
+                next_run: {
+                  time: nextRun.toISOString(),
+                  status: 'pending',
+                  estimated: true,
+                },
+              })
+            } else if (type === 'cron') {
+              // For cron jobs, use the calculateNextCronRun method
+              const cronConfig = config as CronConfig
+              const nextRun = this.calculateNextCronRun(cronConfig.expression)
+
+              await this.fastify.db.updateSchedule(name, {
+                next_run: {
+                  time: nextRun.toISOString(),
+                  status: 'pending',
+                  estimated: true,
+                },
+              })
+            }
+
+            this.log.debug(`Job ${name} completed successfully`)
+            return true
+          } catch (error) {
+            this.log.error({ error }, `Error in job ${name}`)
+
+            // Update with error status
             await this.fastify.db.updateSchedule(name, {
-              next_run: {
-                time: nextRun.toISOString(),
-                status: 'pending',
-                estimated: true,
+              last_run: {
+                time: new Date().toISOString(),
+                status: 'failed',
+                error: error instanceof Error ? error.message : String(error),
               },
             })
+            return false
           }
-
-          this.log.debug(`Job ${name} completed successfully`)
-        } catch (error) {
-          this.log.error({ error }, `Error in job ${name}`)
-
-          // Update with error status
-          await this.fastify.db.updateSchedule(name, {
-            last_run: {
-              time: new Date().toISOString(),
-              status: 'failed',
-              error: error instanceof Error ? error.message : String(error),
-            },
-          })
-        }
-      },
+        }),
       (error) => {
         this.log.error({ error }, `Job task error for ${name}`)
       },
@@ -328,7 +340,7 @@ export class SchedulerService {
             `Registered handler for job: ${name} (during initialization)`,
           )
         } else {
-          this.log.info(`Registered handler for new job: ${name}`)
+          this.log.debug(`Registered handler for new job: ${name}`)
         }
       }
 
@@ -429,41 +441,105 @@ export class SchedulerService {
    * @returns Promise resolving to true if successful
    */
   async runJobNow(name: string): Promise<boolean> {
-    try {
-      const jobData = this.jobs.get(name)
-      if (!jobData) {
-        return false
-      }
-
-      this.log.info(`Manually running job: ${name}`)
-
-      // Run the handler
-      await jobData.handler(name)
-
-      // Update last run time
-      await this.fastify.db.updateSchedule(name, {
-        last_run: {
-          time: new Date().toISOString(),
-          status: 'completed',
-        },
-      })
-
-      this.log.info(`Job ${name} executed manually`)
-      return true
-    } catch (error) {
-      this.log.error({ error }, `Error executing job ${name}`)
-
-      // Update with error status
-      await this.fastify.db.updateSchedule(name, {
-        last_run: {
-          time: new Date().toISOString(),
-          status: 'failed',
-          error: error instanceof Error ? error.message : String(error),
-        },
-      })
-
+    const jobData = this.jobs.get(name)
+    if (!jobData) {
       return false
     }
+
+    return this.trackRun(name, async () => {
+      try {
+        this.log.debug(`Manually running job: ${name}`)
+
+        // Run the handler
+        await jobData.handler(name)
+
+        // Update last run time
+        await this.fastify.db.updateSchedule(name, {
+          last_run: {
+            time: new Date().toISOString(),
+            status: 'completed',
+          },
+        })
+
+        this.log.info(`Job ${name} executed manually`)
+        return true
+      } catch (error) {
+        this.log.error({ error }, `Error executing job ${name}`)
+
+        // Update with error status
+        await this.fastify.db.updateSchedule(name, {
+          last_run: {
+            time: new Date().toISOString(),
+            status: 'failed',
+            error: error instanceof Error ? error.message : String(error),
+          },
+        })
+
+        return false
+      }
+    })
+  }
+
+  /** Runs a job without waiting for it. */
+  startJob(name: string): 'started' | 'running' | 'unknown' {
+    if (!this.jobs.has(name)) return 'unknown'
+    if (this.isJobRunning(name)) return 'running'
+    this.runJobNow(name).catch((error) => {
+      this.log.error({ error }, `Error recording the run of job ${name}`)
+    })
+    return 'started'
+  }
+
+  isJobRunning(name: string): boolean {
+    return (this.runningJobs.get(name) ?? 0) > 0
+  }
+
+  async getSchedule(name: string): Promise<ScheduleWithRunState | null> {
+    const schedule = await this.fastify.db.getScheduleByName(name)
+    return schedule && { ...schedule, running: this.isJobRunning(name) }
+  }
+
+  async getSchedules(): Promise<ScheduleWithRunState[]> {
+    const schedules = await this.fastify.db.getAllSchedules()
+    return schedules.map((schedule) => ({
+      ...schedule,
+      running: this.isJobRunning(schedule.name),
+    }))
+  }
+
+  /** Holds the job in the running set until work settles, and work resolves whether it succeeded. */
+  private async trackRun(
+    name: string,
+    work: () => Promise<boolean>,
+  ): Promise<boolean> {
+    this.runningJobs.set(name, (this.runningJobs.get(name) ?? 0) + 1)
+    this.emitJobPhase(name, 'running')
+    let succeeded = false
+    try {
+      succeeded = await work()
+      return succeeded
+    } finally {
+      const remaining = (this.runningJobs.get(name) ?? 1) - 1
+      if (remaining > 0) this.runningJobs.set(name, remaining)
+      else this.runningJobs.delete(name)
+      this.emitJobPhase(name, succeeded ? 'complete' : 'failed')
+    }
+  }
+
+  private emitJobPhase(
+    name: string,
+    phase: 'running' | 'complete' | 'failed',
+  ): void {
+    if (!this.fastify.progress.hasActiveConnections()) return
+    const event: ProgressEvent = {
+      operationId: `scheduled-job-${name}`,
+      type: 'scheduled-job',
+      phase,
+      progress: phase === 'running' ? 0 : 100,
+      message: `Job ${name} ${phase}`,
+      metadata: { job: name },
+    }
+    this.fastify.progress.emit(event)
   }
 
   /**
@@ -624,7 +700,7 @@ export class SchedulerService {
    * Should be called during application shutdown.
    */
   stop(): void {
-    this.log.info('Stopping all scheduled jobs')
+    this.log.debug('Stopping all scheduled jobs')
     if (this.initializationTimer) {
       clearTimeout(this.initializationTimer)
       this.initializationTimer = null

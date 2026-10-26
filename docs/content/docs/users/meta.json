@@ -1,0 +1,10 @@
+{
+  "title": "Users",
+  "pages": [
+    "index",
+    "plex-users",
+    "new-user-defaults",
+    "user-tags",
+    "plex-labels"
+  ]
+}

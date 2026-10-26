@@ -9,6 +9,10 @@ import type {
 } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
+import {
+  allowedStatusesUpTo,
+  STATUS_RANK,
+} from '@utils/watchlist-status-rank.js'
 import type { Knex } from 'knex'
 
 // ============================================================================
@@ -80,35 +84,6 @@ function ratingsToColumns(ratings: ItemRatings | undefined): RatingColumns {
     rt_audience_rating: ratings.rtAudience ?? null,
     tmdb_rating: ratings.tmdb ?? null,
   }
-}
-
-// ============================================================================
-// Status Helpers
-// ============================================================================
-
-/**
- * Status progression ranks to prevent regression
- */
-const STATUS_RANK: Readonly<Record<WatchlistStatus, number>> = Object.freeze({
-  pending: 1,
-  requested: 2,
-  grabbed: 3,
-  notified: 4,
-})
-
-/**
- * Returns all watchlist statuses whose rank is less-than-or-equal to the rank of `target`.
- *
- * If `target` is unknown, it is treated as rank 0 and the result will only include statuses with rank ≤ 0 (typically none).
- *
- * @param target - The status to compare against
- * @returns An array of statuses allowed up to and including `target`'s rank
- */
-function allowedStatusesUpTo(target: WatchlistStatus): WatchlistStatus[] {
-  const t = STATUS_RANK[target] ?? 0
-  return (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
-    (s) => (STATUS_RANK[s] ?? 0) <= t,
-  )
 }
 
 /**
@@ -502,112 +477,6 @@ export async function updateWatchlistItem(
   } else {
     await this.knex.transaction(executeUpdate)
   }
-}
-
-/**
- * Update all watchlist items whose `guids` array contains the given GUID.
- *
- * Runs inside a transaction. For each matching item this updates only the main
- * watchlist_items row (junction-related fields such as `radarr_instance_id`,
- * `sonarr_instance_id`, and `syncing` are ignored for GUID-based updates) and
- * may record a status history entry when the status advances.
- *
- * Status updates are applied monotically: regressions are prevented and
- * no-op status changes are skipped. The function returns the number of items
- * that were actually updated in the database.
- *
- * @param guid - The GUID to match (case-insensitive) against each item's `guids` array
- * @param updates - Fields to apply to matching watchlist items; `status` will be
- *                  applied only when it represents a permitted progression
- * @returns The count of watchlist items that were updated
- */
-export async function updateWatchlistItemByGuid(
-  this: DatabaseService,
-  guid: string,
-  updates: WatchlistItemUpdate,
-): Promise<number> {
-  return await this.knex.transaction(async (trx) => {
-    // Use database-specific JSON functions to get matching items with their current status
-    const matchingItems = this.isPostgres
-      ? await trx('watchlist_items')
-          .select('id', 'status', 'key')
-          .whereRaw(
-            'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
-            [guid],
-          )
-      : await trx('watchlist_items')
-          .select('id', 'status', 'key')
-          .whereRaw(
-            "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
-            [guid],
-          )
-
-    if (matchingItems.length === 0) {
-      this.log.warn(`No items found with GUID: ${guid}`)
-      return 0
-    }
-
-    let totalUpdated = 0
-
-    for (const item of matchingItems) {
-      // Strip junction-only fields; GUID-based updates only touch main table + history
-      const {
-        syncing: _,
-        radarr_instance_id: _ri,
-        sonarr_instance_id: _si,
-        ...validUpdates
-      } = updates
-
-      // Process status update with regression prevention
-      const statusResult = processStatusUpdate(
-        item.status,
-        validUpdates.status,
-        `GUID ${guid} item ${item.key}`,
-        this.log,
-      )
-
-      let finalUpdates = { ...validUpdates }
-
-      // Remove status from update if it shouldn't be updated (no-op or regression)
-      if (!statusResult.shouldUpdateStatus && 'status' in finalUpdates) {
-        const { status: __, ...updatesWithoutStatus } = finalUpdates
-        finalUpdates = updatesWithoutStatus
-      }
-      if (statusResult.shouldUpdateStatus) {
-        finalUpdates = { ...finalUpdates, status: statusResult.effectiveStatus }
-      }
-
-      // Apply updates if there are any
-      let updatedRows = 0
-      if (Object.keys(finalUpdates).length > 0) {
-        updatedRows = await performMonotonicUpdate(
-          trx('watchlist_items').where('id', item.id),
-          finalUpdates,
-          statusResult,
-          this.timestamp,
-        )
-
-        if (updatedRows > 0) {
-          totalUpdated += 1
-        }
-      }
-
-      // Record status history only if status actually changed and update succeeded
-      if (statusResult.shouldWriteHistory && updatedRows > 0) {
-        await recordStatusHistory(
-          trx,
-          item.id,
-          statusResult.effectiveStatus,
-          `${item.status} → ${statusResult.effectiveStatus} for GUID ${guid} item ${item.key}`,
-          this.timestamp,
-          this.log,
-        )
-      }
-    }
-
-    this.log.debug(`Updated ${totalUpdated} items by GUID ${guid}`)
-    return totalUpdated
-  })
 }
 
 /**
@@ -1353,7 +1222,7 @@ export async function getAllMovieWatchlistItems(
 }
 
 /**
- * Inserts multiple watchlist items in bulk and returns their database IDs and keys.
+ * Inserts multiple watchlist items in bulk and returns their database IDs, owners and keys.
  *
  * Supports conflict resolution: use 'ignore' (default) to skip duplicates or 'merge' to update existing entries.
  * When using 'merge', only metadata fields (title, type, thumb, guids, genres) are updated - status is never
@@ -1361,14 +1230,14 @@ export async function getAllMovieWatchlistItems(
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
  * @param options - Optional conflict resolution mode: 'ignore' (default) or 'merge'
- * @returns Array of objects with the IDs and keys of inserted or merged items
+ * @returns Array of objects with the IDs, user IDs and keys of inserted or merged items
  */
 export async function createWatchlistItems(
   this: DatabaseService,
   items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
   options: { onConflict?: 'ignore' | 'merge' } = { onConflict: 'ignore' },
-): Promise<{ id: number; key: string }[]> {
-  const insertedIds: { id: number; key: string }[] = []
+): Promise<{ id: number; user_id: number; key: string }[]> {
+  const insertedIds: { id: number; user_id: number; key: string }[] = []
 
   await this.knex.transaction(async (trx) => {
     const chunks = this.chunkArray(items, 250)
@@ -1412,13 +1281,13 @@ export async function createWatchlistItems(
             'tmdb_rating',
             'updated_at',
           ])
-          .returning(['id', 'key'])
+          .returning(['id', 'user_id', 'key'])
         insertedIds.push(...results)
       } else {
         const results = await query
           .onConflict(['user_id', 'key'])
           .ignore()
-          .returning(['id', 'key'])
+          .returning(['id', 'user_id', 'key'])
         insertedIds.push(...results)
       }
     }
@@ -1523,12 +1392,6 @@ export async function deleteWatchlistItems(
         )
       }
     }
-
-    // Clear exclusions so re-adding the item to a watchlist allows routing again
-    await trx('watchlist_exclusions')
-      .where('user_id', numericUserId)
-      .whereIn('key', keys)
-      .delete()
 
     // Delete watchlist items (CASCADE will handle notifications with non-NULL watchlist_item_id)
     await trx('watchlist_items')

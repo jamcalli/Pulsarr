@@ -1,8 +1,6 @@
-import {
-  ErrorSchema,
-  QuerystringSchema,
-  RootFoldersResponseSchema,
-} from '@schemas/sonarr/get-root-folders.schema.js'
+import { ArrInstanceQuerySchema } from '@schemas/common/arr-instance-query.schema.js'
+import { ArrRootFoldersResponseSchema } from '@schemas/common/arr-options.schema.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -14,9 +12,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get Sonarr root folders',
         operationId: 'getSonarrRootFolders',
         description: 'Retrieve root folders from a Sonarr instance',
-        querystring: QuerystringSchema,
+        querystring: ArrInstanceQuerySchema,
         response: {
-          200: RootFoldersResponseSchema,
+          200: ArrRootFoldersResponseSchema,
           400: ErrorSchema,
           404: ErrorSchema,
           500: ErrorSchema,

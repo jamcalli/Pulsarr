@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import type { LogEntry } from '@root/types/logs.types.js'
 import {
-  type LogEntry,
   LogStreamQuerySchema,
   LogStreamResponseSchema,
 } from '@schemas/logs/logs.schema.js'

@@ -1,5 +1,9 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import { summarizeDeleteSync } from '@services/notifications/templates/delete-sync-summary.js'
+import {
+  sectionEmptyText,
+  sectionMoreText,
+  summarizeDeleteSync,
+} from '@services/notifications/templates/delete-sync-summary.js'
 import { describe, expect, it } from 'vitest'
 
 function deleteSyncResult(
@@ -25,18 +29,20 @@ describe('summarizeDeleteSync', () => {
   it('should title and describe a live run', () => {
     const summary = summarizeDeleteSync(deleteSyncResult(), false)
 
-    expect(summary.title).toBe('🗑️ Delete Sync Results')
+    expect(summary.title).toBe('Delete sync results')
+    expect(summary.dryRun).toBe(false)
     expect(summary.summaryText).toBe(
-      "The following content was removed because it's no longer in any user's watchlist.",
+      'Removed because no user has them on a watchlist anymore.',
     )
   })
 
   it('should title and describe a dry run', () => {
     const summary = summarizeDeleteSync(deleteSyncResult(), true)
 
-    expect(summary.title).toBe('🔍 Delete Sync Simulation Results')
+    expect(summary.title).toBe('Delete sync simulation results')
+    expect(summary.dryRun).toBe(true)
     expect(summary.summaryText).toBe(
-      'This was a dry run - no content was actually deleted.',
+      'This was a dry run, so nothing was deleted.',
     )
   })
 
@@ -49,8 +55,8 @@ describe('summarizeDeleteSync', () => {
       false,
     )
 
-    expect(summary.title).toBe('⚠️ Delete Sync Safety Triggered')
-    expect(summary.summaryText).toBe('Too many deletions')
+    expect(summary.title).toBe('Delete sync safety triggered')
+    expect(summary.summaryText).toBeUndefined()
     expect(summary.safetyMessage).toBe('Too many deletions')
   })
 
@@ -60,10 +66,10 @@ describe('summarizeDeleteSync', () => {
       false,
     )
 
-    expect(summary.summaryText).toBe(
+    expect(summary.summaryText).toBeUndefined()
+    expect(summary.safetyMessage).toBe(
       'A safety check prevented the delete sync operation from running.',
     )
-    expect(summary.safetyMessage).toBeUndefined()
   })
 
   it('should leave safetyMessage unset when safety did not trigger', () => {
@@ -106,15 +112,55 @@ describe('summarizeDeleteSync', () => {
     )
 
     expect(summary.movies.label).toBe('Movies')
-    expect(summary.movies.noun).toBe('movies')
+    expect(summary.movies.noun).toEqual({ singular: 'movie', plural: 'movies' })
     expect(summary.movies.deleted).toBe(12)
     expect(summary.movies.shown).toHaveLength(10)
     expect(summary.movies.shown[0]).toBe('Movie 1')
     expect(summary.movies.remaining).toBe(2)
-    expect(summary.movies.protectedInfo).toBe(' (2 protected)')
+    expect(summary.movies.meta).toBe('12 deleted, 2 protected')
+    expect(sectionMoreText(summary.movies)).toBe('+2 more movies')
   })
 
-  it('should leave protectedInfo empty and remaining zero for a small section', () => {
+  it('should say would be deleted in a dry run meta', () => {
+    const summary = summarizeDeleteSync(
+      deleteSyncResult({
+        movies: {
+          deleted: 3,
+          skipped: 0,
+          protected: 1,
+          items: deletedItems(3, 'Movie'),
+        },
+      }),
+      true,
+    )
+
+    expect(summary.movies.meta).toBe('3 would be deleted, 1 protected')
+  })
+
+  it('should singularize a remainder of one', () => {
+    const summary = summarizeDeleteSync(
+      deleteSyncResult({
+        shows: { deleted: 11, skipped: 0, items: deletedItems(11, 'Show') },
+      }),
+      false,
+    )
+
+    expect(sectionMoreText(summary.shows)).toBe('+1 more TV show')
+  })
+
+  it('should leave meta empty when nothing was deleted', () => {
+    const summary = summarizeDeleteSync(
+      deleteSyncResult({
+        movies: { deleted: 0, skipped: 0, protected: 2, items: [] },
+      }),
+      false,
+    )
+
+    expect(summary.movies.meta).toBe('')
+    expect(sectionEmptyText(summary.movies)).toBe('No movies deleted')
+  })
+
+  it('should leave the protected part out of meta and remaining zero for a small section', () => {
     const summary = summarizeDeleteSync(
       deleteSyncResult({
         shows: { deleted: 2, skipped: 0, items: deletedItems(2, 'Show') },
@@ -122,11 +168,14 @@ describe('summarizeDeleteSync', () => {
       false,
     )
 
-    expect(summary.shows.label).toBe('TV Shows')
-    expect(summary.shows.noun).toBe('TV shows')
+    expect(summary.shows.label).toBe('TV shows')
+    expect(summary.shows.noun).toEqual({
+      singular: 'TV show',
+      plural: 'TV shows',
+    })
     expect(summary.shows.shown).toEqual(['Show 1', 'Show 2'])
     expect(summary.shows.remaining).toBe(0)
-    expect(summary.shows.protectedInfo).toBe('')
+    expect(summary.shows.meta).toBe('2 deleted')
   })
 
   it('should pass the totals through untouched', () => {

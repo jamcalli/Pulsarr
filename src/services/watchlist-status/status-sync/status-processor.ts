@@ -9,15 +9,14 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
-import type { DatabaseService } from '@services/database.service.js'
 import { extractSonarrId, parseGuids } from '@utils/guid-handler.js'
+import { isStatusUpgrade } from '@utils/watchlist-status-rank.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
  * Dependencies for status processing
  */
 export interface StatusProcessorDeps {
-  db: DatabaseService
   logger: FastifyBaseLogger
 }
 
@@ -55,8 +54,6 @@ export interface StatusProcessorConfig<
   TContent extends SonarrItem | RadarrItem,
   TUpdate extends ShowStatusUpdate | MovieStatusUpdate,
 > {
-  contentType: 'show' | 'movie'
-
   /** Get the instance ID from content */
   getInstanceId: (content: TContent) => number | undefined
 
@@ -93,7 +90,7 @@ function findMatch<T extends SonarrItem | RadarrItem>(
  * Process status updates for watchlist items based on *arr content.
  * Returns an array of updates to be applied via bulkUpdateWatchlistItems.
  */
-export async function processStatusUpdates<
+export function processStatusUpdates<
   TContent extends SonarrItem | RadarrItem,
   TUpdate extends ShowStatusUpdate | MovieStatusUpdate,
 >(
@@ -101,14 +98,9 @@ export async function processStatusUpdates<
   config: StatusProcessorConfig<TContent, TUpdate>,
   arrItems: TContent[],
   watchlistItems: DatabaseWatchlistItem[],
-): Promise<TUpdate[]> {
-  const { db, logger } = deps
-  const {
-    contentType,
-    getInstanceId,
-    buildContentUpdate,
-    validateContentStatus,
-  } = config
+): TUpdate[] {
+  const { logger } = deps
+  const { getInstanceId, buildContentUpdate, validateContentStatus } = config
 
   const updates: TUpdate[] = []
 
@@ -137,36 +129,11 @@ export async function processStatusUpdates<
       update.added = contentMatch.added
     }
 
-    // Check status change with notified protection
-    if (item.status !== contentMatch.status) {
-      if (item.status !== 'notified') {
-        update.status = contentMatch.status
-      } else {
-        // If item is notified but *arr shows it should be grabbed,
-        // backfill the missing grabbed status in history
-        if (contentMatch.status === 'grabbed') {
-          try {
-            if (item.id !== undefined && contentMatch.added) {
-              const itemId =
-                typeof item.id === 'string' ? Number(item.id) : item.id
-              await db.addStatusHistoryEntry(
-                itemId,
-                'grabbed',
-                contentMatch.added,
-              )
-            }
-          } catch (error) {
-            logger.error(
-              { error },
-              `Failed to backfill grabbed status for ${item.title}:`,
-            )
-          }
-        } else {
-          logger.debug(
-            `Preventing status downgrade for ${contentType} ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${contentMatch.status}'`,
-          )
-        }
-      }
+    if (
+      contentMatch.status &&
+      isStatusUpgrade(item.status, contentMatch.status)
+    ) {
+      update.status = contentMatch.status
     }
 
     // Build content-specific fields
@@ -192,7 +159,6 @@ export function createSonarrStatusConfig(): StatusProcessorConfig<
   ShowStatusUpdate
 > {
   return {
-    contentType: 'show',
     getInstanceId: (content) => content.sonarr_instance_id,
     buildContentUpdate: (item, content, instanceId) => {
       const update: Partial<ShowStatusUpdate> = {}
@@ -226,7 +192,6 @@ export function createRadarrStatusConfig(
   logger: FastifyBaseLogger,
 ): StatusProcessorConfig<RadarrItem, MovieStatusUpdate> {
   return {
-    contentType: 'movie',
     getInstanceId: (content) => content.radarr_instance_id,
     buildContentUpdate: (item, content, instanceId) => {
       const update: Partial<MovieStatusUpdate> = {}

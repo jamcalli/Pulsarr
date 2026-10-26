@@ -9,6 +9,7 @@ import type {
   RoutingDecision,
 } from '@root/types/router.types.js'
 import { routeUsingApprovedDecision } from './approved-routing.js'
+import { logSkipped, type RoutingLog } from './routing-log.js'
 import {
   type ContentRouterDeps,
   notRouted,
@@ -26,6 +27,7 @@ export interface ApprovalRequirement {
 export async function checkExistingApprovalRequest(
   item: ContentItem,
   context: RoutingContext,
+  routingLog: RoutingLog,
   deps: Pick<
     ContentRouterDeps,
     'logger' | 'db' | 'radarrManager' | 'sonarrManager'
@@ -44,14 +46,12 @@ export async function checkExistingApprovalRequest(
 
   switch (existingRequest.status) {
     case 'pending':
-      logger.info(
-        `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
-      )
+      logSkipped(routingLog, { reason: 'pending' })
       return notRouted()
 
     case 'approved':
     case 'auto_approved':
-      logger.info(
+      logger.debug(
         `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
       )
       return await routeUsingApprovedDecision(
@@ -62,13 +62,11 @@ export async function checkExistingApprovalRequest(
       )
 
     case 'rejected':
-      logger.info(
-        `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
-      )
+      logSkipped(routingLog, { reason: 'rejected' })
       return notRouted()
 
     case 'expired':
-      logger.info(
+      logger.debug(
         `Previous approval request for "${item.title}" by user ${context.userName || context.userId} has expired, allowing reprocessing`,
       )
       return null

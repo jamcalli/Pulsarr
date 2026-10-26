@@ -28,8 +28,18 @@ export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
 
   try {
     deps.logger.debug('Verifying Plex connectivity')
-    await deps.plexService.pingPlex()
-    deps.logger.info('Plex connection verified')
+    const ping = await deps.plexService.pingPlex()
+    if (ping === 'accepted') {
+      deps.logger.debug('Plex connection verified')
+    } else if (ping === 'rejected') {
+      deps.logger.warn(
+        'Plex rejected the linked token. Relink the Plex account to resume syncing.',
+      )
+    } else {
+      deps.logger.warn(
+        'Plex could not be reached, starting anyway so syncing resumes once Plex answers',
+      )
+    }
   } catch (plexError) {
     deps.logger.error(
       { error: plexError },

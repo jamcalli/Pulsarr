@@ -1,4 +1,11 @@
+import type {
+  DELETE_SYNC_NOTIFY_OPTIONS,
+  MAINTAINERR_EXCLUSION_MODES,
+  NOTIFY_OPTIONS,
+  UPDATE_NOTIFY_OPTIONS,
+} from '@root/schemas/config/config.schema.js'
 import type { PlexLabelSyncConfig } from '@root/schemas/plex/label-sync-config.schema.js'
+import type { LogLevel } from '@root/types/logs.types.js'
 
 export interface User {
   id: number
@@ -21,62 +28,16 @@ export interface User {
   updated_at: string
 }
 
-// Fields needed by the notification layer (apprise, plex-mobile, discord DM, orchestration)
-export type NotificationUser = Pick<
-  User,
-  | 'id'
-  | 'name'
-  | 'alias'
-  | 'apprise'
-  | 'discord_id'
-  | 'notify_apprise'
-  | 'notify_discord'
-  | 'notify_discord_mention'
-  | 'notify_plex_mobile'
-  | 'can_sync'
->
+export type ConfigLogLevel = LogLevel | 'silent'
 
-export type LogLevel =
-  | 'fatal'
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'silent'
+export type UpdateNotifyOption = (typeof UPDATE_NOTIFY_OPTIONS)[number]
 
-export type UpdateNotifyOption =
-  | 'none'
-  | 'all'
-  | 'discord-only'
-  | 'apprise-only'
-  | 'webhook-only'
-  | 'dm-only'
+export type NotifyOption = (typeof NOTIFY_OPTIONS)[number]
 
-export type NotifyOption =
-  | 'none' // No notifications
-  | 'all' // All available notification channels
-  | 'discord-only' // Only Discord (both webhook and DM if configured)
-  | 'apprise-only' // Only Apprise
-  | 'webhook-only' // Only Discord webhook (no DMs)
-  | 'dm-only' // Only Discord DMs (no webhook)
-  | 'discord-webhook' // Equivalent to webhook-only
-  | 'discord-message' // Equivalent to dm-only
-  | 'discord-both' // Both Discord webhook and DMs, no Apprise
+export type DeleteSyncNotifyOption = (typeof DELETE_SYNC_NOTIFY_OPTIONS)[number]
 
-export type DeleteSyncNotifyOption =
-  | 'none' // No notifications
-  | 'message' // Discord DM only (legacy)
-  | 'webhook' // Discord webhook only (legacy)
-  | 'both' // Both Discord webhook and DM (legacy)
-  | 'all' // All available notification channels
-  | 'discord-only' // Only Discord (both webhook and DM if configured)
-  | 'apprise-only' // Only Apprise
-  | 'webhook-only' // Only Discord webhook (no DMs)
-  | 'dm-only' // Only Discord DMs (no webhook)
-  | 'discord-webhook' // Equivalent to webhook-only
-  | 'discord-message' // Equivalent to dm-only
-  | 'discord-both' // Both Discord webhook and DMs, no Apprise
+export type MaintainerrExclusionMode =
+  (typeof MAINTAINERR_EXCLUSION_MODES)[number]
 
 export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
 
@@ -130,7 +91,7 @@ export interface Config {
   cookieName: string
   cookieSecured: boolean
   webhookSecret: string
-  logLevel: LogLevel
+  logLevel: ConfigLogLevel
   closeGraceDelay: number
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
   rateLimitMax: number
@@ -139,7 +100,7 @@ export interface Config {
   maintainerrEnabled: boolean
   maintainerrUrl: string
   maintainerrWebhookSecret: string
-  maintainerrExclusionMode: 'watchlisters' | 'global'
+  maintainerrExclusionMode: MaintainerrExclusionMode
   // Discord Config
   discordWebhookUrl: string
   discordBotToken: string
@@ -286,18 +247,18 @@ export interface Config {
   // Quota System Configuration
   quotaSettings?: {
     // Cleanup configuration
-    cleanup?: {
-      enabled?: boolean
-      retentionDays?: number
+    cleanup: {
+      enabled: boolean
+      retentionDays: number
     }
     // Weekly rolling quota configuration
-    weeklyRolling?: {
-      resetDays?: number
+    weeklyRolling: {
+      resetDays: number
     }
     // Monthly quota configuration
-    monthly?: {
-      resetDay?: number
-      handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
+    monthly: {
+      resetDay: number
+      handleMonthEnd: 'last-day' | 'skip-month' | 'next-month'
     }
   }
   // Approval System Configuration

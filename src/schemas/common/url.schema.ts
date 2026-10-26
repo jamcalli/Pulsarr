@@ -1,10 +1,6 @@
 import { z } from 'zod'
 
-/**
- * Validates a URL restricted to http/https schemes.
- * Used for services that require HTTP connections (Sonarr, Radarr, webhooks, etc.).
- * Restricts to http/https to mitigate SSRF risk from exotic URL schemes.
- */
+/** http and https only, other schemes are an SSRF vector. */
 export const HttpUrlSchema = z.string().refine(
   (s) => {
     try {
@@ -17,10 +13,11 @@ export const HttpUrlSchema = z.string().refine(
   { message: 'Must be a valid http(s) URL' },
 )
 
-/**
- * Optional version of HttpUrlSchema that accepts empty strings.
- * Used for optional URL fields in configuration.
- */
+/** Stored and compared without a trailing slash, so path joins never double the separator. */
+export const ArrBaseUrlSchema = HttpUrlSchema.transform((s) =>
+  s.replace(/\/+$/, ''),
+)
+
 export const HttpUrlOptionalSchema = z
   .union([HttpUrlSchema, z.literal('')])
   .optional()

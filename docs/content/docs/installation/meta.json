@@ -1,0 +1,13 @@
+{
+  "title": "Installation",
+  "pages": [
+    "index",
+    "quick-start",
+    "docker",
+    "native",
+    "postgresql",
+    "environment-variables",
+    "troubleshooting",
+    "..."
+  ]
+}

@@ -34,7 +34,7 @@ export class MetadataRefreshService {
 
   async run(): Promise<void> {
     if (this.inFlight) {
-      this.log.info('Metadata refresh already running, skipping')
+      this.log.debug('Metadata refresh already running, skipping')
       return
     }
 
@@ -56,7 +56,7 @@ export class MetadataRefreshService {
   }
 
   private async runRefresh(): Promise<void> {
-    this.log.info('Starting metadata refresh for all watchlist items')
+    this.log.debug('Starting metadata refresh for all watchlist items')
 
     // Both refreshes must settle before the guard clears, or a retry overlaps the survivor
     const [selfWatchlist, othersWatchlist] = await Promise.allSettled([

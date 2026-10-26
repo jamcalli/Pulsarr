@@ -101,7 +101,7 @@ export async function cleanupOrphanedUserTags(
   deps: UserTagDeps,
 ): Promise<OrphanedTagCleanupResults> {
   if (!deps.config.cleanupOrphanedTags) {
-    deps.logger.info('Orphaned tag cleanup is disabled by configuration')
+    deps.logger.debug('Orphaned tag cleanup is disabled by configuration')
     return { radarr: emptyResults(), sonarr: emptyResults() }
   }
 

@@ -1,3 +1,4 @@
+import { MAX_DELETION_PREVENTION } from '@root/schemas/shared/delete-sync-limits.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
@@ -74,12 +75,14 @@ export function performTagBasedSafetyCheck(
 
   const taggedPercentage = (totalTaggedItems / totalItems) * 100
 
-  logger.info(
+  logger.debug(
     `Tag-based deletion would affect ${totalTaggedItems} items out of ${totalItems} (${taggedPercentage.toFixed(2)}%)`,
   )
 
   // Validate maxDeletionPrevention value
-  const MAX_DELETION_PERCENTAGE = Number(config.maxDeletionPrevention ?? 10)
+  const MAX_DELETION_PERCENTAGE = Number(
+    config.maxDeletionPrevention ?? MAX_DELETION_PREVENTION.default,
+  )
   if (
     Number.isNaN(MAX_DELETION_PERCENTAGE) ||
     MAX_DELETION_PERCENTAGE < 0 ||
@@ -250,7 +253,9 @@ export function performWatchlistSafetyCheck(
       : 0
 
   // Prevent mass deletion if percentage is too high
-  const MAX_DELETION_PERCENTAGE = Number(config.maxDeletionPrevention ?? 10) // Default to 10% as configured in the database
+  const MAX_DELETION_PERCENTAGE = Number(
+    config.maxDeletionPrevention ?? MAX_DELETION_PREVENTION.default,
+  )
 
   if (
     Number.isNaN(MAX_DELETION_PERCENTAGE) ||

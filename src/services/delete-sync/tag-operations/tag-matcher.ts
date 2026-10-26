@@ -1,4 +1,7 @@
-import type { TagCache, TagService } from '@services/delete-sync/cache/index.js'
+import type {
+  TagCache,
+  TagService,
+} from '@services/delete-sync/cache/tag-cache.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -43,7 +46,7 @@ export async function hasRemovalTag(
       getRemovalTagPrefixNormalized(removedTagPrefix)
     if (!removalTagPrefixNormalized) {
       logger.debug(
-        'removedTagPrefix is blank – tag-based deletion will never match any items',
+        'removedTagPrefix is blank, so tag-based deletion will never match any items',
       )
       return false
     }

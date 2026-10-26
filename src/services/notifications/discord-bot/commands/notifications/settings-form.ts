@@ -1,9 +1,3 @@
-/**
- * Notifications Command Settings Form
- *
- * Embed and action row builders for the notification settings UI.
- */
-
 import type { User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import {
@@ -24,9 +18,6 @@ export interface FormDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Creates an embed displaying a user's profile and notification settings.
- */
 export function createNotificationsEmbed(user: User): EmbedBuilder {
   return new EmbedBuilder()
     .setTitle('Notification Settings')
@@ -58,16 +49,10 @@ export function createNotificationsEmbed(user: User): EmbedBuilder {
     .setFooter({ text: 'Use the buttons below to modify your settings' })
 }
 
-/**
- * Creates action rows with buttons for managing notification settings.
- *
- * The Apprise toggle button is disabled if the user does not have a valid
- * Apprise URL and Apprise notifications are not currently enabled.
- */
 export function createActionRows(
   user: User,
 ): ActionRowBuilder<ButtonBuilder>[] {
-  // Simply check if apprise exists - placeholders are already converted to null
+  // Placeholder Apprise values are stored as null, so any value is a real URL
   const hasValidApprise = !!user.apprise
   const appriseButtonDisabled = !hasValidApprise
 
@@ -121,9 +106,6 @@ export function createActionRows(
   return [firstRow, secondRow]
 }
 
-/**
- * Displays or updates the user's notification settings form as an ephemeral message.
- */
 export async function showSettingsForm(
   interaction:
     | ChatInputCommandInteraction
@@ -145,7 +127,7 @@ export async function showSettingsForm(
         ...messagePayload,
         flags: MessageFlags.Ephemeral,
       })
-      cache.set(interaction.user.id, interaction.id)
+      cache.set(interaction.user.id)
       logger.debug({ userId: interaction.user.id }, 'New settings form shown')
     } else {
       await interaction.editReply(messagePayload)

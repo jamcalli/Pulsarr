@@ -1,5 +1,10 @@
 import type React from 'react'
 import { useEffect, useRef } from 'react'
+import {
+  layoutViewport,
+  sameViewport,
+  type ViewportSize,
+} from '@/lib/layout-viewport'
 
 interface Star {
   xRatio: number
@@ -19,13 +24,13 @@ function generateStars(count: number): Star[] {
   }))
 }
 
-function drawStars(canvas: HTMLCanvasElement, stars: Star[]) {
+function drawStars(
+  canvas: HTMLCanvasElement,
+  stars: Star[],
+  { width, height, dpr }: ViewportSize,
+) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-
-  const dpr = window.devicePixelRatio || 1
-  const width = window.innerWidth
-  const height = window.innerHeight
 
   canvas.width = width * dpr
   canvas.height = height * dpr
@@ -65,9 +70,15 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
     const stars = starsRef.current
     if (!canvas || !stars) return
 
-    drawStars(canvas, stars)
+    let drawn: ViewportSize | null = null
+    const handleResize = () => {
+      const size = layoutViewport()
+      if (sameViewport(drawn, size)) return
+      drawn = size
+      drawStars(canvas, stars, size)
+    }
 
-    const handleResize = () => drawStars(canvas, stars)
+    handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
@@ -75,7 +86,7 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
   return (
     <div
       className="fixed inset-0 overflow-hidden pointer-events-none"
-      style={{ backgroundColor: 'var(--color-secondary-black)' }}
+      style={{ backgroundColor: 'var(--color-static-space)' }}
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
       <div className="relative z-10">{children}</div>

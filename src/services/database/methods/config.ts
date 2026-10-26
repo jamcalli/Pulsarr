@@ -1,4 +1,21 @@
-import type { ConfigFull } from '@root/schemas/config/config.schema.js'
+import {
+  type ConfigFull,
+  MAINTAINERR_EXCLUSION_MODE_DEFAULT,
+  NEW_EPISODE_THRESHOLD_MS,
+  NOTIFY_DEFAULTS,
+  QUEUE_WAIT_TIME_MS,
+} from '@root/schemas/config/config.schema.js'
+import {
+  PLEX_LABEL_SYNC_DEFAULTS,
+  type PlexLabelSyncConfig,
+} from '@root/schemas/plex/label-sync-config.schema.js'
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import {
+  MAX_DELETION_PREVENTION,
+  PLEX_PROTECTION_PLAYLIST_DEFAULT,
+} from '@root/schemas/shared/delete-sync-limits.js'
+import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
+import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -26,16 +43,7 @@ export async function getConfig(
     plexSessionMonitoring: config.plexSessionMonitoring
       ? this.safeJsonParse(
           config.plexSessionMonitoring,
-          {
-            enabled: false,
-            pollingIntervalMinutes: 15,
-            remainingEpisodes: 2,
-            filterUsers: [],
-            enableAutoReset: true,
-            inactivityResetDays: 7,
-            autoResetIntervalHours: 24,
-            enableProgressiveCleanup: false,
-          },
+          PLEX_SESSION_MONITORING_DEFAULTS,
           'config.plexSessionMonitoring',
         )
       : undefined,
@@ -105,8 +113,9 @@ export async function getConfig(
       config.newUserDefaultMovieQuotaEnabled ?? false,
     ),
     newUserDefaultMovieQuotaType:
-      config.newUserDefaultMovieQuotaType || 'monthly',
-    newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+      config.newUserDefaultMovieQuotaType || QUOTA_DEFAULTS.quotaType,
+    newUserDefaultMovieQuotaLimit:
+      config.newUserDefaultMovieQuotaLimit ?? QUOTA_DEFAULTS.limit,
     newUserDefaultMovieBypassApproval: Boolean(
       config.newUserDefaultMovieBypassApproval ?? false,
     ),
@@ -116,8 +125,9 @@ export async function getConfig(
       config.newUserDefaultShowQuotaEnabled ?? false,
     ),
     newUserDefaultShowQuotaType:
-      config.newUserDefaultShowQuotaType || 'monthly',
-    newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+      config.newUserDefaultShowQuotaType || QUOTA_DEFAULTS.quotaType,
+    newUserDefaultShowQuotaLimit:
+      config.newUserDefaultShowQuotaLimit ?? QUOTA_DEFAULTS.limit,
     newUserDefaultShowBypassApproval: Boolean(
       config.newUserDefaultShowBypassApproval ?? false,
     ),
@@ -135,11 +145,14 @@ export async function getConfig(
     // Handle timing defaults
     queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
     // Handle notification timing defaults
-    queueWaitTime: config.queueWaitTime ?? 120000,
-    newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+    queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
+    newEpisodeThreshold:
+      config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
     // Out-of-app update notifications
-    notifyOnUpdate: config.notifyOnUpdate || 'none',
-    notifyOnAvailability: Boolean(config.notifyOnAvailability ?? true),
+    notifyOnUpdate: config.notifyOnUpdate || NOTIFY_DEFAULTS.notifyOnUpdate,
+    notifyOnAvailability: Boolean(
+      config.notifyOnAvailability ?? NOTIFY_DEFAULTS.notifyOnAvailability,
+    ),
     // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -159,6 +172,8 @@ export async function getConfig(
     deleteContinuingShow: Boolean(config.deleteContinuingShow),
     deleteFiles: Boolean(config.deleteFiles),
     respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+    deleteSyncNotify:
+      config.deleteSyncNotify || NOTIFY_DEFAULTS.deleteSyncNotify,
     deleteSyncNotifyOnlyOnDeletion: Boolean(
       config.deleteSyncNotifyOnlyOnDeletion,
     ),
@@ -167,50 +182,33 @@ export async function getConfig(
       config.deleteSyncCleanupApprovals ?? false,
     ),
     deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
-    approvalNotify: config.approvalNotify || 'none',
-    watchlistCapNotify: config.watchlistCapNotify || 'none',
-    watchlistCapNotifyUser: Boolean(config.watchlistCapNotifyUser ?? false),
-    watchlistAddNotify: config.watchlistAddNotify || 'all',
+    approvalNotify: config.approvalNotify || NOTIFY_DEFAULTS.approvalNotify,
+    watchlistCapNotify:
+      config.watchlistCapNotify || NOTIFY_DEFAULTS.watchlistCapNotify,
+    watchlistCapNotifyUser: Boolean(
+      config.watchlistCapNotifyUser ?? NOTIFY_DEFAULTS.watchlistCapNotifyUser,
+    ),
+    watchlistAddNotify:
+      config.watchlistAddNotify || NOTIFY_DEFAULTS.watchlistAddNotify,
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
-      config.plexProtectionPlaylistName || 'Do Not Delete',
+      config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
     plexServerUrl: config.plexServerUrl || undefined,
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
-    // Plex Label Sync configuration - nested object following complex config pattern
     plexLabelSync: (() => {
       const parsed = config.plexLabelSync
-        ? this.safeJsonParse<{
-            enabled?: boolean
-            labelPrefix?: string
-            labelNamingSource?: 'username' | 'alias'
-            concurrencyLimit?: number
-            cleanupOrphanedLabels?: boolean
-            removedLabelMode?: 'remove' | 'keep' | 'special-label'
-            removedLabelPrefix?: string
-            autoResetOnScheduledSync?: boolean
-            tagSync?: {
-              enabled?: boolean
-              syncRadarrTags?: boolean
-              syncSonarrTags?: boolean
-            }
-          }>(config.plexLabelSync, {}, 'config.plexLabelSync')
+        ? this.safeJsonParse<Partial<PlexLabelSyncConfig>>(
+            config.plexLabelSync,
+            {},
+            'config.plexLabelSync',
+          )
         : {}
       return {
-        enabled: false,
-        labelPrefix: 'pulsarr',
-        labelNamingSource: 'username' as const,
-        concurrencyLimit: 5,
-        cleanupOrphanedLabels: false,
-        removedLabelMode: 'remove' as const,
-        removedLabelPrefix: 'pulsarr:removed',
-        autoResetOnScheduledSync: false,
+        ...PLEX_LABEL_SYNC_DEFAULTS,
         ...parsed,
-        // Handle nested tagSync object separately to preserve defaults
         tagSync: {
-          enabled: false,
-          syncRadarrTags: true,
-          syncSonarrTags: true,
+          ...PLEX_LABEL_SYNC_DEFAULTS.tagSync,
           ...(parsed.tagSync ?? {}),
         },
       }
@@ -221,10 +219,11 @@ export async function getConfig(
     cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
     // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
     // persistHistoricalTags: Boolean(config.persistHistoricalTags),
-    tagPrefix: config.tagPrefix || 'pulsarr-user',
+    tagPrefix: config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
     tagNamingSource: config.tagNamingSource || 'username',
     removedTagMode: config.removedTagMode || 'remove',
-    removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
+    removedTagPrefix:
+      config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
     deletionMode: config.deletionMode || 'watchlist',
     // Tag Migration Configuration
     tagMigration: config.tagMigration
@@ -242,7 +241,8 @@ export async function getConfig(
     // Maintainerr configuration
     maintainerrEnabled: Boolean(config.maintainerrEnabled),
     maintainerrUrl: config.maintainerrUrl || '',
-    maintainerrExclusionMode: config.maintainerrExclusionMode || 'watchlisters',
+    maintainerrExclusionMode:
+      config.maintainerrExclusionMode || MAINTAINERR_EXCLUSION_MODE_DEFAULT,
     _isReady: Boolean(config._isReady),
   }
 }
@@ -261,7 +261,7 @@ export async function createConfig(
 ): Promise<number> {
   const exists = await this.knex('configs').count('* as c').first()
   if (Number(exists?.c) > 0) {
-    throw new Error('Configuration already exists – use updateConfig instead')
+    throw new Error('Configuration already exists, use updateConfig instead')
   }
 
   const result = await this.knex('configs')
@@ -283,16 +283,18 @@ export async function createConfig(
       // Timing fields
       queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
       // Notification timing fields
-      queueWaitTime: config.queueWaitTime ?? 120000,
-      newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+      queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
+      newEpisodeThreshold:
+        config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
       // Maintainerr fields
       maintainerrEnabled: config.maintainerrEnabled ?? false,
       maintainerrUrl: config.maintainerrUrl ?? '',
       maintainerrExclusionMode:
-        config.maintainerrExclusionMode ?? 'watchlisters',
+        config.maintainerrExclusionMode ?? MAINTAINERR_EXCLUSION_MODE_DEFAULT,
       // Out-of-app update notifications
-      notifyOnUpdate: config.notifyOnUpdate ?? 'none',
-      notifyOnAvailability: config.notifyOnAvailability ?? true,
+      notifyOnUpdate: config.notifyOnUpdate ?? NOTIFY_DEFAULTS.notifyOnUpdate,
+      notifyOnAvailability:
+        config.notifyOnAvailability ?? NOTIFY_DEFAULTS.notifyOnAvailability,
       // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -313,21 +315,26 @@ export async function createConfig(
       deleteContinuingShow: config.deleteContinuingShow,
       deleteFiles: config.deleteFiles,
       respectUserSyncSetting: config.respectUserSyncSetting,
-      deleteSyncNotify: config.deleteSyncNotify,
+      deleteSyncNotify:
+        config.deleteSyncNotify || NOTIFY_DEFAULTS.deleteSyncNotify,
       deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
       deleteSyncTrackedOnly: config.deleteSyncTrackedOnly ?? false,
       deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals ?? false,
       deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
-      approvalNotify: config.approvalNotify || 'none',
-      watchlistCapNotify: config.watchlistCapNotify || 'none',
-      watchlistCapNotifyUser: config.watchlistCapNotifyUser ?? false,
-      watchlistAddNotify: config.watchlistAddNotify || 'all',
-      maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
+      approvalNotify: config.approvalNotify || NOTIFY_DEFAULTS.approvalNotify,
+      watchlistCapNotify:
+        config.watchlistCapNotify || NOTIFY_DEFAULTS.watchlistCapNotify,
+      watchlistCapNotifyUser:
+        config.watchlistCapNotifyUser ?? NOTIFY_DEFAULTS.watchlistCapNotifyUser,
+      watchlistAddNotify:
+        config.watchlistAddNotify || NOTIFY_DEFAULTS.watchlistAddNotify,
+      maxDeletionPrevention:
+        config.maxDeletionPrevention ?? MAX_DELETION_PREVENTION.default,
       // Plex playlist protection
       enablePlexPlaylistProtection:
         config.enablePlexPlaylistProtection || false,
       plexProtectionPlaylistName:
-        config.plexProtectionPlaylistName || 'Do Not Delete',
+        config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
       plexServerUrl: config.plexServerUrl,
       skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
       // RSS fields
@@ -341,37 +348,27 @@ export async function createConfig(
       tagUsersInSonarr: config.tagUsersInSonarr ?? false,
       tagUsersInRadarr: config.tagUsersInRadarr ?? false,
       cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
-      tagPrefix: config.tagPrefix || 'pulsarr-user',
+      tagPrefix: config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
       tagNamingSource: config.tagNamingSource || 'username',
       removedTagMode: config.removedTagMode || 'remove',
-      removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
+      removedTagPrefix:
+        config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
       deletionMode: config.deletionMode || 'watchlist',
       // Tag Migration Configuration
       tagMigration: config.tagMigration
         ? JSON.stringify(config.tagMigration)
         : null,
-      // Plex Label Sync Configuration - only include actual schema fields
       plexLabelSync: config.plexLabelSync
         ? JSON.stringify({
-            enabled: config.plexLabelSync.enabled ?? false,
-            labelPrefix: config.plexLabelSync.labelPrefix || 'pulsarr',
-            labelNamingSource:
-              config.plexLabelSync.labelNamingSource || 'username',
-            concurrencyLimit: config.plexLabelSync.concurrencyLimit ?? 5,
-            cleanupOrphanedLabels:
-              config.plexLabelSync.cleanupOrphanedLabels ?? false,
-            removedLabelMode: config.plexLabelSync.removedLabelMode || 'remove',
-            removedLabelPrefix:
-              config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
+            enabled: config.plexLabelSync.enabled,
+            labelPrefix: config.plexLabelSync.labelPrefix,
+            labelNamingSource: config.plexLabelSync.labelNamingSource,
+            cleanupOrphanedLabels: config.plexLabelSync.cleanupOrphanedLabels,
+            removedLabelMode: config.plexLabelSync.removedLabelMode,
+            removedLabelPrefix: config.plexLabelSync.removedLabelPrefix,
             autoResetOnScheduledSync:
-              config.plexLabelSync.autoResetOnScheduledSync ?? false,
-            tagSync: {
-              enabled: config.plexLabelSync.tagSync?.enabled ?? false,
-              syncRadarrTags:
-                config.plexLabelSync.tagSync?.syncRadarrTags ?? true,
-              syncSonarrTags:
-                config.plexLabelSync.tagSync?.syncSonarrTags ?? true,
-            },
+              config.plexLabelSync.autoResetOnScheduledSync,
+            tagSync: config.plexLabelSync.tagSync,
           })
         : null,
       // Plex Session Monitoring
@@ -397,8 +394,9 @@ export async function createConfig(
       newUserDefaultMovieQuotaEnabled:
         config.newUserDefaultMovieQuotaEnabled ?? false,
       newUserDefaultMovieQuotaType:
-        config.newUserDefaultMovieQuotaType || 'monthly',
-      newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        config.newUserDefaultMovieQuotaType || QUOTA_DEFAULTS.quotaType,
+      newUserDefaultMovieQuotaLimit:
+        config.newUserDefaultMovieQuotaLimit ?? QUOTA_DEFAULTS.limit,
       newUserDefaultMovieBypassApproval:
         config.newUserDefaultMovieBypassApproval ?? false,
       newUserDefaultMovieWatchlistCap:
@@ -406,8 +404,9 @@ export async function createConfig(
       newUserDefaultShowQuotaEnabled:
         config.newUserDefaultShowQuotaEnabled ?? false,
       newUserDefaultShowQuotaType:
-        config.newUserDefaultShowQuotaType || 'monthly',
-      newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        config.newUserDefaultShowQuotaType || QUOTA_DEFAULTS.quotaType,
+      newUserDefaultShowQuotaLimit:
+        config.newUserDefaultShowQuotaLimit ?? QUOTA_DEFAULTS.limit,
       newUserDefaultShowBypassApproval:
         config.newUserDefaultShowBypassApproval ?? false,
       newUserDefaultShowWatchlistCap:
@@ -423,7 +422,7 @@ export async function createConfig(
     .returning('id')
 
   const id = this.extractId(result)
-  this.log.info(`Config created with ID: ${id}`)
+  this.log.debug(`Config created with ID: ${id}`)
   return id
 }
 

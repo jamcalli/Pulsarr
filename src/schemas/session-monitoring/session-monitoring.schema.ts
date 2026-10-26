@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { SESSION_INACTIVITY_RESET_DAYS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
 import { SonarrRollingMonitoringSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { z } from 'zod'
 
@@ -19,6 +20,7 @@ const RollingMonitoredShowSchema = z
     plex_user_id: z.string().nullish(),
     plex_username: z.string().nullish(),
     plex_user_uuid: z.string().nullish(),
+    season_episode_counts: z.object({}).catchall(z.number()).nullable(),
     created_at: z.string(),
     updated_at: z.string(),
     last_updated_at: z.string(),
@@ -45,23 +47,32 @@ const SonarrShowWithEnrollmentSchema = z
       'Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status',
   })
 
-// Session monitoring result schema
-const SessionMonitoringResultSchema = z.object({
-  processedSessions: z.number(),
-  triggeredSearches: z.number(),
-  errors: z.array(z.string()),
-  rollingUpdates: z.array(
-    z.object({
-      showTitle: z.string(),
-      action: z.enum([
-        'expanded_to_season',
-        'expanded_to_next_season',
-        'switched_to_all',
-      ]),
-      details: z.string(),
-    }),
-  ),
-})
+const SessionMonitoringRollingUpdateSchema = z
+  .object({
+    showTitle: z.string(),
+    action: z.enum([
+      'expanded_to_season',
+      'expanded_to_next_season',
+      'switched_to_all',
+    ]),
+    details: z.string(),
+  })
+  .meta({
+    id: 'SessionMonitoringRollingUpdate',
+    description: 'A monitoring change made to one rolling show during a run',
+  })
+
+const SessionMonitoringResultSchema = z
+  .object({
+    processedSessions: z.number(),
+    triggeredSearches: z.number(),
+    errors: z.array(z.string()),
+    rollingUpdates: z.array(SessionMonitoringRollingUpdateSchema),
+  })
+  .meta({
+    id: 'SessionMonitoringResult',
+    description: 'Outcome of one session monitoring run',
+  })
 
 // Schema for getting rolling monitored shows
 export const getRollingMonitoredSchema = {
@@ -145,9 +156,19 @@ export const resetInactiveShowsSchema = {
   description:
     'Reset all rolling monitored shows that have been inactive for a specified number of days',
   tags: ['Session Monitoring'],
-  body: z.object({
-    inactivityDays: z.number().min(1).max(365).optional(),
-  }),
+  body: z
+    .object({
+      inactivityDays: z
+        .number()
+        .min(SESSION_INACTIVITY_RESET_DAYS.min)
+        .max(SESSION_INACTIVITY_RESET_DAYS.max)
+        .optional(),
+    })
+    .meta({
+      id: 'SessionMonitoringResetInactivePayload',
+      description:
+        'Days without viewing activity before a rolling show is reset',
+    }),
   response: {
     200: z.object({
       success: z.boolean(),
@@ -166,7 +187,11 @@ export const getInactiveRollingMonitoredSchema = {
     'Retrieve rolling monitored shows that have been inactive for a specified number of days',
   tags: ['Session Monitoring'],
   querystring: z.object({
-    inactivityDays: z.coerce.number().min(1).max(365).optional(),
+    inactivityDays: z.coerce
+      .number()
+      .min(SESSION_INACTIVITY_RESET_DAYS.min)
+      .max(SESSION_INACTIVITY_RESET_DAYS.max)
+      .optional(),
   }),
   response: {
     200: z.object({

@@ -132,7 +132,7 @@ async function insertRadarrInstanceRow(
     .returning('id')
 
   const id = this.extractId(result)
-  this.log.info(`Radarr instance created with ID: ${id}`)
+  this.log.debug(`Radarr instance created with ID: ${id}`)
   return id
 }
 
@@ -232,7 +232,7 @@ export async function updateRadarrInstance(
       })
   })
 
-  this.log.info(`Radarr instance ${id} updated`)
+  this.log.debug(`Radarr instance ${id} updated`)
 }
 
 /**
@@ -298,7 +298,7 @@ export async function cleanupDeletedRadarrInstanceReferences(
       }
     }
 
-    this.log.info(
+    this.log.debug(
       `Cleaned up references for deleted Radarr instance ${deletedId}`,
     )
   } catch (error) {
@@ -358,14 +358,14 @@ export async function deleteRadarrInstance(
               updated_at: this.timestamp,
             })
 
-          this.log.info(
+          this.log.debug(
             `Set Radarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
           )
         }
       }
     })
 
-    this.log.info(`Deleted Radarr instance ${id} and cleaned up references`)
+    this.log.debug(`Deleted Radarr instance ${id} and cleaned up references`)
   } catch (error) {
     this.log.error({ error }, `Error deleting Radarr instance ${id}:`)
     throw error
@@ -386,7 +386,7 @@ export async function replaceRadarrInstance(
       isDefault: true,
     })
   })
-  this.log.info(`Replaced Radarr instance ${id} with instance ${newId}`)
+  this.log.debug(`Replaced Radarr instance ${id} with instance ${newId}`)
   return newId
 }
 

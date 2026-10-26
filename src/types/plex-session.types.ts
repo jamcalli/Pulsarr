@@ -242,6 +242,9 @@ export interface PlexEpisodeMetadata {
   updatedAt?: number
 }
 
+/** Total episodes per season number, unaired included, specials excluded. */
+export type SeasonEpisodeCounts = Record<string, number>
+
 /**
  * Rolling monitoring tracking data
  */
@@ -260,10 +263,27 @@ export interface RollingMonitoredShow {
   plex_user_id?: string
   plex_username?: string
   plex_user_uuid?: string | null
+  /** Null on per-user rows read from the DB until the session monitor overlays the master row map. */
+  season_episode_counts: SeasonEpisodeCounts | null
   created_at: string
   updated_at: string
   last_updated_at: string
 }
+
+/** How a rolling show lookup resolved, ambiguousTitle when the title fallback hit several shows and matched none. */
+export type RollingShowMatches =
+  | { matchedBy: 'tvdb' | 'title'; shows: RollingMonitoredShow[] }
+  | { matchedBy: 'ambiguousTitle' | 'none'; shows: [] }
+
+export type NewRollingMonitoredShow = Pick<
+  RollingMonitoredShow,
+  | 'sonarr_series_id'
+  | 'sonarr_instance_id'
+  | 'tvdb_id'
+  | 'show_title'
+  | 'monitoring_type'
+  | 'current_monitored_season'
+>
 
 // Plex SSE playing event payload from /:/eventsource/notifications
 export interface PlexPlaySessionNotification {

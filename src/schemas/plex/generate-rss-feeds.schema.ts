@@ -1,10 +1,15 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-export const RssFeedsSuccessSchema = z.object({
-  self: z.string(),
-  friends: z.string(),
-})
+export const RssFeedsSuccessSchema = z
+  .object({
+    self: z.string(),
+    friends: z.string(),
+  })
+  .meta({
+    id: 'PlexRssFeeds',
+    description: 'The saved watchlist feed URLs, empty when Plex gave none',
+  })
 
 export const rssFeedsSchema = {
   summary: 'Generate RSS feeds',

@@ -1,338 +1,152 @@
-import type {
-  DiscordEmbed,
-  SystemNotification,
-  WatchlistCapEvent,
-} from '@root/types/discord.types.js'
-import type { DatabaseService } from '@services/database.service.js'
-import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
-import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
-import { dispatchWebhooks } from '@services/notifications/channels/native-webhook.js'
-import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
-import type { FastifyBaseLogger } from 'fastify'
-import { getApprovalNotificationChannels } from './approval.js'
-
-export interface WatchlistCapDeps {
-  db: DatabaseService
-  logger: FastifyBaseLogger
-  discordBot: DiscordBotService
-  discordWebhook: DiscordWebhookService
-  apprise: AppriseService
-  config: {
-    watchlistCapNotify: string
-    watchlistCapNotifyUser: boolean
-  }
-}
-
-export type { WatchlistCapEvent }
-
-interface PendingNotification {
-  timer: ReturnType<typeof setTimeout>
-  deps: WatchlistCapDeps
-  event: WatchlistCapEvent
-}
-
-// Keyed by userId:contentType
-const pendingMap = new Map<string, PendingNotification>()
-
-// Keyed by userId:contentType; an unchanged count suppresses the next notification
-const lastNotifiedCount = new Map<string, number>()
+import type { User } from '@root/types/config.types.js'
+import type { WatchlistCapNotification } from '@root/types/notification.types.js'
+import { recipientLabel } from '@utils/recipient-label.js'
+import {
+  deliverToAdmins,
+  NOTHING_DELIVERED,
+  recordDelivery,
+  sendToUser,
+} from '../dispatch.js'
+import type { NotificationState } from '../state.js'
+import {
+  displayName,
+  mediaTypeLabel,
+  WATCHLIST_CAP_TITLE,
+} from '../templates/labels.js'
+import {
+  createUserWatchlistCapMessage,
+  createWatchlistCapMessage,
+} from '../templates/messages.js'
+import { buildUserPayload } from '../templates/webhook-payloads.js'
+import type { DeliveryOutcome, NotificationDeps } from '../types.js'
 
 const DEBOUNCE_MS = 60_000
 
-function createWebhookEmbed(event: WatchlistCapEvent): DiscordEmbed {
-  const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
-  const userName = event.userName || `User ${event.userId}`
+function usage(event: WatchlistCapNotification): string {
+  const noun = `${mediaTypeLabel(event.contentType).label.toLowerCase()}s`
+  return `${event.currentCount} of ${event.cap} ${noun}`
+}
 
-  return {
-    title: 'Watchlist Cap Reached',
-    description: `**${userName}** reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
-    color: 0xffbf00,
-    timestamp: new Date().toISOString(),
-    fields: [
-      {
-        name: 'User',
-        value: userName,
-        inline: true,
-      },
-      {
-        name: 'Content Type',
-        value: contentLabel,
-        inline: true,
-      },
-      {
-        name: 'Usage',
-        value: `${event.currentCount} / ${event.cap}`,
-        inline: true,
-      },
-    ],
-    footer: {
-      text: 'New items will not be processed until the cap is raised or items are removed.',
+async function notifyCappedUser(
+  deps: NotificationDeps,
+  event: WatchlistCapNotification,
+  user: User,
+): Promise<DeliveryOutcome> {
+  const message = createUserWatchlistCapMessage(
+    event,
+    displayName(user, event.userId),
+  )
+  const sent = await sendToUser(
+    deps,
+    user,
+    {
+      event: 'watchlistCap',
+      summary: `${recipientLabel(user)}, ${usage(event)}`,
     },
-  }
-}
-
-async function sendDiscordWebhookNotification(
-  deps: WatchlistCapDeps,
-  event: WatchlistCapEvent,
-): Promise<boolean> {
-  try {
-    const embed = createWebhookEmbed(event)
-    return await deps.discordWebhook.sendNotification({
-      embeds: [embed],
-      username: 'Pulsarr Watchlist',
-      avatar_url:
-        'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
-    })
-  } catch (error) {
-    deps.logger.error({ error }, 'Error sending watchlist cap Discord webhook')
-    return false
-  }
-}
-
-async function sendDiscordDMNotification(
-  deps: WatchlistCapDeps,
-  event: WatchlistCapEvent,
-): Promise<boolean> {
-  try {
-    if (deps.discordBot.getBotStatus() !== 'running') return false
-
-    const primaryUser = await deps.db.getPrimaryUser()
-    if (!primaryUser?.discord_id) return false
-
-    const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
-    const userName = event.userName || `User ${event.userId}`
-
-    const sent = await deps.discordBot.sendDirectMessage(
-      primaryUser.discord_id,
-      {
-        type: 'system',
-        username: 'Watchlist Cap',
-        title: 'Watchlist Cap Reached',
-        embedFields: [
-          {
-            name: 'User',
-            value: userName,
-            inline: true,
-          },
-          {
-            name: 'Content Type',
-            value: contentLabel,
-            inline: true,
-          },
-          {
-            name: 'Usage',
-            value: `${event.currentCount} / ${event.cap}`,
-            inline: true,
-          },
-          {
-            name: 'Impact',
-            value:
-              'New items will not be processed until the cap is raised or items are removed.',
-            inline: false,
-          },
-        ],
-      },
-    )
-    return sent
-  } catch (error) {
-    deps.logger.error({ error }, 'Error sending watchlist cap Discord DM')
-    return false
-  }
-}
-
-async function sendAppriseNotification(
-  deps: WatchlistCapDeps,
-  event: WatchlistCapEvent,
-): Promise<boolean> {
-  try {
-    if (!deps.apprise.isEnabled()) return false
-
-    const userName = event.userName || `User ${event.userId}`
-
-    return await deps.apprise.sendWatchlistCapNotification({
-      userName,
-      contentType: event.contentType,
-      currentCount: event.currentCount,
-      cap: event.cap,
-    })
-  } catch (error) {
-    deps.logger.error(
-      { error },
-      'Error sending watchlist cap Apprise notification',
-    )
-    return false
-  }
-}
-
-async function sendUserNotification(
-  deps: WatchlistCapDeps,
-  event: WatchlistCapEvent,
-): Promise<void> {
-  try {
-    const users = await deps.db.getAllUsers()
-    const user = users.find((u) => u.id === event.userId)
-    if (!user) return
-
-    if (!user.notify_discord && !user.notify_apprise) return
-
-    const contentLabel = event.contentType === 'movie' ? 'movie' : 'show'
-    const displayName = user.alias || user.name || `User ${event.userId}`
-
-    if (user.notify_discord && user.discord_id) {
-      if (deps.discordBot.getBotStatus() === 'running') {
-        const notification: SystemNotification = {
-          type: 'system',
-          username: 'Pulsarr',
-          title: 'Watchlist Cap Reached',
-          embedFields: [
-            {
-              name: 'Notice',
-              value: `${displayName}, you've reached your ${contentLabel} watchlist cap (${event.currentCount}/${event.cap}). New ${contentLabel} items won't be processed until the cap is raised or existing items are removed.`,
-              inline: false,
-            },
-          ],
-        }
-        try {
-          await deps.discordBot.sendDirectMessage(user.discord_id, notification)
-        } catch (error) {
-          deps.logger.error(
-            { error, userId: user.id },
-            'Error sending watchlist cap Discord DM to user',
-          )
-        }
-      }
-    }
-
-    if (user.notify_apprise && deps.apprise.isEnabled()) {
-      try {
-        await deps.apprise.sendUserWatchlistCapNotification(user, {
-          userName: displayName,
-          contentType: event.contentType,
-          currentCount: event.currentCount,
-          cap: event.cap,
-        })
-      } catch (error) {
-        deps.logger.error(
-          { error, userId: user.id },
-          'Error sending watchlist cap Apprise notification to user',
-        )
-      }
-    }
-  } catch (error) {
-    deps.logger.error(
-      { error, userId: event.userId },
-      'Error sending watchlist cap user notification',
-    )
-  }
+    message,
+  )
+  return { ...sent, sent_to_native_webhook: false }
 }
 
 async function dispatchNotification(
-  deps: WatchlistCapDeps,
-  event: WatchlistCapEvent,
-): Promise<void> {
+  deps: NotificationDeps,
+  event: WatchlistCapNotification,
+): Promise<boolean> {
   const key = `${event.userId}:${event.contentType}`
-  const notifySetting = deps.config.watchlistCapNotify || 'none'
+  const counts = deps.state.watchlistCapCounts
 
-  const lastCount = lastNotifiedCount.get(key)
+  const lastCount = counts.get(key)
   if (lastCount !== undefined && event.currentCount <= lastCount) {
     deps.logger.debug(
       { userId: event.userId, contentType: event.contentType },
       'Watchlist cap notification suppressed (count unchanged since last notification)',
     )
-    return
+    return false
   }
 
-  lastNotifiedCount.set(key, event.currentCount)
-
-  const { sendWebhook, sendDM, sendApprise } =
-    getApprovalNotificationChannels(notifySetting)
-
-  if (notifySetting !== 'none') {
-    const promises: Promise<boolean>[] = []
-
-    if (sendWebhook) {
-      promises.push(sendDiscordWebhookNotification(deps, event))
-    }
-    if (sendDM) {
-      promises.push(sendDiscordDMNotification(deps, event))
-    }
-    if (sendApprise) {
-      promises.push(sendAppriseNotification(deps, event))
-    }
-
-    if (promises.length > 0) {
-      const results = await Promise.all(promises)
-      const successCount = results.filter(Boolean).length
-      deps.logger.info(
-        {
-          userId: event.userId,
-          contentType: event.contentType,
-          count: event.currentCount,
-          cap: event.cap,
-          channelsSent: successCount,
-        },
-        'Watchlist cap notification sent to admin channels',
-      )
-    }
-  }
-
-  if (deps.config.watchlistCapNotifyUser) {
-    void sendUserNotification(deps, event)
-  }
-
-  void dispatchWebhooks(
-    'quota.cap_reached',
-    {
-      user: {
-        userId: event.userId,
-        username: event.userName,
-      },
-      contentType: event.contentType,
-      currentCount: event.currentCount,
-      cap: event.cap,
-    },
-    { db: deps.db, log: deps.logger },
-  )
-
+  counts.set(key, event.currentCount)
+  let sent = false
   try {
-    const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
-    const userName = event.userName || `User ${event.userId}`
-    await deps.db.createNotificationRecord({
-      watchlist_item_id: null,
-      user_id: event.userId,
-      type: 'watchlist_cap',
-      title: `${contentLabel} Watchlist Cap Reached`,
-      message: `${userName} reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
-      sent_to_discord: sendWebhook || sendDM,
-      sent_to_apprise: sendApprise,
-      sent_to_native_webhook: true,
-    })
-  } catch (error) {
-    deps.logger.error(
-      { error, userId: event.userId },
-      'Failed to record watchlist cap notification',
-    )
+    sent = await deliverCapNotification(deps, event)
+    return sent
+  } finally {
+    if (!sent && counts.get(key) === event.currentCount) {
+      if (lastCount === undefined) counts.delete(key)
+      else counts.set(key, lastCount)
+    }
   }
 }
 
-// Trailing edge debounce: each call resets the timer so a burst fires one notification with the latest count
-export function sendWatchlistCapNotification(
-  deps: WatchlistCapDeps,
-  event: WatchlistCapEvent,
+async function deliverCapNotification(
+  deps: NotificationDeps,
+  event: WatchlistCapNotification,
+): Promise<boolean> {
+  const contentLabel = mediaTypeLabel(event.contentType).label
+  const user = await deps.db.getUser(event.userId)
+  const who = displayName(user ?? { name: event.userName }, event.userId)
+  const label = user ? recipientLabel(user) : who
+
+  const [admin, capped] = await Promise.all([
+    deliverToAdmins(deps, {
+      setting: deps.config.watchlistCapNotify,
+      line: {
+        event: 'watchlistCap',
+        summary: `${label}, ${usage(event)}`,
+        userId: event.userId,
+      },
+      message: createWatchlistCapMessage(event, who),
+      webhook: {
+        event: 'quota.cap_reached',
+        payload: {
+          user: buildUserPayload({
+            id: event.userId,
+            name: event.userName,
+            alias: user?.alias,
+          }),
+          contentType: event.contentType,
+          currentCount: event.currentCount,
+          cap: event.cap,
+        },
+      },
+    }),
+    deps.config.watchlistCapNotifyUser && user
+      ? notifyCappedUser(deps, event, user)
+      : NOTHING_DELIVERED,
+  ])
+  return recordDelivery(
+    deps,
+    {
+      watchlist_item_id: null,
+      user_id: event.userId,
+      type: 'watchlist_cap',
+      title: `${contentLabel} ${WATCHLIST_CAP_TITLE.toLowerCase()}`,
+      message: `${who} reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
+    },
+    {
+      sent_to_discord: admin.sent_to_discord || capped.sent_to_discord,
+      sent_to_apprise: admin.sent_to_apprise || capped.sent_to_apprise,
+      sent_to_native_webhook: admin.sent_to_native_webhook,
+    },
+  )
+}
+
+// Each call resets the timer so a burst fires one notification with the latest count
+export function sendWatchlistCapReached(
+  deps: NotificationDeps,
+  event: WatchlistCapNotification,
 ): void {
   const key = `${event.userId}:${event.contentType}`
+  const timers = deps.state.watchlistCapTimers
 
-  const existing = pendingMap.get(key)
-  if (existing) {
-    clearTimeout(existing.timer)
-  }
+  const existing = timers.get(key)
+  clearTimeout(existing)
 
   const timer = setTimeout(() => {
-    pendingMap.delete(key)
-    void dispatchNotification(deps, event)
+    timers.delete(key)
+    deps.detach(dispatchNotification(deps, event))
   }, DEBOUNCE_MS)
 
-  pendingMap.set(key, { timer, deps, event })
+  timers.set(key, timer)
 
   deps.logger.debug(
     {
@@ -345,4 +159,16 @@ export function sendWatchlistCapNotification(
       ? 'Watchlist cap notification debounce reset (new event received)'
       : 'Watchlist cap notification queued (will fire after quiet period)',
   )
+}
+
+/** Forgets the last notified count and drops a pending notification, so the next time over the cap notifies again. */
+export function clearWatchlistCap(
+  state: NotificationState,
+  userId: number,
+  contentType: WatchlistCapNotification['contentType'],
+): void {
+  const key = `${userId}:${contentType}`
+  clearTimeout(state.watchlistCapTimers.get(key))
+  state.watchlistCapTimers.delete(key)
+  state.watchlistCapCounts.delete(key)
 }

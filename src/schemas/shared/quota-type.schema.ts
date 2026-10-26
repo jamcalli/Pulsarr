@@ -5,6 +5,6 @@ export const QuotaTypeSchema = z
   .meta({
     id: 'QuotaType',
     description:
-      'Quota window, a calendar day, rolling 7 days, or calendar month',
+      'Quota window, the current day, a rolling run of days, or a monthly period from the configured reset day',
   })
 export type QuotaType = z.infer<typeof QuotaTypeSchema>

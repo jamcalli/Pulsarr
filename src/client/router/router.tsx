@@ -1,60 +1,91 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import AuthenticatedLayout from '@/layouts/authenticated'
+import { RouteError } from '@/components/route-error'
+import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
+import { AccountSkeleton } from '@/features/account/components/account-skeleton'
+import { HomeSkeleton } from '@/features/home/components/home-skeleton'
+import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
+import { ExclusionsSkeleton } from '@/features/library/components/exclusions/exclusions-skeleton'
+import { ArrInstancesSkeleton } from '@/features/library/components/instances/arr-instances-skeleton'
+import { SessionMonitoringSkeleton } from '@/features/library/components/session-monitoring/session-monitoring-skeleton'
+import { DELETE_SYNC_SKELETON } from '@/features/library/lib/delete-sync/delete-sync-skeleton'
+import { PublicContentSkeleton } from '@/features/notifications/components/public-content/public-content-skeleton'
+import { WebhooksSkeleton } from '@/features/notifications/components/webhooks/webhooks-skeleton'
+import { APPRISE_SKELETON } from '@/features/notifications/lib/apprise-skeleton'
+import { DELIVERY_SKELETON } from '@/features/notifications/lib/delivery-skeleton'
+import { DISCORD_SKELETON } from '@/features/notifications/lib/discord-skeleton'
+import { PLEX_MOBILE_SKELETON } from '@/features/notifications/lib/plex-mobile-skeleton'
+import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
+import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
+import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
+import { ApiKeysSkeleton } from '@/features/system/components/api-keys/api-keys-skeleton'
+import { LogsSkeleton } from '@/features/system/components/logs/logs-skeleton'
+import { PlexConnectionSkeleton } from '@/features/system/components/plex-connection/plex-connection-skeleton'
+import { NewUserDefaultsSkeleton } from '@/features/users/components/new-user-defaults/new-user-defaults-skeleton'
+import { PlexUsersSkeleton } from '@/features/users/components/plex-users/plex-users-skeleton'
+import { UserPageSkeleton } from '@/features/users/components/user/user-page-skeleton'
+import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
+import { USER_TAGS_SKELETON } from '@/features/users/lib/user-tags-skeleton'
+import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import { BASE_PATH } from '@/lib/basePath.js'
+import { legacyRedirects } from '@/lib/navigation'
+import { BACKDROP_ROUTE } from '@/lib/route-handle'
 
 const LoginPage = lazy(() => import('@/features/auth'))
-const CreateUserPage = lazy(() => import('@/features/setup'))
-const PlexConfigurationPage = lazy(
-  () => import('@/features/system/pages/plex-connection'),
-)
-const PlexUsersPage = lazy(() => import('@/features/users/pages/plex-users'))
-const ApprovalsPage = lazy(() => import('@/features/requests'))
-const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
-const DashboardPage = lazy(() => import('@/features/home'))
-const DeleteSyncPage = lazy(
-  () => import('@/features/library/pages/delete-sync'),
-)
-const PlexNotificationsPage = lazy(
-  () => import('@/features/system/pages/plex-notifications'),
-)
+const CreateUserPage = lazy(() => import('@/features/auth/pages/create-user'))
+const AccountPage = lazy(() => import('@/features/account'))
+const HomePage = lazy(() => import('@/features/home'))
+const NotFoundPage = lazy(() => import('@/features/not-found'))
+const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
 const NewUserDefaultsPage = lazy(
   () => import('@/features/users/pages/new-user-defaults'),
 )
-const PlexSessionMonitoringPage = lazy(
-  () => import('@/features/library/pages/plex-session-monitoring'),
-)
-const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
 const PlexLabelsPage = lazy(() => import('@/features/users/pages/plex-labels'))
-const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
-const WatchlistExclusionsPage = lazy(
-  () => import('@/features/users/pages/watchlist-exclusions'),
+const PlexUsersPage = lazy(() => import('@/features/users/pages/plex-users'))
+const UserPage = lazy(() => import('@/features/users/pages/user'))
+const ApprovalQueuePage = lazy(
+  () => import('@/features/requests/pages/approval-queue'),
 )
-const LogViewerPage = lazy(() => import('@/features/system/pages/log-viewer'))
 const ApprovalSettingsPage = lazy(
   () => import('@/features/requests/pages/approval-settings'),
 )
 const QuotaSettingsPage = lazy(
   () => import('@/features/requests/pages/quota-settings'),
 )
-const SonarrInstancesPage = lazy(
-  () => import('@/features/library/pages/sonarr-instances'),
+const ContentRouterPage = lazy(
+  () => import('@/features/library/pages/content-router'),
 )
-const SonarrContentRouterPage = lazy(
-  () => import('@/features/library/pages/sonarr-content-router'),
+const ArrInstancesPage = lazy(
+  () => import('@/features/library/pages/arr-instances'),
 )
-const RadarrInstancesPage = lazy(
-  () => import('@/features/library/pages/radarr-instances'),
+const SessionMonitoringPage = lazy(
+  () => import('@/features/library/pages/session-monitoring'),
 )
-const RadarrContentRouterPage = lazy(
-  () => import('@/features/library/pages/radarr-content-router'),
+const DeleteSyncPage = lazy(
+  () => import('@/features/library/pages/delete-sync'),
 )
-const NotFoundPage = lazy(() => import('@/features/not-found'))
-const AccountSettingsPage = lazy(() => import('@/features/account'))
-
-const LoadingFallback = () => null
-
+const ExclusionsPage = lazy(() => import('@/features/library/pages/exclusions'))
+const DiscordPage = lazy(() => import('@/features/notifications/pages/discord'))
+const ApprisePage = lazy(() => import('@/features/notifications/pages/apprise'))
+const DeliveryPage = lazy(
+  () => import('@/features/notifications/pages/delivery'),
+)
+const WebhooksPage = lazy(
+  () => import('@/features/notifications/pages/webhooks'),
+)
+const PlexMobilePage = lazy(
+  () => import('@/features/notifications/pages/plex-mobile'),
+)
+const PublicContentPage = lazy(
+  () => import('@/features/notifications/pages/public-content'),
+)
+const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
+const LogsPage = lazy(() => import('@/features/system/pages/logs'))
+const PlexConnectionPage = lazy(
+  () => import('@/features/system/pages/plex-connection'),
+)
+const SetupDialog = lazy(() => import('@/features/setup'))
 /**
  * Get the configured base path for the router.
  * Reads from the <base> tag injected by the server.
@@ -72,270 +103,289 @@ export const router = createBrowserRouter(
           <Outlet />
         </RootLayout>
       ),
+      errorElement: (
+        <RootLayout backdrop>
+          <RouteError />
+        </RootLayout>
+      ),
       children: [
         {
-          index: true,
-          element: <Navigate to="/dashboard" replace />,
+          element: (
+            <AppLayout>
+              <Suspense fallback={null}>
+                <SetupDialog />
+              </Suspense>
+            </AppLayout>
+          ),
+          children: [
+            {
+              errorElement: (
+                <div className="flex flex-1 items-center justify-center py-12">
+                  <RouteError />
+                </div>
+              ),
+              children: [
+                {
+                  index: true,
+                  element: (
+                    <Suspense fallback={<HomeSkeleton />}>
+                      <HomePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users',
+                  element: (
+                    <Suspense fallback={<PlexUsersSkeleton />}>
+                      <PlexUsersPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/:id',
+                  element: (
+                    <Suspense fallback={<UserPageSkeleton />}>
+                      <UserPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/tags',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...USER_TAGS_SKELETON} />
+                      }
+                    >
+                      <UserTagsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/new-user-defaults',
+                  element: (
+                    <Suspense fallback={<NewUserDefaultsSkeleton />}>
+                      <NewUserDefaultsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'users/plex-labels',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...PLEX_LABELS_SKELETON} />
+                      }
+                    >
+                      <PlexLabelsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'requests',
+                  element: (
+                    <Suspense fallback={<ApprovalQueueSkeleton />}>
+                      <ApprovalQueuePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'requests/settings',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...APPROVAL_SETTINGS_SKELETON} />
+                      }
+                    >
+                      <ApprovalSettingsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'requests/quotas',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...QUOTA_SETTINGS_SKELETON} />
+                      }
+                    >
+                      <QuotaSettingsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/radarr',
+                  element: (
+                    <Suspense fallback={<ArrInstancesSkeleton />}>
+                      <ArrInstancesPage key="radarr" type="radarr" />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/sonarr',
+                  element: (
+                    <Suspense fallback={<ArrInstancesSkeleton />}>
+                      <ArrInstancesPage key="sonarr" type="sonarr" />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/content-router',
+                  element: (
+                    <Suspense fallback={<ContentRouterSkeleton />}>
+                      <ContentRouterPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/exclusions',
+                  element: (
+                    <Suspense fallback={<ExclusionsSkeleton />}>
+                      <ExclusionsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/delete-sync',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...DELETE_SYNC_SKELETON} />
+                      }
+                    >
+                      <DeleteSyncPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'library/session-monitoring',
+                  element: (
+                    <Suspense fallback={<SessionMonitoringSkeleton />}>
+                      <SessionMonitoringPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/discord',
+                  element: (
+                    <Suspense
+                      fallback={<SettingsPageSkeleton {...DISCORD_SKELETON} />}
+                    >
+                      <DiscordPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/apprise',
+                  element: (
+                    <Suspense
+                      fallback={<SettingsPageSkeleton {...APPRISE_SKELETON} />}
+                    >
+                      <ApprisePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/delivery',
+                  element: (
+                    <Suspense
+                      fallback={<SettingsPageSkeleton {...DELIVERY_SKELETON} />}
+                    >
+                      <DeliveryPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/webhooks',
+                  element: (
+                    <Suspense fallback={<WebhooksSkeleton />}>
+                      <WebhooksPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/plex-mobile',
+                  element: (
+                    <Suspense
+                      fallback={
+                        <SettingsPageSkeleton {...PLEX_MOBILE_SKELETON} />
+                      }
+                    >
+                      <PlexMobilePage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'notifications/public-content',
+                  element: (
+                    <Suspense fallback={<PublicContentSkeleton />}>
+                      <PublicContentPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'system/plex',
+                  element: (
+                    <Suspense fallback={<PlexConnectionSkeleton />}>
+                      <PlexConnectionPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'system/api-keys',
+                  element: (
+                    <Suspense fallback={<ApiKeysSkeleton />}>
+                      <ApiKeysPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'system/logs',
+                  element: (
+                    <Suspense fallback={<LogsSkeleton />}>
+                      <LogsPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: 'account',
+                  element: (
+                    <Suspense fallback={<AccountSkeleton />}>
+                      <AccountPage />
+                    </Suspense>
+                  ),
+                },
+              ],
+            },
+          ],
         },
         {
           path: 'login',
+          handle: BACKDROP_ROUTE,
           element: (
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={null}>
               <LoginPage />
             </Suspense>
           ),
         },
         {
           path: 'create-user',
+          handle: BACKDROP_ROUTE,
           element: (
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={null}>
               <CreateUserPage />
             </Suspense>
           ),
         },
-        {
-          path: 'plex',
-          children: [
-            {
-              index: true,
-              element: <Navigate to="/plex/configuration" replace />,
-            },
-            {
-              path: 'configuration',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <PlexConfigurationPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'users',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <PlexUsersPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
-        {
-          path: 'sonarr',
-          children: [
-            {
-              path: 'instances',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <SonarrInstancesPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'content-router',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <SonarrContentRouterPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
-        {
-          path: 'radarr',
-          children: [
-            {
-              path: 'instances',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <RadarrInstancesPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'content-router',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <RadarrContentRouterPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
-        {
-          path: 'notifications',
-          element: (
-            <AuthenticatedLayout>
-              <Suspense fallback={<LoadingFallback />}>
-                <NotificationsConfigPage />
-              </Suspense>
-            </AuthenticatedLayout>
-          ),
-        },
-        {
-          path: 'dashboard',
-          element: (
-            <AuthenticatedLayout>
-              <Suspense fallback={<LoadingFallback />}>
-                <DashboardPage />
-              </Suspense>
-            </AuthenticatedLayout>
-          ),
-        },
-        {
-          path: 'account',
-          element: (
-            <AuthenticatedLayout>
-              <Suspense fallback={<LoadingFallback />}>
-                <AccountSettingsPage />
-              </Suspense>
-            </AuthenticatedLayout>
-          ),
-        },
-        {
-          path: 'utilities',
-          children: [
-            {
-              path: 'delete-sync',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <DeleteSyncPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'plex-notifications',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <PlexNotificationsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'new-user-defaults',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <NewUserDefaultsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'plex-session-monitoring',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <PlexSessionMonitoringPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'user-tags',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <UserTagsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'plex-labels',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <PlexLabelsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'api-keys',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <ApiKeysPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'watchlist-exclusions',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <WatchlistExclusionsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'log-viewer',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <LogViewerPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
-        {
-          path: 'approvals',
-          children: [
-            {
-              index: true,
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <ApprovalsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'settings',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <ApprovalSettingsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'quota-settings',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <QuotaSettingsPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-          ],
-        },
+        ...legacyRedirects().map(({ path, to }) => ({
+          path: path.slice(1),
+          element: <Navigate to={to} replace />,
+        })),
         {
           path: '*',
+          handle: BACKDROP_ROUTE,
           element: (
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={null}>
               <NotFoundPage />
             </Suspense>
           ),

@@ -1,16 +1,48 @@
+import type { AppriseMessageType } from '@root/types/apprise.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  AppriseMessage,
   ApprovalNotification,
   MediaNotification,
   UpdateAvailableRelease,
-  WatchlistAdditionNotification,
   WatchlistCapNotification,
-} from '@root/types/discord.types.js'
+} from '@root/types/notification.types.js'
 import {
   type DeleteSyncSection,
+  sectionEmptyText,
+  sectionMoreText,
   summarizeDeleteSync,
 } from './delete-sync-summary.js'
-import { mediaTypeLabel } from './media-type.js'
+import {
+  BLOCK_GAP,
+  CARD,
+  DESTRUCTIVE,
+  DESTRUCTIVE_TEXT,
+  DIVIDER,
+  FONT_STACK,
+  GOLD,
+  INK,
+  INNER_GAP,
+  MUTED,
+  PAGE,
+  PRIMARY,
+  PRIMARY_FOREGROUND,
+  SURFACE,
+} from './email-tokens.js'
+import {
+  APPROVAL_TRIGGER_LABELS,
+  EVENT_LABELS,
+  formatTriggerReason,
+  MEDIA_AVAILABLE_HEADINGS,
+  mediaTypeLabel,
+  TEST_NOTIFICATION,
+  WATCHLIST_CAP_IMPACT,
+  WATCHLIST_CAP_TITLE,
+} from './labels.js'
+import {
+  type MediaAvailability,
+  summarizeMediaAvailable,
+} from './media-available.js'
 
 export function escapeHtml(str: string): string {
   if (!str) return ''
@@ -25,258 +57,295 @@ export function escapeHtml(str: string): string {
   return str.replace(/[&<>'"`]/g, (c) => escapeMap[c] || c)
 }
 
-const BORDER = '2px solid #000000'
-const SHADOW = '4px 4px 0px 0px #000000'
+const TABLE_ATTRS = 'role="presentation" cellpadding="0" cellspacing="0"'
 
-const WRAPPER_STYLE = `font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: ${BORDER}; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: ${SHADOW};`
-const CARD_STYLE = `margin-bottom: 20px; padding: 15px; border-radius: 5px; border: ${BORDER}; box-shadow: ${SHADOW};`
-const CARD_BACKGROUND = '#212121'
-const SAFETY_CARD_BACKGROUND = '#c1666b'
-const PAGE_HEADING_STYLE = 'color: #000000; margin-top: 0; font-weight: 700;'
-const HEADING_STYLE = 'margin-top: 0; color: #ffffff; font-weight: 700;'
-const SECTION_HEADING_STYLE = `${HEADING_STYLE} border-bottom: 1px solid #343746; padding-bottom: 5px;`
-const LABEL_STYLE = 'color: #ffffff; font-weight: 700; font-size: 14px;'
-const VALUE_STYLE = 'color: #ffffff; font-weight: 500;'
-const NOTICE_STYLE = 'color: #ffffff; font-weight: 700; text-align: center;'
-const LINK_STYLE = 'color: #48a9a6; font-weight: 500; text-decoration: none;'
-const DIVIDER_STYLE =
-  'margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;'
-const POSTER_STYLE = `border-radius: 5px; border: ${BORDER}; box-shadow: ${SHADOW};`
-const CENTER_BLOCK_STYLE = 'text-align: center; margin-bottom: 20px;'
-
-function htmlWrapper(content: string): string {
-  return `
-    <div style="${WRAPPER_STYLE}">
-      ${content}
-    </div>
-    `
+function htmlWrapper(bandLabel: string, content: string): string {
+  return `<div style="margin:0;padding:32px 16px;background:${PAGE};font-family:${FONT_STACK};color:${INK};">
+  <table ${TABLE_ATTRS} width="600" align="center" style="width:100%;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:separate;border:2px solid ${INK};border-radius:8px;background:${CARD};box-shadow:4px 4px 0 0 ${INK};">
+    <tr><td style="padding:10px 24px;background:${PRIMARY};border-bottom:2px solid ${INK};border-radius:6px 6px 0 0;">
+      <table ${TABLE_ATTRS} width="100%" style="width:100%;"><tr>
+        <td width="50%" style="width:50%;white-space:nowrap;font-size:15px;font-weight:700;color:${PRIMARY_FOREGROUND};letter-spacing:-0.01em;">Pulsarr</td>
+        <td align="right" width="50%" style="width:50%;padding-left:16px;text-align:right;font-size:13px;font-weight:500;color:${PRIMARY_FOREGROUND};">${escapeHtml(bandLabel)}</td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:24px;font-size:14px;line-height:1.5;color:${INK};">${content}</td></tr>
+  </table>
+</div>`
 }
 
-function card(inner: string, background = CARD_BACKGROUND): string {
-  return `
-    <div style="${CARD_STYLE} background-color: ${background};">
-      ${inner}
-    </div>
-  `
+/** Spaces each non-empty block after the first by `gap`. */
+function stack(gap: string, blocks: string[]): string {
+  return blocks
+    .filter(Boolean)
+    .map((block, index) =>
+      index === 0 ? block : `<div style="margin-top:${gap};">${block}</div>`,
+    )
+    .join('')
 }
 
-function pageHeading(text: string): string {
-  return `<h2 style="${PAGE_HEADING_STYLE}">${text}</h2>`
+function posterHero(
+  posterUrl: string | undefined,
+  contentTitle: string,
+  content: string,
+): string {
+  const posterCell = posterUrl
+    ? `<td width="120" valign="top" style="width:120px;vertical-align:top;padding-right:20px;"><img src="${escapeHtml(posterUrl)}" alt="${escapeHtml(contentTitle)} poster" width="120" height="180" style="display:block;width:120px;height:180px;border:2px solid ${INK};border-radius:6px;background:${SURFACE};font-size:12px;color:${MUTED};"></td>`
+    : ''
+  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;table-layout:fixed;"><tr>${posterCell}<td valign="top" style="vertical-align:top;word-break:break-word;">${content}</td></tr></table>`
 }
 
-function heading(text: string): string {
-  return `<h3 style="${HEADING_STYLE}">${text}</h3>`
+type PillTone = 'warn' | 'neutral' | 'stop'
+
+const PILL_TONES: Record<
+  PillTone,
+  { border: string; background: string; color: string }
+> = {
+  warn: { border: INK, background: GOLD, color: INK },
+  neutral: { border: INK, background: SURFACE, color: INK },
+  stop: { border: DESTRUCTIVE, background: CARD, color: DESTRUCTIVE_TEXT },
 }
 
-function sectionHeading(text: string): string {
-  return `<h4 style="${SECTION_HEADING_STYLE}">${text}</h4>`
+function pill(text: string, tone: PillTone): string {
+  const { border, background, color } = PILL_TONES[tone]
+  return `<span style="display:inline-block;height:24px;line-height:20px;padding:0 8px;border:2px solid ${border};border-radius:6px;background:${background};color:${color};font-size:12px;font-weight:700;">${escapeHtml(text)}</span>`
 }
 
-function paragraph(inner: string): string {
-  return `<p style="${VALUE_STYLE}">${inner}</p>`
+function title(text: string, badge?: { text: string; tone: PillTone }): string {
+  const badgeHtml = badge
+    ? `<div style="margin-bottom:8px;">${pill(badge.text, badge.tone)}</div>`
+    : ''
+  return `${badgeHtml}<h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:${INK};word-break:break-word;">${escapeHtml(text)}</h1>`
 }
 
-function labelledParagraph(label: string, value: string): string {
-  return paragraph(
-    `<strong style="color: #ffffff;">${label}:</strong> ${value}`,
-  )
+interface FactRow {
+  label: string
+  value: string
+  sub?: string | null
 }
 
-function labelValue(label: string, value: string): string {
-  return `
-      <div style="margin-bottom: 10px;">
-        <div style="${LABEL_STYLE}">${label}</div>
-        <div style="${VALUE_STYLE}">${value}</div>
-      </div>`
+function factRows(rows: FactRow[], labelWidth = '128px'): string {
+  const rowsHtml = rows
+    .map((row, index) => {
+      const borderTop = index === 0 ? '' : `border-top:1px solid ${DIVIDER};`
+      const sub = row.sub
+        ? `<div style="font-weight:400;color:${MUTED};">${escapeHtml(row.sub)}</div>`
+        : ''
+      return `<tr>
+        <td valign="top" style="width:${labelWidth};vertical-align:top;padding:8px 16px 8px 0;${borderTop}font-size:14px;color:${MUTED};white-space:nowrap;">${escapeHtml(row.label)}</td>
+        <td valign="top" style="vertical-align:top;padding:8px 0;${borderTop}font-size:14px;font-weight:500;color:${INK};word-break:break-word;">${escapeHtml(row.value)}${sub}</td>
+      </tr>`
+    })
+    .join('')
+  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;table-layout:fixed;border-collapse:collapse;">${rowsHtml}</table>`
 }
 
-function divider(): string {
-  return `<div style="${DIVIDER_STYLE}"></div>`
+function sectionHeading(text: string, meta?: string): string {
+  const metaHtml = meta
+    ? `<span style="font-weight:400;color:${MUTED};">, ${escapeHtml(meta)}</span>`
+    : ''
+  return `<h2 style="margin:0;font-size:16px;font-weight:700;color:${INK};">${escapeHtml(text)}${metaHtml}</h2>`
+}
+
+function paragraph(text: string, muted = false): string {
+  return `<p style="margin:0;font-size:14px;color:${muted ? MUTED : INK};">${escapeHtml(text)}</p>`
+}
+
+function notice(text: string): string {
+  return `<p style="margin:0;font-size:14px;font-weight:700;color:${INK};">${escapeHtml(text)}</p>`
 }
 
 function link(url: string, text: string): string {
-  return `<a href="${escapeHtml(url)}" style="${LINK_STYLE}">${text}</a>`
+  return `<div style="padding-top:4px;text-align:left;"><a href="${escapeHtml(url)}" style="font-size:14px;font-weight:700;color:${INK};text-decoration:underline;text-underline-offset:3px;">${escapeHtml(text)}</a></div>`
 }
 
-function centeredLink(url: string, text: string): string {
-  return `<div style="${CENTER_BLOCK_STYLE}">${link(url, text)}</div>`
+function divider(): string {
+  return `<div style="height:1px;line-height:1px;font-size:0;background:${DIVIDER};">&nbsp;</div>`
 }
 
-function tmdbLink(url: string | undefined): string {
-  return url
-    ? `<p style="margin-top: 10px;">${link(url, 'View on TMDB')}</p>`
-    : ''
+interface Stat {
+  value: number
+  label: string
 }
 
-function createPosterHtml(
-  posterUrl: string | undefined,
-  title: string,
-  maxWidth = 200,
-): string {
-  if (!posterUrl) return ''
-  return `<div style="${CENTER_BLOCK_STYLE}">
-       <img src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)} poster" style="max-width: ${maxWidth}px; ${POSTER_STYLE}">
-     </div>`
-}
-
-type DetailLine = { label?: string; value: string }
-
-export function createMediaNotificationHtml(notification: MediaNotification): {
-  htmlBody: string
-  textBody: string
-  title: string
-} {
-  const emoji = notification.type === 'movie' ? '🎬' : '📺'
-  const title = `${emoji} ${notification.title}`
-
-  const details = notification.episodeDetails
-  let textHeading: string
-  const lines: DetailLine[] = []
-
-  if (notification.type === 'show' && details) {
-    if (
-      details.seasonNumber !== undefined &&
-      details.episodeNumber !== undefined
-    ) {
-      const seasonNum = details.seasonNumber.toString().padStart(2, '0')
-      const episodeNum = details.episodeNumber.toString().padStart(2, '0')
-      const episodeTitle = details.title ? ` - "${details.title}"` : ''
-
-      textHeading = 'New Episode Available'
-      lines.push({
-        label: 'Episode',
-        value: `S${seasonNum}E${episodeNum}${episodeTitle}`,
-      })
-      if (details.overview) {
-        lines.push({ label: 'Overview', value: details.overview })
-      }
-      if (details.airDateUtc) {
-        lines.push({
-          label: 'Air Date',
-          value: new Date(details.airDateUtc).toLocaleDateString(),
-        })
-      }
-    } else if (details.seasonNumber !== undefined) {
-      textHeading = 'New Season Available'
-      lines.push({
-        label: 'Season Added',
-        value: `Season ${details.seasonNumber}`,
-      })
-    } else {
-      textHeading = 'New Content Available'
-      lines.push({ value: 'New content is now available to watch!' })
-    }
-  } else {
-    textHeading = 'Movie Available'
-    lines.push({ value: 'Movie available to watch!' })
-  }
-
-  const htmlLines = lines
-    .map((line) =>
-      line.label
-        ? labelledParagraph(line.label, escapeHtml(line.value))
-        : paragraph(escapeHtml(line.value)),
-    )
+function statRow(stats: Stat[]): string {
+  const cells = stats
+    .map((stat, index) => {
+      const padding =
+        index === 0
+          ? 'padding:0 12px 0 0;'
+          : `padding:0 12px;border-left:1px solid ${DIVIDER};`
+      return `<td valign="top" width="25%" style="width:25%;vertical-align:top;${padding}">
+        <div style="font-size:24px;line-height:1.2;font-weight:700;color:${INK};">${stat.value}</div>
+        <div style="font-size:13px;color:${MUTED};">${escapeHtml(stat.label)}</div>
+      </td>`
+    })
     .join('')
-
-  const htmlBody = htmlWrapper(
-    createPosterHtml(notification.posterUrl, notification.title) +
-      card(
-        heading(escapeHtml(notification.title)) +
-          htmlLines +
-          tmdbLink(notification.tmdbUrl),
-      ),
-  )
-
-  const textLines = lines
-    .map((line) => (line.label ? `${line.label}: ${line.value}` : line.value))
-    .join('\n')
-
-  let textBody = `${textHeading}\n\n${notification.title}\n${textLines}`
-  if (notification.tmdbUrl) {
-    textBody += `\nTMDB: ${notification.tmdbUrl}`
-  }
-
-  return { htmlBody, textBody, title }
+  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;border-collapse:collapse;"><tr>${cells}</tr></table>`
 }
 
-export function createApprovalNotificationHtml(
+function moreLine(text: string): string {
+  return `<p style="margin:4px 0 0;font-size:14px;color:${MUTED};">${escapeHtml(text)}</p>`
+}
+
+function titleList(section: DeleteSyncSection): string {
+  const heading = sectionHeading(section.label, section.meta)
+  if (section.deleted <= 0) {
+    return `${heading}${moreLine(sectionEmptyText(section))}`
+  }
+  const items = section.shown
+    .map((item) => `<li style="margin:0 0 4px;">${escapeHtml(item)}</li>`)
+    .join('')
+  const list = items
+    ? `<ul style="margin:8px 0 0;padding:0 0 0 20px;font-size:14px;color:${INK};">${items}</ul>`
+    : ''
+  const more = section.remaining > 0 ? moreLine(sectionMoreText(section)) : ''
+  return `${heading}${list}${more}`
+}
+
+function alert(head: string, text: string): string {
+  return `<table ${TABLE_ATTRS} width="100%" style="width:100%;border-collapse:separate;border:2px solid ${DESTRUCTIVE};border-radius:6px;"><tr><td style="padding:12px 16px;">
+    <div style="font-size:14px;font-weight:700;color:${DESTRUCTIVE_TEXT};">${escapeHtml(head)}</div>
+    <div style="margin-top:2px;font-size:14px;color:${INK};">${escapeHtml(text)}</div>
+  </td></tr></table>`
+}
+
+function releaseNotes(releaseBodyHtml: string): string {
+  // GitHub's /markdown API output is sanitized server-side, so it is injected unescaped
+  return `${sectionHeading('Release notes')}<div style="margin-top:8px;font-size:14px;color:${INK};line-height:1.5;">${releaseBodyHtml}</div>`
+}
+
+const MEDIA_AVAILABLE_NOTICES: Partial<Record<MediaAvailability, string>> = {
+  content: 'New content is now available to watch!',
+  movie: 'Movie available to watch!',
+}
+
+export function createMediaAppriseMessage(
+  notification: MediaNotification,
+): AppriseMessage {
+  const { availability, details } = summarizeMediaAvailable(notification)
+  const mediaNotice = MEDIA_AVAILABLE_NOTICES[availability]
+  const heading = MEDIA_AVAILABLE_HEADINGS[availability]
+
+  const bodyHtml = htmlWrapper(
+    heading,
+    stack(INNER_GAP, [
+      posterHero(
+        notification.posterUrl,
+        notification.title,
+        title(notification.title),
+      ),
+      details.length > 0 ? factRows(details) : '',
+      mediaNotice ? notice(mediaNotice) : '',
+      notification.tmdbUrl ? link(notification.tmdbUrl, 'View on TMDB') : '',
+    ]),
+  )
+
+  const textLines = [
+    ...details.map((detail) => `${detail.label}: ${detail.value}`),
+    ...(mediaNotice ? [mediaNotice] : []),
+  ].join('\n')
+
+  let body = `${heading}\n\n${notification.title}\n${textLines}`
+  if (notification.tmdbUrl) {
+    body += `\nTMDB: ${notification.tmdbUrl}`
+  }
+
+  return {
+    title: `${MEDIA_AVAILABLE_HEADINGS[availability]}: ${notification.title}`,
+    body,
+    bodyHtml,
+    type: 'info',
+    attachment: notification.posterUrl,
+  }
+}
+
+const APPROVAL_ACTION_REQUIRED =
+  'Visit the Pulsarr UI to review and handle this approval request.'
+
+export function createApprovalAppriseMessage(
   notification: ApprovalNotification,
-): { htmlBody: string; textBody: string } {
-  const contentCard = card(
-    createPosterHtml(notification.posterUrl, notification.contentTitle, 150) +
-      heading(escapeHtml(notification.contentTitle)) +
-      labelValue('TYPE', escapeHtml(notification.contentType)),
+): AppriseMessage {
+  const contentType = mediaTypeLabel(notification.contentType).label
+
+  const bodyHtml = htmlWrapper(
+    EVENT_LABELS.approvalRequest,
+    stack(BLOCK_GAP, [
+      stack(INNER_GAP, [
+        posterHero(
+          notification.posterUrl,
+          notification.contentTitle,
+          title(notification.contentTitle, {
+            text: 'Pending approval',
+            tone: 'warn',
+          }),
+        ),
+        factRows(
+          [
+            { label: 'Type', value: contentType },
+            { label: 'Requested by', value: notification.requestedBy },
+            {
+              label: 'Pending requests',
+              value: `${notification.totalPending} awaiting review`,
+            },
+            {
+              label: 'Reason',
+              value: APPROVAL_TRIGGER_LABELS[notification.trigger],
+              sub: notification.reason,
+            },
+          ],
+          '136px',
+        ),
+      ]),
+      divider(),
+      stack(INNER_GAP, [
+        notice(APPROVAL_ACTION_REQUIRED),
+        notification.tmdbUrl ? link(notification.tmdbUrl, 'View on TMDB') : '',
+      ]),
+    ]),
   )
 
-  const requestCard = card(
-    sectionHeading('Request Details') +
-      labelValue('REQUESTED BY', escapeHtml(notification.requestedBy)) +
-      labelValue(
-        'PENDING REQUESTS',
-        `${notification.totalPending} awaiting review`,
-      ) +
-      divider() +
-      labelValue('REASON FOR APPROVAL', escapeHtml(notification.reason)),
-  )
-
-  const actionCard = card(
-    `<div style="${NOTICE_STYLE}">${escapeHtml(notification.actionRequired)}</div>`,
-  )
-
-  const htmlBody = htmlWrapper(
-    pageHeading('Content Approval Required') +
-      contentCard +
-      (notification.tmdbUrl
-        ? centeredLink(notification.tmdbUrl, 'View on TMDB')
-        : '') +
-      requestCard +
-      actionCard,
-  )
-
-  let textBody = 'Content Approval Required\n\n'
+  let textBody = `${EVENT_LABELS.approvalRequest}\n\n`
   textBody += `${notification.contentTitle}\n`
-  textBody += `Type: ${notification.contentType}\n\n`
+  textBody += `Type: ${contentType}\n\n`
   textBody += `Requested by: ${notification.requestedBy}\n`
   textBody += `Total pending: ${notification.totalPending} requests\n`
-  textBody += `Reason: ${notification.reason}\n`
+  textBody += `Reason: ${formatTriggerReason(notification.trigger, notification.reason)}\n`
   if (notification.tmdbUrl) textBody += `TMDB: ${notification.tmdbUrl}\n`
-  textBody += `\n${notification.actionRequired}\n`
+  textBody += `\n${APPROVAL_ACTION_REQUIRED}\n`
 
-  return { htmlBody, textBody }
+  return {
+    title: `${EVENT_LABELS.approvalRequest}: ${notification.contentTitle}`,
+    body: textBody,
+    bodyHtml,
+    type: 'info',
+    attachment: notification.posterUrl,
+  }
 }
 
-export function createUpdateAvailableNotificationHtml(
+export function createUpdateAvailableAppriseMessage(
   release: UpdateAvailableRelease,
-): { htmlBody: string; textBody: string; title: string } {
-  const title = `🚀 Pulsarr ${release.latestVersion} is available`
+): AppriseMessage {
+  const subject = `${EVENT_LABELS.updateAvailable}: Pulsarr ${release.latestVersion}`
   const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
   const publishedAt = release.publishedAt
     ? new Date(release.publishedAt).toLocaleDateString()
     : null
 
-  const versionsCard = card(
-    heading(escapeHtml(displayName)) +
-      labelValue('CURRENT', `v${escapeHtml(release.currentVersion)}`) +
-      labelValue('LATEST', `v${escapeHtml(release.latestVersion)}`) +
-      (publishedAt
-        ? divider() + labelValue('PUBLISHED', escapeHtml(publishedAt))
-        : ''),
-  )
-
-  // GitHub's /markdown API output is sanitized server-side, so it is injected unescaped
-  const notesCard = release.releaseBodyHtml
-    ? card(
-        sectionHeading('Release Notes') +
-          `<div style="margin-top: 15px; ${VALUE_STYLE}">${release.releaseBodyHtml}</div>`,
-      )
-    : ''
-
-  const htmlBody = htmlWrapper(
-    pageHeading('Pulsarr update available') +
-      versionsCard +
-      centeredLink(release.releaseUrl, 'View release on GitHub') +
-      notesCard,
+  const bodyHtml = htmlWrapper(
+    EVENT_LABELS.updateAvailable,
+    stack(BLOCK_GAP, [
+      stack(INNER_GAP, [
+        title(displayName),
+        factRows([
+          { label: 'Current', value: `v${release.currentVersion}` },
+          { label: 'Latest', value: `v${release.latestVersion}` },
+          ...(publishedAt ? [{ label: 'Published', value: publishedAt }] : []),
+        ]),
+        link(release.releaseUrl, 'View release on GitHub'),
+      ]),
+      release.releaseBodyHtml ? divider() : '',
+      release.releaseBodyHtml ? releaseNotes(release.releaseBodyHtml) : '',
+    ]),
   )
 
   // Telegram caps a message at 4096 chars, so the text fallback truncates the notes
@@ -295,133 +364,115 @@ export function createUpdateAvailableNotificationHtml(
   if (truncatedNotes) textBody += `\nRelease Notes:\n${truncatedNotes}\n`
   textBody += `\nView release: ${release.releaseUrl}\n`
 
-  return { htmlBody, textBody, title }
+  return { title: subject, body: textBody, bodyHtml, type: 'info' }
 }
 
-export function createWatchlistCapNotificationHtml(
+export function createWatchlistCapAppriseMessage(
   event: WatchlistCapNotification,
-): { htmlBody: string; textBody: string } {
-  const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
-  const impact =
-    'New items will not be processed until the cap is raised or items are removed.'
+  userName: string,
+): AppriseMessage {
+  const contentLabel = mediaTypeLabel(event.contentType).label
+  const usage = `${event.currentCount} / ${event.cap}`
 
-  const detailsCard = card(
-    sectionHeading('Cap Details') +
-      labelValue('USER', escapeHtml(event.userName)) +
-      labelValue('CONTENT TYPE', escapeHtml(contentLabel)) +
-      divider() +
-      labelValue('USAGE', `${event.currentCount} / ${event.cap}`),
+  const bodyHtml = htmlWrapper(
+    EVENT_LABELS.watchlistCap,
+    stack(INNER_GAP, [
+      title(WATCHLIST_CAP_TITLE),
+      factRows([
+        { label: 'User', value: userName },
+        { label: 'Content type', value: contentLabel },
+        { label: 'Usage', value: usage },
+      ]),
+      notice(WATCHLIST_CAP_IMPACT),
+    ]),
   )
 
-  const htmlBody = htmlWrapper(
-    pageHeading('Watchlist Cap Reached') +
-      detailsCard +
-      card(`<div style="${NOTICE_STYLE}">${impact}</div>`),
-  )
-
-  let textBody = 'Watchlist Cap Reached\n\n'
-  textBody += `User: ${event.userName}\n`
+  let textBody = `${WATCHLIST_CAP_TITLE}\n\n`
+  textBody += `User: ${userName}\n`
   textBody += `Content Type: ${contentLabel}\n`
-  textBody += `Usage: ${event.currentCount} / ${event.cap}\n\n`
-  textBody += `${impact}\n`
+  textBody += `Usage: ${usage}\n\n`
+  textBody += `${WATCHLIST_CAP_IMPACT}\n`
 
-  return { htmlBody, textBody }
-}
-
-function deletedSection(section: DeleteSyncSection): {
-  html: string
-  text: string
-} {
-  const { label, noun, protectedInfo, shown, remaining } = section
-
-  if (section.deleted <= 0) {
-    return {
-      html: card(
-        heading(label) + paragraph(`No ${noun} deleted${protectedInfo}`),
-      ),
-      text: `${label}: No ${noun} deleted${protectedInfo}\n\n`,
-    }
+  return {
+    title: `${WATCHLIST_CAP_TITLE}: ${userName}`,
+    body: textBody,
+    bodyHtml,
+    type: 'warning',
   }
-
-  const listItems = shown
-    .map(
-      (title) =>
-        `<li style="margin-bottom: 5px; ${VALUE_STYLE}">${escapeHtml(title)}</li>`,
-    )
-    .join('')
-
-  const html = card(
-    heading(`${label} (${section.deleted} deleted${protectedInfo})`) +
-      `<ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
-        ${listItems || `<li style="${VALUE_STYLE}">None</li>`}
-      </ul>` +
-      (remaining > 0
-        ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${remaining} more ${noun}</p>`
-        : ''),
-  )
-
-  const textList = shown.map((title) => `• ${title}`).join('\n')
-  let text = `${label} (${section.deleted} deleted${protectedInfo}):\n${textList || 'None'}\n`
-  text += remaining > 0 ? `... and ${remaining} more ${noun}\n\n` : '\n'
-
-  return { html, text }
 }
 
-function summaryStat(count: number, label: string): string {
-  return `<span style="display: inline-block; margin-right: 20px; margin-bottom: 10px;">
-        <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px;">${count}</span>
-        <span style="${VALUE_STYLE}">${label}</span>
-      </span>`
+function deletedSectionText(section: DeleteSyncSection): string {
+  if (section.deleted <= 0) {
+    return `${section.label}: ${sectionEmptyText(section)}\n\n`
+  }
+  const textList = section.shown.map((item) => `• ${item}`).join('\n')
+  const text = `${section.label} (${section.meta}):\n${textList || 'None'}\n`
+  return section.remaining > 0
+    ? `${text}${sectionMoreText(section)}\n\n`
+    : `${text}\n`
 }
 
-export function createDeleteSyncNotificationHtml(
+function deleteSyncMessageType(
   results: DeleteSyncResult,
   dryRun: boolean,
-): { htmlBody: string; textBody: string; title: string } {
+): AppriseMessageType {
+  if (results.safetyTriggered) return 'failure'
+  return dryRun ? 'info' : 'success'
+}
+
+function deleteSyncPill(
+  results: DeleteSyncResult,
+  dryRun: boolean,
+): { text: string; tone: PillTone } | undefined {
+  if (results.safetyTriggered) return { text: 'Stopped', tone: 'stop' }
+  return dryRun ? { text: 'Dry run', tone: 'neutral' } : undefined
+}
+
+export function createDeleteSyncAppriseMessage(
+  results: DeleteSyncResult,
+  dryRun: boolean,
+): AppriseMessage {
   const summary = summarizeDeleteSync(results, dryRun)
-  const { title, totals } = summary
-
-  let summaryText = summary.summaryText
-  if (summary.protectedText) {
-    summaryText += ` ${summary.protectedText}`
-  }
-
-  const summaryCard = card(
-    heading('Summary') +
-      `<div style="margin-top: 15px;">
-      ${summaryStat(totals.processed, 'Processed')}
-      ${summaryStat(totals.deleted, 'Deleted')}
-      ${summaryStat(totals.skipped, 'Skipped')}
-      ${totals.protected ? summaryStat(totals.protected, 'Protected') : ''}
-    </div>`,
-    results.safetyTriggered ? SAFETY_CARD_BACKGROUND : CARD_BACKGROUND,
-  )
-
-  const safetyCard = summary.safetyMessage
-    ? card(
-        heading('Safety Reason') + paragraph(escapeHtml(summary.safetyMessage)),
-      )
-    : ''
-
-  const movies = deletedSection(summary.movies)
-  const shows = deletedSection(summary.shows)
+  const { totals } = summary
+  const deletedLabel = summary.dryRun ? 'Would delete' : 'Deleted'
   const timestamp = new Date().toLocaleString()
 
-  const htmlBody = htmlWrapper(
-    `<p style="margin-bottom: 20px; color: #000000;">${escapeHtml(summaryText)}</p>` +
-      summaryCard +
-      safetyCard +
-      movies.html +
-      shows.html +
-      card(
-        `<div style="text-align: center; font-style: italic; ${VALUE_STYLE}">Delete sync operation completed at ${escapeHtml(timestamp)}</div>`,
-      ),
+  const stats: Stat[] = [
+    { value: totals.processed, label: 'Processed' },
+    { value: totals.deleted, label: deletedLabel },
+    { value: totals.skipped, label: 'Skipped' },
+    ...(totals.protected
+      ? [{ value: totals.protected, label: 'Protected' }]
+      : []),
+  ]
+
+  const bodyHtml = htmlWrapper(
+    EVENT_LABELS.deleteSync,
+    stack(BLOCK_GAP, [
+      stack(INNER_GAP, [
+        title(summary.title, deleteSyncPill(results, dryRun)),
+        summary.summaryText ? paragraph(summary.summaryText) : '',
+        summary.protectedText ? paragraph(summary.protectedText, true) : '',
+      ]),
+      summary.safetyMessage
+        ? alert('Safety reason', summary.safetyMessage)
+        : '',
+      statRow(stats),
+      divider(),
+      titleList(summary.movies),
+      titleList(summary.shows),
+      divider(),
+      paragraph(`Completed at ${timestamp}`, true),
+    ]),
   )
 
-  let textBody = `${summaryText}\n\n`
+  const intro = [summary.summaryText, summary.protectedText]
+    .filter(Boolean)
+    .join(' ')
+  let textBody = intro ? `${intro}\n\n` : ''
   textBody += 'Summary:\n'
   textBody += `Processed: ${totals.processed} items\n`
-  textBody += `Deleted: ${totals.deleted} items\n`
+  textBody += `${deletedLabel}: ${totals.deleted} items\n`
   textBody += `Skipped: ${totals.skipped} items\n`
   if (totals.protected) {
     textBody += `Protected: ${totals.protected} items\n`
@@ -430,97 +481,63 @@ export function createDeleteSyncNotificationHtml(
   if (summary.safetyMessage) {
     textBody += `Safety Reason: ${summary.safetyMessage}\n\n`
   }
-  textBody += movies.text
-  textBody += shows.text
+  textBody += deletedSectionText(summary.movies)
+  textBody += deletedSectionText(summary.shows)
   textBody += `Delete sync completed at ${timestamp}`
 
-  return { htmlBody, textBody, title }
+  return {
+    title: summary.title,
+    body: textBody,
+    bodyHtml,
+    type: deleteSyncMessageType(results, dryRun),
+  }
 }
 
-export function createWatchlistAdditionHtml(
-  item: WatchlistAdditionNotification & { displayName: string },
-): { htmlBody: string; textBody: string; title: string } {
-  const { label: mediaType, emoji } = mediaTypeLabel(item.type)
+export function createWatchlistAddedAppriseMessage(
+  item: MediaNotification,
+  addedBy: string,
+): AppriseMessage {
+  const { label: mediaType } = mediaTypeLabel(item.type)
 
-  const title = `${emoji} ${mediaType} Added: ${item.title}`
-
-  const htmlBody = htmlWrapper(
-    card(
-      createPosterHtml(item.posterUrl, item.title) +
-        heading(escapeHtml(item.title)) +
-        labelledParagraph('Type', escapeHtml(mediaType)) +
-        labelledParagraph('Added by', escapeHtml(item.displayName)) +
-        tmdbLink(item.tmdbUrl),
-    ),
+  const bodyHtml = htmlWrapper(
+    EVENT_LABELS.watchlistAdded,
+    stack(INNER_GAP, [
+      posterHero(item.posterUrl, item.title, title(item.title)),
+      factRows([
+        { label: 'Type', value: mediaType },
+        { label: 'Added by', value: addedBy },
+      ]),
+      item.tmdbUrl ? link(item.tmdbUrl, 'View on TMDB') : '',
+    ]),
   )
 
   let textBody = `New ${mediaType} Added\n\n`
   textBody += `${item.title}\n`
   textBody += `Type: ${mediaType}\n`
-  textBody += `Added by: ${item.displayName}`
+  textBody += `Added by: ${addedBy}`
   if (item.tmdbUrl) {
     textBody += `\nTMDB: ${item.tmdbUrl}`
   }
 
-  return { htmlBody, textBody, title }
+  return {
+    title: `${EVENT_LABELS.watchlistAdded}: ${item.title}`,
+    body: textBody,
+    bodyHtml,
+    type: 'info',
+    attachment: item.posterUrl,
+  }
 }
 
-export function createTestNotificationHtml(): {
-  htmlBody: string
-  textBody: string
-  title: string
-} {
-  const htmlBody = htmlWrapper(
-    pageHeading('Pulsarr HTML Notification Test') +
-      card(
-        paragraph(
-          'This is a test notification to verify your Apprise configuration is working correctly with <strong>HTML formatting</strong>.',
-        ),
-      ) +
-      `<h3 style="color: #000000; font-weight: 700;">HTML Formatting Examples:</h3>` +
-      card(
-        sectionHeading('Text Styling') +
-          paragraph(
-            '<strong>Bold text</strong>, <em>italic text</em>, <u>underlined text</u>, and <span style="color: #ffffff;">colored text</span>',
-          ),
-      ) +
-      card(
-        sectionHeading('Lists') +
-          `<ul style="padding-left: 20px; color: #ffffff;">
-        <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 1</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 2</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 3</li>
-      </ul>
-      <ol style="padding-left: 20px; color: #ffffff;">
-        <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 1</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 2</li>
-        <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 3</li>
-      </ol>`,
-      ) +
-      card(
-        sectionHeading('Styled Boxes') +
-          `<div style="padding: 10px; background-color: #343746; border-radius: 5px; border: 1px solid #ffffff; ${VALUE_STYLE}">
-        <p style="margin: 0;">This is a styled box</p>
-      </div>`,
-      ) +
-      `<p style="font-weight: 500; color: #000000;">If you can see the formatting above, your notification service supports <strong>HTML</strong>! If not, you're seeing the plain text version.</p>`,
-  )
+export function createTestAppriseMessage(): AppriseMessage {
+  const { title: testTitle, body } = TEST_NOTIFICATION
 
-  const textBody =
-    'Pulsarr HTML Notification Test\n\n' +
-    'This is a test notification to verify your Apprise configuration is working correctly.\n\n' +
-    'HTML Formatting Examples:\n\n' +
-    '- Text Styling: Bold text, italic text, underlined text, and colored text\n\n' +
-    '- Lists:\n' +
-    '  • Unordered list item 1\n' +
-    '  • Unordered list item 2\n' +
-    '  • Unordered list item 3\n\n' +
-    '  1. Ordered list item 1\n' +
-    '  2. Ordered list item 2\n' +
-    '  3. Ordered list item 3\n\n' +
-    '- Styled Boxes:\n' +
-    '  [Box] This is a styled box\n\n' +
-    'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.'
-
-  return { htmlBody, textBody, title: '🔔 Pulsarr HTML Notification Test' }
+  return {
+    title: testTitle,
+    body: `${testTitle}\n\n${body}`,
+    bodyHtml: htmlWrapper(
+      EVENT_LABELS.test,
+      stack(INNER_GAP, [title(testTitle), paragraph(body)]),
+    ),
+    type: 'info',
+  }
 }

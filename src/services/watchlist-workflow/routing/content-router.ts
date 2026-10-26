@@ -7,10 +7,17 @@ import type {
   RoutingDetails,
 } from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import {
   approvedDestinations,
   routeUsingApprovedDecision,
 } from '@services/content-router/approved-routing.js'
+import {
+  createRoutingLog,
+  listRoutingInstances,
+  logSkipped,
+  type RoutingSkip,
+} from '@services/content-router/routing-log.js'
 import type { RoutingOutcome } from '@services/content-router/types.js'
 import {
   extractTmdbId,
@@ -18,6 +25,7 @@ import {
   hasMatchingParsedGuids,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { ContentRoutingDeps } from '../types.js'
 
 export interface RouteContentResult {
@@ -38,22 +46,56 @@ export interface RouteShowParams {
   tempItem: TemptRssWatchlistItem
   userId: number
   userName: string | undefined
+  userAlias?: string | null
   sonarrItem: SonarrItem
   existingSeries?: SonarrItem[]
   approvedRecords?: ApprovedRecords
   arrInstanceIds?: ReadonlySet<number>
+  arrInstances?: ReadonlyArray<{ id: number; name: string }>
   primaryUser: { id: number } | null
+  /** Only the full reconciliation pass sets this. */
+  reconcile?: boolean
 }
 
 export interface RouteMovieParams {
   tempItem: TemptRssWatchlistItem
   userId: number
   userName: string | undefined
+  userAlias?: string | null
   radarrItem: RadarrItem
   existingMovies?: RadarrItem[]
   approvedRecords?: ApprovedRecords
   arrInstanceIds?: ReadonlySet<number>
+  arrInstances?: ReadonlyArray<{ id: number; name: string }>
   primaryUser: { id: number } | null
+  /** Only the full reconciliation pass sets this. */
+  reconcile?: boolean
+}
+
+type SkipSubject = Pick<
+  RouteShowParams,
+  'userId' | 'userName' | 'userAlias' | 'reconcile' | 'arrInstances'
+>
+
+async function logSkip(
+  params: SkipSubject,
+  item: ContentItem,
+  skip: RoutingSkip,
+  deps: ContentRoutingDeps,
+): Promise<void> {
+  logSkipped(
+    createRoutingLog({
+      logger: deps.contentRouter.log,
+      item,
+      userId: params.userId,
+      userName: params.userName,
+      userAlias: params.userAlias,
+      instances:
+        params.arrInstances ?? (await listRoutingInstances(item.type, deps)),
+      reconcile: params.reconcile,
+    }),
+    skip,
+  )
 }
 
 interface Destinations {
@@ -309,6 +351,30 @@ async function sendRoutingNotification(
   }
 }
 
+async function markRequested(
+  deps: ContentRoutingDeps,
+  userId: number,
+  key: string,
+  instanceUpdate: Pick<
+    WatchlistItemUpdate,
+    'radarr_instance_id' | 'sonarr_instance_id'
+  >,
+): Promise<void> {
+  try {
+    await deps.db.updateWatchlistItem(userId, key, {
+      status: 'requested',
+      ...instanceUpdate,
+    })
+  } catch (error) {
+    deps.logger.error(
+      { error, userId, key },
+      'Failed to mark existing item as requested',
+    )
+    return
+  }
+  emitWatchlistChange(deps.fastify.progress, 'status', [userId])
+}
+
 async function reportRouted(
   tempItem: TemptRssWatchlistItem,
   userId: number,
@@ -370,9 +436,7 @@ export async function routeShow(
       )
       return { routed: false, skippedReason: skipReason }
     }
-    deps.logger.warn(
-      `No target instances available for show ${tempItem.title}, skipping`,
-    )
+    await logSkip(params, sonarrItem, { reason: 'no-instance' }, deps)
     return { routed: false, skippedReason: 'no-target' }
   }
 
@@ -409,8 +473,11 @@ export async function routeShow(
   }
 
   if (presence.excluded) {
-    deps.logger.info(
-      `Show ${tempItem.title} is an import list exclusion in Sonarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
+    await logSkip(
+      params,
+      sonarrItem,
+      { reason: 'excluded', instanceIds: presence.presentInstanceIds },
+      deps,
     )
     return { routed: false, skippedReason: 'exists-in-target' }
   }
@@ -426,9 +493,7 @@ export async function routeShow(
       )
 
     if (existsOnPlex) {
-      deps.logger.info(
-        `Show ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
-      )
+      await logSkip(params, sonarrItem, { reason: 'on-plex' }, deps)
       return { routed: false, skippedReason: 'exists-on-plex' }
     }
   }
@@ -444,9 +509,15 @@ export async function routeShow(
       deps,
     )
     if (!completion) {
-      deps.logger.debug(
-        `Show ${tempItem.title} already exists in Sonarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
+      await logSkip(
+        params,
+        sonarrItem,
+        { reason: 'present', instanceIds: presentInstanceIds },
+        deps,
       )
+      await markRequested(deps, userId, tempItem.key, {
+        sonarr_instance_id: presentInstanceIds[0],
+      })
       return { routed: false, skippedReason: 'exists-in-target' }
     }
     return await reportRouted(
@@ -465,7 +536,9 @@ export async function routeShow(
     {
       userId,
       userName,
+      userAlias: params.userAlias,
       syncing: false,
+      reconcile: params.reconcile,
     },
   )
 
@@ -512,9 +585,7 @@ export async function routeMovie(
       )
       return { routed: false, skippedReason: skipReason }
     }
-    deps.logger.warn(
-      `No target instances available for movie ${tempItem.title}, skipping`,
-    )
+    await logSkip(params, radarrItem, { reason: 'no-instance' }, deps)
     return { routed: false, skippedReason: 'no-target' }
   }
 
@@ -551,8 +622,11 @@ export async function routeMovie(
   }
 
   if (presence.excluded) {
-    deps.logger.info(
-      `Movie ${tempItem.title} is an import list exclusion in Radarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
+    await logSkip(
+      params,
+      radarrItem,
+      { reason: 'excluded', instanceIds: presence.presentInstanceIds },
+      deps,
     )
     return { routed: false, skippedReason: 'exists-in-target' }
   }
@@ -568,9 +642,7 @@ export async function routeMovie(
       )
 
     if (existsOnPlex) {
-      deps.logger.info(
-        `Movie ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
-      )
+      await logSkip(params, radarrItem, { reason: 'on-plex' }, deps)
       return { routed: false, skippedReason: 'exists-on-plex' }
     }
   }
@@ -586,9 +658,15 @@ export async function routeMovie(
       deps,
     )
     if (!completion) {
-      deps.logger.debug(
-        `Movie ${tempItem.title} already exists in Radarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
+      await logSkip(
+        params,
+        radarrItem,
+        { reason: 'present', instanceIds: presentInstanceIds },
+        deps,
       )
+      await markRequested(deps, userId, tempItem.key, {
+        radarr_instance_id: presentInstanceIds[0],
+      })
       return { routed: false, skippedReason: 'exists-in-target' }
     }
     return await reportRouted(
@@ -607,7 +685,9 @@ export async function routeMovie(
     {
       userId,
       userName,
+      userAlias: params.userAlias,
       syncing: false,
+      reconcile: params.reconcile,
     },
   )
 

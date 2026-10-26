@@ -27,6 +27,7 @@ export interface CopyItemContext {
   item: DatabaseWatchlistItem
   matchingContent: SonarrItem | RadarrItem
   instanceId: number
+  sourceInstanceId: number
   contentType: 'movie' | 'show'
   /** Pre-fetched user data (avoids N+1 queries) */
   user: User | undefined
@@ -43,7 +44,14 @@ export async function copySingleItem(
   ctx: CopyItemContext,
 ): Promise<boolean> {
   const { contentRouter, logger } = deps
-  const { item, matchingContent, instanceId, contentType, user } = ctx
+  const {
+    item,
+    matchingContent,
+    instanceId,
+    sourceInstanceId,
+    contentType,
+    user,
+  } = ctx
 
   try {
     const userId = item.user_id
@@ -65,8 +73,10 @@ export async function copySingleItem(
       {
         userId,
         userName,
+        userAlias: user?.alias,
         syncing: true,
         syncTargetInstanceId: instanceId,
+        syncSourceInstanceId: sourceInstanceId,
       },
     )
 
@@ -78,7 +88,7 @@ export async function copySingleItem(
       return true
     }
 
-    logger.info(
+    logger.debug(
       `${contentType === 'movie' ? 'Movie' : 'Show'} ${item.title} was not routed to instance ${instanceId} due to routing rules`,
     )
     return false

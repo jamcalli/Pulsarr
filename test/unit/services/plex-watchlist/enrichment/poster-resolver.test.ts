@@ -185,4 +185,15 @@ describe('resolveTmdbPosters', () => {
     expect(getPosterPath).toHaveBeenCalledWith(['tvdb:81189'], 'show')
     expect(getPosterPath).toHaveBeenCalledWith(['tmdb:550'], 'movie')
   })
+
+  it('treats the uppercase type from friend watchlists as a show', async () => {
+    const show = item({ key: 'show', type: 'SHOW', guids: ['tmdb:60625'] })
+
+    await resolveTmdbPosters(
+      new Map([[friend(1, 'alice'), new Set([show])]]),
+      deps,
+    )
+
+    expect(getPosterPath).toHaveBeenCalledWith(['tmdb:60625'], 'show')
+  })
 })

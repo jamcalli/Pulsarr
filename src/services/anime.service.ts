@@ -87,23 +87,23 @@ export class AnimeService {
    */
   async updateAnimeDatabase(): Promise<{ count: number; updated: boolean }> {
     try {
-      this.log.info('Starting anime database update...')
+      this.log.debug('Starting anime database update...')
 
       // Download and parse XML into memory first (dataset is small enough)
-      this.log.info('Downloading anime list XML...')
+      this.log.debug('Downloading anime list XML...')
       const xmlContent = await fetchContent({
         url: ANIME_LIST_URL,
         userAgent: USER_AGENT,
         timeout: 120000, // 2 minutes timeout
         retries: 2,
       })
-      this.log.info(
+      this.log.debug(
         `Downloaded anime list XML (${Buffer.byteLength(xmlContent, 'utf8')} bytes)`,
       )
 
       // Parse the XML and extract IDs
       const animeIds = this.parseAnimeXml(xmlContent)
-      this.log.info(`Parsed ${animeIds.length} anime ID entries`)
+      this.log.debug(`Parsed ${animeIds.length} anime ID entries`)
 
       // Log breakdown by source
       const tvdbCount = animeIds.filter((id) => id.source === 'tvdb').length
@@ -114,7 +114,7 @@ export class AnimeService {
         (id) => id.source === 'tmdb_tv',
       ).length
       const imdbCount = animeIds.filter((id) => id.source === 'imdb').length
-      this.log.info(
+      this.log.debug(
         `Breakdown: ${tvdbCount} TVDB, ${tmdbMovieCount} TMDB Movie, ${tmdbTvCount} TMDB TV, ${imdbCount} IMDb`,
       )
 
@@ -123,20 +123,20 @@ export class AnimeService {
         return { count: 0, updated: false }
       }
 
-      this.log.info(`Parsed data in memory, now updating database...`)
+      this.log.debug(`Parsed data in memory, now updating database...`)
 
       // Quick atomic replacement using short transaction
       await this.db.transaction(async (trx) => {
         await trx('anime_ids').truncate()
-        this.log.info('Cleared existing anime IDs')
+        this.log.debug('Cleared existing anime IDs')
 
         // Use optimized bulk replacement method (no conflict resolution needed)
         await this.db.bulkReplaceAnimeIds(animeIds, trx)
-        this.log.info('Inserted anime IDs into database')
+        this.log.debug('Inserted anime IDs into database')
       })
 
       const finalCount = await this.db.getAnimeCount()
-      this.log.info(
+      this.log.debug(
         `Anime database updated successfully with ${finalCount} entries`,
       )
 
@@ -169,7 +169,7 @@ export class AnimeService {
 
       // Ensure we have an array to work with
       const animes = Array.isArray(animeList) ? animeList : [animeList]
-      this.log.info(`Processing ${animes.length} anime entries from XML`)
+      this.log.debug(`Processing ${animes.length} anime entries from XML`)
 
       for (const anime of animes) {
         if (!anime || typeof anime !== 'object') continue

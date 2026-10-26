@@ -24,7 +24,7 @@ import type {
 } from './content-router/types.js'
 
 export class ContentRouterService {
-  private readonly log: FastifyBaseLogger
+  readonly log: FastifyBaseLogger
   private readonly rules: RuleCache
 
   constructor(

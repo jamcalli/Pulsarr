@@ -1,27 +1,6 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
-import {
-  RemovedTagPrefixSchema,
-  TagPrefixSchema,
-} from '@root/schemas/shared/prefix-validation.schema.js'
 import { z } from 'zod'
-
-// Configuration schema for user tagging
-export const TaggingConfigSchema = z
-  .object({
-    tagUsersInSonarr: z.boolean(),
-    tagUsersInRadarr: z.boolean(),
-    cleanupOrphanedTags: z.boolean(),
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
-    // Despite the name, this is the complete tag label, not just a prefix
-    removedTagPrefix:
-      RemovedTagPrefixSchema.optional().default('pulsarr-removed'),
-    tagPrefix: TagPrefixSchema,
-    tagNamingSource: z.enum(['username', 'alias']).default('username'),
-  })
-  .refine((v) => v.removedTagMode !== 'special-tag' || v.removedTagPrefix, {
-    message: 'removedTagPrefix required when removedTagMode is "special-tag"',
-  })
 
 const BaseResponseSchema = z.object({
   success: z.boolean(),
@@ -187,7 +166,6 @@ export const TagStatusResponseSchema = z
 export { ErrorSchema }
 
 // Exported TypeScript types
-export type TaggingConfig = z.infer<typeof TaggingConfigSchema>
 export type CreateTaggingResponse = z.infer<typeof CreateTaggingResponseSchema>
 export type SyncTaggingResponse = z.infer<typeof SyncTaggingResponseSchema>
 export type RemoveTagsResponse = z.infer<typeof RemoveTagsResponseSchema>

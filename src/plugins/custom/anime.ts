@@ -72,7 +72,7 @@ async function animePlugin(fastify: FastifyInstance) {
         }
 
         try {
-          fastify.log.info('Starting scheduled anime database update')
+          fastify.log.debug('Starting scheduled anime database update')
           const result = await animeService.updateAnimeDatabase()
 
           if (result.updated) {
@@ -89,7 +89,7 @@ async function animePlugin(fastify: FastifyInstance) {
       // Check if anime database is empty and populate in background if needed
       const animeCount = await fastify.db.getAnimeCount()
       if (animeCount === 0) {
-        fastify.log.info(
+        fastify.log.debug(
           'Anime database is empty, running initial update in background...',
         )
         // Run initial population in background to avoid blocking server startup

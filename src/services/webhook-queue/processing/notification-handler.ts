@@ -1,3 +1,4 @@
+import { toItemId } from '@utils/item-id.js'
 /**
  * Notification Handler
  *
@@ -9,7 +10,7 @@ import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { WatchlistStatus } from '@root/types/watchlist-status.types.js'
 import type { FastifyBaseLogger } from 'fastify'
-import type { PendingWebhookParams } from '../persistence/index.js'
+import type { PendingWebhookParams } from '../persistence/pending-store.js'
 
 export interface NotificationHandlerDeps {
   logger: FastifyBaseLogger
@@ -102,7 +103,7 @@ export async function notifyOrQueueShow(
     return
   }
 
-  logger.info(
+  logger.debug(
     {
       series: title,
       tvdbId,
@@ -140,15 +141,14 @@ export async function shouldSuppressRadarrNotification(
 
   try {
     for (const item of matchingItems) {
-      const itemId =
-        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+      const itemId = toItemId(item.id)
 
       if (Number.isNaN(itemId)) continue
 
       const isSyncing = await isRadarrItemSyncing(itemId, instance.id)
 
       if (isSyncing) {
-        logger.info(
+        logger.debug(
           { title: item.title, instanceName: instance.name },
           'Suppressing notification for synced item',
         )

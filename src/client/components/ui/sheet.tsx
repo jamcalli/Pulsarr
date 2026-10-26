@@ -1,68 +1,31 @@
-"use client"
+import { Dialog as SheetPrimitive } from '@base-ui/react/dialog'
+import { cn } from 'cn'
+import { XIcon } from 'lucide-react'
+import type * as React from 'react'
+import { Button } from '@/components/ui/button'
 
-import * as SheetPrimitive from "@radix-ui/react-dialog"
-import { X } from "lucide-react"
-
-import type * as React from "react"
-
-import { cn } from "@/lib/utils"
-
-/**
- * Provides the root container for the Sheet dialog, managing its open state and context for nested Sheet components.
- *
- * Forwards all props to the underlying SheetPrimitive.Root and adds a `data-slot="sheet"` attribute.
- */
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
+function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
 
-/**
- * Renders an element that triggers the opening of the sheet dialog.
- *
- * Forwards all props to the underlying trigger primitive and adds a `data-slot="sheet-trigger"` attribute.
- */
-function SheetTrigger({
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
+function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
 }
 
-/**
- * Renders a close button for the Sheet dialog.
- *
- * Forwards all props to the underlying primitive and adds a `data-slot="sheet-close"` attribute for styling or testing.
- */
-function SheetClose({
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Close>) {
+function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
 }
 
-/**
- * Renders the Sheet dialog content inside a React portal, enabling it to be mounted outside the main DOM hierarchy.
- *
- * Forwards all props to the underlying portal primitive and adds a `data-slot="sheet-portal"` attribute.
- */
-function SheetPortal({
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Portal>) {
+function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
-/**
- * Renders a full-screen overlay behind the Sheet dialog with animated transitions for open and closed states.
- *
- * The overlay dims the background and visually separates the Sheet from the rest of the UI. Additional class names can be merged via the `className` prop.
- */
-function SheetOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
+function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
-    <SheetPrimitive.Overlay
+    <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-overlay",
+        'fixed inset-0 z-50 bg-overlay/15 supports-backdrop-filter:backdrop-blur-xs transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0',
         className,
       )}
       {...props}
@@ -70,111 +33,87 @@ function SheetOverlay({
   )
 }
 
-/**
- * Renders the main content area of the Sheet dialog with animated slide-in and slide-out transitions from a specified edge.
- *
- * The content is displayed inside a portal with an overlay and includes a close button in the top-right corner. The `side` prop determines the edge ("top", "bottom", "left", or "right") from which the Sheet appears.
- *
- * @param side - Specifies the edge of the screen from which the Sheet slides in.
- */
 function SheetContent({
   className,
   children,
-  side = "right",
+  side = 'right',
+  showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
-  side?: "top" | "bottom" | "left" | "right"
+}: SheetPrimitive.Popup.Props & {
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  showCloseButton?: boolean
 }) {
   return (
     <SheetPortal>
       <SheetOverlay />
-      <SheetPrimitive.Content
+      <SheetPrimitive.Popup
         data-slot="sheet-content"
+        data-side={side}
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 p-6 border-2 border-border transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
-          side === "right" &&
-            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
-          side === "left" &&
-            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
-          side === "top" &&
-            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
-          side === "bottom" &&
-            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
+          'fixed z-50 flex flex-col gap-4 border-border bg-card bg-clip-padding text-sm text-foreground transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t-2 data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r-2 data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l-2 data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b-2 data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm',
           className,
         )}
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-base ring-offset-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
+        {showCloseButton && (
+          <SheetPrimitive.Close
+            data-slot="sheet-close"
+            render={
+              <Button
+                variant="ghost"
+                className="absolute top-4 right-4"
+                size="icon"
+              />
+            }
+          >
+            <XIcon />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        )}
+      </SheetPrimitive.Popup>
     </SheetPortal>
   )
 }
 
-/**
- * Renders the header section of the Sheet dialog with vertical layout, gap, and padding.
- *
- * Accepts additional class names via the `className` prop for custom styling and forwards other props to the underlying `div`.
- */
-function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
+function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-1.5 p-4", className)}
+      className={cn('flex flex-col gap-1.5 p-4', className)}
       {...props}
     />
   )
 }
 
-/**
- * Renders the footer section of the Sheet dialog with vertical layout, spacing, and padding.
- *
- * Positions its content at the bottom of the Sheet and allows additional class names and props to be applied.
- */
-function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
+function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-3 p-4", className)}
+      className={cn('mt-auto flex flex-col gap-2 p-4', className)}
       {...props}
     />
   )
 }
 
-/**
- * Renders the title of the Sheet dialog with heading font and foreground color styling.
- *
- * Forwards all props and accepts additional class names, applying them to the underlying Radix UI title primitive.
- */
-function SheetTitle({
-  className,
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Title>) {
+function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("text-foreground font-heading", className)}
+      className={cn('font-heading font-medium text-foreground', className)}
       {...props}
     />
   )
 }
 
-/**
- * Renders descriptive text within the Sheet dialog with smaller font size and foreground color styling.
- *
- * Additional class names can be provided via the `className` prop. All other props are forwarded to the underlying primitive.
- */
 function SheetDescription({
   className,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Description>) {
+}: SheetPrimitive.Description.Props) {
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("text-sm text-foreground font-base", className)}
+      className={cn('text-sm text-muted-foreground', className)}
       {...props}
     />
   )
@@ -187,8 +126,6 @@ export {
   SheetDescription,
   SheetFooter,
   SheetHeader,
-  SheetOverlay,
-  SheetPortal,
   SheetTitle,
   SheetTrigger,
 }

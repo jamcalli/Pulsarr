@@ -28,18 +28,6 @@ declare module '@services/database.service.js' {
     ): Promise<void>
 
     /**
-     * Updates watchlist items by matching GUID
-     * @param guid - GUID to match against watchlist item GUIDs array
-     * @param updates - Fields to update on matching watchlist items
-     * @returns Promise resolving to the number of items updated
-     */
-    updateWatchlistItemByGuid(
-      this: DatabaseService,
-      guid: string,
-      updates: WatchlistItemUpdate,
-    ): Promise<number>
-
-    /**
      * Retrieves a specific watchlist item for a user
      * @param userId - ID of the user
      * @param key - Unique key of the watchlist item
@@ -201,13 +189,13 @@ declare module '@services/database.service.js' {
      * Creates multiple watchlist items
      * @param items - Array of watchlist items to create
      * @param options - Configuration options for how to handle conflicts
-     * @returns Promise resolving to array of inserted IDs
+     * @returns Promise resolving to the id, user_id and key of each inserted row
      */
     createWatchlistItems(
       this: DatabaseService,
       items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
       options?: { onConflict?: 'ignore' | 'merge' },
-    ): Promise<{ id: number; key: string }[]>
+    ): Promise<{ id: number; user_id: number; key: string }[]>
 
     /**
      * Deletes watchlist items for a user

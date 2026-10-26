@@ -13,7 +13,7 @@ export async function runPeriodicReconciliation(
     return
   }
 
-  deps.logger.info('Periodic reconciliation triggered - performing full sync')
+  deps.logger.debug('Periodic reconciliation triggered - performing full sync')
   const { signal } = deps.state
 
   // Unschedule first so a slow run cannot overlap the next tick
@@ -22,7 +22,7 @@ export async function runPeriodicReconciliation(
   try {
     // RSS and ETag detection keep running during this sync; deduplication handles the overlap
     await reconcile({ mode: 'full' }, deps)
-    deps.logger.info('Periodic reconciliation completed successfully')
+    deps.logger.debug('Periodic reconciliation completed successfully')
   } catch (error) {
     deps.logger.error(
       {

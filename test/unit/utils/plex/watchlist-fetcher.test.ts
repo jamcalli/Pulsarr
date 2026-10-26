@@ -5,9 +5,11 @@ import {
   fetchSelfWatchlist,
   getOthersWatchlist,
 } from '@services/plex-watchlist/fetching/watchlist-fetcher.js'
+import { createWatchlistSyncProgress } from '@services/plex-watchlist/progress/sync-progress.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
+import { createMockSyncProgress } from '../../../mocks/watchlist-sync-progress.js'
 import { server } from '../../../setup/msw-setup.js'
 
 describe('plex/watchlist-fetcher', () => {
@@ -22,6 +24,21 @@ describe('plex/watchlist-fetcher', () => {
   })
 
   describe('fetchSelfWatchlist', () => {
+    const mockDbItems: Item[] = [
+      {
+        key: 'db-item-1',
+        title: 'DB Movie',
+        type: 'movie',
+        guids: ['tmdb://12345'],
+        genres: ['Action'],
+        user_id: 1,
+        status: 'pending',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        thumb: '',
+      },
+    ]
+
     it('should fetch self watchlist successfully', async () => {
       server.use(
         http.get(
@@ -155,6 +172,57 @@ describe('plex/watchlist-fetcher', () => {
       vi.useRealTimers()
     })
 
+    it('reports each page with the page total', async () => {
+      vi.useFakeTimers()
+
+      const page = (start: number, count: number) =>
+        Array.from({ length: count }, (_, i) => ({
+          title: `Movie ${start + i}`,
+          key: `/library/metadata/${start + i}`,
+          type: 'movie',
+        }))
+
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          ({ request }) => {
+            const start = Number(
+              new URL(request.url).searchParams.get('X-Plex-Container-Start'),
+            )
+            return HttpResponse.json({
+              MediaContainer: {
+                Metadata: start === 0 ? page(0, 100) : page(100, 50),
+                totalSize: 150,
+              },
+            } as PlexResponse)
+          },
+        ),
+      )
+
+      const config: Config = {
+        plexTokens: ['token'],
+      } as Config
+      const progress = createMockSyncProgress()
+
+      const resultPromise = fetchSelfWatchlist(
+        config,
+        mockLogger,
+        1,
+        undefined,
+        progress,
+      )
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
+      vi.useRealTimers()
+
+      expect(result.size).toBe(150)
+      expect(progress.readingPages.mock.calls).toEqual([
+        [],
+        [{ done: 1, total: 2 }],
+        [{ done: 2, total: 2 }],
+      ])
+    })
+
     it('should filter out items without key', async () => {
       server.use(
         http.get(
@@ -192,32 +260,15 @@ describe('plex/watchlist-fetcher', () => {
       expect(items[0].title).toBe('With Key')
     })
 
-    it('should handle rate limit error by moving to next token', async () => {
-      let _token1Calls = 0
-      let _token2Calls = 0
-
+    it('should reject on rate limit when no database fallback is supplied', async () => {
       server.use(
         http.get(
           'https://discover.provider.plex.tv/library/sections/watchlist/all',
-          ({ request }) => {
-            const token = request.headers.get('X-Plex-Token')
-            if (token === 'token1') {
-              _token1Calls++
-              return new HttpResponse(null, {
-                status: 429,
-                headers: { 'Retry-After': '0' },
-              })
-            }
-            _token2Calls++
-            return HttpResponse.json({
-              MediaContainer: {
-                Metadata: [
-                  { title: 'Movie', key: '/library/metadata/1', type: 'movie' },
-                ],
-                totalSize: 1,
-              },
-            } as PlexResponse)
-          },
+          () =>
+            new HttpResponse(null, {
+              status: 429,
+              headers: { 'Retry-After': '0' },
+            }),
         ),
       )
 
@@ -226,12 +277,139 @@ describe('plex/watchlist-fetcher', () => {
       } as Config
 
       vi.useFakeTimers()
-      const promise = fetchSelfWatchlist(config, mockLogger, 1)
+      const promise = fetchSelfWatchlist(config, mockLogger, 1).catch(
+        (error: Error) => error,
+      )
       await vi.runAllTimersAsync()
       const result = await promise
       vi.useRealTimers()
 
-      expect(result.size).toBe(1)
+      expect(result).toBeInstanceOf(Error)
+      expect((result as Error).message).toContain('Rate limit exceeded')
+    })
+
+    it('should return database items when rate limited on page 2', async () => {
+      let callCount = 0
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          () => {
+            callCount++
+            if (callCount === 1) {
+              return HttpResponse.json({
+                MediaContainer: {
+                  Metadata: [
+                    {
+                      title: 'Page 1 Movie',
+                      key: '/library/metadata/page-1',
+                      type: 'movie',
+                    },
+                  ],
+                  totalSize: 2,
+                },
+              } as PlexResponse)
+            }
+            return new HttpResponse(null, {
+              status: 429,
+              headers: { 'Retry-After': '0' },
+            })
+          },
+        ),
+      )
+
+      const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue(mockDbItems)
+
+      const config: Config = {
+        plexTokens: ['token'],
+      } as Config
+
+      vi.useFakeTimers()
+      const promise = fetchSelfWatchlist(
+        config,
+        mockLogger,
+        1,
+        getAllWatchlistItemsForUser,
+      )
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
+
+      expect(Array.from(result).map((item) => item.key)).toEqual(['db-item-1'])
+    })
+
+    it('should fall back to database items on an empty page while Plex reports items', async () => {
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          () =>
+            HttpResponse.json({
+              MediaContainer: { Metadata: [], totalSize: 5 },
+            } as PlexResponse),
+        ),
+      )
+
+      const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue(mockDbItems)
+
+      const config: Config = {
+        plexTokens: ['token'],
+      } as Config
+
+      const result = await fetchSelfWatchlist(
+        config,
+        mockLogger,
+        1,
+        getAllWatchlistItemsForUser,
+      )
+
+      expect(Array.from(result).map((item) => item.key)).toEqual(['db-item-1'])
+    })
+
+    it('should reject on an empty page while Plex reports items when no database fallback is supplied', async () => {
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          () =>
+            HttpResponse.json({
+              MediaContainer: { Metadata: [], totalSize: 5 },
+            } as PlexResponse),
+        ),
+      )
+
+      const config: Config = {
+        plexTokens: ['token'],
+      } as Config
+
+      await expect(fetchSelfWatchlist(config, mockLogger, 1)).rejects.toThrow(
+        'Plex returned an empty page',
+      )
+    })
+
+    it('should return an empty set for an empty watchlist', async () => {
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          () =>
+            HttpResponse.json({
+              MediaContainer: { Metadata: [], totalSize: 0 },
+            } as PlexResponse),
+        ),
+      )
+
+      const getAllWatchlistItemsForUser = vi.fn()
+
+      const config: Config = {
+        plexTokens: ['token'],
+      } as Config
+
+      const result = await fetchSelfWatchlist(
+        config,
+        mockLogger,
+        1,
+        getAllWatchlistItemsForUser,
+      )
+
+      expect(result.size).toBe(0)
+      expect(getAllWatchlistItemsForUser).not.toHaveBeenCalled()
     })
 
     it('should fall back to database items on error', async () => {
@@ -243,21 +421,6 @@ describe('plex/watchlist-fetcher', () => {
           },
         ),
       )
-
-      const mockDbItems: Item[] = [
-        {
-          key: 'db-item-1',
-          title: 'DB Movie',
-          type: 'movie',
-          guids: ['tmdb://12345'],
-          genres: ['Action'],
-          user_id: 1,
-          status: 'pending',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          thumb: '',
-        },
-      ]
 
       const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue(mockDbItems)
 
@@ -318,7 +481,23 @@ describe('plex/watchlist-fetcher', () => {
       expect(items[0].guids).toHaveLength(1)
     })
 
-    it('should log error when database fallback fails', async () => {
+    it('should reject with the Plex error when the database fallback is empty', async () => {
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/sections/watchlist/all',
+          () => HttpResponse.error(),
+        ),
+      )
+      const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue([])
+      const config: Config = { plexTokens: ['token'] } as Config
+
+      await expect(
+        fetchSelfWatchlist(config, mockLogger, 1, getAllWatchlistItemsForUser),
+      ).rejects.toBeInstanceOf(TypeError)
+      expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
+    }, 20000)
+
+    it('should reject with the Plex error when database fallback fails', async () => {
       server.use(
         http.get(
           'https://discover.provider.plex.tv/library/sections/watchlist/all',
@@ -336,14 +515,15 @@ describe('plex/watchlist-fetcher', () => {
         plexTokens: ['token'],
       } as Config
 
-      const result = await fetchSelfWatchlist(
+      const error = await fetchSelfWatchlist(
         config,
         mockLogger,
         1,
         getAllWatchlistItemsForUser,
-      )
+      ).catch((caught: Error) => caught)
 
-      expect(result.size).toBe(0)
+      expect(error).toBeInstanceOf(TypeError)
+      expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
     })
 
     it('should strip /children from key', async () => {
@@ -421,6 +601,76 @@ describe('plex/watchlist-fetcher', () => {
       const result = await getOthersWatchlist(mockLogger, friends)
 
       expect(result.size).toBe(2)
+    })
+
+    it('reports friends in flight with their page and the done count', async () => {
+      vi.useFakeTimers()
+
+      server.use(
+        http.post('https://community.plex.tv/api', async ({ request }) => {
+          const body = (await request.json()) as {
+            variables: { user: { id: string }; after: string | null }
+          }
+          const hasNextPage =
+            body.variables.user.id === 'user-1' && body.variables.after === null
+          return HttpResponse.json({
+            data: {
+              userV2: {
+                watchlist: {
+                  nodes: [
+                    {
+                      id: `${body.variables.user.id}-${body.variables.after ?? 'first'}`,
+                      title: 'Movie',
+                      type: 'movie',
+                    },
+                  ],
+                  pageInfo: {
+                    hasNextPage,
+                    endCursor: hasNextPage ? 'cursor-1' : null,
+                  },
+                },
+              },
+            },
+          })
+        }),
+      )
+
+      const friends = new Set<[Friend & { userId: number }, string]>([
+        [{ watchlistId: 'user-1', username: 'Alice', userId: 2 }, 'token1'],
+        [{ watchlistId: 'user-2', username: 'Bob', userId: 3 }, 'token2'],
+      ])
+      const progressService = {
+        emit: vi.fn(),
+        hasActiveConnections: vi.fn(() => true),
+      }
+
+      const promise = getOthersWatchlist(
+        mockLogger,
+        friends,
+        undefined,
+        createWatchlistSyncProgress(progressService, 'others-watchlist'),
+      )
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
+
+      const events = progressService.emit.mock.calls.map(([event]) => event)
+
+      expect(result.size).toBe(2)
+      expect(
+        events.map(({ message, progress }) => [message, progress]),
+      ).toEqual([
+        ["Reading friends' watchlists", 0],
+        ['Alice page 1', 0],
+        ['Alice page 1, Bob page 1', 0],
+        ['Alice page 1', 45],
+        ['Alice page 2', 45],
+        ["Reading friends' watchlists", 90],
+      ])
+      expect(events.at(-1)?.metadata).toEqual({
+        stage: 'reading',
+        count: { done: 2, total: 2, unit: 'friends' },
+      })
     })
 
     it('should handle empty friends set', async () => {

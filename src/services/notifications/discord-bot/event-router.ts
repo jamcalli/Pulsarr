@@ -1,10 +1,3 @@
-/**
- * Discord Event Router
- *
- * Routes Discord interactions (commands, buttons, modals) to appropriate handlers.
- * This is the critical path for all Discord bot interactions.
- */
-
 import {
   type ButtonInteraction,
   type Client,
@@ -32,41 +25,31 @@ export interface EventRouterDeps {
   onBotReady: () => void
 }
 
-/** Common deps for internal interaction handlers */
 interface HandlerDeps {
   log: FastifyBaseLogger
   fastify: FastifyInstance
 }
 
-/**
- * Sets up all event handlers on the Discord bot client.
- */
 export function setupBotEventHandlers(
   client: Client,
   deps: EventRouterDeps,
 ): void {
   const { log, fastify, commands, onBotReady } = deps
 
-  // Bot ready event
   client.once(Events.ClientReady, (readyClient) => {
     onBotReady()
     log.info({ botUsername: readyClient.user.username }, 'Discord bot is ready')
   })
 
-  // Error handler
   client.on('error', (error) => {
     log.error({ error }, 'Discord bot error occurred')
   })
 
-  // Interaction handler
   client.on('interactionCreate', async (interaction) => {
     await handleInteraction(interaction, { log, fastify, commands })
   })
 }
 
-/**
- * Routes an interaction to the appropriate handler.
- */
 async function handleInteraction(
   interaction: Interaction,
   deps: HandlerDeps & { commands: Map<string, Command> },
@@ -97,9 +80,6 @@ async function handleInteraction(
   }
 }
 
-/**
- * Handles slash command interactions.
- */
 async function handleSlashCommand(
   interaction: Interaction,
   commands: Map<string, Command>,
@@ -120,9 +100,6 @@ async function handleSlashCommand(
   await command.execute(interaction)
 }
 
-/**
- * Handles button interactions, routing based on customId prefix.
- */
 async function handleButtonInteraction(
   interaction: ButtonInteraction,
   deps: HandlerDeps,
@@ -147,9 +124,6 @@ async function handleButtonInteraction(
   }
 }
 
-/**
- * Handles modal submit interactions.
- */
 async function handleModalSubmit(
   interaction: Interaction,
   deps: HandlerDeps,
@@ -179,9 +153,6 @@ async function handleModalSubmit(
   }
 }
 
-/**
- * Handles the "Review Approvals" button - triggers the approval flow.
- */
 async function handleReviewApprovalsButton(
   interaction: ButtonInteraction,
   deps: HandlerDeps,
@@ -189,7 +160,6 @@ async function handleReviewApprovalsButton(
   const { fastify, log } = deps
 
   try {
-    // Check if user is primary admin
     const user = await fastify.db.getUserByDiscordId(interaction.user.id)
 
     if (!user?.is_primary_token) {
@@ -205,7 +175,6 @@ async function handleReviewApprovalsButton(
       'Primary admin clicked Review Approvals button',
     )
 
-    // Get all pending approval requests
     const pendingApprovals = await fastify.db.getPendingApprovalRequests()
 
     if (pendingApprovals.length === 0) {
@@ -216,7 +185,6 @@ async function handleReviewApprovalsButton(
       return
     }
 
-    // Start with the first approval (index 0) - make it ephemeral
     await showApprovalAtIndex(
       interaction,
       0,
@@ -245,9 +213,6 @@ async function handleReviewApprovalsButton(
   }
 }
 
-/**
- * Sends an error reply to an interaction.
- */
 async function sendErrorReply(
   interaction: Interaction,
   log: FastifyBaseLogger,

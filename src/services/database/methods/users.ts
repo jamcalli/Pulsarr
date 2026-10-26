@@ -1,4 +1,6 @@
+import type { UserStats } from '@root/schemas/users/user-stats.schema.js'
 import type { User } from '@root/types/config.types.js'
+import type { WatchlistStatus } from '@root/types/watchlist-status.types.js'
 import type { AdminUser } from '@schemas/auth/auth.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -782,5 +784,45 @@ export async function deleteUsers(
   } catch (error) {
     this.log.error({ error, userIds }, 'Error deleting users:')
     return { deletedCount: 0, failedIds: userIds }
+  }
+}
+
+export async function getUserStats(
+  this: DatabaseService,
+  userId: number,
+): Promise<UserStats> {
+  const [statusRows, notificationRow, approvalRow] = await Promise.all([
+    this.knex('watchlist_items')
+      .select('status')
+      .count('* as count')
+      .where('user_id', userId)
+      .groupBy('status'),
+    this.knex('notifications')
+      .count('* as count')
+      .where('user_id', userId)
+      .first(),
+    this.knex('approval_requests')
+      .count('* as count')
+      .where({ user_id: userId, status: 'pending' })
+      .first(),
+  ])
+
+  const watchlist: Record<WatchlistStatus, number> = {
+    pending: 0,
+    requested: 0,
+    grabbed: 0,
+    notified: 0,
+  }
+  let total = 0
+  for (const row of statusRows) {
+    const count = Number(row.count)
+    watchlist[row.status as WatchlistStatus] = count
+    total += count
+  }
+
+  return {
+    watchlist: { ...watchlist, total },
+    notificationsSent: Number(notificationRow?.count ?? 0),
+    pendingApprovals: Number(approvalRow?.count ?? 0),
   }
 }

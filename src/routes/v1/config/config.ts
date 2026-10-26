@@ -10,6 +10,11 @@ import {
   registerArrWebhooks,
   testArrWebhookAddress,
 } from '@services/arr-webhook-address.service.js'
+import { PlexTokenCheckError } from '@services/plex-watchlist/api/token-check.js'
+import {
+  plexTokensChanged,
+  withFeedsResetOnTokenChange,
+} from '@services/plex-watchlist/rss/token-feeds.js'
 import { TagNamingBlockedError } from '@services/user-tags/types.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -79,6 +84,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           404: ConfigErrorSchema,
           409: ConfigConflictSchema,
           500: ConfigErrorSchema,
+          502: ConfigErrorSchema,
         },
         tags: ['Config'],
       },
@@ -109,6 +115,20 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           throw error
         }
 
+        try {
+          await fastify.plexWatchlist.assertTokensAccepted(
+            safeConfigUpdate,
+            currentConfig?.plexTokens ?? [],
+          )
+        } catch (error) {
+          if (error instanceof PlexTokenCheckError) {
+            return error.result === 'rejected'
+              ? reply.conflict(error.message)
+              : reply.badGateway(error.message)
+          }
+          throw error
+        }
+
         // The stored baseUrl can be unset while the env default is live, so compare against the runtime config
         const candidate = {
           baseUrl: safeConfigUpdate.baseUrl ?? fastify.config.baseUrl,
@@ -132,7 +152,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         try {
-          await fastify.updateConfigAndPersist(safeConfigUpdate)
+          await fastify.updateConfigAndPersist(
+            withFeedsResetOnTokenChange(
+              safeConfigUpdate,
+              currentConfig?.plexTokens ?? [],
+            ),
+          )
         } catch (configUpdateError) {
           logRouteError(fastify.log, request, configUpdateError, {
             message: 'Failed to update configuration',
@@ -188,7 +213,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             fastify.log.info(
               'Plex server connection settings changed, clearing caches and reconnecting SSE',
             )
-            fastify.plexServerService.clearCaches()
+            if (
+              plexTokensChanged(
+                safeConfigUpdate,
+                currentConfig?.plexTokens ?? [],
+              )
+            ) {
+              fastify.plexServerService.clearCaches()
+            } else {
+              fastify.plexServerService.clearConnectionCaches()
+            }
             fastify.plexServerService.disconnectSSE()
             await fastify.plexServerService.connectSSE()
           } catch (error) {

@@ -1,9 +1,8 @@
 import {
   ApprovalErrorSchema,
   ApprovalIdParamsSchema,
-  ApprovalRequestCreateResponseSchema,
+  ApprovalRequestResultSchema,
   ApprovalRequestsListResponseSchema,
-  ApprovalRequestUpdateResponseSchema,
   ApprovalStatsResponseSchema,
   ApprovalSuccessResponseSchema,
   BulkApprovalRequestSchema,
@@ -99,7 +98,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Create a new approval request for content routing',
         body: CreateApprovalRequestSchema,
         response: {
-          201: ApprovalRequestCreateResponseSchema,
+          201: ApprovalRequestResultSchema,
           400: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
           500: ApprovalErrorSchema,
@@ -254,7 +253,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Retrieve a specific approval request by its ID',
         params: ApprovalIdParamsSchema,
         response: {
-          200: ApprovalRequestCreateResponseSchema,
+          200: ApprovalRequestResultSchema,
           400: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
           500: ApprovalErrorSchema,
@@ -313,7 +312,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         params: ApprovalIdParamsSchema,
         body: UpdateApprovalRequestSchema,
         response: {
-          200: ApprovalRequestUpdateResponseSchema,
+          200: ApprovalRequestResultSchema,
           400: ApprovalErrorSchema,
           401: ApprovalErrorSchema,
           404: ApprovalErrorSchema,

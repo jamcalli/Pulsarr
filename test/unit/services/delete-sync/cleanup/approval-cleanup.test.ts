@@ -16,7 +16,7 @@ import type {
 import {
   cleanupApprovalRequestsForDeletedContent,
   cleanupOrphanedApprovalRequests,
-} from '@services/delete-sync/cleanup/index.js'
+} from '@services/delete-sync/cleanup/approval-cleanup.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 

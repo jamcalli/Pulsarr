@@ -55,7 +55,6 @@ export interface PlexServerConnectionInfo {
   url: string
   local: boolean
   relay: boolean
-  isDefault: boolean
 }
 
 /**
@@ -214,5 +213,16 @@ export interface PlexMetadataResponse {
     mediaTagPrefix?: string
     mediaTagVersion?: number
     Metadata?: PlexMetadata[]
+  }
+}
+
+/** A non-ok plex.tv response, carrying its HTTP status. */
+export class PlexTvError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message)
+    this.name = 'PlexTvError'
   }
 }

@@ -2,6 +2,7 @@ import {
   WEBHOOK_EVENT_TYPES,
   type WebhookEventType,
 } from '@root/types/webhook-endpoint.types.js'
+import { TestResultSchema } from '@schemas/common/test-result.schema.js'
 import {
   CreateWebhookEndpointSchema,
   TestWebhookEndpointSchema,
@@ -12,7 +13,6 @@ import {
   WebhookEndpointResponseSchema,
   WebhookEndpointsListResponseSchema,
   WebhookEventTypesResponseSchema,
-  WebhookTestResponseSchema,
 } from '@schemas/webhooks/webhook-endpoints.schema.js'
 import { testWebhookEndpoint } from '@services/notifications/channels/native-webhook.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -271,7 +271,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Test a webhook endpoint by sending a test payload (use before saving)',
         body: TestWebhookEndpointSchema,
         response: {
-          200: WebhookTestResponseSchema,
+          200: TestResultSchema,
           500: WebhookEndpointErrorSchema,
         },
         tags: ['Webhooks'],
@@ -312,7 +312,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Test an existing webhook endpoint by ID',
         params: WebhookEndpointParamsSchema,
         response: {
-          200: WebhookTestResponseSchema,
+          200: TestResultSchema,
           404: WebhookEndpointErrorSchema,
           500: WebhookEndpointErrorSchema,
         },

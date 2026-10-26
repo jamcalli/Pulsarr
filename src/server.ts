@@ -1,9 +1,9 @@
-import { createLoggerConfig, validLogLevels } from '@utils/logger.js'
+import { ConfigLogLevelSchema } from '@root/schemas/config/config.schema.js'
+import { createLoggerConfig } from '@utils/logger.js'
 import { normalizeBasePath } from '@utils/url.js'
 import closeWithGrace from 'close-with-grace'
 import Fastify, { LogController } from 'fastify'
 import fp from 'fastify-plugin'
-import type { LevelWithSilent } from 'pino'
 import serviceApp from './app.js'
 
 async function init() {
@@ -41,11 +41,8 @@ async function init() {
   await app.ready()
 
   const configLogLevel = app.config.logLevel
-  if (
-    configLogLevel &&
-    validLogLevels.includes(configLogLevel as LevelWithSilent)
-  ) {
-    app.log.level = configLogLevel as LevelWithSilent
+  if (configLogLevel && ConfigLogLevelSchema.options.includes(configLogLevel)) {
+    app.log.level = configLogLevel
   }
 
   closeWithGrace(
@@ -67,10 +64,17 @@ async function init() {
     // listenPort: internal port the server binds to (default 3003)
     // port: external port for webhook URL generation (what Sonarr/Radarr use to reach Pulsarr)
     // Docker users should use port mapping (e.g., 8080:3003) and set port=8080 for webhooks
+    // Fastify logs one line per interface on 0.0.0.0 and has no option to turn it off
+    const logLevel = app.log.level
+    app.log.level = 'warn'
     await app.listen({
       port: app.config.listenPort,
       host: '0.0.0.0',
     })
+    app.log.level = logLevel
+    app.log.info(
+      `Server listening on port ${app.config.listenPort}, base URL ${app.config.baseUrl}:${app.config.port}`,
+    )
   } catch (err) {
     app.log.error(err)
     process.exit(1)

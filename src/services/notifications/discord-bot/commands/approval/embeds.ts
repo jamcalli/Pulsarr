@@ -1,5 +1,12 @@
-import type { ApprovalRequest } from '@root/types/approval.types.js'
+import type {
+  ApprovalRequest,
+  ApprovalTrigger,
+} from '@root/types/approval.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import {
+  APPROVAL_TRIGGER_LABELS,
+  EVENT_LABELS,
+} from '@services/notifications/templates/labels.js'
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -7,18 +14,18 @@ import {
   EmbedBuilder,
 } from 'discord.js'
 
+const TRIGGER_EMOJI: Record<ApprovalTrigger, string> = {
+  quota_exceeded: '📊',
+  router_rule: '⚡',
+  manual_flag: '🚩',
+  content_criteria: '✅',
+}
+
 export function formatTriggerReason(
-  trigger: string,
+  trigger: ApprovalTrigger,
   reason: string | null,
 ): string {
-  const triggerMap: Record<string, string> = {
-    manual_flag: '🚩 Manual Flag',
-    quota_exceeded: '📊 Quota Exceeded',
-    user_request: '👤 User Request',
-    system_flag: '🤖 System Flag',
-  }
-
-  const triggerText = triggerMap[trigger] || `🔍 ${trigger}`
+  const triggerText = `${TRIGGER_EMOJI[trigger]} ${APPROVAL_TRIGGER_LABELS[trigger]}`
   return reason ? `${triggerText}\n${reason}` : triggerText
 }
 
@@ -106,7 +113,7 @@ export function createApprovalEmbed(
   posterUrl?: string,
 ): EmbedBuilder {
   const embed = new EmbedBuilder()
-    .setTitle(`${approval.contentTitle}`)
+    .setTitle(`${EVENT_LABELS.approvalRequest}: ${approval.contentTitle}`)
     .setColor(0xff9500)
     .addFields([
       {
@@ -259,7 +266,7 @@ export function createCompletionEmbed(): EmbedBuilder {
 
 export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
   const detailsEmbed = new EmbedBuilder()
-    .setTitle(`${approval.contentTitle} - Detailed View`)
+    .setTitle(`${EVENT_LABELS.approvalRequest}: ${approval.contentTitle}`)
     .setColor(0x5865f2)
     .addFields([
       {

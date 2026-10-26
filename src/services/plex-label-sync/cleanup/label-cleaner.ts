@@ -9,7 +9,10 @@ import type {
   RadarrMovieWithTags,
   SonarrSeriesWithTags,
 } from '@root/types/plex-label-sync.types.js'
-import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
+import {
+  PLEX_LABEL_CONCURRENCY,
+  type PlexLabelSyncConfig,
+} from '@schemas/plex/label-sync-config.schema.js'
 import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
@@ -371,8 +374,7 @@ export async function cleanupLabelsForWatchlistItems(
     )
 
     // Remove labels from Plex content
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     let removedCount = 0
 
     const failedKeys = new Set<string>()
@@ -556,8 +558,7 @@ async function handleSpecialLabelModeForDeletedItems(
       labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
     }
 
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     let processedCount = 0
     const failedKeys = new Set<string>()
 
@@ -865,14 +866,16 @@ export async function cleanupOrphanedPlexLabels(
   const result = { removed: 0, failed: 0 }
 
   try {
-    deps.logger.info('Starting orphaned Plex label cleanup')
+    deps.logger.debug('Starting orphaned Plex label cleanup')
 
     // Step 1: Get all users with sync enabled
     const allUsers = await deps.db.getAllUsers()
     const syncEnabledUsers = allUsers.filter((user) => user.can_sync)
 
     if (syncEnabledUsers.length === 0) {
-      deps.logger.info('No sync-enabled users found, skipping orphaned cleanup')
+      deps.logger.debug(
+        'No sync-enabled users found, skipping orphaned cleanup',
+      )
       return { removed: 0, failed: 0 }
     }
 
@@ -1014,11 +1017,11 @@ export async function cleanupOrphanedPlexLabels(
     )
 
     if (orphanedLabelGroups.length === 0) {
-      deps.logger.info('No orphaned labels found in tracking table')
+      deps.logger.debug('No orphaned labels found in tracking table')
       return { removed: 0, failed: 0 }
     }
 
-    deps.logger.info(
+    deps.logger.debug(
       {
         affectedItems: orphanedLabelGroups.length,
         totalOrphanedLabels: orphanedLabelGroups.reduce(
@@ -1030,8 +1033,7 @@ export async function cleanupOrphanedPlexLabels(
     )
 
     // Step 4: Remove orphaned labels from Plex content
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     const successfulOrphanedOperations: Array<{
       plexRatingKey: string
       orphanedLabels: string[]
@@ -1160,7 +1162,7 @@ export async function cleanupOrphanedPlexLabels(
       }
     }
 
-    deps.logger.info(
+    deps.logger.debug(
       {
         processedItems: orphanedLabelGroups.length,
         removedLabels: result.removed,

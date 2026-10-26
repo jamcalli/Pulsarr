@@ -1,32 +1,20 @@
 import type { Config } from '@root/types/config.types.js'
 import type { Item, TokenWatchlistItem } from '@root/types/plex.types.js'
-import type { ProgressService } from '@root/types/progress.types.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { isRateLimitError } from '../api/helpers.js'
 import { PlexRateLimiter } from '../api/rate-limiter.js'
+import type { WatchlistSyncProgress } from '../progress/sync-progress.js'
 import { toItemsSingle } from './single-item.js'
 
-/**
- * Processes multiple watchlist items in batches with controlled concurrency.
- *
- * @param config - Application configuration
- * @param log - Fastify logger instance
- * @param items - Array of watchlist items to process
- * @param progressTracker - Optional progress tracking information
- * @param initialConcurrencyLimit - Starting concurrency limit (default: 3)
- * @returns Promise resolving to a Map of items and their processed results
- */
+/** progress.completedItems counts items finished before this batch, so the reported count stays overall across batches. */
 export const toItemsBatch = async (
   config: Config,
   log: FastifyBaseLogger,
   items: TokenWatchlistItem[],
-  progressTracker?: {
-    progress: ProgressService
-    operationId: string
-    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+  progress?: {
+    reporter: WatchlistSyncProgress
     completedItems: number
     totalItems: number
-    username: string
   },
   initialConcurrencyLimit = 3, // Starting with a lower limit to prevent initial rate limiting
 ): Promise<Map<TokenWatchlistItem, Set<Item>>> => {
@@ -46,48 +34,27 @@ export const toItemsBatch = async (
   // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
 
+  const reportItemDone = () =>
+    progress?.reporter.processingItems(
+      progress.completedItems + batchCompletedCount,
+      progress.totalItems,
+    )
+
   // Process items in batches with controlled concurrency
   while (queue.length > 0 || processingCount > 0) {
     // Check if we're rate limited using the global rate limiter
     if (rateLimiter.isLimited()) {
-      const cooldownMs = rateLimiter.getRemainingCooldown()
-
       // Reset consecutive success counter when rate limited
       consecutiveSuccessCount = 0
 
-      // Calculate current progress to maintain it during rate limiting
-      // Use overall progress (completedItems + batchCompletedCount) divided by totalItems
-      const currentProgress = progressTracker
-        ? Math.min(
-            95,
-            Math.floor(
-              ((progressTracker.completedItems + batchCompletedCount) /
-                progressTracker.totalItems) *
-                90,
-            ) + 5,
-          )
-        : undefined
-
-      // Wait for cooldown period
-      await rateLimiter.waitIfLimited(
-        log,
-        progressTracker
-          ? {
-              progress: progressTracker.progress,
-              operationId: progressTracker.operationId,
-              type: progressTracker.type,
-              message: `Rate limited by Plex API. Cooling down for ${Math.round(cooldownMs / 1000)} seconds...`,
-              currentProgress,
-            }
-          : undefined,
-      )
+      await rateLimiter.waitIfLimited(log, progress?.reporter.rateLimited)
 
       // Reduce concurrency after a rate limit to avoid hitting limits again
       currentConcurrencyLimit = Math.max(
         1,
         Math.floor(currentConcurrencyLimit * 0.7),
       )
-      log.info(
+      log.debug(
         `Adjusted concurrency to ${currentConcurrencyLimit} after global rate limit cooldown`,
       )
       continue
@@ -99,16 +66,15 @@ export const toItemsBatch = async (
       if (item) {
         processingCount++
 
-        // Pass progress info to toItemsSingle for rate limit notifications
-        const progressInfo = progressTracker
-          ? {
-              progress: progressTracker.progress,
-              operationId: progressTracker.operationId,
-              type: progressTracker.type,
-            }
-          : undefined
-
-        toItemsSingle(config, log, item, 0, 3, progressInfo, notFoundItems)
+        toItemsSingle(
+          config,
+          log,
+          item,
+          0,
+          3,
+          progress?.reporter,
+          notFoundItems,
+        )
           .then((itemSet) => {
             results.set(item, itemSet)
             processingCount--
@@ -131,22 +97,7 @@ export const toItemsBatch = async (
               consecutiveSuccessCount = Math.floor(RECOVERY_THRESHOLD / 2)
             }
 
-            if (progressTracker) {
-              const totalCompletedItems =
-                progressTracker.completedItems + batchCompletedCount
-              const overallProgress =
-                Math.floor(
-                  (totalCompletedItems / progressTracker.totalItems) * 90,
-                ) + 5
-
-              progressTracker.progress.emit({
-                operationId: progressTracker.operationId,
-                type: progressTracker.type,
-                phase: 'processing',
-                progress: Math.min(95, overallProgress),
-                message: `Processed ${totalCompletedItems} of ${progressTracker.totalItems} items`,
-              })
-            }
+            reportItemDone()
           })
           .catch((error) => {
             // Check if this is a rate limit exhaustion error
@@ -165,7 +116,7 @@ export const toItemsBatch = async (
                 1,
                 Math.floor(currentConcurrencyLimit * 0.7),
               )
-              log.info(
+              log.debug(
                 `Reduced concurrency to ${currentConcurrencyLimit} after rate limit exhaustion`,
               )
             }
@@ -188,7 +139,7 @@ export const toItemsBatch = async (
                 1,
                 Math.floor(currentConcurrencyLimit * 0.7),
               )
-              log.info(
+              log.debug(
                 `Reduced concurrency to ${currentConcurrencyLimit} after rate limit detection`,
               )
             } else {
@@ -198,6 +149,7 @@ export const toItemsBatch = async (
               )
               results.set(item, new Set())
               batchCompletedCount++
+              reportItemDone()
             }
             processingCount--
           })

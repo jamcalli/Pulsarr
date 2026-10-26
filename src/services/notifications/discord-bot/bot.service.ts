@@ -1,23 +1,18 @@
-/**
- * Discord Bot Service
- *
- * Manages the Discord bot lifecycle (start, stop, status).
- * Coordinates command registry and event routing.
- * Handles DM sending (requires bot client).
- */
-
+import type { DirectMessage } from '@root/types/discord.types.js'
 import type {
-  DiscordEmbed,
-  MediaNotification,
-  SystemNotification,
-} from '@root/types/discord.types.js'
+  DeliveryResult,
+  DiscordBotStatus,
+  NotificationTestResult,
+} from '@root/types/notification.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { Client, GatewayIntentBits } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
-  sendDirectMessage,
-  sendDirectMessageEmbed,
+  type DiscordDmDeps,
+  sendNotification,
+  testNotification,
 } from '../channels/discord-dm.js'
+import { timeTest } from '../channels/time-test.js'
 import {
   type Command,
   createCommandRegistry,
@@ -25,18 +20,11 @@ import {
 } from './command-registry.js'
 import { setupBotEventHandlers } from './event-router.js'
 
-export type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping'
-
-/**
- * Discord Bot Service
- *
- * Manages the Discord bot client lifecycle and provides
- * access to Discord notification capabilities.
- */
 export class DiscordBotService {
   private readonly log: FastifyBaseLogger
   private botClient: Client | null = null
-  private botStatus: BotStatus = 'stopped'
+  private botStatus: DiscordBotStatus = 'stopped'
+  private startAttempt = 0
   private statusChangeCallback: (() => void) | null = null
   private readonly commands: Map<string, Command>
 
@@ -57,6 +45,14 @@ export class DiscordBotService {
     return this.fastify.config
   }
 
+  private get dmDeps(): DiscordDmDeps {
+    return {
+      logger: this.log,
+      botClient: this.botClient,
+      botStatus: this.botStatus,
+    }
+  }
+
   private get botConfig() {
     const required = ['discordBotToken', 'discordClientId'] as const
 
@@ -75,17 +71,16 @@ export class DiscordBotService {
     }
   }
 
-  /**
-   * Starts the Discord bot.
-   */
   async startBot(): Promise<boolean> {
     if (this.botStatus !== 'stopped') {
       this.log.warn(`Cannot start bot: current status is ${this.botStatus}`)
       return false
     }
 
+    this.setBotStatus('starting')
+    const attempt = ++this.startAttempt
+    const isStale = () => attempt !== this.startAttempt
     try {
-      // Register commands with Discord API
       const commandsRegistered = await registerCommandsWithDiscord(
         this.commands,
         {
@@ -94,13 +89,14 @@ export class DiscordBotService {
           config: this.botConfig,
         },
       )
+      if (isStale()) return false
 
       if (!commandsRegistered) {
         this.log.error('Failed to register commands during bot startup')
+        this.setBotStatus('stopped')
         return false
       }
 
-      this.setBotStatus('starting')
       this.log.debug('Initializing Discord bot client')
 
       this.botClient = new Client({
@@ -111,20 +107,21 @@ export class DiscordBotService {
         ],
       })
 
-      // Setup event handlers
       setupBotEventHandlers(this.botClient, {
         log: this.log,
         fastify: this.fastify,
         commands: this.commands,
         onBotReady: () => {
-          this.setBotStatus('running')
+          if (!isStale()) this.setBotStatus('running')
         },
       })
 
       await this.botClient.login(this.botConfig.discordBotToken)
-      this.log.info('Discord bot started successfully')
+      if (isStale()) return false
+      this.log.debug('Discord bot started successfully')
       return true
     } catch (error) {
+      if (isStale()) return false
       this.log.error({ error }, 'Failed to start Discord bot')
       this.setBotStatus('stopped')
       this.botClient = null
@@ -132,17 +129,15 @@ export class DiscordBotService {
     }
   }
 
-  /**
-   * Stops the Discord bot.
-   */
   async stopBot(): Promise<boolean> {
     if (this.botStatus !== 'running' && this.botStatus !== 'starting') {
       this.log.warn(`Cannot stop bot: current status is ${this.botStatus}`)
       return false
     }
 
+    this.startAttempt += 1
     try {
-      this.log.info('Stopping Discord bot')
+      this.log.debug('Stopping Discord bot')
       this.setBotStatus('stopping')
 
       if (this.botClient) {
@@ -161,10 +156,7 @@ export class DiscordBotService {
     }
   }
 
-  /**
-   * Gets the current bot status.
-   */
-  getBotStatus(): BotStatus {
+  getBotStatus(): DiscordBotStatus {
     return this.botStatus
   }
 
@@ -172,67 +164,21 @@ export class DiscordBotService {
     this.statusChangeCallback = callback
   }
 
-  // intermediate starting/stopping states must notify too, not just final states
-  private setBotStatus(status: BotStatus): void {
+  // Every transition notifies, including the intermediate starting and stopping states
+  private setBotStatus(status: DiscordBotStatus): void {
     if (this.botStatus === status) return
     this.botStatus = status
     this.statusChangeCallback?.()
   }
 
-  /**
-   * Check if Discord bot config is present.
-   */
-  get hasBotConfig(): boolean {
-    const required = ['discordBotToken', 'discordClientId'] as const
-    return required.every((key) => Boolean(this.config[key]))
-  }
-
-  /**
-   * Adds a new command to the registry.
-   * If the bot is running, re-registers commands with Discord.
-   */
-  addCommand(command: Command): void {
-    this.log.info({ command: command.data.name }, 'Adding new command')
-    this.commands.set(command.data.name, command)
-
-    // Only re-register with Discord if bot is running (which means config is valid)
-    if (this.botStatus === 'running') {
-      this.log.debug('Registering new command with Discord')
-      void registerCommandsWithDiscord(this.commands, {
-        log: this.log,
-        fastify: this.fastify,
-        config: this.botConfig,
-      })
-    }
-  }
-
-  /**
-   * Sends a direct message to a Discord user.
-   * Requires the bot to be running.
-   */
-  async sendDirectMessage(
+  async sendNotification(
     discordId: string,
-    notification: MediaNotification | SystemNotification,
-  ): Promise<boolean> {
-    return sendDirectMessage(discordId, notification, {
-      log: this.log,
-      botClient: this.botClient,
-      botStatus: this.botStatus,
-    })
+    message: DirectMessage,
+  ): Promise<DeliveryResult> {
+    return sendNotification(discordId, message, this.dmDeps)
   }
 
-  /**
-   * Sends a pre-built embed as a direct message to a Discord user.
-   * Requires the bot to be running.
-   */
-  async sendDirectMessageEmbed(
-    discordId: string,
-    embed: DiscordEmbed,
-  ): Promise<boolean> {
-    return sendDirectMessageEmbed(discordId, embed, {
-      log: this.log,
-      botClient: this.botClient,
-      botStatus: this.botStatus,
-    })
+  async testNotification(discordId: string): Promise<NotificationTestResult> {
+    return timeTest(() => testNotification(discordId, this.dmDeps))
   }
 }

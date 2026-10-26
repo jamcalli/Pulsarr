@@ -21,15 +21,15 @@ export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number]
  * Human-readable labels for webhook event types
  */
 export const EVENT_TYPE_LABELS: Record<WebhookEventType, string> = {
-  'media.available': 'Media Available',
-  'watchlist.added': 'Watchlist Added',
-  'watchlist.removed': 'Watchlist Removed',
-  'approval.created': 'Approval Created',
-  'approval.resolved': 'Approval Resolved',
-  'approval.auto': 'Auto Approved',
-  'delete_sync.completed': 'Delete Sync Complete',
-  'user.created': 'User Created',
-  'quota.cap_reached': 'Watchlist Cap Reached',
+  'media.available': 'Media available',
+  'watchlist.added': 'Watchlist added',
+  'watchlist.removed': 'Watchlist removed',
+  'approval.created': 'Approval created',
+  'approval.resolved': 'Approval resolved',
+  'approval.auto': 'Auto approved',
+  'delete_sync.completed': 'Delete sync complete',
+  'user.created': 'User created',
+  'quota.cap_reached': 'Watchlist cap reached',
 }
 
 /**
@@ -93,14 +93,4 @@ export interface WebhookDispatchResult {
     success: boolean
     error?: string
   }>
-}
-
-/**
- * Result of testing a webhook endpoint
- */
-export interface TestWebhookResult {
-  success: boolean
-  statusCode?: number
-  responseTime: number // milliseconds
-  error?: string
 }

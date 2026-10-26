@@ -1,3 +1,4 @@
+import { BackgroundRunStatusSchema } from '@root/schemas/common/background-run.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { CronExpressionParser } from 'cron-parser'
 import { z } from 'zod'
@@ -84,6 +85,10 @@ export const JobRunInfoSchema = z.object({
   estimated: z.boolean().optional(),
 })
 
+const JobRunningSchema = z.boolean().meta({
+  description: 'True while a run of the job is in progress',
+})
+
 // Define specific job types
 const IntervalJobSchema = z.object({
   id: z.number(),
@@ -95,6 +100,7 @@ const IntervalJobSchema = z.object({
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  running: JobRunningSchema,
 })
 
 const CronJobSchema = z.object({
@@ -107,10 +113,13 @@ const CronJobSchema = z.object({
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  running: JobRunningSchema,
 })
 
 // Combine with regular union instead of discriminated union
-export const JobStatusSchema = z.union([IntervalJobSchema, CronJobSchema])
+export const JobStatusSchema = z
+  .union([IntervalJobSchema, CronJobSchema])
+  .meta({ id: 'JobStatus', description: 'A scheduled job and its run state' })
 
 // Standard response schemas
 export const SuccessResponseSchema = z.object({
@@ -122,36 +131,65 @@ export const SuccessResponseSchema = z.object({
 export { ErrorSchema, ErrorSchema as ErrorResponseSchema }
 
 // Schema for delete sync dry run results
-export const DeleteItemSchema = z.object({
-  title: z.string(),
-  guid: z.string(),
-  instance: z.string(),
-})
+export const DeleteItemSchema = z
+  .object({
+    title: z.string(),
+    guid: z.string(),
+    instance: z.string(),
+  })
+  .meta({
+    id: 'DeleteSyncResultItem',
+    description: 'One item a delete sync run deleted or would delete',
+  })
 
-export const DeletionContentTypeResultSchema = z.object({
-  deleted: z.number(),
-  skipped: z.number(),
-  protected: z.number().optional(),
-  items: z.array(DeleteItemSchema).readonly(),
-})
-
-export const DeleteSyncResultSchema = z.object({
-  total: z.object({
+export const DeletionContentTypeResultSchema = z
+  .object({
     deleted: z.number(),
     skipped: z.number(),
-    processed: z.number(),
     protected: z.number().optional(),
-  }),
-  movies: DeletionContentTypeResultSchema,
-  shows: DeletionContentTypeResultSchema,
-  safetyTriggered: z.boolean().optional(),
-  safetyMessage: z.string().optional(),
-})
+    items: z.array(DeleteItemSchema).readonly(),
+  })
+  .meta({
+    id: 'DeleteSyncTypeResult',
+    description: 'Delete sync counts and items for one content type',
+  })
 
-export const DeleteSyncDryRunResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  results: DeleteSyncResultSchema,
+export const DeleteSyncResultSchema = z
+  .object({
+    total: z.object({
+      deleted: z.number(),
+      skipped: z.number(),
+      processed: z.number(),
+      protected: z.number().optional(),
+    }),
+    movies: DeletionContentTypeResultSchema,
+    shows: DeletionContentTypeResultSchema,
+    safetyTriggered: z.boolean().optional(),
+    safetyMessage: z.string().optional(),
+  })
+  .meta({
+    id: 'DeleteSyncResult',
+    description: 'Totals and per-type results of a delete sync run',
+  })
+
+export const DeleteSyncDryRunResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    results: DeleteSyncResultSchema,
+  })
+  .meta({
+    id: 'DeleteSyncDryRunResponse',
+    description: 'Outcome of a delete sync dry run',
+  })
+
+export const DeleteSyncDryRunStatusSchema = BackgroundRunStatusSchema.extend({
+  result: DeleteSyncDryRunResponseSchema.nullable().meta({
+    description: 'The latest dry run outcome, null until a dry run finishes',
+  }),
+}).meta({
+  id: 'DeleteSyncDryRunStatus',
+  description: 'The latest delete sync dry run',
 })
 
 // Inferred types for exports

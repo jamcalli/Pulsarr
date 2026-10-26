@@ -84,6 +84,9 @@ export class EtagPoller {
   /** Callback for when a new polling cycle starts (for friend refresh) */
   private onCycleStartCallback: (() => Promise<EtagUserInfo[]>) | null = null
 
+  /** Bumped on every start and stop so callbacks of a previous loop cannot re-arm the timer */
+  private staggeredGeneration = 0
+
   // Read through the getter: the poller outlives config updates, which reassign fastify.config
   constructor(
     private readonly getConfig: () => Config,
@@ -169,7 +172,7 @@ export class EtagPoller {
       ),
     )
 
-    this.log.info(
+    this.log.debug(
       { friendCount: friends.length },
       'Watchlist baselines established for all users',
     )
@@ -316,6 +319,7 @@ export class EtagPoller {
     }
 
     this.isStaggeredPollingActive = true
+    this.staggeredGeneration++
     this.onUserChangedCallback = onUserChanged
     this.onCycleStartCallback = onCycleStart
 
@@ -330,13 +334,13 @@ export class EtagPoller {
     this.staggeredUserQueue = [this.staggeredPrimaryUser, ...friends]
     this.staggeredCurrentIndex = 0
 
-    this.log.info(
+    this.log.debug(
       { userCount: this.staggeredUserQueue.length },
       'Starting staggered ETag polling (5-minute cycles)',
     )
 
     // Start the first cycle immediately
-    this.startNextCycle()
+    this.startNextCycle(this.staggeredGeneration)
   }
 
   /**
@@ -349,6 +353,7 @@ export class EtagPoller {
     }
 
     this.isStaggeredPollingActive = false
+    this.staggeredGeneration++
     this.staggeredPrimaryUser = null
     this.staggeredUserQueue = []
     this.staggeredCurrentIndex = 0
@@ -372,7 +377,11 @@ export class EtagPoller {
    * @param user - User info to check
    * @returns Poll result with any new items
    */
-  async checkUser(user: EtagUserInfo): Promise<EtagPollResult> {
+  /** A generation makes the cache write conditional on that staggered loop still being current */
+  async checkUser(
+    user: EtagUserInfo,
+    generation?: number,
+  ): Promise<EtagPollResult> {
     const token = this.getConfig().plexTokens?.[0]
     if (!token) {
       return {
@@ -386,7 +395,7 @@ export class EtagPoller {
     this.adoptToken(token)
 
     if (user.isPrimary) {
-      return this.checkPrimary(token, user.userId)
+      return this.checkPrimary(token, user.userId, generation)
     }
 
     if (!user.watchlistId) {
@@ -404,20 +413,21 @@ export class EtagPoller {
       username: user.username,
       userId: user.userId,
     }
-    return this.checkFriend(token, friend, user.userId)
+    return this.checkFriend(token, friend, user.userId, generation)
   }
 
   /**
    * Start a new polling cycle.
    * Refreshes friend list, rebalances timing, then begins sequential polling.
    */
-  private async startNextCycle(): Promise<void> {
-    if (!this.isStaggeredPollingActive) return
+  private async startNextCycle(generation: number): Promise<void> {
+    if (!this.isLoopCurrent(generation)) return
 
     // Refresh friend list at cycle start
     if (this.onCycleStartCallback) {
       try {
         const updatedFriends = await this.onCycleStartCallback()
+        if (!this.isLoopCurrent(generation)) return
 
         // Use stored primary user (more robust than searching queue)
         if (this.staggeredPrimaryUser) {
@@ -438,24 +448,36 @@ export class EtagPoller {
       }
     }
 
+    if (!this.isLoopCurrent(generation)) return
+
     // Reset to first user
     this.staggeredCurrentIndex = 0
 
     // Schedule first user check
-    this.scheduleNextUserCheck()
+    this.scheduleNextUserCheck(generation)
+  }
+
+  private isLoopCurrent(generation: number): boolean {
+    return (
+      this.isStaggeredPollingActive && generation === this.staggeredGeneration
+    )
+  }
+
+  private isStaleLoop(generation: number | undefined): boolean {
+    return generation !== undefined && !this.isLoopCurrent(generation)
   }
 
   /**
    * Schedule the next user check with calculated interval and jitter.
    */
-  private scheduleNextUserCheck(): void {
-    if (!this.isStaggeredPollingActive) return
+  private scheduleNextUserCheck(generation: number): void {
+    if (!this.isLoopCurrent(generation)) return
 
     const userCount = this.staggeredUserQueue.length
     if (userCount === 0) {
       // No users, just wait for next cycle
       this.staggeredTimer = setTimeout(
-        () => this.startNextCycle(),
+        () => this.startNextCycle(generation),
         STAGGERED_CYCLE_MS,
       )
       return
@@ -470,20 +492,24 @@ export class EtagPoller {
     const jitter = (Math.random() * 2 - 1) * jitterRange
     const interval = Math.max(1000, baseInterval + jitter) // Minimum 1 second
 
-    this.staggeredTimer = setTimeout(() => this.pollNextUser(), interval)
+    this.staggeredTimer = setTimeout(
+      () => this.pollNextUser(generation),
+      interval,
+    )
   }
 
   /**
    * Poll the next user in the queue.
    */
-  private async pollNextUser(): Promise<void> {
-    if (!this.isStaggeredPollingActive) return
+  private async pollNextUser(generation: number): Promise<void> {
+    if (!this.isLoopCurrent(generation)) return
 
     const user = this.staggeredUserQueue[this.staggeredCurrentIndex]
 
     if (user) {
       try {
-        const result = await this.checkUser(user)
+        const result = await this.checkUser(user, generation)
+        if (!this.isLoopCurrent(generation)) return
 
         // Notify callback if there are changes
         if (result.changed && result.newItems.length > 0) {
@@ -498,18 +524,19 @@ export class EtagPoller {
         )
       }
 
+      if (!this.isLoopCurrent(generation)) return
       this.staggeredCurrentIndex++
     }
 
     // Check if cycle is complete
     if (this.staggeredCurrentIndex >= this.staggeredUserQueue.length) {
       // Cycle complete, start next cycle
-      this.startNextCycle().catch((error) => {
+      this.startNextCycle(generation).catch((error) => {
         this.log.error({ error }, 'Error starting next polling cycle')
       })
     } else {
       // More users to check, schedule next
-      this.scheduleNextUserCheck()
+      this.scheduleNextUserCheck(generation)
     }
   }
 
@@ -521,6 +548,7 @@ export class EtagPoller {
   private async establishPrimaryBaseline(
     token: string,
     userId: number,
+    generation?: number,
   ): Promise<void> {
     const cacheKey = `primary:${userId}`
 
@@ -552,6 +580,7 @@ export class EtagPoller {
       const etag = response.headers.get('etag')
       const data = (await response.json()) as DiscoverWatchlistResponse
       const items = this.parseDiscoverItems(data)
+      if (this.isStaleLoop(generation)) return
 
       if (!etag) {
         this.log.warn(
@@ -580,6 +609,7 @@ export class EtagPoller {
     token: string,
     friend: Friend,
     userId: number,
+    generation?: number,
   ): Promise<void> {
     const cacheKey = `friend:${friend.watchlistId}`
 
@@ -659,6 +689,7 @@ export class EtagPoller {
       }
 
       const etag = etagResponse.headers.get('etag')
+      if (this.isStaleLoop(generation)) return
 
       if (!etag) {
         this.log.warn(
@@ -687,13 +718,14 @@ export class EtagPoller {
   private async checkPrimary(
     token: string,
     userId: number,
+    generation?: number,
   ): Promise<EtagPollResult> {
     const cacheKey = `primary:${userId}`
     const cached = this.cache.get(cacheKey)
 
     if (!cached) {
       // No baseline - need to establish first
-      await this.establishPrimaryBaseline(token, userId)
+      await this.establishPrimaryBaseline(token, userId, generation)
       return { changed: false, userId, isPrimary: true, newItems: [] }
     }
 
@@ -739,6 +771,10 @@ export class EtagPoller {
       const newEtag = response.headers.get('etag')
       const data = (await response.json()) as DiscoverWatchlistResponse
       const freshItems = this.parseDiscoverItems(data)
+
+      if (this.isStaleLoop(generation)) {
+        return { changed: false, userId, isPrimary: true, newItems: [] }
+      }
 
       // Diff to find new items
       const newItems = this.diffItems(freshItems, cached.items)
@@ -786,13 +822,14 @@ export class EtagPoller {
     token: string,
     friend: Friend,
     userId: number,
+    generation?: number,
   ): Promise<EtagPollResult> {
     const cacheKey = `friend:${friend.watchlistId}`
     const cached = this.cache.get(cacheKey)
 
     if (!cached) {
       // No baseline - need to establish first
-      await this.establishFriendBaseline(token, friend, userId)
+      await this.establishFriendBaseline(token, friend, userId, generation)
       return { changed: false, userId, isPrimary: false, newItems: [] }
     }
 
@@ -896,6 +933,10 @@ export class EtagPoller {
       }
 
       const freshItems = this.parseGraphQLItems(data)
+
+      if (this.isStaleLoop(generation)) {
+        return { changed: false, userId, isPrimary: false, newItems: [] }
+      }
 
       // Diff to find new items
       const newItems = this.diffItems(freshItems, cached.items)

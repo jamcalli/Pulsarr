@@ -1,5 +1,6 @@
+import { isValidAppriseEndpoint } from '@root/schemas/common/apprise-endpoint.js'
+import { splitUrlList } from '@root/schemas/common/url-list.js'
 import type { Config, PublicContentKeyMap } from '@root/types/config.types.js'
-import { isValidAppriseEndpoint } from './apprise-email.js'
 
 /**
  * Parses a comma-separated string into a deduplicated array of valid, trimmed URLs or email addresses.
@@ -8,16 +9,8 @@ import { isValidAppriseEndpoint } from './apprise-email.js'
  * @param urlString - A comma-separated list of URLs or email addresses, or null/undefined.
  * @returns An array of unique, valid URLs/emails. Returns an empty array if {@link urlString} is null, undefined, or contains no valid entries.
  */
-function parseUrls(urlString: string | undefined | null): string[] {
-  if (!urlString) return []
-  return Array.from(
-    new Set(
-      urlString
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => isValidAppriseEndpoint(url)),
-    ),
-  )
+export function parseUrls(urlString: string | undefined | null): string[] {
+  return [...new Set(splitUrlList(urlString).filter(isValidAppriseEndpoint))]
 }
 
 // Type-safe lookup table for config keys

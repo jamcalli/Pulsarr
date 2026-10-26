@@ -27,12 +27,17 @@ export default {
           groups: [
             {
               name: 'react-vendor',
-              test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
               priority: 20,
             },
             {
               name: 'ui-vendor',
               test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+              priority: 15,
+            },
+            {
+              name: 'base-ui',
+              test: /[\\/]node_modules[\\/](@base-ui|@floating-ui)[\\/]/,
               priority: 15,
             },
             {
@@ -46,13 +51,8 @@ export default {
               priority: 15,
             },
             {
-              name: 'charts',
-              test: /[\\/]node_modules[\\/]recharts[\\/]/,
-              priority: 15,
-            },
-            {
               name: 'forms',
-              test: /[\\/]node_modules[\\/](react-hook-form|@hookform[\\/]resolvers|zod)[\\/]/,
+              test: /[\\/]node_modules[\\/](zod|@tanstack[\\/]react-form)[\\/]/,
               priority: 15,
             },
           ],

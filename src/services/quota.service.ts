@@ -1,8 +1,11 @@
+import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type {
   CreateUserQuotaData,
+  EnabledQuotaData,
   QuotaStatus,
   QuotaType,
   UpdateUserQuotaData,
+  UserQuotaConfig,
   UserQuotaConfigs,
 } from '@root/types/approval.types.js'
 import { isUniqueViolation } from '@utils/db-errors.js'
@@ -24,7 +27,7 @@ export class QuotaService {
    * Log scheduled job execution with proper service prefix
    */
   logScheduledJob(action: 'start' | 'complete', jobName: string): void {
-    this.log.info(
+    this.log.debug(
       { jobName, action },
       action === 'start' ? 'Running scheduled job' : 'Completed scheduled job',
     )
@@ -70,6 +73,7 @@ export class QuotaService {
         movieData,
         showData,
       ])
+      this.clearWatchlistCapNotices([userId])
       return {
         userId,
         movieQuota: movieQuota || undefined,
@@ -82,6 +86,182 @@ export class QuotaService {
         )
       }
       throw error
+    }
+  }
+
+  /** Returns null when the user has no quotas to update. */
+  async updateUserQuotas(
+    userId: number,
+    data: UpdateUserQuotaData,
+  ): Promise<UserQuotaConfigs | null> {
+    const existing = await this.fastify.db.getUserQuotas(userId)
+    if (!existing.movieQuota && !existing.showQuota) {
+      return null
+    }
+
+    const [movieQuota, showQuota] = await Promise.all([
+      existing.movieQuota
+        ? this.fastify.db.updateUserQuota(userId, 'movie', data)
+        : undefined,
+      existing.showQuota
+        ? this.fastify.db.updateUserQuota(userId, 'show', data)
+        : undefined,
+    ])
+
+    if (!movieQuota && !showQuota) {
+      throw new Error('Failed to update user quotas')
+    }
+    this.clearWatchlistCapNotices([userId])
+
+    return {
+      userId,
+      ...(movieQuota && { movieQuota }),
+      ...(showQuota && { showQuota }),
+    }
+  }
+
+  /** Writes only the content types present in quotas, and a disabled type deletes that quota. */
+  async updateUserQuotasByType(
+    userId: number,
+    quotas: { movieQuota?: EnabledQuotaData; showQuota?: EnabledQuotaData },
+    autoApproveHeld: boolean,
+    adminId?: number,
+  ): Promise<UserQuotaConfigs> {
+    const existing = await this.fastify.db.getUserQuotas(userId)
+
+    const movieQuota = await this.writeQuotaByType(
+      userId,
+      'movie',
+      quotas.movieQuota,
+      existing.movieQuota,
+    )
+    const showQuota = await this.writeQuotaByType(
+      userId,
+      'show',
+      quotas.showQuota,
+      existing.showQuota,
+    )
+
+    this.clearWatchlistCapNotices([userId], {
+      movie: Boolean(quotas.movieQuota),
+      show: Boolean(quotas.showQuota),
+    })
+
+    if (autoApproveHeld) {
+      await this.fastify.approvalService.reEvaluateQuotaExceededApprovals(
+        userId,
+        adminId,
+      )
+    }
+
+    return { userId, movieQuota, showQuota }
+  }
+
+  private async writeQuotaByType(
+    userId: number,
+    contentType: 'movie' | 'show',
+    quota: EnabledQuotaData | undefined,
+    existing: UserQuotaConfig | undefined,
+  ): Promise<UserQuotaConfig | undefined> {
+    if (!quota) {
+      return existing
+    }
+    if (!quota.enabled) {
+      if (existing) {
+        await this.fastify.db.deleteUserQuota(userId, contentType)
+      }
+      return undefined
+    }
+
+    const bypassApproval = quota.bypassApproval ?? false
+    if (existing) {
+      const updated = await this.fastify.db.updateUserQuota(
+        userId,
+        contentType,
+        {
+          quotaType: quota.quotaType,
+          quotaLimit: quota.quotaLimit,
+          bypassApproval,
+          watchlistCap: quota.watchlistCap,
+        },
+      )
+      return updated || undefined
+    }
+
+    if (!quota.quotaType || !quota.quotaLimit) {
+      const label = contentType === 'movie' ? 'Movie' : 'Show'
+      throw this.fastify.httpErrors.badRequest(
+        `${label} quota type and limit are required`,
+      )
+    }
+    return this.fastify.db.createUserQuota({
+      userId,
+      contentType,
+      quotaType: quota.quotaType,
+      quotaLimit: quota.quotaLimit,
+      bypassApproval,
+      watchlistCap: quota.watchlistCap,
+    })
+  }
+
+  /** Returns null when the user had no quotas, and approvedHeld only when autoApproveHeld ran. */
+  async deleteUserQuotas(
+    userId: number,
+    autoApproveHeld: boolean,
+    adminId?: number,
+  ): Promise<{ approvedHeld?: number } | null> {
+    const deleted = await this.fastify.db.deleteAllUserQuotas(userId)
+    if (!deleted) {
+      return null
+    }
+    this.clearWatchlistCapNotices([userId])
+
+    if (!autoApproveHeld) {
+      return {}
+    }
+    const result =
+      await this.fastify.approvalService.reEvaluateQuotaExceededApprovals(
+        userId,
+        adminId,
+      )
+    return { approvedHeld: result.approved }
+  }
+
+  async bulkUpdateQuotas(
+    userIds: number[],
+    operation: 'update' | 'delete',
+    quotas: { movieQuota?: EnabledQuotaData; showQuota?: EnabledQuotaData },
+  ): Promise<{ processedCount: number; failedIds: number[] }> {
+    if (operation === 'delete') {
+      const result = await this.fastify.db.bulkDeleteQuotas(userIds)
+      this.clearWatchlistCapNotices(userIds)
+      return result
+    }
+
+    const result = await this.fastify.db.bulkUpdateQuotas(
+      userIds,
+      quotas.movieQuota,
+      quotas.showQuota,
+    )
+    this.clearWatchlistCapNotices(userIds, {
+      movie: Boolean(quotas.movieQuota),
+      show: Boolean(quotas.showQuota),
+    })
+    return result
+  }
+
+  /** Call after writing or deleting quota rows so a stale notified count cannot suppress the next cap notice. */
+  private clearWatchlistCapNotices(
+    userIds: number[],
+    written: { movie: boolean; show: boolean } = { movie: true, show: true },
+  ): void {
+    for (const userId of userIds) {
+      if (written.movie) {
+        this.fastify.notifications.clearWatchlistCap(userId, 'movie')
+      }
+      if (written.show) {
+        this.fastify.notifications.clearWatchlistCap(userId, 'show')
+      }
     }
   }
 
@@ -103,8 +283,10 @@ export class QuotaService {
       defaults.push({
         userId,
         contentType: 'movie',
-        quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
-        quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        quotaType:
+          config.newUserDefaultMovieQuotaType ?? QUOTA_DEFAULTS.quotaType,
+        quotaLimit:
+          config.newUserDefaultMovieQuotaLimit ?? QUOTA_DEFAULTS.limit,
         bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
         watchlistCap: config.newUserDefaultMovieWatchlistCap ?? null,
       })
@@ -114,8 +296,9 @@ export class QuotaService {
       defaults.push({
         userId,
         contentType: 'show',
-        quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
-        quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        quotaType:
+          config.newUserDefaultShowQuotaType ?? QUOTA_DEFAULTS.quotaType,
+        quotaLimit: config.newUserDefaultShowQuotaLimit ?? QUOTA_DEFAULTS.limit,
         bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
         watchlistCap: config.newUserDefaultShowWatchlistCap ?? null,
       })
@@ -142,30 +325,6 @@ export class QuotaService {
   }
 
   /**
-   * Validates quota limits and settings
-   */
-  validateQuotaData(data: CreateUserQuotaData | UpdateUserQuotaData): {
-    valid: boolean
-    errors: string[]
-  } {
-    const errors: string[] = []
-
-    if ('quotaLimit' in data && data.quotaLimit !== undefined) {
-      if (data.quotaLimit < 0) {
-        errors.push('Quota limit cannot be negative')
-      }
-      if (data.quotaLimit > 1000) {
-        errors.push('Quota limit cannot exceed 1000')
-      }
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-    }
-  }
-
-  /**
    * Gets the current quota status for a user
    */
   async getUserQuotaStatus(
@@ -179,250 +338,15 @@ export class QuotaService {
     )
   }
 
-  /**
-   * Checks if a user would exceed quota with a new request
-   */
-  async wouldExceedQuota(
-    userId: number,
-    contentType: 'movie' | 'show',
-  ): Promise<boolean> {
-    const status = await this.fastify.db.getQuotaStatus(
-      userId,
-      contentType,
-      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
-    )
-    if (!status) {
-      return false // No quota configured
-    }
-
-    if (status.bypassApproval) {
-      return false // User bypasses quotas
-    }
-
-    return status.currentUsage >= status.quotaLimit
-  }
-
-  /**
-   * Calculates how many requests a user can make before hitting quota
-   */
-  async getRemainingQuota(
-    userId: number,
-    contentType?: 'movie' | 'show',
-  ): Promise<number> {
-    if (!contentType) {
-      return Number.POSITIVE_INFINITY // No content type specified
-    }
-
-    const status = await this.fastify.db.getQuotaStatus(
-      userId,
-      contentType,
-      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
-    )
-    if (!status) {
-      return Number.POSITIVE_INFINITY // No quota configured
-    }
-
-    if (status.bypassApproval) {
-      return Number.POSITIVE_INFINITY // User bypasses quotas
-    }
-
-    return Math.max(0, status.quotaLimit - status.currentUsage)
-  }
-
-  /**
-   * Gets formatted quota status for display
-   */
-  async getFormattedQuotaStatus(
-    userId: number,
-    contentType?: 'movie' | 'show',
-  ): Promise<{
-    status: QuotaStatus | null
-    displayText: string
-    warningLevel: 'none' | 'warning' | 'danger'
-  }> {
-    if (!contentType) {
-      return {
-        status: null,
-        displayText: 'No content type specified',
-        warningLevel: 'none',
-      }
-    }
-
-    const status = await this.fastify.db.getQuotaStatus(
-      userId,
-      contentType,
-      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
-    )
-
-    if (!status) {
-      return {
-        status: null,
-        displayText: 'No quota configured',
-        warningLevel: 'none',
-      }
-    }
-
-    if (status.bypassApproval) {
-      return {
-        status,
-        displayText: 'Unlimited (quota bypass enabled)',
-        warningLevel: 'none',
-      }
-    }
-
-    const _remaining = status.quotaLimit - status.currentUsage
-    const percentageRaw =
-      status.quotaLimit > 0
-        ? (status.currentUsage / status.quotaLimit) * 100
-        : 100
-    const percentage = Math.max(0, Math.min(100, percentageRaw))
-
-    this.log.debug(
-      {
-        userId,
-        contentType,
-        remaining: _remaining,
-        used: status.currentUsage,
-        limit: status.quotaLimit,
-        percentage,
-        overBy: Math.max(0, status.currentUsage - status.quotaLimit),
-      },
-      'Quota calculation details',
-    )
-
-    let displayText =
-      status.quotaLimit === 0
-        ? `${status.currentUsage}/0 used (limit 0)`
-        : `${status.currentUsage}/${status.quotaLimit} used`
-    if (status.resetDate) {
-      displayText += ` (resets ${new Date(status.resetDate).toLocaleDateString()})`
-    }
-
-    let warningLevel: 'none' | 'warning' | 'danger' = 'none'
-    if (percentage >= 100) {
-      warningLevel = 'danger'
-    } else if (percentage >= 80) {
-      warningLevel = 'warning'
-    }
-
-    return {
-      status,
-      displayText,
-      warningLevel,
-    }
-  }
-
-  /**
-   * Bulk updates quota settings for multiple users
-   */
-  async bulkUpdateQuotas(
+  async getBulkQuotaStatus(
     userIds: number[],
-    updates: UpdateUserQuotaData,
-  ): Promise<{
-    updated: number
-    failed: number[]
-    errors: string[]
-  }> {
-    const validation = this.validateQuotaData(updates)
-    if (!validation.valid) {
-      return {
-        updated: 0,
-        failed: userIds,
-        errors: validation.errors,
-      }
-    }
-
-    const results = {
-      updated: 0,
-      failed: [] as number[],
-      errors: [] as string[],
-    }
-
-    for (const userId of userIds) {
-      try {
-        // Update both movie and show quotas
-        const [movieResult, showResult] = await Promise.all([
-          this.fastify.db
-            .updateUserQuota(userId, 'movie', updates)
-            .catch(() => null),
-          this.fastify.db
-            .updateUserQuota(userId, 'show', updates)
-            .catch(() => null),
-        ])
-
-        if (movieResult || showResult) {
-          results.updated++
-        } else {
-          results.failed.push(userId)
-          results.errors.push(`User ${userId} quotas not found`)
-        }
-      } catch (error) {
-        results.failed.push(userId)
-        results.errors.push(
-          `User ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
-      }
-    }
-
-    return results
-  }
-
-  /**
-   * Resets quota usage for users (useful for manual resets)
-   */
-  async resetQuotaUsage(
-    userIds: number[],
-    fromDate?: Date,
-  ): Promise<{
-    usersProcessed: number
-    recordsDeleted: number
-    errors: string[]
-  }> {
-    const errors: string[] = []
-    let usersProcessed = 0
-    let totalRecordsDeleted = 0
-
-    for (const userId of userIds) {
-      try {
-        // Delete quota usage records for this user
-        const deletedCount = fromDate
-          ? await this.fastify.db.deleteQuotaUsageByUserSince(userId, fromDate)
-          : await this.fastify.db.deleteQuotaUsageByUser(userId)
-        if (deletedCount === 0) {
-          this.log.debug({ userId, fromDate }, 'No quota usage to reset')
-          continue
-        }
-
-        this.log.info(
-          { deletedCount, userId, fromDate },
-          'Reset quota usage records',
-        )
-
-        usersProcessed++
-        totalRecordsDeleted += deletedCount
-      } catch (error) {
-        errors.push(
-          `User ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
-      }
-    }
-
-    return {
-      usersProcessed,
-      recordsDeleted: totalRecordsDeleted,
-      errors,
-    }
-  }
-
-  /**
-   * Performs maintenance tasks like cleanup of old quota usage records
-   */
-  async performMaintenance(): Promise<void> {
-    try {
-      await this.performAllQuotaMaintenance()
-    } catch (error) {
-      this.log.error({ error }, 'Failed to perform quota maintenance:')
-    }
+    contentType?: 'movie' | 'show',
+  ): Promise<Array<{ userId: number; quotaStatus: QuotaStatus | null }>> {
+    return this.fastify.db.getBulkQuotaStatus(
+      userIds,
+      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
+      contentType,
+    )
   }
 
   /**
@@ -442,8 +366,8 @@ export class QuotaService {
     await this.logQuotaStatus(now)
 
     // Cleanup old quota usage records based on configuration
-    if (config?.cleanup?.enabled !== false) {
-      const retentionDays = config?.cleanup?.retentionDays ?? 90
+    if (config?.cleanup.enabled !== false) {
+      const retentionDays = config?.cleanup.retentionDays ?? 90
       const cleanedCount =
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
@@ -453,7 +377,7 @@ export class QuotaService {
         )
       }
     } else {
-      const retentionDays = config?.cleanup?.retentionDays ?? 90
+      const retentionDays = config?.cleanup.retentionDays ?? 90
       this.log.debug(
         { retentionDays },
         'Quota cleanup disabled by configuration',
@@ -494,74 +418,6 @@ export class QuotaService {
       }
     } catch (error) {
       this.log.error({ error }, 'Failed to log quota status:')
-    }
-  }
-
-  /**
-   * Gets quota analytics for reporting
-   */
-  async getQuotaAnalytics(): Promise<{
-    totalUsers: number
-    usersWithQuotas: number
-    averageQuotaLimit: number
-    topQuotaUsers: Array<{
-      userId: number
-      userName: string
-      quotaLimit: number
-      currentUsage: number
-    }>
-  }> {
-    const [allUsers, usersWithQuotas] = await Promise.all([
-      this.fastify.db.getAllUsers(),
-      this.fastify.db.getUsersWithQuotas(),
-    ])
-
-    const totalQuotaLimit = usersWithQuotas.reduce(
-      (sum, quota) => sum + quota.quotaLimit,
-      0,
-    )
-    const averageQuotaLimit =
-      usersWithQuotas.length > 0 ? totalQuotaLimit / usersWithQuotas.length : 0
-
-    // Get top quota users with current usage and user names
-    const topQuotaUsers: Array<{
-      userId: number
-      userName: string
-      quotaLimit: number
-      currentUsage: number
-    }> = []
-
-    if (usersWithQuotas.length > 0) {
-      const userIds = usersWithQuotas.map((quota) => quota.userId)
-      const quotaStatuses = await this.fastify.db.getBulkQuotaStatus(
-        userIds,
-        resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
-      )
-
-      for (const { userId, quotaStatus } of quotaStatuses) {
-        if (quotaStatus) {
-          const user = await this.fastify.db.getUser(userId)
-          if (user) {
-            topQuotaUsers.push({
-              userId,
-              userName: user.name,
-              quotaLimit: quotaStatus.quotaLimit,
-              currentUsage: quotaStatus.currentUsage,
-            })
-          }
-        }
-      }
-
-      // Sort by quota limit descending and take top 10
-      topQuotaUsers.sort((a, b) => b.quotaLimit - a.quotaLimit)
-      topQuotaUsers.splice(10) // Keep only top 10
-    }
-
-    return {
-      totalUsers: allUsers.length,
-      usersWithQuotas: usersWithQuotas.length,
-      averageQuotaLimit: Math.round(averageQuotaLimit * 100) / 100,
-      topQuotaUsers,
     }
   }
 

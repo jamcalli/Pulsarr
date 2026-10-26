@@ -136,7 +136,7 @@ async function insertSonarrInstanceRow(
     .returning('id')
 
   const id = this.extractId(result)
-  this.log.info(`Sonarr instance created with ID: ${id}`)
+  this.log.debug(`Sonarr instance created with ID: ${id}`)
   return id
 }
 
@@ -246,7 +246,7 @@ export async function updateSonarrInstance(
       })
   })
 
-  this.log.info(`Sonarr instance ${id} updated`)
+  this.log.debug(`Sonarr instance ${id} updated`)
 }
 
 /**
@@ -310,7 +310,7 @@ export async function cleanupDeletedSonarrInstanceReferences(
       }
     }
 
-    this.log.info(
+    this.log.debug(
       `Cleaned up references for deleted Sonarr instance ${deletedId}`,
     )
   } catch (error) {
@@ -372,14 +372,14 @@ export async function deleteSonarrInstance(
               updated_at: this.timestamp,
             })
 
-          this.log.info(
+          this.log.debug(
             `Set Sonarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
           )
         }
       }
     })
 
-    this.log.info(`Deleted Sonarr instance ${id} and cleaned up references`)
+    this.log.debug(`Deleted Sonarr instance ${id} and cleaned up references`)
   } catch (error) {
     this.log.error({ error }, `Error deleting Sonarr instance ${id}`)
     throw error
@@ -400,7 +400,7 @@ export async function replaceSonarrInstance(
       isDefault: true,
     })
   })
-  this.log.info(`Replaced Sonarr instance ${id} with instance ${newId}`)
+  this.log.debug(`Replaced Sonarr instance ${id} with instance ${newId}`)
   return newId
 }
 

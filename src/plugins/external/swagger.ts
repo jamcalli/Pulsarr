@@ -18,15 +18,17 @@ import { createSchema, type oas31 } from 'zod-openapi'
 
 const OPENAPI_VERSION = '3.1.0'
 
-/** Builds the OpenAPI webhooks section from the payload registry. */
-function buildWebhooksSpec(): NonNullable<OpenAPIV3_1.Document['webhooks']> {
+/** Builds the OpenAPI webhooks section plus the schema components its payloads reference. */
+function buildWebhooksSpec() {
   const webhooks: Record<string, oas31.PathItemObject> = {}
+  const schemas: Record<string, oas31.SchemaObject> = {}
 
   for (const eventType of WEBHOOK_EVENT_TYPES) {
     const entry = WEBHOOK_PAYLOAD_REGISTRY[eventType]
-    const { schema: jsonSchema } = createSchema(entry.schema, {
+    const { schema: jsonSchema, components } = createSchema(entry.schema, {
       openapiVersion: OPENAPI_VERSION,
     })
+    Object.assign(schemas, components)
 
     webhooks[eventType] = {
       post: {
@@ -37,6 +39,7 @@ function buildWebhooksSpec(): NonNullable<OpenAPIV3_1.Document['webhooks']> {
           .split(/[._]/)
           .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
           .join('')}`,
+        security: [],
         requestBody: {
           required: true,
           content: {
@@ -55,9 +58,11 @@ function buildWebhooksSpec(): NonNullable<OpenAPIV3_1.Document['webhooks']> {
     }
   }
 
-  // zod-openapi's oas31 types and openapi-types declare the same 3.1 document
-  // shape incompatibly; bridge once at the boundary
-  return webhooks as NonNullable<OpenAPIV3_1.Document['webhooks']>
+  // zod-openapi's oas31 types and openapi-types declare the same 3.1 document shape incompatibly
+  return {
+    webhooks: webhooks as NonNullable<OpenAPIV3_1.Document['webhooks']>,
+    schemas: schemas as Record<string, OpenAPIV3_1.SchemaObject>,
+  }
 }
 
 const sortKeys = <T>(obj: Record<string, T>): Record<string, T> =>
@@ -118,14 +123,16 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
     'Configuring Swagger',
   )
 
+  const webhooksSpec = buildWebhooksSpec()
+
   return {
     openapi: {
       openapi: OPENAPI_VERSION,
-      webhooks: buildWebhooksSpec(),
+      webhooks: webhooksSpec.webhooks,
       info: {
         title: 'Pulsarr API',
         description:
-          'API documentation for Pulsarr - a Plex watchlist integration for Sonarr and Radarr',
+          'API documentation for Pulsarr, a Plex watchlist integration for Sonarr and Radarr',
         version: 'V1',
       },
       servers: [
@@ -321,8 +328,12 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
         addRateLimitResponses(spec.paths)
         spec.paths = sortKeys(spec.paths)
       }
-      if (spec.components?.schemas) {
-        spec.components.schemas = sortKeys(spec.components.schemas)
+      spec.components = {
+        ...spec.components,
+        schemas: sortKeys({
+          ...webhooksSpec.schemas,
+          ...spec.components?.schemas,
+        }),
       }
 
       return spec

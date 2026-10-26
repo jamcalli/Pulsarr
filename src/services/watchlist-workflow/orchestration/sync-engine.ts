@@ -1,7 +1,9 @@
+import { PLEX_LABEL_CONCURRENCY } from '@root/schemas/plex/label-sync-config.schema.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
+import { errorMessage } from '@utils/error-message.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -136,13 +138,17 @@ export async function syncWatchlistItems(
     ])
     const allWatchlistItems = [...shows, ...movies]
 
-    const { skipIds, cappedEntries } = await evaluateWatchlistCaps(
-      { db: deps.db, logger: deps.logger },
-      allWatchlistItems,
-    )
+    const { skipIds, cappedEntries, uncappedEntries } =
+      await evaluateWatchlistCaps(
+        { db: deps.db, logger: deps.logger },
+        allWatchlistItems,
+      )
 
     const exclusionMap = await deps.db.getExclusionMap()
 
+    for (const entry of uncappedEntries) {
+      deps.notifications.clearWatchlistCap(entry.userId, entry.contentType)
+    }
     // The notification service debounces these, so repeats per cycle are harmless
     for (const entry of cappedEntries) {
       const user = userById.get(entry.userId)
@@ -219,11 +225,10 @@ export async function syncWatchlistItems(
       }
     }
 
-    const concurrencyLimit = deps.config.plexLabelSync?.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
 
     deps.logger.debug(
-      `Processing ${allWatchlistItems.length} watchlist items with concurrency limit of ${concurrencyLimit}`,
+      `Processing ${allWatchlistItems.length} watchlist items with concurrency limit of ${PLEX_LABEL_CONCURRENCY}`,
     )
 
     const processingResults = await Promise.allSettled(
@@ -310,11 +315,14 @@ export async function syncWatchlistItems(
                   tempItem,
                   userId: numericUserId,
                   userName: user?.name,
+                  userAlias: user?.alias,
                   sonarrItem,
                   existingSeries,
                   approvedRecords,
                   arrInstanceIds: sonarrInstanceIds,
+                  arrInstances: sonarrInstances,
                   primaryUser,
+                  reconcile: true,
                 },
                 deps,
               )
@@ -355,11 +363,14 @@ export async function syncWatchlistItems(
                   tempItem,
                   userId: numericUserId,
                   userName: user?.name,
+                  userAlias: user?.alias,
                   radarrItem,
                   existingMovies,
                   approvedRecords,
                   arrInstanceIds: radarrInstanceIds,
+                  arrInstances: radarrInstances,
                   primaryUser,
+                  reconcile: true,
                 },
                 deps,
               )
@@ -518,7 +529,7 @@ export async function syncWatchlistItems(
     deps.logger.error(
       {
         error,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: errorMessage(error),
         errorStack: error instanceof Error ? error.stack : undefined,
       },
       'Error during watchlist sync',

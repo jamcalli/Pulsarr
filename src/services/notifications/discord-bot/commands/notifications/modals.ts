@@ -1,9 +1,3 @@
-/**
- * Notifications Command Modals
- *
- * Modal builders and submission handlers for the notifications command.
- */
-
 import type { User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import {
@@ -26,9 +20,6 @@ export interface ModalDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Creates a modal dialog prompting the user to enter their Plex username.
- */
 export function createPlexLinkModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId('plexUsernameModal')
@@ -45,9 +36,6 @@ export function createPlexLinkModal(): ModalBuilder {
   return modal
 }
 
-/**
- * Creates a modal dialog for editing user profile settings.
- */
 export function createProfileEditModal(user: User): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId('editProfileModal')
@@ -72,7 +60,6 @@ export function createProfileEditModal(user: User): ModalBuilder {
     appriseInput.setValue(user.apprise)
   }
 
-  // Add components to modal
   modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(aliasInput),
     new ActionRowBuilder<TextInputBuilder>().addComponents(appriseInput),
@@ -81,7 +68,6 @@ export function createProfileEditModal(user: User): ModalBuilder {
   return modal
 }
 
-// Database Operations
 async function getUser(
   discordId: string,
   deps: ModalDeps,
@@ -114,9 +100,6 @@ async function updateUser(
   }
 }
 
-/**
- * Handles the submission of the Plex username modal to link a Discord user with a Plex account.
- */
 export async function handlePlexUsernameModal(
   interaction: ModalSubmitInteraction,
   deps: ModalDeps,
@@ -129,7 +112,7 @@ export async function handlePlexUsernameModal(
   await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
   try {
-    logger.info(
+    logger.debug(
       { userId: interaction.user.id },
       'Attempting to link Discord account with Plex',
     )
@@ -167,32 +150,18 @@ export async function handlePlexUsernameModal(
         ],
       })
 
-      if (interaction.channel) {
-        const collector = interaction.channel.createMessageComponentCollector({
-          filter: (i) =>
-            i.customId === retryId && i.user.id === interaction.user.id,
-          time: 15 * 60 * 1000, // 15 minute timeout
-          max: 1, // Collect only one interaction
-        })
+      return
+    }
 
-        collector.on('collect', async (buttonInteraction) => {
-          try {
-            await interaction.deleteReply()
-            await buttonInteraction.showModal(createPlexLinkModal())
-          } catch (error) {
-            logger.error(
-              { error, userId: buttonInteraction.user.id },
-              'Error handling retry button',
-            )
-            await buttonInteraction.reply({
-              content:
-                'An error occurred. Please try the /notifications command again.',
-              flags: MessageFlags.Ephemeral,
-            })
-          }
-        })
-      }
-
+    if (matchingUser.is_primary_token) {
+      logger.warn(
+        { userId: interaction.user.id },
+        'Refused self-serve Discord link for the primary user',
+      )
+      await interaction.editReply({
+        content:
+          'This Plex account can only be linked from the Pulsarr web UI.',
+      })
       return
     }
 
@@ -235,32 +204,6 @@ export async function handlePlexUsernameModal(
         ],
       })
 
-      if (interaction.channel) {
-        const collector = interaction.channel.createMessageComponentCollector({
-          filter: (i) =>
-            i.customId === retryId && i.user.id === interaction.user.id,
-          time: 15 * 60 * 1000, // 15 minute timeout
-          max: 1, // Collect only one interaction
-        })
-
-        collector.on('collect', async (buttonInteraction) => {
-          try {
-            await interaction.deleteReply()
-            await buttonInteraction.showModal(createPlexLinkModal())
-          } catch (error) {
-            logger.error(
-              { error, userId: buttonInteraction.user.id },
-              'Error handling retry button',
-            )
-            await buttonInteraction.reply({
-              content:
-                'An error occurred. Please try the /notifications command again.',
-              flags: MessageFlags.Ephemeral,
-            })
-          }
-        })
-      }
-
       return
     }
 
@@ -274,7 +217,7 @@ export async function handlePlexUsernameModal(
 
     if (updatedUser) {
       const cache = SettingsCache.getInstance()
-      cache.set(interaction.user.id, interaction.id)
+      cache.set(interaction.user.id)
 
       const messagePayload = {
         embeds: [createNotificationsEmbed(updatedUser)],
@@ -293,9 +236,6 @@ export async function handlePlexUsernameModal(
   }
 }
 
-/**
- * Handles submission of the profile edit modal, updating the user's alias and Apprise URL.
- */
 export async function handleProfileEditModal(
   interaction: ModalSubmitInteraction,
   deps: ModalDeps,

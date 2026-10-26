@@ -1,3 +1,4 @@
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { InvalidSeasonMonitoringError } from '@utils/season-monitoring.js'
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
@@ -99,24 +100,9 @@ export function logRouteError(
 
 type ArrService = 'radarr' | 'sonarr'
 
-const API_ERROR_PREFIX: Record<ArrService, RegExp> = {
-  radarr: /Radarr API error: /,
-  sonarr: /Sonarr API error: /,
-}
-
 const INIT_FAILURE_PREFIX: Record<ArrService, RegExp> = {
   radarr: /Failed to initialize Radarr instance/,
   sonarr: /Failed to initialize Sonarr instance/,
-}
-
-/**
- * Strip the internal `<Service> API error: ` prefix for user-facing display
- */
-export function stripArrApiErrorPrefix(
-  service: ArrService,
-  message: string,
-): string {
-  return message.replace(API_ERROR_PREFIX[service], '')
 }
 
 interface ArrInstanceErrorOptions {
@@ -139,6 +125,15 @@ export function handleArrInstanceError(
 ): ReturnType<FastifyReply['send']> {
   const { service, defaultMessage } = options
 
+  if (error instanceof WebhookCallbackError) {
+    return reply.code(409).send({
+      statusCode: 409,
+      error: 'Conflict',
+      message: error.message,
+      code: 'webhook_callback_failed',
+    })
+  }
+
   if (
     error instanceof InvalidSeasonMonitoringError ||
     error instanceof PlaceholderResetError
@@ -148,7 +143,7 @@ export function handleArrInstanceError(
 
   if (error instanceof Error) {
     // Clean up error message for user display
-    const userMessage = stripArrApiErrorPrefix(service, error.message).replace(
+    const userMessage = error.message.replace(
       INIT_FAILURE_PREFIX[service],
       'Failed to save settings',
     )
@@ -158,16 +153,6 @@ export function handleArrInstanceError(
     }
     if (error.message.includes('not found')) {
       return reply.notFound(userMessage)
-    }
-    // Webhook callback failures - detected by message patterns from *arr APIs
-    // Patterns: HTTP-level ("Unable to send test message") and connection-level errors
-    if (
-      error.message.includes('Unable to send test message') ||
-      error.message.includes('Unable to post to webhook') ||
-      error.message.includes('Connection refused') ||
-      error.message.includes('Name does not resolve')
-    ) {
-      return reply.badRequest(userMessage)
     }
     // Default instance validation errors from DB (e.g., "Cannot remove default status...")
     if (error.message.includes('Cannot remove default')) {

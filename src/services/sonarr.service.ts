@@ -1,6 +1,9 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
-import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
+import {
+  HttpError,
+  WebhookCallbackError,
+} from '@root/types/arr-connection.types.js'
 import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
@@ -25,7 +28,7 @@ import {
   isSonarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
-import { parseArrErrorMessage } from '@utils/arr-error.js'
+import { arrResponseError, isWebhookCallbackFailure } from '@utils/arr-error.js'
 import {
   extractSonarrId,
   extractTvdbId,
@@ -33,6 +36,7 @@ import {
   normalizeGuid,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { findQualityProfileName } from '@utils/quality-profile.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
@@ -44,25 +48,6 @@ const SONARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 // Bulk tag update concurrency limit
 const BULK_TAG_CONCURRENCY = 4
 
-// Custom error class to include HTTP status
-class HttpError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
-    super(message)
-    this.name = 'HttpError'
-
-    // Fix prototype chain – important after TS → JS down-emit
-    Object.setPrototypeOf(this, new.target.prototype)
-
-    // Preserve stack trace when available
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, HttpError)
-    }
-  }
-}
-
 export class SonarrService {
   private config: SonarrConfiguration | null = null
   private webhookInitialized = false
@@ -71,6 +56,9 @@ export class SonarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
+  private qualityProfilesCache: Map<number, QualityProfile[]> = new Map()
+  private qualityProfilesCacheExpiry: Map<number, number> = new Map()
+  private QUALITY_PROFILE_CACHE_TTL = 30000
   private exclusionTvdbIds: Promise<Set<number>> | null = null
   private exclusionCacheExpiry = 0
   private readonly EXCLUSION_CACHE_TTL = 30000
@@ -93,7 +81,11 @@ export class SonarrService {
     // Prefer undici/Node fetch cause codes when available
     const cause = error.cause as { code?: string } | undefined
     const code = cause?.code
-    if (error.name === 'AbortError' || code === 'ABORT_ERR') {
+    if (
+      error.name === 'TimeoutError' ||
+      error.name === 'AbortError' ||
+      code === 'ABORT_ERR'
+    ) {
       return 'Connection timeout. Please check your Sonarr URL and network connection.'
     }
     if (code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
@@ -136,7 +128,7 @@ export class SonarrService {
     }
   }
 
-  private constructWebhookUrl(): string {
+  private constructWebhookUrl(arrBaseUrl: string): string {
     let url: URL
 
     try {
@@ -166,7 +158,7 @@ export class SonarrService {
         : `${basePath}/v1/notifications/webhook`
 
     // Add instance identifier for tracking
-    const urlIdentifier = this.sonarrConfig.sonarrBaseUrl
+    const urlIdentifier = arrBaseUrl
       .replace(/https?:\/\//, '')
       .replace(/[^a-zA-Z0-9]/g, '')
       .toLowerCase()
@@ -262,7 +254,7 @@ export class SonarrService {
     }
   }
 
-  private async setupWebhook(): Promise<void> {
+  private async setupWebhook(instanceName: string): Promise<void> {
     if (this.webhookInitialized) {
       return
     }
@@ -270,9 +262,11 @@ export class SonarrService {
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     try {
-      const expectedWebhookUrl = this.constructWebhookUrl()
+      const expectedWebhookUrl = this.constructWebhookUrl(
+        this.sonarrConfig.sonarrBaseUrl,
+      )
       const webhookName = this.getWebhookName()
-      this.log.info(
+      this.log.debug(
         `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Sonarr: ${expectedWebhookUrl}`,
       )
 
@@ -305,20 +299,21 @@ export class SonarrService {
             }
           }
           this.log.info(
-            { webhookId: existing.id },
-            `Updated Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
+            { webhookId: existing.id, url: expectedWebhookUrl },
+            `${instanceName} webhook verified`,
           )
         } else {
           await this.postToSonarr('notification', webhookConfig)
           this.log.info(
-            `Created Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
+            { url: expectedWebhookUrl },
+            `${instanceName} webhook created`,
           )
         }
       } catch (createError) {
         let errorMessage = 'Failed to create webhook'
         if (
           createError instanceof HttpError &&
-          (createError.status === 400 || createError.status === 500)
+          isWebhookCallbackFailure(createError)
         ) {
           throw new WebhookCallbackError(
             `Failed to create webhook: ${createError.message}`,
@@ -353,7 +348,9 @@ export class SonarrService {
   async removeWebhook(): Promise<void> {
     try {
       const webhookName = this.getWebhookName()
-      const expectedWebhookUrl = this.constructWebhookUrl()
+      const expectedWebhookUrl = this.constructWebhookUrl(
+        this.sonarrConfig.sonarrBaseUrl,
+      )
       const { current, legacy } = this.findPulsarrWebhooks(
         await this.getFromSonarr<WebhookNotification[]>('notification'),
         webhookName,
@@ -400,7 +397,9 @@ export class SonarrService {
   async testWebhookCallback(instance: SonarrInstance): Promise<void> {
     this.config = this.configFromInstance(instance)
     const webhookName = this.getWebhookName()
-    const expectedWebhookUrl = this.constructWebhookUrl()
+    const expectedWebhookUrl = this.constructWebhookUrl(
+      this.sonarrConfig.sonarrBaseUrl,
+    )
     const { current, legacy } = this.findPulsarrWebhooks(
       await this.getFromSonarr<WebhookNotification[]>('notification'),
       webhookName,
@@ -414,10 +413,7 @@ export class SonarrService {
         ...(existingId === undefined ? {} : { id: existingId }),
       })
     } catch (error) {
-      if (
-        error instanceof HttpError &&
-        (error.status === 400 || error.status === 500)
-      ) {
+      if (error instanceof HttpError && isWebhookCallbackFailure(error)) {
         throw new WebhookCallbackError(error.message, { cause: error })
       }
       throw error
@@ -436,7 +432,7 @@ export class SonarrService {
 
     // Skip webhook setup for placeholder credentials
     if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
-      this.log.info(
+      this.log.debug(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
       this.config = this.configFromInstance(instance)
@@ -450,11 +446,11 @@ export class SonarrService {
     )
 
     if (this.fastify.server.listening) {
-      await this.setupWebhook()
+      await this.setupWebhook(instance.name)
     } else {
       this.fastify.server.prependOnceListener('listening', async () => {
         try {
-          await this.setupWebhook()
+          await this.setupWebhook(instance.name)
         } catch (error) {
           this.log.error(
             { error, instanceName: instance.name },
@@ -491,6 +487,61 @@ export class SonarrService {
     this.log.debug(`Updated configuration for Sonarr instance ${instance.name}`)
   }
 
+  private async requestWithCredentials<T>(
+    baseUrl: string,
+    apiKey: string,
+    endpoint: string,
+    init?: { method: 'POST'; body: object },
+  ): Promise<T> {
+    const url = new URL(
+      `${this.ensureUrlHasProtocol(baseUrl)}/api/v3/${endpoint}`,
+    )
+    const response = await fetch(url.toString(), {
+      method: init?.method ?? 'GET',
+      headers: {
+        'X-Api-Key': apiKey,
+        Accept: 'application/json',
+        ...(init && { 'Content-Type': 'application/json' }),
+      },
+      body: init && JSON.stringify(init.body),
+      signal: AbortSignal.timeout(SONARR_CONNECTION_TEST_TIMEOUT),
+    })
+
+    if (!response.ok) {
+      throw await arrResponseError(
+        response,
+        `API endpoint not found: ${endpoint}`,
+      )
+    }
+
+    return response.json() as Promise<T>
+  }
+
+  /** Reads routing options with unsaved credentials and never touches this service's config or webhook. */
+  async probe(
+    baseUrl: string,
+    apiKey: string,
+  ): Promise<{
+    qualityProfiles: QualityProfile[]
+    rootFolders: RootFolder[]
+    tags: Array<{ id: number; label: string }>
+  }> {
+    const [qualityProfiles, rootFolders, tags] = await Promise.all([
+      this.requestWithCredentials<QualityProfile[]>(
+        baseUrl,
+        apiKey,
+        'qualityprofile',
+      ),
+      this.requestWithCredentials<RootFolder[]>(baseUrl, apiKey, 'rootfolder'),
+      this.requestWithCredentials<Array<{ id: number; label: string }>>(
+        baseUrl,
+        apiKey,
+        'tag',
+      ),
+    ])
+    return { qualityProfiles, rootFolders, tags }
+  }
+
   async testConnection(
     baseUrl: string,
     apiKey: string,
@@ -499,25 +550,23 @@ export class SonarrService {
       if (!baseUrl || !apiKey) {
         return {
           success: false,
+          code: 'unreachable',
           message: 'Base URL and API key are required',
         }
       }
 
-      // Validate URL format and normalize
       let safeBaseUrl: string
       try {
-        safeBaseUrl = baseUrl.match(/^https?:\/\//)
-          ? baseUrl
-          : `http://${baseUrl}`
+        safeBaseUrl = this.ensureUrlHasProtocol(baseUrl)
         new URL(safeBaseUrl)
       } catch (_urlError) {
         return {
           success: false,
+          code: 'unreachable',
           message: 'Invalid URL format. Please check your Sonarr URL.',
         }
       }
 
-      // Use system/status API endpoint for basic connectivity
       const statusUrl = new URL(`${safeBaseUrl}/api/v3/system/status`)
 
       let response: Response
@@ -531,16 +580,13 @@ export class SonarrService {
           signal: AbortSignal.timeout(SONARR_CONNECTION_TEST_TIMEOUT),
         })
       } catch (fetchError) {
-        if (fetchError instanceof Error) {
-          return {
-            success: false,
-            message: this.mapConnectionErrorToMessage(fetchError),
-          }
-        }
         return {
           success: false,
+          code: 'unreachable',
           message:
-            'Network error. Please check your connection and Sonarr URL.',
+            fetchError instanceof Error
+              ? this.mapConnectionErrorToMessage(fetchError)
+              : 'Network error. Please check your connection and Sonarr URL.',
         }
       }
 
@@ -548,28 +594,31 @@ export class SonarrService {
         if (response.status === 401) {
           return {
             success: false,
+            code: 'auth',
             message: 'Authentication failed. Please check your API key.',
           }
         }
         if (response.status === 404) {
           return {
             success: false,
+            code: 'invalid',
             message: 'API endpoint not found. Please check your Sonarr URL.',
           }
         }
         return {
           success: false,
+          code: 'unreachable',
           message: `Connection failed (${response.status}): ${response.statusText}`,
         }
       }
 
-      // Validate we're connecting to Sonarr
       try {
         const statusResponse = await response.json()
 
         if (!isSystemStatus(statusResponse)) {
           return {
             success: false,
+            code: 'invalid',
             message: 'Invalid response from server',
           }
         }
@@ -577,6 +626,7 @@ export class SonarrService {
         if (!isSonarrStatus(statusResponse)) {
           return {
             success: false,
+            code: 'invalid',
             message:
               'Connected service does not appear to be a valid Sonarr application',
           }
@@ -584,56 +634,95 @@ export class SonarrService {
       } catch (_parseError) {
         return {
           success: false,
+          code: 'invalid',
           message: 'Failed to parse response from server',
         }
       }
 
-      // Now check if we can access the notifications API to verify webhook capabilities
-      // This tests permission levels and API completeness
+      const webhookName = this.getWebhookName()
+      const webhookUrl = this.constructWebhookUrl(safeBaseUrl)
+      let existingWebhook: WebhookNotification | undefined
       try {
-        // Create a helper function to make a GET request without modifying service state
-        const rawGet = async <T>(endpoint: string): Promise<T> => {
-          const url = new URL(`${safeBaseUrl}/api/v3/${endpoint}`)
-          const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-              'X-Api-Key': apiKey,
-              Accept: 'application/json',
-            },
-            signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
-          })
-
-          if (!response.ok) {
-            throw new Error(`Sonarr API error: ${response.statusText}`)
+        const { current, legacy } = this.findPulsarrWebhooks(
+          await this.requestWithCredentials<WebhookNotification[]>(
+            safeBaseUrl,
+            apiKey,
+            'notification',
+          ),
+          webhookName,
+          webhookUrl,
+        )
+        existingWebhook = current ?? legacy
+      } catch (notificationError) {
+        if (notificationError instanceof HttpError) {
+          if (
+            notificationError.status === 401 ||
+            notificationError.status === 403
+          ) {
+            return {
+              success: false,
+              code: 'auth',
+              message:
+                'Connected to Sonarr but cannot access notification API. Check API key permissions.',
+            }
           }
-
-          return response.json() as Promise<T>
-        }
-
-        // Test notifications API access with dedicated helper function
-        try {
-          await rawGet<WebhookNotification[]>('notification')
-
-          // If we got here, API access for notifications works
-          return {
-            success: true,
-            message: 'Connection successful and webhook API accessible',
-          }
-        } catch (_notificationError) {
           return {
             success: false,
-            message:
-              'Connected to Sonarr but cannot access notification API. Check API key permissions.',
+            code: 'invalid',
+            message: notificationError.message,
           }
         }
-      } catch (error) {
-        // If something else went wrong in the notification check
-        this.log.warn({ error }, 'Webhook API test failed')
-        return {
-          success: false,
-          message:
-            'Connected to Sonarr but webhook testing failed. Please check API key permissions.',
+        if (notificationError instanceof Error) {
+          return {
+            success: false,
+            code: 'unreachable',
+            message: this.mapConnectionErrorToMessage(notificationError),
+          }
         }
+        throw notificationError
+      }
+
+      try {
+        await this.requestWithCredentials<string>(
+          safeBaseUrl,
+          apiKey,
+          'notification/test',
+          {
+            method: 'POST',
+            body: {
+              ...this.buildWebhookDefinition(webhookName, webhookUrl),
+              ...(existingWebhook && { id: existingWebhook.id }),
+            },
+          },
+        )
+      } catch (callbackError) {
+        if (
+          callbackError instanceof Error &&
+          callbackError.name === 'TimeoutError'
+        ) {
+          return {
+            success: false,
+            code: 'webhook_callback_failed',
+            message:
+              'Sonarr did not finish calling Pulsarr back in time. Check the webhook address.',
+          }
+        }
+        if (callbackError instanceof HttpError) {
+          return {
+            success: false,
+            code: isWebhookCallbackFailure(callbackError)
+              ? 'webhook_callback_failed'
+              : 'invalid',
+            message: callbackError.message,
+          }
+        }
+        throw callbackError
+      }
+
+      return {
+        success: true,
+        code: null,
+        message: 'Connection successful and webhook API accessible',
       }
     } catch (error) {
       this.log.error({ error }, 'Connection test error:')
@@ -642,18 +731,20 @@ export class SonarrService {
         if (error.message.includes('Invalid URL')) {
           return {
             success: false,
+            code: 'unreachable',
             message: 'Invalid URL format. Please check your Sonarr URL.',
           }
         }
-        // Use the shared error mapping
         return {
           success: false,
+          code: 'unreachable',
           message: this.mapConnectionErrorToMessage(error),
         }
       }
 
       return {
         success: false,
+        code: 'unreachable',
         message:
           'Connection test failed. Please check your settings and try again.',
       }
@@ -725,6 +816,43 @@ export class SonarrService {
       status: hasEpisodes ? 'grabbed' : 'requested',
       series_status: series.ended ? 'ended' : 'continuing',
       tags: series.tags,
+    }
+  }
+
+  async getQualityProfiles(): Promise<QualityProfile[]> {
+    if (!this.instanceId) {
+      return this.fetchQualityProfiles()
+    }
+
+    const cacheExpiry = this.qualityProfilesCacheExpiry.get(this.instanceId)
+    const cached = this.qualityProfilesCache.get(this.instanceId)
+    if (cacheExpiry && Date.now() < cacheExpiry && cached) {
+      return cached
+    }
+
+    return this.refreshQualityProfilesCache(this.instanceId)
+  }
+
+  private async refreshQualityProfilesCache(
+    instanceId: number,
+  ): Promise<QualityProfile[]> {
+    try {
+      const profiles = await this.fetchQualityProfiles()
+      this.qualityProfilesCache.set(instanceId, profiles)
+      this.qualityProfilesCacheExpiry.set(
+        instanceId,
+        Date.now() + this.QUALITY_PROFILE_CACHE_TTL,
+      )
+      return profiles
+    } catch (error) {
+      const stale = this.qualityProfilesCache.get(instanceId)
+      if (stale) {
+        this.log.warn(
+          `Using stale quality profiles cache for Sonarr instance ${instanceId}`,
+        )
+        return stale
+      }
+      throw error
     }
   }
 
@@ -880,7 +1008,7 @@ export class SonarrService {
         })
 
         if (!response.ok) {
-          throw new Error(`Sonarr API error: ${response.statusText}`)
+          throw new Error(response.statusText)
         }
 
         const pagedResult = (await response.json()) as PagedResult<SonarrSeries>
@@ -922,7 +1050,7 @@ export class SonarrService {
     }
 
     const defaultPath = rootFolders[0].path
-    this.log.info(`Using root folder: ${defaultPath}`)
+    this.log.debug(`Using root folder: ${defaultPath}`)
     return defaultPath
   }
 
@@ -937,7 +1065,7 @@ export class SonarrService {
 
     if (configProfile === null) {
       const defaultId = profiles[0].id
-      this.log.info(
+      this.log.debug(
         `Using default quality profile: ${profiles[0].name} (ID: ${defaultId})`,
       )
       return defaultId
@@ -953,7 +1081,7 @@ export class SonarrService {
     )
 
     if (matchingProfile) {
-      this.log.info(
+      this.log.debug(
         `Using matched quality profile: ${matchingProfile.name} (ID: ${matchingProfile.id})`,
       )
       return matchingProfile.id
@@ -1005,13 +1133,14 @@ export class SonarrService {
 
       const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
 
-      // Only fetch quality profiles if no override provided
+      const qualityProfiles =
+        overrideQualityProfileId !== undefined
+          ? await this.getQualityProfiles().catch(() => [])
+          : await this.getQualityProfiles()
       const qualityProfileId =
         overrideQualityProfileId !== undefined
           ? overrideQualityProfileId
-          : await this.resolveQualityProfileId(
-              await this.fetchQualityProfiles(),
-            )
+          : await this.resolveQualityProfileId(qualityProfiles)
 
       // Collection for valid tag IDs (using Set to avoid duplicates)
       const tagIdsSet = new Set<string>()
@@ -1117,7 +1246,7 @@ export class SonarrService {
       if (!createdSeries || typeof createdSeries.id !== 'number') {
         throw new Error('Unexpected Sonarr response when creating series')
       }
-      this.log.info(
+      this.log.debug(
         {
           title: item.title,
           qualityProfileId,
@@ -1134,6 +1263,10 @@ export class SonarrService {
         seriesId: createdSeries.id,
         rootFolder: createdSeries.rootFolderPath ?? rootFolderPath,
         qualityProfileId: createdSeries.qualityProfileId ?? qualityProfileId,
+        qualityProfileName: findQualityProfileName(
+          qualityProfiles,
+          createdSeries.qualityProfileId ?? qualityProfileId,
+        ),
         tags: (createdSeries.tags ?? tags.map(Number)).map(
           (id) => labelById.get(id) ?? String(id),
         ),
@@ -1154,7 +1287,7 @@ export class SonarrService {
       if (sonarrId > 0) {
         // Use the extracted Sonarr ID directly
         await this.deleteFromSonarrById(sonarrId, deleteFiles)
-        this.log.info(`Deleted ${item.title} from Sonarr`)
+        this.log.debug(`Deleted ${item.title} from Sonarr`)
         return
       }
 
@@ -1182,7 +1315,7 @@ export class SonarrService {
       }
 
       await this.deleteFromSonarrById(matchingSonarrId, deleteFiles)
-      this.log.info(`Deleted ${item.title} from Sonarr`)
+      this.log.debug(`Deleted ${item.title} from Sonarr`)
     } catch (err) {
       this.log.error({ error: err }, 'Error deleting from Sonarr')
       throw err
@@ -1202,22 +1335,10 @@ export class SonarrService {
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      try {
-        const errorData = await response.json()
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
-      }
-      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
+      throw await arrResponseError(
+        response,
+        `API endpoint not found: ${endpoint}`,
+      )
     }
 
     return response.json() as Promise<T>
@@ -1247,22 +1368,10 @@ export class SonarrService {
       }
 
       if (!response.ok) {
-        let errorDetail = response.statusText
-        try {
-          const errorData = await response.json()
-          const parsed = parseArrErrorMessage(errorData)
-          if (parsed) {
-            errorDetail = parsed
-          }
-        } catch {}
-
-        if (response.status === 401) {
-          throw new HttpError('Authentication failed. Check API key.', 401)
-        }
-        if (response.status === 404) {
-          throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
-        }
-        throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
+        throw await arrResponseError(
+          response,
+          `API endpoint not found: ${endpoint}`,
+        )
       }
 
       // Some endpoints return 201 with empty body
@@ -1298,11 +1407,7 @@ export class SonarrService {
   ): Promise<void> {
     try {
       // First, check if Plex server connection already exists
-      const existingNotifications =
-        await this.getFromSonarr<WebhookNotification[]>('notification')
-      const existingPlexNotification = existingNotifications.find(
-        (n) => n.implementation === 'PlexServer',
-      )
+      const existingPlexNotification = await this.findPlexNotification()
 
       if (existingPlexNotification) {
         // Update existing notification
@@ -1372,21 +1477,29 @@ export class SonarrService {
     }
   }
 
+  private async findPlexNotification(): Promise<
+    WebhookNotification | undefined
+  > {
+    const notifications =
+      await this.getFromSonarr<WebhookNotification[]>('notification')
+    return notifications.find((n) => n.implementation === 'PlexServer')
+  }
+
+  async hasPlexNotification(): Promise<boolean> {
+    return (await this.findPlexNotification()) !== undefined
+  }
+
   async removePlexNotification(): Promise<void> {
     try {
       // Find Plex server notification
-      const existingNotifications =
-        await this.getFromSonarr<WebhookNotification[]>('notification')
-      const existingPlexNotification = existingNotifications.find(
-        (n) => n.implementation === 'PlexServer',
-      )
+      const existingPlexNotification = await this.findPlexNotification()
 
       if (existingPlexNotification) {
         // Delete the notification
         await this.deleteNotification(existingPlexNotification.id)
         this.log.info('Successfully removed Plex notification from Sonarr')
       } else {
-        this.log.info('No Plex notification found to remove from Sonarr')
+        this.log.debug('No Plex notification found to remove from Sonarr')
       }
     } catch (error) {
       this.log.error({ error }, 'Error removing Plex notification from Sonarr:')
@@ -1512,7 +1625,7 @@ export class SonarrService {
       // Sonarr returns 409 Conflict if the tag already exists
       if (err instanceof HttpError && err.status === 409) {
         this.log.debug(
-          `Tag "${label}" already exists in Sonarr – skipping creation`,
+          `Tag "${label}" already exists in Sonarr, skipping creation`,
         )
         // Invalidate cache and fetch fresh to find the existing tag
         this.invalidateTagsCache()
@@ -1635,7 +1748,7 @@ export class SonarrService {
 
       await Promise.all(promises)
 
-      this.log.info(
+      this.log.debug(
         `Bulk updated tags for ${updates.length} series across ${tagGroups.size} tag groups (mode: ${applyTags})`,
       )
     } catch (error) {
@@ -1669,22 +1782,10 @@ export class SonarrService {
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      try {
-        const errorData = await response.json()
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
-      }
-      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
+      throw await arrResponseError(
+        response,
+        `API endpoint not found: ${endpoint}`,
+      )
     }
 
     // Some endpoints return 204 No Content
@@ -1713,22 +1814,7 @@ export class SonarrService {
     })
 
     if (!response.ok) {
-      let errorDetail = response.statusText
-      try {
-        const errorData = await response.json()
-        const parsed = parseArrErrorMessage(errorData)
-        if (parsed) {
-          errorDetail = parsed
-        }
-      } catch {}
-
-      if (response.status === 401) {
-        throw new HttpError('Authentication failed. Check API key.', 401)
-      }
-      if (response.status === 404) {
-        throw new HttpError(`Resource not found: ${endpoint}`, 404)
-      }
-      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
+      throw await arrResponseError(response, `Resource not found: ${endpoint}`)
     }
   }
 
@@ -1786,20 +1872,20 @@ export class SonarrService {
       if (!season.monitored) {
         season.monitored = true
         needsUpdate = true
-        this.log.info(
+        this.log.debug(
           `Enabling monitoring for series ${seriesId} season ${seasonNumber}`,
         )
       }
       if (!series.monitored) {
         series.monitored = true
         needsUpdate = true
-        this.log.info(`Enabling monitoring for series ${seriesId}`)
+        this.log.debug(`Enabling monitoring for series ${seriesId}`)
       }
 
       // STEP 4: Update series if monitoring changed
       if (needsUpdate) {
         await this.putToSonarr(`series/${seriesId}`, series)
-        this.log.info(
+        this.log.debug(
           `Updated monitoring for series ${seriesId} season ${seasonNumber}`,
         )
       }
@@ -1811,7 +1897,7 @@ export class SonarrService {
         seasonNumber,
       })
 
-      this.log.info(
+      this.log.debug(
         `Triggered search for series ${seriesId} season ${seasonNumber}`,
       )
     } catch (error) {
@@ -1834,7 +1920,7 @@ export class SonarrService {
         episodeIds,
       })
 
-      this.log.info(`Triggered search for ${episodeIds.length} episodes`)
+      this.log.debug(`Triggered search for ${episodeIds.length} episodes`)
     } catch (error) {
       this.log.error({ error }, 'Error searching episodes')
       throw error
@@ -1875,7 +1961,7 @@ export class SonarrService {
       // Update the series
       await this.putToSonarr(`series/${seriesId}`, series)
 
-      this.log.info(
+      this.log.debug(
         `Updated monitoring for series ${seriesId} season ${seasonNumber} to ${monitored}`,
       )
     } catch (error) {
@@ -1908,7 +1994,7 @@ export class SonarrService {
       // Send update
       await this.putToSonarr(`series/${seriesId}`, updatedSeries)
 
-      this.log.info(`Updated series ${seriesId} monitoring settings`)
+      this.log.debug(`Updated series ${seriesId} monitoring settings`)
     } catch (error) {
       this.log.error({ error }, 'Error updating series monitoring:')
       throw error
@@ -2032,7 +2118,7 @@ export class SonarrService {
         })
       }
 
-      this.log.info(
+      this.log.debug(
         `Updated monitoring for ${episodes.length} episodes (${toMonitor.length} monitored, ${toUnmonitor.length} unmonitored)`,
       )
     } catch (error) {
@@ -2062,7 +2148,7 @@ export class SonarrService {
       // Send update
       await this.putToSonarr(`episode/${episodeId}`, episode)
 
-      this.log.info(`Updated episode ${episodeId} monitoring to ${monitored}`)
+      this.log.debug(`Updated episode ${episodeId} monitoring to ${monitored}`)
     } catch (error) {
       this.log.error(
         { error },
@@ -2080,7 +2166,7 @@ export class SonarrService {
     try {
       await this.sonarrDelete(`episodefile/${episodeFileId}`)
 
-      this.log.info(`Deleted episode file ${episodeFileId}`)
+      this.log.debug(`Deleted episode file ${episodeFileId}`)
     } catch (error) {
       this.log.error({ error }, `Error deleting episode file ${episodeFileId}:`)
       throw error
@@ -2134,7 +2220,7 @@ export class SonarrService {
         )
       }
 
-      this.log.info(`Successfully deleted ${successCount} episode files`)
+      this.log.debug(`Successfully deleted ${successCount} episode files`)
     } catch (error) {
       // Re-throw errors from Promise.allSettled analysis above
       if (

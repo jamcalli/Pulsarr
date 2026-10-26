@@ -6,7 +6,6 @@ import type {
   PlexResponse,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import type { ProgressService } from '@root/types/progress.types.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -17,11 +16,7 @@ import {
 } from './helpers.js'
 import { PlexRateLimiter } from './rate-limiter.js'
 
-interface ProgressInfo {
-  progress: ProgressService
-  operationId: string
-  type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
-}
+export const WATCHLIST_PAGE_SIZE = 100
 
 const convertDbItemsToTokenWatchlistItems = (
   existingItems: Item[],
@@ -59,7 +54,7 @@ export const getWatchlist = async (
   log: FastifyBaseLogger,
   start = 0,
   retryCount = 0,
-  progressInfo?: ProgressInfo,
+  onWait?: (remainingMs: number) => void,
 ): Promise<PlexResponse> => {
   if (!token) {
     throw new Error('No Plex token provided')
@@ -67,14 +62,16 @@ export const getWatchlist = async (
 
   const rateLimiter = PlexRateLimiter.getInstance()
 
-  await rateLimiter.waitIfLimited(log, progressInfo)
+  await rateLimiter.waitIfLimited(log, onWait)
 
-  const containerSize = 100
   const url = new URL(
     'https://discover.provider.plex.tv/library/sections/watchlist/all',
   )
   url.searchParams.append('X-Plex-Container-Start', start.toString())
-  url.searchParams.append('X-Plex-Container-Size', containerSize.toString())
+  url.searchParams.append(
+    'X-Plex-Container-Size',
+    WATCHLIST_PAGE_SIZE.toString(),
+  )
 
   try {
     const response = await fetch(url.toString(), {
@@ -95,8 +92,8 @@ export const getWatchlist = async (
         )
 
         if (retryCount < 3) {
-          await rateLimiter.waitIfLimited(log, progressInfo)
-          return getWatchlist(token, log, start, retryCount + 1, progressInfo)
+          await rateLimiter.waitIfLimited(log, onWait)
+          return getWatchlist(token, log, start, retryCount + 1, onWait)
         }
 
         log.warn(`Maximum retries reached for getWatchlist at start=${start}`)
@@ -115,12 +112,11 @@ export const getWatchlist = async (
       const responseData = (await response.json()) as PlexResponse
 
       if (!responseData.MediaContainer) {
-        log.info('Plex API returned empty MediaContainer')
-        responseData.MediaContainer = { Metadata: [], totalSize: 0 }
+        throw new Error('Plex returned no watchlist payload')
       }
 
       if (!responseData.MediaContainer.Metadata) {
-        log.info('Plex API returned MediaContainer without Metadata array')
+        log.debug('Plex API returned MediaContainer without Metadata array')
         responseData.MediaContainer.Metadata = []
       }
 
@@ -137,8 +133,8 @@ export const getWatchlist = async (
       rateLimiter.setRateLimited(undefined, log)
 
       if (retryCount < 3) {
-        await rateLimiter.waitIfLimited(log, progressInfo)
-        return getWatchlist(token, log, start, retryCount + 1, progressInfo)
+        await rateLimiter.waitIfLimited(log, onWait)
+        return getWatchlist(token, log, start, retryCount + 1, onWait)
       }
 
       const rateLimitError = new Error(
@@ -175,7 +171,9 @@ interface PaginatedGraphQLOptions<TResponse extends GraphQLPageResponse> {
   log: FastifyBaseLogger
   label: string
   maxRetries?: number
-  progressInfo?: ProgressInfo
+  onWait?: (remainingMs: number) => void
+  /** Called with the 1-based page number before each page request, not before retries. */
+  onPage?: (page: number) => void
   buildQuery: (cursor: string | null) => GraphQLQuery
   castResponse: (json: unknown) => TResponse
   getPage: (
@@ -196,9 +194,15 @@ const paginatedGraphQLFetch = async <
   let cursor: string | null = null
   let hasMore = true
   let retryCount = 0
+  let pageNumber = 0
 
   while (hasMore) {
-    await rateLimiter.waitIfLimited(options.log, options.progressInfo)
+    await rateLimiter.waitIfLimited(options.log, options.onWait)
+
+    if (retryCount === 0) {
+      pageNumber++
+      options.onPage?.(pageNumber)
+    }
 
     let response: Response
     try {
@@ -298,7 +302,10 @@ export interface GetWatchlistForUserOptions {
   userId: number
   maxRetries?: number
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>
-  progressInfo?: ProgressInfo
+  onWait?: (remainingMs: number) => void
+  onPage?: (page: number) => void
+  /** Called when the result is the stored DB items instead of a complete Plex snapshot. */
+  onFallback?: () => void
 }
 
 /** Falls back to stored DB items on fetch failure when a DB getter is given; otherwise rethrows. */
@@ -309,7 +316,9 @@ export const getWatchlistForUser = async ({
   userId,
   maxRetries,
   getAllWatchlistItemsForUser,
-  progressInfo,
+  onWait,
+  onPage,
+  onFallback,
 }: GetWatchlistForUserOptions): Promise<Set<TokenWatchlistItem>> => {
   if (!user?.watchlistId) {
     const error = 'Invalid user object provided to getWatchlistForUser'
@@ -330,7 +339,8 @@ export const getWatchlistForUser = async ({
       log,
       label: `watchlist for user ${user.username}`,
       maxRetries,
-      progressInfo,
+      onWait,
+      onPage,
       buildQuery: (cursor) => ({
         query: `query GetWatchlistHub ($user: UserInput!, $first: PaginationInt!, $after: String) {
           userV2(user: $user) {
@@ -401,9 +411,10 @@ export const getWatchlistForUser = async ({
         seenKeys,
         allItems,
       )
-      log.info(
+      log.debug(
         `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
       )
+      onFallback?.()
       return allItems
     } catch (dbError) {
       log.error(

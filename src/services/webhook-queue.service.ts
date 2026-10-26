@@ -16,30 +16,36 @@ import {
   ensureShowQueue,
   isEpisodeAlreadyQueued,
   type QueueManagerDeps,
-} from './webhook-queue/batching/index.js'
+} from './webhook-queue/batching/queue-manager.js'
 import {
   type EpisodeCheckerDeps,
-  fetchExpectedEpisodeCount,
   isRecentEpisode,
+} from './webhook-queue/detection/episode-checker.js'
+import {
+  fetchExpectedEpisodeCount,
   isSeasonComplete,
   type SeasonCompletionDeps,
-} from './webhook-queue/detection/index.js'
+} from './webhook-queue/detection/season-completion.js'
 import {
-  cleanupExpiredWebhooks,
   type PendingStoreDeps,
   type PendingWebhookParams,
-  processPendingWebhooks,
   queuePendingWebhook,
+} from './webhook-queue/persistence/pending-store.js'
+import {
+  cleanupExpiredWebhooks,
+  processPendingWebhooks,
   type RetryProcessorDeps,
-} from './webhook-queue/persistence/index.js'
+} from './webhook-queue/persistence/retry-processor.js'
 import {
   type NotificationHandlerDeps,
   notifyOrQueueShow,
-  processQueuedWebhooks,
-  type QueueProcessorDeps,
   type SyncSuppressionDeps,
   shouldSuppressRadarrNotification,
-} from './webhook-queue/processing/index.js'
+} from './webhook-queue/processing/notification-handler.js'
+import {
+  processQueuedWebhooks,
+  type QueueProcessorDeps,
+} from './webhook-queue/processing/queue-processor.js'
 
 export interface WebhookQueueConfig {
   retryInterval: number
@@ -194,7 +200,7 @@ export class WebhookQueueService {
     )
   }
 
-  isRecentEpisode(airDateUtc: string): boolean {
+  isRecentEpisode(airDateUtc: string | undefined): boolean {
     return isRecentEpisode(airDateUtc, this.episodeCheckerDeps)
   }
 
@@ -261,7 +267,7 @@ export class WebhookQueueService {
       if (suppressed) return
     }
 
-    this.log.info(
+    this.log.debug(
       {
         title: body.movie.title,
         tmdbId: body.movie.tmdbId,
@@ -308,7 +314,7 @@ export class WebhookQueueService {
     // on each instance, so resolve the type for the instance that sent this.
     let isPilotRolling = false
     if (this.fastify.config.plexSessionMonitoring?.enabled && instance) {
-      const rollingShows =
+      const { shows: rollingShows } =
         await this.fastify.db.getRollingMonitoredShowMatches(tvdbId)
       const match = rollingShows.find(
         (s) => s.sonarr_instance_id === instance.id,
@@ -394,7 +400,7 @@ export class WebhookQueueService {
     if (isPilotRolling && episodeNumber === 1) {
       this.log.debug(
         { tvdbId, season: seasonNumber },
-        'Pilot rolling E01 - notifying immediately',
+        'Pilot rolling E01, notifying immediately',
       )
       await notifyOrQueueShow(
         tvdbId,

@@ -1,24 +1,30 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
+import type {
+  DatabaseWatchlistItem,
+  StatusUpdateResult,
+} from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   createRadarrSyncConfig,
   createSonarrSyncConfig,
   syncInstance,
-} from './watchlist-status/instance-sync/index.js'
+} from './watchlist-status/instance-sync/instance-syncer.js'
 import {
   createRadarrJunctionConfig,
   createSonarrJunctionConfig,
   processJunctionUpdates,
-} from './watchlist-status/junction/index.js'
+} from './watchlist-status/junction/junction-processor.js'
 import {
   createRadarrStatusConfig,
   createSonarrStatusConfig,
+  type MovieStatusUpdate,
   processStatusUpdates,
-} from './watchlist-status/status-sync/index.js'
+  type ShowStatusUpdate,
+} from './watchlist-status/status-sync/status-processor.js'
 
 export class StatusService {
   private readonly log: FastifyBaseLogger
@@ -40,46 +46,51 @@ export class StatusService {
    *   When provided, this method will use the already-fetched series/movies data instead of
    *   making new API requests to Sonarr/Radarr. This is useful when the caller has already
    *   fetched this data (e.g., during reconciliation workflows) to improve performance.
-   * @param prefetchedData.existingSeries - Pre-fetched Sonarr series data (bypasses exclusions)
-   * @param prefetchedData.existingMovies - Pre-fetched Radarr movies data (bypasses exclusions)
+   * @param prefetchedData.existingSeries - Pre-fetched Sonarr series data (may include import-list exclusions, which are filtered out)
+   * @param prefetchedData.existingMovies - Pre-fetched Radarr movies data (may include import-list exclusions, which are filtered out)
    * @returns Promise resolving to counts of updated shows and movies
    */
   async syncAllStatuses(prefetchedData?: {
     existingSeries?: SonarrItem[]
     existingMovies?: RadarrItem[]
   }): Promise<{ shows: number; movies: number }> {
-    const [showUpdates, movieUpdates] = await Promise.all([
+    const [shows, movies] = await Promise.allSettled([
       this.syncSonarrStatuses(prefetchedData?.existingSeries),
       this.syncRadarrStatuses(prefetchedData?.existingMovies),
     ])
-    return { shows: showUpdates, movies: movieUpdates }
+    emitWatchlistChange(
+      this.fastify.progress,
+      'status',
+      [shows, movies].flatMap((outcome) =>
+        outcome.status === 'fulfilled' ? outcome.value.userIds : [],
+      ),
+    )
+    if (shows.status === 'rejected') throw shows.reason
+    if (movies.status === 'rejected') throw movies.reason
+    return { shows: shows.value.updated, movies: movies.value.updated }
   }
 
-  async syncSonarrStatuses(prefetchedSeries?: SonarrItem[]): Promise<number> {
+  async syncSonarrStatuses(
+    prefetchedSeries?: SonarrItem[],
+  ): Promise<StatusUpdateResult> {
     try {
-      const existingSeries =
+      // Prefetched data may include import-list exclusions, which are not library content
+      const existingSeries = (
         prefetchedSeries ?? (await this.sonarrManager.fetchAllSeries(true))
+      ).filter((item) => !item.isExclusion)
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 
       // Process status updates using unified processor
-      const mainUpdates = await processStatusUpdates(
-        { db: this.dbService, logger: this.log },
+      const mainUpdates = processStatusUpdates(
+        { logger: this.log },
         createSonarrStatusConfig(),
         existingSeries,
         dbWatchlistItems,
       )
-      let updateCount = 0
-      if (mainUpdates.length > 0) {
-        updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
-      }
-
-      // Process junction updates for Sonarr items
-      const junctionUpdates = await this.processShowJunctionUpdates(
-        existingSeries,
-        dbWatchlistItems,
+      const result = await this.commitMainThenJunction(mainUpdates, () =>
+        this.processShowJunctionUpdates(existingSeries, dbWatchlistItems),
       )
-      updateCount += junctionUpdates
 
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInSonarr) {
@@ -98,38 +109,34 @@ export class StatusService {
         }
       }
 
-      return updateCount
+      return result
     } catch (error) {
       this.log.error({ error }, 'Error syncing Sonarr statuses:')
       throw error
     }
   }
 
-  async syncRadarrStatuses(prefetchedMovies?: RadarrItem[]): Promise<number> {
+  async syncRadarrStatuses(
+    prefetchedMovies?: RadarrItem[],
+  ): Promise<StatusUpdateResult> {
     try {
-      const existingMovies =
+      // Prefetched data may include import-list exclusions, which are not library content
+      const existingMovies = (
         prefetchedMovies ?? (await this.radarrManager.fetchAllMovies(true))
+      ).filter((item) => !item.isExclusion)
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 
       // Process status updates using unified processor
-      const mainUpdates = await processStatusUpdates(
-        { db: this.dbService, logger: this.log },
+      const mainUpdates = processStatusUpdates(
+        { logger: this.log },
         createRadarrStatusConfig(this.log),
         existingMovies,
         dbWatchlistItems,
       )
-      let updateCount = 0
-      if (mainUpdates.length > 0) {
-        updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
-      }
-
-      // Process junction updates for Radarr items
-      const junctionUpdates = await this.processMovieJunctionUpdates(
-        existingMovies,
-        dbWatchlistItems,
+      const result = await this.commitMainThenJunction(mainUpdates, () =>
+        this.processMovieJunctionUpdates(existingMovies, dbWatchlistItems),
       )
-      updateCount += junctionUpdates
 
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInRadarr) {
@@ -148,9 +155,30 @@ export class StatusService {
         }
       }
 
-      return updateCount
+      return result
     } catch (error) {
       this.log.error({ error }, 'Error syncing Radarr statuses:')
+      throw error
+    }
+  }
+
+  private async commitMainThenJunction(
+    mainUpdates: (ShowStatusUpdate | MovieStatusUpdate)[],
+    junctionStep: () => Promise<StatusUpdateResult>,
+  ): Promise<StatusUpdateResult> {
+    const updated =
+      mainUpdates.length > 0
+        ? await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
+        : 0
+    const committed = mainUpdates.map((update) => update.userId)
+    try {
+      const junction = await junctionStep()
+      return {
+        updated: updated + junction.updated,
+        userIds: [...committed, ...junction.userIds],
+      }
+    } catch (error) {
+      emitWatchlistChange(this.fastify.progress, 'status', committed)
       throw error
     }
   }
@@ -168,9 +196,9 @@ export class StatusService {
   async processShowJunctionUpdates(
     sonarrItems: SonarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-  ): Promise<number> {
+  ): Promise<StatusUpdateResult> {
     return processJunctionUpdates(
-      { db: this.dbService, logger: this.log },
+      { logger: this.log },
       createSonarrJunctionConfig(this.dbService),
       sonarrItems,
       watchlistItems,
@@ -181,9 +209,9 @@ export class StatusService {
   async processMovieJunctionUpdates(
     radarrItems: RadarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-  ): Promise<number> {
+  ): Promise<StatusUpdateResult> {
     return processJunctionUpdates(
-      { db: this.dbService, logger: this.log },
+      { logger: this.log },
       createRadarrJunctionConfig(this.dbService),
       radarrItems,
       watchlistItems,
@@ -212,13 +240,13 @@ export class StatusService {
           ? await this.syncRadarrInstance(instanceId)
           : await this.syncSonarrInstance(instanceId)
 
-      this.log.info(
+      this.log.debug(
         `Syncing statuses for ${instanceType} instance ${instanceId}`,
       )
 
       await this.syncAllStatuses()
 
-      this.log.info(
+      this.log.debug(
         `Completed sync for ${instanceType} instance ${instanceId}: ${itemsCopied} items copied and statuses updated`,
       )
 
@@ -287,7 +315,7 @@ export class StatusService {
       const batchResults = await Promise.all(
         batch.map(async (instance) => {
           try {
-            this.log.info(
+            this.log.debug(
               `Syncing ${label} instance ${instance.id} (${instance.name})`,
             )
             const itemsCopied = await syncFn(instance.id)

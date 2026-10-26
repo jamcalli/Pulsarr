@@ -46,7 +46,7 @@ export async function fetchWatchlistItems(
   ])
 
   const watchlistItems = [...shows, ...movies]
-  deps.logger.info(
+  deps.logger.debug(
     `Found ${watchlistItems.length} watchlist items from all users`,
   )
 
@@ -65,7 +65,7 @@ async function fetchWatchlistItemsWithUserFilter(
     .filter((user) => user.can_sync !== false)
     .map((user) => user.id)
 
-  deps.logger.info(
+  deps.logger.debug(
     `Found ${syncEnabledUserIds.length} users with sync enabled out of ${allUsers.length} total users`,
   )
 
@@ -88,7 +88,7 @@ async function fetchWatchlistItemsWithUserFilter(
   ])
 
   const watchlistItems = [...shows, ...movies]
-  deps.logger.info(
+  deps.logger.debug(
     `Found ${watchlistItems.length} watchlist items from users with sync enabled`,
   )
 
@@ -129,9 +129,8 @@ export function extractGuidsFromWatchlistItems(
 }
 
 /**
- * Drops routed (non-pending) rows excluded for the owning user or globally,
- * mirroring cleanupExcludedWatchlistItems. Pending rows are kept since they
- * never reached Sonarr/Radarr.
+ * Drops routed (non-pending) rows excluded for the owning user or globally.
+ * Pending rows are kept since they never reached Sonarr/Radarr.
  */
 export function filterExcludedRoutedItems(
   items: DeleteSyncWatchlistItem[],

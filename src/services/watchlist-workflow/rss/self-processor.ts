@@ -4,6 +4,8 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/orchestration/unified-processor.js'
+import { pluralize } from '@utils/pluralize.js'
+import { recipientLabel } from '@utils/recipient-label.js'
 import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
@@ -23,6 +25,10 @@ export async function processRssSelfItems(
     deps.logger.warn('No primary user found, skipping self RSS processing')
     return
   }
+  deps.logger.info(
+    { userId: primaryUser.id, newItems: items.length },
+    `${items.length} new ${pluralize(items.length, 'item')} in the self RSS feed for ${recipientLabel(primaryUser)}`,
+  )
 
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
@@ -66,7 +72,6 @@ export async function processRssSelfItems(
         watchlistId: '',
       },
       items: tokenItems,
-      isSelfWatchlist: true,
     },
     deps.itemProcessorDeps,
   )

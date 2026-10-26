@@ -1,3 +1,4 @@
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   ContentItem,
   RoutingContext,
@@ -16,6 +17,13 @@ import {
   routeToArr,
   settingsFromDecision,
 } from './routing-capture.js'
+import {
+  createRoutingLog,
+  listRoutingInstances,
+  logRouteFailure,
+  logSent,
+  logSkipped,
+} from './routing-log.js'
 import { evaluateRules } from './rule-resolver.js'
 import { routeSyncTarget } from './sync-targets.js'
 import {
@@ -35,7 +43,7 @@ export async function routeContent(
   const { logger } = deps
   const contentType = item.type
 
-  logger.info(
+  logger.debug(
     {
       title: item.title,
       contentType,
@@ -45,6 +53,16 @@ export async function routeContent(
     },
     `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
   )
+
+  const routingLog = createRoutingLog({
+    logger,
+    item,
+    userId: options.userId,
+    userName: options.userName,
+    userAlias: options.userAlias,
+    instances: await listRoutingInstances(contentType, deps),
+    reconcile: options.reconcile,
+  })
 
   const allRouterRules = await deps.rules.get()
 
@@ -86,6 +104,10 @@ export async function routeContent(
     )
 
     if (resolution.skipReason === 'excluded') {
+      logSkipped(routingLog, {
+        reason: 'skip-rule',
+        ruleName: resolution.ruleName,
+      })
       return notRouted()
     }
 
@@ -100,15 +122,17 @@ export async function routeContent(
         key,
         userId: options.userId,
         syncTargetInstanceId: options.syncTargetInstanceId,
+        syncSourceInstanceId: options.syncSourceInstanceId,
         decisions: allDecisions,
         hasRulesTargetingSyncInstance,
+        routingLog,
       },
       deps,
     )
   }
 
   if (allDecisions.length === 0) {
-    logger.info(
+    logger.debug(
       hasAnyRules
         ? `No matching routing rules for "${item.title}", using default routing`
         : `No routing rules exist, using default routing for "${item.title}"`,
@@ -128,6 +152,7 @@ export async function routeContent(
         syncedInstances: defaultRoutingDecisions
           .slice(1)
           .map((d) => d.instanceId),
+        routingLog,
       },
       deps,
     )
@@ -143,6 +168,7 @@ export async function routeContent(
       key,
       options.userId,
       options.syncing,
+      routingLog,
       deps,
     )
 
@@ -176,6 +202,7 @@ export async function routeContent(
       context,
       decisions: allDecisions,
       syncedInstances: undefined,
+      routingLog,
     },
     deps,
   )
@@ -205,19 +232,19 @@ export async function routeContent(
 
     const ruleInfo = decision.ruleName ? ` via rule "${decision.ruleName}"` : ''
 
-    logger.info(
+    logger.debug(
       {
         title: item.title,
         instanceId: decision.instanceId,
         ruleId: decision.ruleId,
         ruleName: decision.ruleName,
-        priority: decision.priority ?? 50,
+        priority: decision.priority ?? DEFAULT_ROUTE_PRIORITY,
       },
       `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo}`,
     )
 
     try {
-      const applied = await routeToArr(
+      const { routing, settings } = await routeToArr(
         {
           item,
           key,
@@ -229,21 +256,19 @@ export async function routeContent(
         deps,
       )
       const appliedRouting = {
-        ...applied,
+        ...routing,
         ruleId: decision.ruleId,
         ruleName: decision.ruleName,
       }
+      logSent(routingLog, appliedRouting, settings)
       routingDetails.push(appliedRouting)
       decidedByInstance.set(decision.instanceId, appliedRouting)
     } catch (routeError) {
-      logger.error(
-        { error: routeError },
-        `Error routing "${item.title}" to instance ${decision.instanceId}`,
-      )
+      logRouteFailure(routingLog, decision.instanceId, routeError)
     }
   }
 
-  logger.info(
+  logger.debug(
     `Successfully routed "${item.title}" to ${routingDetails.length} instances`,
   )
 

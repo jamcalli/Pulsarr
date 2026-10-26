@@ -45,21 +45,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
         await request.session.save()
 
-        const config = fastify.config
-        const hasPlexTokens = Boolean(
-          config?.plexTokens &&
-            Array.isArray(config.plexTokens) &&
-            config.plexTokens.length > 0,
-        )
-
-        // Client-side router handles basePath automatically
-        const redirectTo = hasPlexTokens ? '/dashboard' : '/plex'
-
         return {
           success: true,
           message: 'Login successful',
           username: user.username,
-          redirectTo,
+          redirectTo: '/',
         }
       } catch (error) {
         fastify.log.error({ err: error }, 'Login failed')

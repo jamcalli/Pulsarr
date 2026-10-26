@@ -1,4 +1,7 @@
-import { parseQualityProfileId } from '@utils/quality-profile.js'
+import {
+  findQualityProfileName,
+  parseQualityProfileId,
+} from '@utils/quality-profile.js'
 import { describe, expect, it } from 'vitest'
 
 describe('parseQualityProfileId', () => {
@@ -136,5 +139,22 @@ describe('parseQualityProfileId', () => {
       // Also test with string representation of unsafe integer
       expect(parseQualityProfileId('9007199254740992')).toBeUndefined()
     })
+  })
+})
+
+describe('findQualityProfileName', () => {
+  const profiles = [
+    { id: 3, name: 'HD' },
+    { id: 8, name: '4K' },
+  ]
+
+  it('finds the name by numeric or string id', () => {
+    expect(findQualityProfileName(profiles, 8)).toBe('4K')
+    expect(findQualityProfileName(profiles, '3')).toBe('HD')
+  })
+
+  it('returns undefined for an unknown or missing id', () => {
+    expect(findQualityProfileName(profiles, 5)).toBeUndefined()
+    expect(findQualityProfileName(profiles, null)).toBeUndefined()
   })
 })

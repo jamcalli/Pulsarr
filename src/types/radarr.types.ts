@@ -312,10 +312,7 @@ export interface WebhookNotification {
   supportsOnManualInteractionRequired: boolean
 }
 
-export interface ConnectionTestResult {
-  success: boolean
-  message: string
-}
+export type { ConnectionTestResult } from '@root/types/arr-connection.types.js'
 
 export interface PingResponse {
   status: string

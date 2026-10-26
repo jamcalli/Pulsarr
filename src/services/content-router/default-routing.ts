@@ -1,4 +1,5 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   ContentItem,
   RoutingDecision,
@@ -9,6 +10,7 @@ import type { DatabaseService } from '@services/database.service.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { routeToArr } from './routing-capture.js'
+import { logRouteFailure, logSent, type RoutingLog } from './routing-log.js'
 import type { ContentRouterDeps } from './types.js'
 
 const INSTANCE_SOURCE = {
@@ -184,7 +186,7 @@ export async function getDefaultRoutingDecisions(
           parseQualityProfileId(source.qualityProfile)?.toString() || null,
         rootFolder: source.rootFolder || null,
         tags: source.tags || [],
-        priority: 50,
+        priority: DEFAULT_ROUTE_PRIORITY,
         searchOnAdd: source.searchOnAdd ?? true,
         ...source.typeFields,
       },
@@ -198,6 +200,7 @@ export async function routeUsingDefault(
   key: string,
   userId: number,
   syncing: boolean | undefined,
+  routingLog: RoutingLog,
   deps: Pick<
     ContentRouterDeps,
     'logger' | 'db' | 'radarrManager' | 'sonarrManager'
@@ -208,18 +211,15 @@ export async function routeUsingDefault(
 
   for (const instanceId of instanceIds) {
     try {
-      routings.push(
-        await routeToArr(
-          { item, key, userId, instanceId, syncing: syncing ?? false },
-          {},
-          deps,
-        ),
+      const { routing, settings } = await routeToArr(
+        { item, key, userId, instanceId, syncing: syncing ?? false },
+        {},
+        deps,
       )
+      logSent(routingLog, routing, settings)
+      routings.push(routing)
     } catch (error) {
-      deps.logger.error(
-        { error },
-        `Error routing "${item.title}" to ${INSTANCE_SOURCE[item.type].label} instance ${instanceId}`,
-      )
+      logRouteFailure(routingLog, instanceId, error)
     }
   }
 

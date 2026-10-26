@@ -1,3 +1,4 @@
+import type { ConfigUpdate } from '@root/schemas/config/config.schema.js'
 import type {
   EtagUserInfo,
   Friend,
@@ -10,7 +11,10 @@ import type {
   UserMapEntry,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { PlexUser } from '@root/types/plex-server.types.js'
+import type {
+  ProgressEvent,
+  WatchlistSyncType,
+} from '@root/types/progress.types.js'
 import type { RssFeedsSuccess } from '@schemas/plex/generate-rss-feeds.schema.js'
 import type {
   PlexClassifiedUser,
@@ -18,10 +22,12 @@ import type {
   UserStatusResponse,
 } from '@schemas/plex/user-status.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { extractUuidFromThumb } from '@utils/plex-avatar.js'
+import { indexPlexUsersByUuid } from '@utils/plex-avatar.js'
+import { createRunRecord, type RunStatus } from '@utils/run-record.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
-import { pingPlex } from './plex-watchlist/api/client.js'
+import { type PlexPingResult, pingPlex } from './plex-watchlist/api/client.js'
+import { assertPlexTokensAccepted } from './plex-watchlist/api/token-check.js'
 import {
   cancelFriendRequest,
   getFriendRequests,
@@ -55,9 +61,18 @@ import {
   type WatchlistSyncDeps,
 } from './plex-watchlist/orchestration/watchlist-sync.js'
 import {
+  createWatchlistSyncProgress,
+  type WatchlistSyncProgress,
+} from './plex-watchlist/progress/sync-progress.js'
+import {
   categorizeItems,
   type ItemCategorizerDeps,
 } from './plex-watchlist/sync/item-categorizer.js'
+import { createSingleFlightQueue } from './plex-watchlist/sync/single-flight-queue.js'
+import {
+  attachFriendStatus,
+  type FriendStatusFields,
+} from './plex-watchlist/users/friend-status.js'
 import {
   checkForRemovedFriends,
   ensureFriendUsers,
@@ -65,8 +80,37 @@ import {
 } from './plex-watchlist/users/friend-users.js'
 import { ensureTokenUsers } from './plex-watchlist/users/token-users.js'
 
+type WatchlistSyncResult = ReturnType<typeof buildResponse>
+
+interface WatchlistSyncCounts {
+  total: number
+  friends: number | null
+}
+
+type WatchlistSyncStatus = Omit<RunStatus<WatchlistSyncCounts>, 'result'> & {
+  [Count in keyof WatchlistSyncCounts]: WatchlistSyncCounts[Count] | null
+}
+
+export const USER_STATUS_CACHE_MS = 60_000
+
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger
+  private readonly syncQueues = {
+    'self-watchlist': createSingleFlightQueue<WatchlistSyncResult>(),
+    'others-watchlist': createSingleFlightQueue<WatchlistSyncResult>(),
+  }
+  private readonly syncRuns = {
+    'self-watchlist': createRunRecord<WatchlistSyncCounts>(),
+    'others-watchlist': createRunRecord<WatchlistSyncCounts>(),
+  }
+  private readonly activeSyncs = new Map<
+    WatchlistSyncType,
+    WatchlistSyncProgress
+  >()
+  private classifiedUsersCache: {
+    fetchedAt: number
+    result: UserStatusResponse
+  } | null = null
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -132,7 +176,16 @@ export class PlexWatchlistService {
     }
   }
 
-  async pingPlex(): Promise<boolean> {
+  /** Throws `PlexTokenCheckError` before a save that would store a token plex.tv does not accept. */
+  assertTokensAccepted(
+    update: ConfigUpdate,
+    currentTokens: readonly string[],
+  ): Promise<void> {
+    return assertPlexTokensAccepted(update, currentTokens, this.log)
+  }
+
+  /** Rejected when plex.tv refuses any configured token, unreachable when it could not answer. */
+  async pingPlex(): Promise<PlexPingResult> {
     const tokens = this.config.plexTokens
 
     if (tokens.length === 0) {
@@ -140,19 +193,95 @@ export class PlexWatchlistService {
     }
 
     const results = await Promise.all(
-      tokens.map((token, _index) => {
-        return pingPlex(token, this.log)
-      }),
+      tokens.map((token) => pingPlex(token, this.log)),
     )
 
-    return results.every((result) => result === true)
+    if (results.includes('rejected')) return 'rejected'
+    if (results.includes('unreachable')) return 'unreachable'
+    return 'accepted'
   }
 
-  async getSelfWatchlist(forceRefresh = false) {
-    if (this.config.plexTokens.length === 0) {
-      throw new Error('No Plex token configured')
-    }
+  /** Joins a running sync with the same forceRefresh and token, otherwise waits for it to settle before starting. */
+  async getSelfWatchlist(forceRefresh = false): Promise<WatchlistSyncResult> {
+    return this.runSync('self-watchlist', forceRefresh, (progress) =>
+      this.syncSelfWatchlist(forceRefresh, progress),
+    )
+  }
 
+  /** Joins a running sync with the same forceRefresh and token, otherwise waits for it to settle before starting. */
+  async getOthersWatchlists(
+    forceRefresh = false,
+  ): Promise<WatchlistSyncResult> {
+    return this.runSync('others-watchlist', forceRefresh, (progress) =>
+      this.syncOthersWatchlists(forceRefresh, progress),
+    )
+  }
+
+  /** The latest progress event of each sync still running, for replay to late clients. */
+  syncSnapshots(): ProgressEvent[] {
+    return Array.from(this.activeSyncs.values(), (progress) =>
+      progress.lastEvent(),
+    )
+  }
+
+  /** Starts a sync without waiting for it, joining or queueing behind one already running. */
+  startSync(type: WatchlistSyncType): void {
+    const sync =
+      type === 'self-watchlist'
+        ? this.getSelfWatchlist()
+        : this.getOthersWatchlists()
+    sync.catch((error) => {
+      this.log.error({ error, type }, 'Background watchlist sync failed')
+    })
+  }
+
+  syncStatus(type: WatchlistSyncType): WatchlistSyncStatus {
+    const { result, ...run } = this.syncRuns[type].read()
+    return {
+      ...run,
+      total: result?.total ?? null,
+      friends: result?.friends ?? null,
+    }
+  }
+
+  private async runSync(
+    type: WatchlistSyncType,
+    forceRefresh: boolean,
+    sync: (progress: WatchlistSyncProgress) => Promise<WatchlistSyncResult>,
+  ): Promise<WatchlistSyncResult> {
+    const key = `${forceRefresh}:${this.config.plexTokens[0]}`
+    const run = this.syncRuns[type]
+    // A joined caller shares the queued work, which settles the record once
+    if (!this.syncQueues[type].isPending(key)) run.begin()
+    return this.syncQueues[type].run(key, async () => {
+      const progress = createWatchlistSyncProgress(this.fastify.progress, type)
+      this.activeSyncs.set(type, progress)
+      try {
+        if (this.config.plexTokens.length === 0) {
+          throw new Error('No Plex token configured')
+        }
+        const result = await sync(progress)
+        // Clients reread the status on the complete event, so record it first
+        run.succeed({
+          total: result.total,
+          friends: type === 'others-watchlist' ? result.users.length : null,
+        })
+        progress.complete()
+        return result
+      } catch (error) {
+        run.fail(error)
+        progress.failed()
+        throw error
+      } finally {
+        this.activeSyncs.delete(type)
+      }
+    })
+  }
+
+  private async syncSelfWatchlist(
+    forceRefresh: boolean,
+    progress: WatchlistSyncProgress,
+  ): Promise<WatchlistSyncResult> {
     await this.ensureTokenUsers()
 
     const primaryUser = await this.dbService.getPrimaryUser()
@@ -161,6 +290,7 @@ export class PlexWatchlistService {
     }
 
     const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
+    const fallbackUserIds = new Set<number>()
 
     const token = this.config.plexTokens[0]
     const tokenConfig = {
@@ -173,6 +303,8 @@ export class PlexWatchlistService {
       this.log,
       primaryUser.id,
       (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
+      progress,
+      (userId) => fallbackUserIds.add(userId),
     )
 
     const tokenUser: Friend = {
@@ -200,9 +332,9 @@ export class PlexWatchlistService {
 
     const processedItems = await processAndSaveNewItems(
       brandNewItems,
-      true,
       forceRefresh,
       this.itemProcessorDeps,
+      progress,
     )
     await linkExistingItems(existingItemsToLink, {
       db: this.dbService,
@@ -211,7 +343,11 @@ export class PlexWatchlistService {
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
 
-    await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
+    await checkForRemovedItems(
+      userWatchlistMap,
+      this.removalHandlerDeps,
+      fallbackUserIds,
+    )
 
     return buildResponse(
       userWatchlistMap,
@@ -259,10 +395,11 @@ export class PlexWatchlistService {
     return { added, removed, userMap }
   }
 
-  async getOthersWatchlists(forceRefresh = false) {
-    if (this.config.plexTokens.length === 0) {
-      throw new Error('No Plex token configured')
-    }
+  private async syncOthersWatchlists(
+    forceRefresh: boolean,
+    progress: WatchlistSyncProgress,
+  ): Promise<WatchlistSyncResult> {
+    progress.findingFriends()
 
     const friendsResult = await getFriends(this.config, this.log)
 
@@ -315,10 +452,13 @@ export class PlexWatchlistService {
         .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
     )
 
+    const fallbackUserIds = new Set<number>()
     const userWatchlistMap = await getOthersWatchlist(
       this.log,
       friendsWithIds,
       (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
+      progress,
+      (userId) => fallbackUserIds.add(userId),
     )
 
     if (userWatchlistMap.size === 0 && friendsWithIds.size > 0) {
@@ -349,9 +489,9 @@ export class PlexWatchlistService {
 
     const processedItems = await processAndSaveNewItems(
       brandNewItems,
-      false,
       forceRefresh,
       this.itemProcessorDeps,
+      progress,
     )
     await linkExistingItems(existingItemsToLink, {
       db: this.dbService,
@@ -360,7 +500,11 @@ export class PlexWatchlistService {
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
 
-    await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
+    await checkForRemovedItems(
+      userWatchlistMap,
+      this.removalHandlerDeps,
+      fallbackUserIds,
+    )
 
     return buildResponse(
       userWatchlistMap,
@@ -377,7 +521,11 @@ export class PlexWatchlistService {
   private async ensureFriendUsers(
     friends: Set<[Friend, string]>,
   ): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
-    return ensureFriendUsers(friends, this.userDeps)
+    const result = await ensureFriendUsers(friends, this.userDeps)
+    if (result.added.length > 0) {
+      this.clearClassifiedUsersCache()
+    }
+    return result
   }
 
   private categorizeItems(
@@ -402,14 +550,47 @@ export class PlexWatchlistService {
   }
 
   async sendFriendRequest(uuid: string): Promise<{ success: boolean }> {
-    return sendFriendRequest(this.config, this.log, uuid)
+    const result = await sendFriendRequest(this.config, this.log, uuid)
+    if (result.success) {
+      this.clearClassifiedUsersCache()
+    }
+    return result
   }
 
   async cancelFriendRequest(uuid: string): Promise<{ success: boolean }> {
-    return cancelFriendRequest(this.config, this.log, uuid)
+    const result = await cancelFriendRequest(this.config, this.log, uuid)
+    if (result.success) {
+      this.clearClassifiedUsersCache()
+    }
+    return result
+  }
+
+  clearClassifiedUsersCache(): void {
+    this.classifiedUsersCache = null
+  }
+
+  async withFriendStatus<
+    T extends { plex_uuid?: string | null; is_primary_token: boolean },
+  >(users: T[]): Promise<(T & FriendStatusFields)[]> {
+    return attachFriendStatus(users, { plexWatchlist: this, logger: this.log })
   }
 
   async getClassifiedUsers(): Promise<UserStatusResponse> {
+    const cached = this.classifiedUsersCache
+    if (cached && Date.now() - cached.fetchedAt < USER_STATUS_CACHE_MS) {
+      return cached.result
+    }
+    const { result, complete } = await this.classifyUsers()
+    if (complete) {
+      this.classifiedUsersCache = { fetchedAt: Date.now(), result }
+    }
+    return result
+  }
+
+  private async classifyUsers(): Promise<{
+    result: UserStatusResponse
+    complete: boolean
+  }> {
     const [friendsResult, serverUsers, friendRequests, dbUsers] =
       await Promise.all([
         getFriends(this.config, this.log),
@@ -422,7 +603,10 @@ export class PlexWatchlistService {
       this.log.warn(
         'Friend API failed - skipping classification to prevent misclassifying users',
       )
-      return { success: false, users: [], untracked: [] }
+      return {
+        result: { success: false, users: [], untracked: [] },
+        complete: false,
+      }
     }
 
     if (!friendRequests.success) {
@@ -436,18 +620,7 @@ export class PlexWatchlistService {
       friendsByUuid.set(friend.watchlistId, friend)
     }
 
-    const serverUsersByUuid = new Map<string, PlexUser>()
-    for (const user of serverUsers) {
-      const uuid = extractUuidFromThumb(user.thumb)
-      if (uuid) {
-        serverUsersByUuid.set(uuid, user)
-      } else if (user.thumb) {
-        this.log.warn(
-          { thumb: user.thumb, username: user.username },
-          'Could not extract UUID from server user thumb URL',
-        )
-      }
-    }
+    const serverUsersByUuid = indexPlexUsersByUuid(serverUsers, this.log)
 
     const pendingSentByUuid = new Map<string, FriendRequestNode>()
     for (const node of friendRequests.sent) {
@@ -555,7 +728,10 @@ export class PlexWatchlistService {
       }
     }
 
-    return { success: true, users, untracked }
+    return {
+      result: { success: true, users, untracked },
+      complete: friendRequests.success,
+    }
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
@@ -569,6 +745,10 @@ export class PlexWatchlistService {
   private async checkForRemovedFriends(
     currentFriends: Set<[Friend, string]>,
   ): Promise<EtagUserInfo[]> {
-    return checkForRemovedFriends(currentFriends, this.userDeps)
+    const removed = await checkForRemovedFriends(currentFriends, this.userDeps)
+    if (removed.length > 0) {
+      this.clearClassifiedUsersCache()
+    }
+    return removed
   }
 }

@@ -28,6 +28,7 @@ vi.mock('@services/watchlist-workflow/quota/watchlist-cap-gate.js', () => ({
     skipIds: new Set<string>(),
     skippedCount: 0,
     cappedEntries: [],
+    uncappedEntries: [],
   })),
 }))
 
@@ -151,7 +152,10 @@ function createDeps() {
         serverName: 'test-plex',
       })),
     },
-    notifications: { sendWatchlistCapReached: vi.fn() },
+    notifications: {
+      sendWatchlistCapReached: vi.fn(),
+      clearWatchlistCap: vi.fn(),
+    },
     statusService: {
       syncAllStatuses: vi.fn(async () => ({ shows: 0, movies: 0 })),
     },
@@ -177,6 +181,7 @@ describe('syncWatchlistItems', () => {
       skipIds: new Set<string>(),
       skippedCount: 0,
       cappedEntries: [],
+      uncappedEntries: [],
     })
 
     const created = createDeps()
@@ -327,6 +332,7 @@ describe('syncWatchlistItems', () => {
       skipIds: new Set(['movie-1']),
       skippedCount: 1,
       cappedEntries: [],
+      uncappedEntries: [],
     })
     parts.db.getAllMovieWatchlistItems.mockResolvedValue([movieItem()])
 
@@ -334,6 +340,22 @@ describe('syncWatchlistItems', () => {
 
     expect(result.skippedDueToWatchlistCap).toBe(1)
     expect(routeMovie).not.toHaveBeenCalled()
+  })
+
+  it('clears the cap notification state for users back under their cap', async () => {
+    vi.mocked(evaluateWatchlistCaps).mockResolvedValue({
+      skipIds: new Set<string>(),
+      skippedCount: 0,
+      cappedEntries: [],
+      uncappedEntries: [{ userId: SECOND_USER.id, contentType: 'movie' }],
+    })
+
+    await syncWatchlistItems(deps)
+
+    expect(parts.notifications.clearWatchlistCap).toHaveBeenCalledWith(
+      SECOND_USER.id,
+      'movie',
+    )
   })
 
   it('notifies each capped user with their resolved name', async () => {
@@ -348,6 +370,7 @@ describe('syncWatchlistItems', () => {
           cap: 10,
         },
       ],
+      uncappedEntries: [],
     })
 
     await syncWatchlistItems(deps)

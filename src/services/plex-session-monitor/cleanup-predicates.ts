@@ -1,13 +1,6 @@
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 
-/**
- * A season is protected if it is the current or next season for the given user.
- *
- * current_monitored_season is deliberately not consulted - it is a high-water-mark
- * that only advances when expandMonitoringToNextSeason fires near end-of-season,
- * so a user on S01E03 would otherwise have S02 (their next) wrongly unmonitored
- * when another user pushes ahead in the same series.
- */
+/** True for the viewer's current and next season, ignoring current_monitored_season, which only advances near a season end. */
 export function userNeedsSeason(
   show: RollingMonitoredShow,
   season: number,

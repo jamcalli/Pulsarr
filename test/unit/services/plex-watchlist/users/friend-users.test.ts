@@ -28,8 +28,10 @@ describe('friend-users', () => {
     deleteUsers: ReturnType<typeof vi.fn>
   }
   let deps: FriendUsersDeps
+  let emit: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
+    emit = vi.fn()
     mockDb = {
       getOrCreateUser: vi.fn(),
       updateUser: vi.fn(),
@@ -46,6 +48,13 @@ describe('friend-users', () => {
       logger: createMockLogger(),
       fastify: {
         notifications: { sendUserCreated: vi.fn() },
+        progress: { emit },
+        quotaService: {
+          setupDefaultQuotas: vi.fn(async () => ({
+            movieQuota: null,
+            showQuota: null,
+          })),
+        },
       } as unknown as FastifyInstance,
     }
   })
@@ -97,6 +106,28 @@ describe('friend-users', () => {
         expect.objectContaining({ name: 'alice', plex_uuid: 'uuid-2' }),
       )
       expect(mockDb.updateUser).not.toHaveBeenCalled()
+      expect(emit).not.toHaveBeenCalled()
+    })
+
+    it('emits a users added event for a created user', async () => {
+      mockDb.getAllUsers.mockResolvedValue([])
+      mockDb.getOrCreateUser.mockResolvedValue({
+        user: createMockUser(7, 'alice', { plex_uuid: 'uuid-2' }),
+        created: true,
+      })
+
+      await ensureFriendUsers(friendSet(friend('uuid-2', 'alice')), deps)
+
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operationId: 'users-7',
+          type: 'users',
+          phase: 'added',
+          progress: 100,
+          metadata: { action: 'added', userId: 7, plexUuid: 'uuid-2' },
+        }),
+      )
     })
   })
 
@@ -148,6 +179,16 @@ describe('friend-users', () => {
       expect(removed).toEqual([
         { userId: 2, username: 'bob', isPrimary: false },
       ])
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operationId: 'users-2',
+          type: 'users',
+          phase: 'removed',
+          progress: 100,
+          metadata: { action: 'removed', userId: 2, plexUuid: null },
+        }),
+      )
     })
 
     it('deletes a user whose uuid is not in the set even when the username matches', async () => {

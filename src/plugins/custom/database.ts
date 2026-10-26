@@ -3,6 +3,7 @@ import {
   defaultRadarrInstance,
   defaultSonarrInstance,
 } from '@utils/arr-default-instance.js'
+import { toError } from '@utils/error-message.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import type { Knex } from 'knex'
@@ -31,7 +32,7 @@ export default fp(
     fastify.decorate('db', dbService)
     fastify.addHook('onClose', async () => {
       if (process.env.NODE_ENV !== 'test') {
-        fastify.log.info('Closing database service...')
+        fastify.log.debug('Closing database service...')
         await dbService.close()
       }
     })
@@ -98,7 +99,7 @@ export default fp(
             existingSonarrInstances.length === 0 &&
             mergedConfig.sonarrBaseUrl
           ) {
-            fastify.log.info('Creating default Sonarr instance from .env')
+            fastify.log.debug('Creating default Sonarr instance from .env')
             await dbService.createSonarrInstance(
               defaultSonarrInstance(mergedConfig),
             )
@@ -108,37 +109,42 @@ export default fp(
             existingRadarrInstances.length === 0 &&
             mergedConfig.radarrBaseUrl
           ) {
-            fastify.log.info('Creating default Radarr instance from .env')
+            fastify.log.debug('Creating default Radarr instance from .env')
             await dbService.createRadarrInstance(
               defaultRadarrInstance(mergedConfig),
             )
           }
         } else {
-          fastify.log.info('No existing config found, creating initial config')
+          fastify.log.debug('No existing config found, creating initial config')
           const initialConfig = {
             ...envConfig,
             _isReady: false,
           }
           fastify.log.debug('Creating initial config in database')
           await dbService.createConfig(initialConfig)
-          await fastify.updateConfig({ _isReady: false })
+          const createdConfig = await dbService.getConfig()
+          await fastify.updateConfig({
+            ...createdConfig,
+            ...envConfig,
+            _isReady: false,
+          })
 
           if (initialConfig.sonarrBaseUrl) {
-            fastify.log.info('Creating default Sonarr instance from .env')
+            fastify.log.debug('Creating default Sonarr instance from .env')
             await dbService.createSonarrInstance(
               defaultSonarrInstance(initialConfig),
             )
           }
 
           if (initialConfig.radarrBaseUrl) {
-            fastify.log.info('Creating default Radarr instance from .env')
+            fastify.log.debug('Creating default Radarr instance from .env')
             await dbService.createRadarrInstance(
               defaultRadarrInstance(initialConfig),
             )
           }
         }
       } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error))
+        const err = toError(error)
         fastify.log.error(err, 'Error initializing config')
         throw error
       }
@@ -147,7 +153,7 @@ export default fp(
     try {
       await initializeConfig()
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error))
+      const err = toError(error)
       fastify.log.error(err, 'Failed to initialize config')
       throw error
     }

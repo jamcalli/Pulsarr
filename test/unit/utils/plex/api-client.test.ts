@@ -12,7 +12,7 @@ describe('plex/api-client', () => {
       server.resetHandlers()
     })
 
-    it('should return true when Plex API responds with 200', async () => {
+    it('accepts the token when Plex API responds with 200', async () => {
       server.use(
         http.get('https://plex.tv/api/v2/ping', ({ request }) => {
           const token = request.headers.get('X-Plex-Token')
@@ -26,10 +26,10 @@ describe('plex/api-client', () => {
       )
 
       const result = await pingPlex('valid-token', mockLogger)
-      expect(result).toBe(true)
+      expect(result).toBe('accepted')
     })
 
-    it('should return false when Plex API responds with 401', async () => {
+    it('reports a rejection when Plex API responds with 401', async () => {
       server.use(
         http.get('https://plex.tv/api/v2/ping', () => {
           return new HttpResponse(null, {
@@ -40,24 +40,28 @@ describe('plex/api-client', () => {
       )
 
       const result = await pingPlex('invalid-token', mockLogger)
-      expect(result).toBe(false)
+      expect(result).toBe('rejected')
     })
 
-    it('should return false when Plex API responds with 500', async () => {
-      server.use(
-        http.get('https://plex.tv/api/v2/ping', () => {
-          return new HttpResponse(null, {
-            status: 500,
-            statusText: 'Internal Server Error',
-          })
-        }),
-      )
+    it.each([
+      [408, 'Request Timeout'],
+      [429, 'Too Many Requests'],
+      [500, 'Internal Server Error'],
+    ])(
+      'reports plex.tv unreachable when it responds with %i',
+      async (status, statusText) => {
+        server.use(
+          http.get('https://plex.tv/api/v2/ping', () => {
+            return new HttpResponse(null, { status, statusText })
+          }),
+        )
 
-      const result = await pingPlex('token', mockLogger)
-      expect(result).toBe(false)
-    })
+        const result = await pingPlex('token', mockLogger)
+        expect(result).toBe('unreachable')
+      },
+    )
 
-    it('should return false when network error occurs', async () => {
+    it('reports plex.tv unreachable on a network error', async () => {
       server.use(
         http.get('https://plex.tv/api/v2/ping', () => {
           return HttpResponse.error()
@@ -65,10 +69,10 @@ describe('plex/api-client', () => {
       )
 
       const result = await pingPlex('token', mockLogger)
-      expect(result).toBe(false)
+      expect(result).toBe('unreachable')
     })
 
-    it('should return false when request times out', async () => {
+    it('reports plex.tv unreachable when the request times out', async () => {
       const originalTimeout = AbortSignal.timeout
       try {
         AbortSignal.timeout = () => {
@@ -84,7 +88,7 @@ describe('plex/api-client', () => {
         )
 
         const result = await pingPlex('token', mockLogger)
-        expect(result).toBe(false)
+        expect(result).toBe('unreachable')
       } finally {
         AbortSignal.timeout = originalTimeout
       }

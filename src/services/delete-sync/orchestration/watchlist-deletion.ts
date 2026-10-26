@@ -1,11 +1,9 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { TagCache } from '@services/delete-sync/cache/index.js'
-import {
-  isAnyGuidProtected,
-  isAnyGuidTracked,
-} from '@services/delete-sync/cache/index.js'
+import { isAnyGuidProtected } from '@services/delete-sync/cache/protected-cache.js'
+import type { TagCache } from '@services/delete-sync/cache/tag-cache.js'
+import { isAnyGuidTracked } from '@services/delete-sync/cache/tracked-cache.js'
 import {
   processMovieDeletions,
   processShowDeletions,
@@ -54,7 +52,7 @@ export async function executeWatchlistDeletion(
 ): Promise<DeleteSyncResult> {
   const { config, logger, sonarrManager, radarrManager, tagCache } = deps
 
-  logger.info(
+  logger.debug(
     `Beginning deletion ${dryRun ? '(DRY RUN)' : 'process'} based on configuration`,
   )
 

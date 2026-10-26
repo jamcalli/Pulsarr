@@ -329,7 +329,11 @@ describe('Session Monitoring → User Filter Integration', () => {
     const userRow = await knex('rolling_monitored_shows')
       .where({ plex_user_id: 'plex-777' })
       .first()
-    expect(userRow).toBeDefined()
+    expect(userRow.current_monitored_season).toBe(1)
+    const masterRow = await knex('rolling_monitored_shows')
+      .whereNull('plex_user_id')
+      .first()
+    expect(masterRow.current_monitored_season).toBe(1)
 
     await setFilterUsers([])
     const secondPass = stubBoundaries(session)

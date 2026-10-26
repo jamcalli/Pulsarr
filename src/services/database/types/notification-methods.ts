@@ -27,6 +27,18 @@ declare module '@services/database.service.js' {
       trx?: Knex.Transaction,
     ): Promise<number | null>
 
+    updateNotificationDelivery(
+      id: number,
+      delivery: {
+        sent_to_discord: boolean
+        sent_to_apprise: boolean
+        sent_to_plex_mobile: boolean
+        sent_to_native_webhook: boolean
+      },
+    ): Promise<void>
+
+    deleteNotificationRecord(id: number): Promise<void>
+
     /**
      * Checks whether an active notification already exists for the given criteria
      * @param options - Criteria to match against existing notifications
@@ -65,18 +77,5 @@ declare module '@services/database.service.js' {
       by_channel: { channel: string; count: number }[]
       by_user: { user_name: string; count: number }[]
     }>
-
-    /**
-     * Adds a status history entry for backfilling missing transitions
-     * @param watchlistItemId - The ID of the watchlist item
-     * @param status - The status to record
-     * @param timestamp - The timestamp when this status should have been recorded
-     * @returns Promise that resolves when the entry is added
-     */
-    addStatusHistoryEntry(
-      watchlistItemId: number,
-      status: 'pending' | 'requested' | 'grabbed' | 'notified',
-      timestamp: string,
-    ): Promise<void>
   }
 }

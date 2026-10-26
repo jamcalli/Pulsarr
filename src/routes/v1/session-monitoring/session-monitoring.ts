@@ -1,4 +1,5 @@
-import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import { ROLLING_BASELINE_SEASON } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import {
   bulkManageRollingMonitoredSchema,
   deleteRollingMonitoredSchema,
@@ -9,34 +10,8 @@ import {
   resetRollingMonitoredSchema,
   runSessionMonitorSchema,
 } from '@schemas/session-monitoring/session-monitoring.schema.js'
-import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-
-async function resetShowMonitoring(
-  show: RollingMonitoredShow,
-  plexSessionMonitor: PlexSessionMonitorService,
-): Promise<void> {
-  if (show.monitoring_type === 'pilotRolling') {
-    await plexSessionMonitor.resetToPilotOnly(
-      show.sonarr_series_id,
-      show.sonarr_instance_id,
-      show.show_title,
-    )
-  } else if (show.monitoring_type === 'firstSeasonRolling') {
-    await plexSessionMonitor.resetToFirstSeasonOnly(
-      show.sonarr_series_id,
-      show.sonarr_instance_id,
-      show.show_title,
-    )
-  } else if (show.monitoring_type === 'allSeasonPilotRolling') {
-    await plexSessionMonitor.resetToAllSeasonPilots(
-      show.sonarr_series_id,
-      show.sonarr_instance_id,
-      show.show_title,
-    )
-  }
-}
 
 const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
   fastify,
@@ -115,7 +90,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
         const shouldReset = request.query.reset !== 'false'
 
         if (shouldReset) {
-          await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
+          await fastify.plexSessionMonitor.resetShowToBaseline(existingShow)
         }
 
         const deletedCount =
@@ -160,7 +135,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
           return reply.notFound('Rolling monitored show not found')
         }
 
-        await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
+        await fastify.plexSessionMonitor.resetShowToBaseline(existingShow)
 
         const deletedUserEntries =
           await fastify.db.resetRollingMonitoredShowToOriginal(showId)
@@ -193,7 +168,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const inactivityDays = request.query.inactivityDays ?? 7
+        const inactivityDays =
+          request.query.inactivityDays ??
+          PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
         const shows =
           await fastify.db.getInactiveRollingMonitoredShows(inactivityDays)
@@ -206,7 +183,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
       } catch (error) {
         logRouteError(request.log, request, error, {
           message: 'Failed to fetch inactive rolling monitored shows',
-          inactivityDays: request.query.inactivityDays ?? 7,
+          inactivityDays:
+            request.query.inactivityDays ??
+            PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays,
         })
         return reply.internalServerError(
           'Failed to fetch inactive rolling monitored shows',
@@ -223,7 +202,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const inactivityDays = request.body.inactivityDays ?? 7
+        const inactivityDays =
+          request.body.inactivityDays ??
+          PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
         const inactiveShows =
           await fastify.db.getInactiveRollingMonitoredShows(inactivityDays)
@@ -244,7 +225,9 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
       } catch (error) {
         logRouteError(request.log, request, error, {
           message: 'Failed to reset inactive rolling monitored shows',
-          inactivityDays: request.body.inactivityDays ?? 7,
+          inactivityDays:
+            request.body.inactivityDays ??
+            PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays,
         })
         return reply.internalServerError(
           'Failed to reset inactive rolling monitored shows',
@@ -329,7 +312,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
                 const newShow =
                   await fastify.db.getRollingMonitoredShowById(newId)
                 if (newShow) {
-                  await resetShowMonitoring(newShow, fastify.plexSessionMonitor)
+                  await fastify.plexSessionMonitor.resetShowToBaseline(newShow)
                 }
               } else if (monitoringType === 'allSeasonPilotRolling') {
                 await fastify.plexSessionMonitor.monitorAllSeasonPilots(
@@ -369,14 +352,11 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
                   )
                 }
 
-                const initialSeason =
-                  monitoringType === 'allSeasonPilotRolling' ? 0 : 1
-
                 const updated =
                   await fastify.db.updateRollingShowMonitoringType(
                     show.rollingShowId,
                     monitoringType,
-                    initialSeason,
+                    ROLLING_BASELINE_SEASON[monitoringType],
                   )
                 if (!updated) {
                   throw new Error(
@@ -392,7 +372,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
                     )
                   : existing
                 if (target) {
-                  await resetShowMonitoring(target, fastify.plexSessionMonitor)
+                  await fastify.plexSessionMonitor.resetShowToBaseline(target)
                 }
 
                 await fastify.db.resetRollingMonitoredShowToOriginal(

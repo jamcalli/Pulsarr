@@ -1,3 +1,4 @@
+import { ApprovalTriggerSchema } from '@root/schemas/approval/approval.schema.js'
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import {
@@ -10,14 +11,6 @@ import {
   RoutingSeriesTypeSchema,
   RoutingTagsSchema,
 } from '@root/schemas/common/routing-target.schema.js'
-import type {
-  MinimumAvailability,
-  RadarrMonitorType,
-} from '@root/schemas/radarr/add-options.schema.js'
-import {
-  SONARR_SERIES_TYPES,
-  type SonarrSeriesType,
-} from '@root/schemas/sonarr/series-type.schema.js'
 /**
  * Webhook Payload Schemas
  *
@@ -36,27 +29,33 @@ import { z } from 'zod'
 // Common Sub-Schemas
 // =============================================================================
 
-/** User information included in webhook payloads */
-const UserInfoSchema = z.object({
-  userId: z.number(),
-  username: z.string(),
+const UserInfoSchema = z
+  .object({
+    userId: z.number(),
+    username: z.string(),
+    alias: z.string().optional(),
+  })
+  .meta({
+    id: 'WebhookUser',
+    description: 'Pulsarr user the event is about, alias only when set',
+  })
+
+const NullableUsernameUserInfoSchema = UserInfoSchema.extend({
+  username: z.string().nullable(),
 })
 
-/** Basic content information */
-const ContentInfoSchema = z.object({
-  title: z.string(),
-  type: ContentTypeSchema,
-  key: z.string(),
-  guids: z.array(z.string()),
-})
-
-/** Approval trigger types */
-const ApprovalTriggerSchema = z.enum([
-  'quota_exceeded',
-  'router_rule',
-  'manual_flag',
-  'content_criteria',
-])
+const ContentInfoSchema = z
+  .object({
+    title: z.string(),
+    type: ContentTypeSchema,
+    key: z.string(),
+    guids: z.array(z.string()),
+    posterUrl: z.string().optional(),
+  })
+  .meta({
+    id: 'WebhookContent',
+    description: 'Movie or show the event is about',
+  })
 
 // =============================================================================
 // Routing Schemas (Discriminated Union)
@@ -92,54 +91,6 @@ export const RoutingPayloadSchema = z.discriminatedUnion('instanceType', [
   SonarrRoutingPayloadSchema,
 ])
 
-/** Input type for routing builder - accepts any routing-like object */
-interface RoutingInput {
-  instanceType: 'radarr' | 'sonarr'
-  instanceId: number
-  qualityProfile?: string | number | null
-  rootFolder?: string | null
-  tags?: string[]
-  searchOnAdd?: boolean | null
-  minimumAvailability?: MinimumAvailability | null
-  monitor?: RadarrMonitorType | null
-  seasonMonitoring?: string | null
-  seriesType?: SonarrSeriesType | null
-  syncedInstances?: number[]
-}
-
-/**
- * Builds a properly typed routing payload from a generic routing object.
- * Returns a discriminated union with only the fields relevant to the instance type.
- */
-export function buildRoutingPayload(
-  routing: RoutingInput,
-): RadarrRoutingPayload | SonarrRoutingPayload {
-  if (routing.instanceType === 'radarr') {
-    return {
-      instanceType: 'radarr',
-      instanceId: routing.instanceId,
-      qualityProfile: routing.qualityProfile ?? null,
-      rootFolder: routing.rootFolder ?? null,
-      tags: routing.tags ?? [],
-      searchOnAdd: routing.searchOnAdd ?? null,
-      minimumAvailability: routing.minimumAvailability ?? null,
-      monitor: routing.monitor ?? null,
-      syncedInstances: routing.syncedInstances,
-    }
-  }
-  return {
-    instanceType: 'sonarr',
-    instanceId: routing.instanceId,
-    qualityProfile: routing.qualityProfile ?? null,
-    rootFolder: routing.rootFolder ?? null,
-    tags: routing.tags ?? [],
-    searchOnAdd: routing.searchOnAdd ?? null,
-    seasonMonitoring: routing.seasonMonitoring ?? null,
-    seriesType: routing.seriesType ?? null,
-    syncedInstances: routing.syncedInstances,
-  }
-}
-
 /** Radarr routing for routedTo arrays (with optional rule info) */
 export const RadarrRoutedToItemSchema = z.object({
   instanceId: z.number(),
@@ -174,59 +125,6 @@ export const RoutedToItemSchema = z.discriminatedUnion('instanceType', [
   SonarrRoutedToItemSchema,
 ])
 
-/** Input type for routedTo item builder */
-interface RoutedToInput {
-  instanceType: 'radarr' | 'sonarr'
-  instanceId: number
-  qualityProfile?: string | number | null
-  rootFolder?: string | null
-  tags?: string[]
-  searchOnAdd?: boolean | null
-  ruleId?: number
-  ruleName?: string
-  minimumAvailability?: MinimumAvailability | null
-  monitor?: RadarrMonitorType | null
-  seasonMonitoring?: string | null
-  seriesType?: string | null
-}
-
-/**
- * Builds a properly typed routedTo item from a generic routing detail object.
- * Returns a discriminated union with only the fields relevant to the instance type.
- */
-export function buildRoutedToItem(
-  detail: RoutedToInput,
-):
-  | z.infer<typeof RadarrRoutedToItemSchema>
-  | z.infer<typeof SonarrRoutedToItemSchema> {
-  if (detail.instanceType === 'radarr') {
-    return {
-      instanceType: 'radarr',
-      instanceId: detail.instanceId,
-      qualityProfile: detail.qualityProfile ?? undefined,
-      rootFolder: detail.rootFolder ?? undefined,
-      tags: detail.tags,
-      searchOnAdd: detail.searchOnAdd ?? undefined,
-      ruleId: detail.ruleId,
-      ruleName: detail.ruleName,
-      minimumAvailability: detail.minimumAvailability ?? undefined,
-      monitor: detail.monitor ?? undefined,
-    }
-  }
-  return {
-    instanceType: 'sonarr',
-    instanceId: detail.instanceId,
-    qualityProfile: detail.qualityProfile ?? undefined,
-    rootFolder: detail.rootFolder ?? undefined,
-    tags: detail.tags,
-    searchOnAdd: detail.searchOnAdd ?? undefined,
-    ruleId: detail.ruleId,
-    ruleName: detail.ruleName,
-    seasonMonitoring: detail.seasonMonitoring ?? undefined,
-    seriesType: SONARR_SERIES_TYPES.find((type) => type === detail.seriesType),
-  }
-}
-
 // =============================================================================
 // Event Payload Schemas
 // =============================================================================
@@ -235,6 +133,7 @@ export function buildRoutedToItem(
 export const MediaAvailablePayloadSchema = z.object({
   mediaType: ContentTypeSchema,
   title: z.string(),
+  key: z.string(),
   guids: z.array(z.string()),
   posterUrl: z.string().optional(),
   episodeDetails: z
@@ -249,24 +148,14 @@ export const MediaAvailablePayloadSchema = z.object({
   isBulkRelease: z.boolean(),
   instanceType: InstanceTypeSchema.optional(),
   instanceId: z.number().optional(),
-  watchlistedBy: z.array(
-    z.object({
-      userId: z.number(),
-      username: z.string(),
-      alias: z.string().optional(),
-    }),
-  ),
+  watchlistedBy: z.array(UserInfoSchema),
 })
 
 /** watchlist.added - Fired when a user adds content to their Plex watchlist */
 export const WatchlistAddedPayloadSchema = z.object({
   addedBy: UserInfoSchema,
-  content: z.object({
-    title: z.string(),
-    type: ContentTypeSchema,
+  content: ContentInfoSchema.omit({ posterUrl: true }).extend({
     thumb: z.string().optional(),
-    key: z.string(),
-    guids: z.array(z.string()),
   }),
   routedTo: z.array(RoutedToItemSchema),
 })
@@ -274,35 +163,20 @@ export const WatchlistAddedPayloadSchema = z.object({
 /** watchlist.removed - Fired when a user removes content from their watchlist */
 export const WatchlistRemovedPayloadSchema = z.object({
   watchlistItemId: z.number(),
-  content: z.object({
-    title: z.string(),
-    type: ContentTypeSchema,
-    key: z.string(),
-    guids: z.array(z.string()),
-  }),
-  removedBy: z.object({
-    userId: z.number(),
-    username: z.string(),
-  }),
+  content: ContentInfoSchema,
+  removedBy: UserInfoSchema,
 })
 
 /** approval.created - Fired when a new approval request is submitted */
 export const ApprovalCreatedPayloadSchema = z.object({
   approvalId: z.number(),
-  content: z.object({
-    title: z.string(),
-    type: ContentTypeSchema,
-    key: z.string(),
-    posterUrl: z.string().optional(),
-  }),
-  requestedBy: z.object({
-    userId: z.number(),
-    username: z.string().nullable(),
-  }),
+  content: ContentInfoSchema,
+  requestedBy: NullableUsernameUserInfoSchema,
   triggeredBy: ApprovalTriggerSchema,
   approvalReason: z.string().nullable(),
   pendingCount: z.number(),
   proposedRouting: RoutingPayloadSchema.optional(),
+  additionalRouting: z.array(RoutingPayloadSchema).optional(),
 })
 
 /** approval.resolved - Fired when an approval is approved or rejected */
@@ -319,6 +193,7 @@ export const ApprovalResolvedPayloadSchema = z.object({
   createdAt: z.string(),
   resolvedAt: z.string(),
   routing: RoutingPayloadSchema.optional(),
+  additionalRouting: z.array(RoutingPayloadSchema).optional(),
 })
 
 /** approval.auto - Fired when content is auto-approved */
@@ -327,6 +202,7 @@ export const ApprovalAutoPayloadSchema = z.object({
   content: ContentInfoSchema,
   user: UserInfoSchema,
   routing: RoutingPayloadSchema,
+  additionalRouting: z.array(RoutingPayloadSchema).optional(),
   reason: z.string(),
 })
 
@@ -369,10 +245,7 @@ export const DeleteSyncCompletedPayloadSchema = z.object({
 
 /** quota.cap_reached - Fired when a user hits their watchlist cap */
 export const QuotaCapReachedPayloadSchema = z.object({
-  user: z.object({
-    userId: z.number(),
-    username: z.string().nullable(),
-  }),
+  user: NullableUsernameUserInfoSchema,
   contentType: ContentTypeSchema,
   currentCount: z.number(),
   cap: z.number(),
@@ -394,6 +267,8 @@ export const UserCreatedPayloadSchema = z.object({
 // Inferred Types
 // =============================================================================
 
+export type WebhookUser = z.infer<typeof UserInfoSchema>
+export type WebhookContent = z.infer<typeof ContentInfoSchema>
 export type RadarrRoutingPayload = z.infer<typeof RadarrRoutingPayloadSchema>
 export type SonarrRoutingPayload = z.infer<typeof SonarrRoutingPayloadSchema>
 export type RoutingPayload = z.infer<typeof RoutingPayloadSchema>
@@ -461,6 +336,7 @@ export const WEBHOOK_PAYLOAD_SCHEMAS: WebhookPayloadSchemas = {
 export const MEDIA_AVAILABLE_EXAMPLE: MediaAvailablePayload = {
   mediaType: 'movie',
   title: 'Dune: Part Two',
+  key: '5d7768388718ba001e31563d',
   guids: ['imdb:tt15239678', 'tmdb:693134'],
   posterUrl: 'https://image.tmdb.org/t/p/w500/czembW0Rk1Ke7lCJGahbOhdCvlq.jpg',
   isBulkRelease: false,
@@ -473,7 +349,7 @@ export const MEDIA_AVAILABLE_EXAMPLE: MediaAvailablePayload = {
 }
 
 export const WATCHLIST_ADDED_EXAMPLE: WatchlistAddedPayload = {
-  addedBy: { userId: 1, username: 'john_doe' },
+  addedBy: { userId: 1, username: 'john_doe', alias: 'John' },
   content: {
     title: 'Dune: Part Two',
     type: 'movie',
@@ -502,10 +378,12 @@ export const WATCHLIST_REMOVED_EXAMPLE: WatchlistRemovedPayload = {
     type: 'movie',
     key: '5d7768388718ba001e31563d',
     guids: ['imdb:tt15239678', 'tmdb:693134'],
+    posterUrl: 'https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg',
   },
   removedBy: {
     userId: 1,
     username: 'john_doe',
+    alias: 'John',
   },
 }
 
@@ -515,11 +393,13 @@ export const APPROVAL_CREATED_EXAMPLE: ApprovalCreatedPayload = {
     title: 'The Batman',
     type: 'movie',
     key: '5d7768388718ba001e31abc',
+    guids: ['imdb:tt1877830', 'tmdb:414906'],
     posterUrl: 'https://image.tmdb.org/t/p/w500/poster.jpg',
   },
   requestedBy: {
     userId: 1,
     username: 'john_doe',
+    alias: 'John',
   },
   triggeredBy: 'quota_exceeded',
   approvalReason: 'User has exceeded monthly movie quota (5/5)',
@@ -534,6 +414,18 @@ export const APPROVAL_CREATED_EXAMPLE: ApprovalCreatedPayload = {
     minimumAvailability: 'released',
     monitor: 'movieOnly',
   },
+  additionalRouting: [
+    {
+      instanceType: 'radarr',
+      instanceId: 2,
+      qualityProfile: '4K',
+      rootFolder: '/movies-4k',
+      tags: ['plex-user'],
+      searchOnAdd: true,
+      minimumAvailability: 'released',
+      monitor: 'movieOnly',
+    },
+  ],
 }
 
 export const APPROVAL_RESOLVED_EXAMPLE: ApprovalResolvedPayload = {
@@ -544,10 +436,12 @@ export const APPROVAL_RESOLVED_EXAMPLE: ApprovalResolvedPayload = {
     type: 'movie',
     key: '5d7768388718ba001e31abc',
     guids: ['imdb:tt1877830', 'tmdb:414906'],
+    posterUrl: 'https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg',
   },
   requestedBy: {
     userId: 1,
     username: 'john_doe',
+    alias: 'John',
   },
   resolvedBy: {
     userId: 99,
@@ -575,10 +469,12 @@ export const APPROVAL_AUTO_EXAMPLE: ApprovalAutoPayload = {
     type: 'show',
     key: '5d7768388718ba001e31def',
     guids: ['imdb:tt0903747', 'tmdb:1396', 'tvdb:81189'],
+    posterUrl: 'https://image.tmdb.org/t/p/w600_and_h900_bestv2/poster.jpg',
   },
   user: {
     userId: 1,
     username: 'john_doe',
+    alias: 'John',
   },
   routing: {
     instanceType: 'sonarr',
@@ -625,6 +521,7 @@ export const QUOTA_CAP_REACHED_EXAMPLE: QuotaCapReachedPayload = {
   user: {
     userId: 1,
     username: 'john_doe',
+    alias: 'John',
   },
   contentType: 'movie',
   currentCount: 25,

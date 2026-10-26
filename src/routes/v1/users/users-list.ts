@@ -57,7 +57,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const users = await fastify.db.getUsersWithWatchlistCount()
+        const users = await fastify.plexWatchlist.withFriendStatus(
+          await fastify.db.getUsersWithWatchlistCount(),
+        )
 
         reply.status(200)
         return {

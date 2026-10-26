@@ -1,5 +1,9 @@
 import type { Config } from '@root/types/config.types.js'
-import type { RoutingDetails } from '@root/types/router.types.js'
+import type {
+  AppliedRadarrRouting,
+  AppliedSonarrRouting,
+  RoutingDetails,
+} from '@root/types/router.types.js'
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { NotificationService } from '@services/notification.service.js'
@@ -27,14 +31,38 @@ export interface ContentRouterDeps {
 export interface RouteContentOptions {
   userId: number
   userName?: string
+  userAlias?: string | null
   syncing?: boolean
   syncTargetInstanceId?: number
+  syncSourceInstanceId?: number
+  /** Set by the full reconciliation pass, which revisits items already decided. */
+  reconcile?: boolean
 }
 
 export interface RoutingOutcome {
   routedInstances: number[]
   routingDetails: RoutingDetails[]
 }
+
+interface AppliedSettingsBase {
+  qualityProfile: string | undefined
+  rootFolder: string | undefined
+  tags: string[]
+  searchOnAdd: boolean
+}
+
+export interface AppliedMovieSettings extends AppliedSettingsBase {
+  minimumAvailability: AppliedRadarrRouting['minimumAvailability']
+  monitor: AppliedRadarrRouting['monitor']
+}
+
+export interface AppliedShowSettings extends AppliedSettingsBase {
+  seasonMonitoring: AppliedSonarrRouting['seasonMonitoring']
+  seriesType: AppliedSonarrRouting['seriesType']
+}
+
+/** One level deep so the log viewer flattens it into rows. */
+export type AppliedSettings = AppliedMovieSettings | AppliedShowSettings
 
 export type GateOutcome =
   | { action: 'handled'; result: RoutingOutcome }

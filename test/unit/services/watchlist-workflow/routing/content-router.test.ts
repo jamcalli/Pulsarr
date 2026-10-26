@@ -13,11 +13,13 @@ import {
   routeShow,
 } from '@services/watchlist-workflow/routing/content-router.js'
 import type { ContentRoutingDeps } from '@services/watchlist-workflow/types.js'
+import type { FastifyInstance } from 'fastify'
 import { describe, expect, it, vi } from 'vitest'
 import {
   echoAppliedRadarr,
   echoAppliedSonarr,
 } from '../../../../mocks/applied-routing.js'
+import { createMockLogger } from '../../../../mocks/logger.js'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 const SONARR_ITEM: SonarrItem = {
@@ -87,10 +89,15 @@ function buildDeps(
   const existence = async (instanceId: number) => byInstance[instanceId - 1]
   const ids = byInstance.map((_, index) => index + 1)
   return createWorkflowDeps({
+    fastify: {
+      progress: { emit: vi.fn() } as unknown as FastifyInstance['progress'],
+    },
     db: {
       getApprovalRequestByContent: vi.fn().mockResolvedValue(record),
+      updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
     },
     contentRouter: {
+      log: createMockLogger(),
       getTargetInstances: vi.fn(async () => ({ instanceIds })),
       routeContent: vi.fn(async () => ({
         routedInstances: [1],
@@ -272,6 +279,8 @@ const MISSING: ExistenceCheckResult = {
 const ROUTERS = [
   {
     contentType: 'show',
+    itemKey: 'show-key',
+    instanceField: 'sonarr_instance_id',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.sonarrManager.routeItemToSonarr).mock.calls,
     route: (
@@ -308,6 +317,8 @@ const ROUTERS = [
   },
   {
     contentType: 'movie',
+    itemKey: 'movie-key',
+    instanceField: 'radarr_instance_id',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.radarrManager.routeItemToRadarr).mock.calls,
     route: (
@@ -472,5 +483,50 @@ describe.each(ROUTERS)('$contentType partial presence', ({ route, added }) => {
 
     expect(await route(deps)).toEqual(exists)
     expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+  })
+})
+
+describe.each(ROUTERS)('$contentType existing copy status', (router) => {
+  it('marks the item requested on the instance that has it', async () => {
+    const deps = buildDeps([MISSING, FOUND])
+
+    await router.route(deps)
+
+    expect(deps.db.updateWatchlistItem).toHaveBeenCalledWith(
+      1,
+      router.itemKey,
+      {
+        status: 'requested',
+        [router.instanceField]: 2,
+      },
+    )
+    expect(deps.fastify.progress.emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'watchlist',
+        metadata: { action: 'status', userIds: [1] },
+      }),
+    )
+  })
+
+  it('leaves an import list exclusion alone', async () => {
+    const deps = buildDeps([MISSING, MISSING])
+
+    await router.route(deps, [], [1])
+
+    expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+    expect(deps.fastify.progress.emit).not.toHaveBeenCalled()
+  })
+
+  it('still reports the skip when the status write fails', async () => {
+    const deps = buildDeps([MISSING, FOUND])
+    vi.mocked(deps.db.updateWatchlistItem).mockRejectedValueOnce(
+      new Error('db down'),
+    )
+
+    expect(await router.route(deps)).toEqual({
+      routed: false,
+      skippedReason: 'exists-in-target',
+    })
+    expect(deps.fastify.progress.emit).not.toHaveBeenCalled()
   })
 })

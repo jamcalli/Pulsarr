@@ -1,1038 +1,452 @@
 import {
-  AlertCircle,
-  AlertTriangle,
-  Check,
-  Clock,
-  HelpCircle,
-  Loader2,
-  PlayCircle,
-  Power,
-  Save,
-  Tag,
-  X,
-} from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { PageError } from '@/components/page-error'
-import { TimeSelector } from '@/components/time-input'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+  MAX_DELETION_PREVENTION,
+  PLEX_PROTECTION_PLAYLIST_DEFAULT,
+} from '@root/schemas/shared/delete-sync-limits'
+import { useStore } from '@tanstack/react-form'
+import { useState } from 'react'
+import { ConfigPageGate } from '@/components/config-page-gate'
+import { FieldRow } from '@/components/form/field-row'
+import { InlineCode } from '@/components/inline-code'
+import { LeaveDialog } from '@/components/leave-dialog'
+import { NavPageButton } from '@/components/nav-page-button'
+import { Page, PageHeader } from '@/components/page-header'
+import { ActionRow } from '@/components/settings/action-row'
+import { InfoLine } from '@/components/settings/info-line'
+import { LockLine } from '@/components/settings/lock-line'
+import { SaveBar } from '@/components/settings/save-bar'
+import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
+import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
+import { SettingsSection } from '@/components/settings/settings-section'
+import { WatchlistSyncSteps } from '@/components/watchlist-sync-steps'
+import { DryRunItemsCredenza } from '@/features/library/components/delete-sync/dry-run-items-credenza'
+import { DryRunResult } from '@/features/library/components/delete-sync/dry-run-result'
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
+  RunNowConfirm,
+  ScheduleOnConfirm,
+} from '@/features/library/components/delete-sync/run-confirms'
+import { useDeleteSyncForm } from '@/features/library/hooks/delete-sync/useDeleteSyncForm'
+import { useDryRun } from '@/features/library/hooks/delete-sync/useDryRun'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
+  latestDryRunLine,
+  maxDeletionHelp,
+  playlistHelp,
+  removalTagWarning,
+  scheduleHelp,
+} from '@/features/library/lib/delete-sync/delete-sync-copy'
+import { isValidMaxDeletion } from '@/features/library/lib/delete-sync/delete-sync-form.schema'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { UtilitySectionHeader } from '@/components/utility-section-header'
-import { DeleteSyncConfirmationModal } from '@/features/library/components/delete-sync/delete-sync-confirmation-modal'
-import { DeleteSyncDryRunModal } from '@/features/library/components/delete-sync/delete-sync-dry-run-modal'
-import { DeleteSyncPageSkeleton } from '@/features/library/components/delete-sync/delete-sync-page-skeleton'
-import { useDeleteSync } from '@/features/library/hooks/delete-sync/useDeleteSync'
-import { useConfig } from '@/hooks/useConfig'
-import { useMediaQuery } from '@/hooks/useMediaQuery'
-import { useShowLoading } from '@/hooks/useMinLoading'
-import { formatScheduleDisplay } from '@/lib/utils'
+  anyTypeSelected,
+  dryRunKey,
+} from '@/features/library/lib/delete-sync/delete-sync-settings'
+import { DELETE_SYNC_SKELETON } from '@/features/library/lib/delete-sync/delete-sync-skeleton'
+import { useLeaveGuard } from '@/hooks/useLeaveGuard'
+import type { ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
+import { NAV_PAGES } from '@/lib/navigation'
+import { notifyOptions } from '@/lib/notify-labels'
+import type { components } from '@/types/api.js'
 
-/**
- * Renders the Delete Sync page, providing a user interface to configure, schedule, and manage automated deletion of media content based on watchlist or tag criteria.
- *
- * Users can enable or disable the deletion sync job, set scheduling options, define deletion and safety preferences, configure notification settings, and perform immediate or dry-run executions. The component includes responsive design, contextual tooltips, validation feedback, and confirmation modals for critical actions. Error and loading states are handled with appropriate UI feedback.
- */
-export default function DeleteSyncPage() {
-  const isMobile = useMediaQuery('(max-width: 768px)')
+const SECTION = 'Library'
+const TITLE = NAV_PAGES.deleteSync.label
+const DESCRIPTION =
+  'Remove movies and shows from Radarr and Sonarr once nobody wants them.'
+const SCHEDULE_NAME = 'delete-sync'
 
+const MODE_OPTIONS = [
+  {
+    value: 'watchlist',
+    label: 'Watchlist based',
+    description: "Deletes anything not on a counted user's watchlist.",
+  },
+  {
+    value: 'tag-based',
+    label: 'Tag based',
+    description: 'Deletes anything carrying the removal tag.',
+  },
+] as const satisfies Array<{
+  value: components['schemas']['DeletionMode']
+  label: string
+  description: string
+}>
+
+const PICK_TYPES_REASON = 'Pick movies or shows first.'
+const NOTHING_SELECTED_RUN_REASON =
+  'Nothing is selected, so a run would do nothing.'
+
+type Confirm = 'run' | 'schedule' | null
+
+function DeleteSyncSettings({
+  config,
+  schedule,
+  run,
+}: {
+  config: components['schemas']['Config']
+  schedule: ScheduleStatus
+  run: ReturnType<typeof useSchedule>['run']
+}) {
   const {
-    form,
-    error,
-    isDryRunLoading,
-    dryRunError,
-    isSaving,
-    submittedValues,
-    isTogglingStatus,
-    isRunningJob,
-    scheduleTime,
-    dayOfWeek,
-    deleteSyncJob,
-    formatLastRun,
-    formatNextRun,
-    handleDryRun,
-    initiateRunJob,
-    handleRunNow,
-    initiateToggleStatus,
-    handleToggleStatus,
-    onSubmit,
-    handleCancel,
-    handleTimeChange,
-    showEnableConfirmation,
-    showRunConfirmation,
-    showDryRunModal,
-    setShowEnableConfirmation,
-    setShowRunConfirmation,
-    setShowDryRunModal,
-  } = useDeleteSync()
+    configForm,
+    scheduleForm,
+    dirty,
+    saving,
+    saved,
+    errorMessage,
+    discard,
+    submit,
+  } = useDeleteSyncForm(config, schedule)
+  const guard = useLeaveGuard(dirty)
+  const [confirm, setConfirm] = useState<Confirm>(null)
+  const [itemsOpen, setItemsOpen] = useState(false)
+  const values = useStore(configForm.store, (state) => state.values)
+  const invalid = useStore(configForm.store, (state) => !state.isValid)
+  const scheduleValues = useStore(scheduleForm.store, (state) => state.values)
 
-  const {
-    initialize: configInitialize,
-    isInitialized,
-    error: configError,
-  } = useConfig()
+  const savedAnyType = anyTypeSelected(config)
+  const savedKey = dryRunKey(config)
+  const dryRun = useDryRun({
+    key: savedKey,
+    nothingSelected: !savedAnyType,
+    deleteFiles: config.deleteFiles,
+  })
+  const draftKey = dryRunKey({ ...config, ...values })
+  const tagMode = values.deletionMode === 'tag-based'
+  const swapsTag = config.removedTagMode === 'special-tag'
+  const nothingSelected = !anyTypeSelected(values)
+  const latest = dryRun.result
+  const latestLine = (key: string) =>
+    latest && latest.data.key === key
+      ? latestDryRunLine(
+          latest.data.results,
+          latest.data.nothingSelected,
+          latest.ranAt,
+        )
+      : null
 
-  const navigate = useNavigate()
-
-  // Initialize config with minimum duration for consistent UX
-  const isInitializing = useShowLoading(!isInitialized)
-
-  // Determine status based on job state
-  const getStatus = () => {
-    if (!deleteSyncJob) return 'unknown'
-    if (!deleteSyncJob.enabled) return 'disabled'
-    if (deleteSyncJob.last_run?.status === 'failed') return 'failed'
-    return 'enabled'
+  const save = () => {
+    if (invalid) return
+    if (!schedule.enabled && scheduleValues.enabled) setConfirm('schedule')
+    else submit()
   }
 
-  if (error) {
-    return (
-      <div>
-        <UtilitySectionHeader
-          title="Delete Sync"
-          description="Automatically removes content when it's no longer on any watchlists"
-          status="unknown"
-        />
-        <PageError message={`Error loading schedule: ${error}`} />
-      </div>
-    )
-  }
-
-  if (configError && !isInitialized) {
-    return (
-      <PageError message={configError} onRetry={() => configInitialize(true)} />
-    )
-  }
-
-  if (isInitializing) {
-    return <DeleteSyncPageSkeleton />
-  }
-
-  if (!isInitialized) {
-    return null
-  }
-
-  if (!deleteSyncJob) {
-    return <DeleteSyncPageSkeleton />
-  }
+  const removalTagButton = <NavPageButton page={NAV_PAGES.userTags} />
+  const exclusionsLine = tagMode
+    ? 'Excluded titles are candidates even without the tag.'
+    : 'Excluded titles count as not on any watchlist.'
 
   return (
-    <div>
-      <DeleteSyncConfirmationModal
-        open={showEnableConfirmation}
-        onOpenChange={setShowEnableConfirmation}
-        onConfirm={() => handleToggleStatus(deleteSyncJob?.enabled || false)}
-        mode="enable"
-        isSubmitting={isTogglingStatus}
-      />
-
-      <DeleteSyncConfirmationModal
-        open={showRunConfirmation}
-        onOpenChange={setShowRunConfirmation}
-        onConfirm={handleRunNow}
-        mode="run"
-        isSubmitting={isRunningJob}
-      />
-
-      <DeleteSyncDryRunModal
-        open={showDryRunModal}
-        onOpenChange={setShowDryRunModal}
-      />
-
-      <UtilitySectionHeader
-        title="Delete Sync"
-        description="Automatically removes content when it's no longer on any watchlists"
-        status={getStatus()}
-      />
-
-      <div className="space-y-6">
-        {/* Actions section */}
-        <div>
-          <h3 className="font-medium text-foreground mb-2">Actions</h3>
-          <div className="flex flex-wrap items-center gap-4">
-            <Button
-              type="button"
-              size="sm"
-              onClick={initiateToggleStatus}
-              disabled={isTogglingStatus || !deleteSyncJob}
-              variant={deleteSyncJob?.enabled ? 'error' : 'noShadow'}
-              className="h-8"
-            >
-              {isTogglingStatus ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Power className="h-4 w-4" />
-              )}
-              <span className="ml-2">
-                {deleteSyncJob?.enabled ? 'Disable' : 'Enable'}
-              </span>
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={initiateRunJob}
-              disabled={!deleteSyncJob?.enabled || isRunningJob}
-              variant="noShadow"
-              className="h-8"
-            >
-              {isRunningJob ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <PlayCircle className="h-4 w-4" />
-              )}
-              <span className="ml-2">Run Now</span>
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleDryRun}
-              disabled={isDryRunLoading}
-              variant="noShadow"
-              className="h-8"
-            >
-              {isDryRunLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-              <span className="ml-2">Dry Run</span>
-            </Button>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Status section */}
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col items-center text-center">
-              <h3 className="font-medium text-sm text-foreground mb-1">
-                Status
-              </h3>
-              <p className="font-medium text-foreground">
-                {deleteSyncJob?.enabled ? 'Enabled' : 'Disabled'}
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <h3 className="font-medium text-sm text-foreground mb-1">
-                Last Run
-              </h3>
-              <p className="font-medium text-foreground flex items-center">
-                {formatLastRun(deleteSyncJob?.last_run)}
-                {deleteSyncJob?.last_run?.status === 'failed' && (
-                  <span className="text-red-500 ml-2 flex items-center">
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    Failed
-                  </span>
-                )}
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <h3 className="font-medium text-sm text-foreground mb-1">
-                Next Scheduled Run
-              </h3>
-              <p className="font-medium text-foreground">
-                {formatNextRun(deleteSyncJob?.next_run)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {dryRunError && (
-          <Alert variant="error">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{dryRunError}</AlertDescription>
-          </Alert>
-        )}
-
-        <Separator />
-
-        {/* Schedule section */}
-        <div>
-          <div className="flex items-center mb-3">
-            <Clock className="h-4 w-4 mr-2 text-foreground" />
-            <h3 className="font-medium text-sm text-foreground">Schedule</h3>
-          </div>
-
-          <FormField
-            control={form.control}
-            name="scheduleTime"
-            render={({ field }) => (
-              <div className="shrink-0">
-                <TimeSelector
-                  value={field.value || scheduleTime}
-                  onChange={handleTimeChange}
-                  dayOfWeek={form.watch('dayOfWeek')}
-                  className={
-                    isMobile
-                      ? 'flex-col items-start justify-start gap-3 w-full'
-                      : ''
-                  }
+    <Page>
+      <PageHeader section={SECTION} title={TITLE} description={DESCRIPTION} />
+      <configForm.AppForm>
+        <configForm.Form className="flex flex-col gap-5" submit={save}>
+          <ScheduledJobPanel
+            title="Runs and schedule"
+            description="Preview with a dry run, then run once or on a schedule."
+            schedule={schedule}
+            dirty={dirty}
+            run={{
+              run: () => setConfirm('run'),
+              running: run.running,
+              errorMessage: run.errorMessage,
+              unavailableReason: savedAnyType
+                ? null
+                : NOTHING_SELECTED_RUN_REASON,
+              blocked: dryRun.running,
+            }}
+            before={
+              <ActionRow
+                title="Dry run"
+                description="Previews a run without deleting. Still refreshes watchlists and notifies."
+                buttonLabel="Dry run"
+                busyLabel="Running..."
+                disabled={dirty || run.running}
+                running={dryRun.running}
+                onRun={dryRun.run}
+                live={dryRun.running ? <WatchlistSyncSteps /> : undefined}
+                result={
+                  latest && (
+                    <DryRunResult
+                      ranAt={latest.ranAt}
+                      result={latest.data.results}
+                      nothingSelected={latest.data.nothingSelected}
+                      stale={latest.data.key !== savedKey}
+                      onView={() => setItemsOpen(true)}
+                    />
+                  )
+                }
+                errorMessage={dryRun.errorMessage}
+              />
+            }
+          >
+            <scheduleForm.AppField name="enabled">
+              {(field) => (
+                <field.SwitchField
+                  label="Run on a schedule"
+                  description={scheduleHelp(scheduleValues.expression)}
                 />
-              </div>
-            )}
-          />
-
-          {deleteSyncJob &&
-            deleteSyncJob.type === 'cron' &&
-            deleteSyncJob.config?.expression && (
-              <div className="mt-2 text-xs text-foreground">
-                <p>
-                  Current schedule:{' '}
-                  {deleteSyncJob.config.expression === '0 0 * * * *'
-                    ? 'Every hour'
-                    : formatScheduleDisplay(
-                        isSaving && submittedValues?.scheduleTime
-                          ? submittedValues.scheduleTime
-                          : scheduleTime,
-                        isSaving && submittedValues?.dayOfWeek
-                          ? submittedValues.dayOfWeek
-                          : dayOfWeek,
-                      )}
-                </p>
-              </div>
-            )}
-        </div>
-
-        <Separator />
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-medium text-sm text-foreground mb-2">
-                  Deletion Mode
-                </h3>
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="deletionMode"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Mode
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-xs space-y-2">
-                                <p>Choose how content deletion should work:</p>
-                                <ul className="list-disc pl-4 text-sm">
-                                  <li>
-                                    <strong>Watchlist-based:</strong> Delete
-                                    content that's no longer on any watchlist.
-                                  </li>
-                                  <li>
-                                    <strong>Tag-based:</strong> Only delete
-                                    content that has the "
-                                    {form.watch('removedTagPrefix') ||
-                                      'pulsarr-removed'}
-                                    " tag.
-                                  </li>
-                                </ul>
-                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                  <strong>Note:</strong> Tag-based deletion
-                                  requires "Tag Behavior on Removal" to be set
-                                  to <strong>"Special Tag"</strong> in the User
-                                  Tags section. This ensures content is properly
-                                  tagged when removed from watchlists for later
-                                  deletion.
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <FormControl>
-                          <div className="flex flex-col space-y-1.5">
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value || 'watchlist'}
-                              disabled={isSaving}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select deletion mode" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="watchlist">
-                                  Watchlist-based
-                                </SelectItem>
-                                <SelectItem value="tag-based">
-                                  Tag-based (
-                                  {form.watch('removedTagPrefix') ||
-                                    'pulsarr-removed'}
-                                  )
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                        {field.value === 'tag-based' &&
-                          form.watch('removedTagMode') !== 'special-tag' && (
-                            <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 rounded-md">
-                              <div className="flex items-start space-x-2">
-                                <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-600 dark:text-yellow-500 shrink-0" />
-                                <p className="text-xs text-yellow-800 dark:text-yellow-400">
-                                  <strong>Configuration Warning:</strong>{' '}
-                                  Tag-based deletion requires "Tag Behavior on
-                                  Removal" to be set to "Special Tag" in the
-                                  User Tags section. Current setting is "
-                                  {form.watch('removedTagMode') || 'remove'}".{' '}
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      navigate('/utilities/user-tags')
-                                    }
-                                    className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300 cursor-pointer"
-                                  >
-                                    Configure User Tags
-                                  </button>
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {form.watch('deletionMode') === 'tag-based' && (
-                  <div className="mt-4">
-                    <div className="flex items-center mb-2">
-                      <FormLabel className="text-foreground m-0">
-                        Removal Tag Name
-                      </FormLabel>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="max-w-xs space-y-2">
-                            <p>
-                              This tag is used to mark content for deletion in
-                              tag-based deletion mode. Any content with this
-                              exact tag will be deleted during the sync job.
-                            </p>
-                            <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                              <strong>Note:</strong> This value is configured in
-                              the User Tags section with the{' '}
-                              <strong>"Removed Tag Label"</strong> field when
-                              using <strong>"Special Tag"</strong> mode.
-                            </p>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    <div className="flex items-center p-2 bg-slate-700 dark:bg-slate-700 rounded-md border border-slate-700 dark:border-slate-700">
-                      <Tag className="h-4 w-4 mr-2 text-white dark:text-white" />
-                      <code className="text-sm font-mono text-white dark:text-white">
-                        {form.watch('removedTagPrefix') || 'pulsarr-removed'}
-                      </code>
-                    </div>
-
-                    <div className="mt-4">
-                      <FormField
-                        control={form.control}
-                        name="deleteSyncRequiredTagRegex"
-                        render={({ field }) => (
-                          <FormItem className="space-y-2">
-                            <div className="flex flex-col space-y-2">
-                              <div className="flex items-center">
-                                <FormLabel className="text-foreground m-0">
-                                  Additional Tag Regex Filter (Optional)
-                                </FormLabel>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <div className="max-w-xs space-y-2">
-                                      <p>
-                                        If specified, content must have BOTH the
-                                        removal tag AND a tag matching this
-                                        regex pattern to be deleted.
-                                      </p>
-                                      <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                        <strong>Example use case:</strong> For
-                                        multi-instance coordination, match the
-                                        OTHER instance's removal tag (e.g.,{' '}
-                                        <code>pulsarr2-removed</code> on
-                                        instance 1) to ensure content is only
-                                        deleted when BOTH instances have marked
-                                        it for removal.
-                                      </p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  value={
-                                    isSaving && submittedValues
-                                      ? (submittedValues.deleteSyncRequiredTagRegex ??
-                                        '')
-                                      : (field.value ?? '')
-                                  }
-                                  className="w-full"
-                                  placeholder="e.g., pulsarr2-removed"
-                                  disabled={isSaving}
-                                />
-                              </FormControl>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <h3 className="font-medium text-sm text-foreground mt-4 mb-2">
-                  Configuration
-                </h3>
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="deleteMovie"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={
-                              isSaving && submittedValues
-                                ? submittedValues.deleteMovie
-                                : field.value
-                            }
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Delete Movies
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Remove movies from Radarr when no longer on any
-                                watchlist.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deleteEndedShow"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Delete Ended Shows
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Remove TV shows with status "Ended" when no
-                                longer on any watchlist.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deleteContinuingShow"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Delete Continuing Shows
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Remove TV shows with status "Continuing" when no
-                                longer on any watchlist.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deleteFiles"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Delete Files
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Delete the actual media files when removing
-                                content, not just the tracking entry.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deleteSyncCleanupApprovals"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Clean Up Approval Records
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Automatically remove approval request records
-                                when content is deleted. This helps keep the
-                                approval history clean and prevents old records
-                                from accumulating.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-medium text-sm text-foreground mb-2">
-                  Safety Settings
-                </h3>
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="respectUserSyncSetting"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Respect User Sync Settings
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Only delete content for users who have syncing
-                                enabled in their profile settings.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="enablePlexPlaylistProtection"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Enable Plex Playlist Protection
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Prevent deletion of any content found in a
-                                designated Plex playlist. When enabled, running
-                                a dry run will create these playlists for all
-                                Plex users in the server.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="plexProtectionPlaylistName"
-                    render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center">
-                            <FormLabel className="text-foreground m-0">
-                              Protection Playlist Name
-                            </FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Name of the Plex playlist containing content
-                                  that should never be deleted.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={
-                                isSaving && submittedValues
-                                  ? submittedValues.plexProtectionPlaylistName ||
-                                    ''
-                                  : field.value || ''
-                              }
-                              className="w-full"
-                              placeholder="Do Not Delete"
-                              disabled={
-                                isSaving ||
-                                !form.watch('enablePlexPlaylistProtection')
-                              }
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deleteSyncNotify"
-                    render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center">
-                            <FormLabel className="text-foreground m-0">
-                              Notifications
-                            </FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs">
-                                  <p>
-                                    Controls how deletion notifications are
-                                    sent:
-                                  </p>
-                                  <ul className="list-disc pl-4 text-sm mt-1">
-                                    <li>
-                                      All Channels: Send to all notification
-                                      methods
-                                    </li>
-                                    <li>Apprise Only: Only use Apprise</li>
-                                    <li>
-                                      Discord (Webhook + DM): Send to both
-                                      Discord webhook and DMs
-                                    </li>
-                                    <li>
-                                      Discord (DM Only): Send only to Discord
-                                      DMs
-                                    </li>
-                                    <li>
-                                      Discord (Webhook Only): Send only to
-                                      Discord webhook
-                                    </li>
-                                    <li>None: No notifications</li>
-                                  </ul>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={
-                              isSaving && submittedValues
-                                ? submittedValues.deleteSyncNotify
-                                : field.value
-                            }
-                            disabled={isSaving}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select notification type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="all">All Channels</SelectItem>
-                              <SelectItem value="apprise-only">
-                                Apprise Only
-                              </SelectItem>
-                              <SelectItem value="discord-both">
-                                Discord (Webhook + DM)
-                              </SelectItem>
-                              <SelectItem value="dm-only">
-                                Discord (DM Only)
-                              </SelectItem>
-                              <SelectItem value="webhook-only">
-                                Discord (Webhook Only)
-                              </SelectItem>
-                              <SelectItem value="none">None</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deleteSyncNotifyOnlyOnDeletion"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={
-                              isSaving ||
-                              form.watch('deleteSyncNotify') === 'none'
-                            }
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Only Notify When Items Deleted
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                When enabled, notifications will only be sent
-                                when items are actually deleted. No notification
-                                will be sent for "0 items deleted" scenarios.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="maxDeletionPrevention"
-                    render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center">
-                            <FormLabel className="text-foreground m-0">
-                              Max Deletion Prevention (%)
-                            </FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Safety threshold (%) to prevent mass
-                                  deletions. Operation will abort if percentage
-                                  exceeds this value.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={100}
-                              {...field}
-                              onChange={(e) => {
-                                const value = e.target.value
-                                field.onChange(
-                                  value === '' ? undefined : Number(value),
-                                )
-                              }}
-                              value={
-                                isSaving && submittedValues
-                                  ? submittedValues.maxDeletionPrevention?.toString() ||
-                                    ''
-                                  : field.value?.toString() || ''
-                              }
-                              className="w-20 text-center"
-                              placeholder="10"
-                              disabled={isSaving}
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deleteSyncTrackedOnly"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground m-0">
-                            Delete Tracked Content Only
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Only delete content that was added through the
-                                approval system. Content added manually or
-                                outside of Pulsarr will be protected from
-                                deletion.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons - always show, but disable save when not dirty */}
-            <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
-              {form.formState.isDirty && !isSaving && (
-                <Button
-                  type="button"
-                  variant="cancel"
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                  className="flex items-center gap-1"
-                >
-                  <X className="h-4 w-4" />
-                  <span>Cancel</span>
-                </Button>
               )}
-
-              <Button
-                type="submit"
-                disabled={isSaving || !form.formState.isDirty}
-                className="flex items-center gap-2"
-                variant="bluenoShadow"
+            </scheduleForm.AppField>
+            <scheduleForm.AppField name="expression">
+              {(field) => <field.ScheduleField label="Day and time" />}
+            </scheduleForm.AppField>
+          </ScheduledJobPanel>
+          <SettingsSection
+            title="Mode"
+            description="What counts as no longer wanted."
+          >
+            <configForm.AppField name="deletionMode">
+              {(field) => (
+                <field.RadioField label="Decide by" options={MODE_OPTIONS} />
+              )}
+            </configForm.AppField>
+            {tagMode && (
+              <FieldRow
+                label="Removal tag"
+                description="Set on User tags. Matching ignores case."
               >
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
+                <div className="flex items-center gap-3">
+                  <InlineCode>{config.removedTagPrefix}</InlineCode>
+                  {swapsTag && removalTagButton}
+                </div>
+              </FieldRow>
+            )}
+            {tagMode && !swapsTag && (
+              <InfoLine tone="warn" action={removalTagButton}>
+                {removalTagWarning(config.removedTagMode)}
+              </InfoLine>
+            )}
+            {tagMode && (
+              <configForm.AppField name="deleteSyncRequiredTagRegex">
+                {(field) => (
+                  <field.TextField
+                    label="Required tag pattern"
+                    description="Items also need a tag matching this regex. Leave empty to skip."
+                    type="text"
+                    placeholder="pulsarr2-removed"
+                    mono
+                  />
                 )}
-                <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </div>
-    </div>
+              </configForm.AppField>
+            )}
+            <InfoLine action={<NavPageButton page={NAV_PAGES.exclusions} />}>
+              {exclusionsLine}
+            </InfoLine>
+          </SettingsSection>
+          <SettingsSection
+            title="What may be deleted"
+            description="Nothing outside these choices is deleted."
+          >
+            {nothingSelected && (
+              <InfoLine tone="warn">
+                Nothing is selected, so runs delete nothing.
+              </InfoLine>
+            )}
+            <configForm.AppField name="deleteMovie">
+              {(field) => (
+                <field.SwitchField
+                  label="Delete movies"
+                  description="Removes movies from Radarr."
+                />
+              )}
+            </configForm.AppField>
+            <configForm.AppField name="deleteEndedShow">
+              {(field) => (
+                <field.SwitchField
+                  label="Delete ended shows"
+                  description="Removes shows Sonarr marks as ended."
+                />
+              )}
+            </configForm.AppField>
+            <configForm.AppField name="deleteContinuingShow">
+              {(field) => (
+                <field.SwitchField
+                  label="Delete continuing shows"
+                  description="Removes every show Sonarr does not mark as ended."
+                />
+              )}
+            </configForm.AppField>
+            {nothingSelected && <LockLine reason={PICK_TYPES_REASON} />}
+            <configForm.AppField name="deleteFiles">
+              {(field) => (
+                <field.SwitchField
+                  label="Delete files"
+                  description="Also deletes the media files on disk."
+                  disabled={nothingSelected}
+                />
+              )}
+            </configForm.AppField>
+            {values.deleteFiles && !nothingSelected && (
+              <InfoLine tone="danger">This can't be undone.</InfoLine>
+            )}
+            <configForm.AppField name="deleteSyncCleanupApprovals">
+              {(field) => (
+                <field.SwitchField
+                  label="Clean up approval records"
+                  description="Removes approval records for deleted content and content already gone."
+                  disabled={nothingSelected}
+                />
+              )}
+            </configForm.AppField>
+          </SettingsSection>
+          <SettingsSection
+            title="What protects content"
+            description="Anything a guard covers is skipped."
+          >
+            {tagMode && <LockLine reason="Only used in watchlist mode." />}
+            <configForm.AppField name="respectUserSyncSetting">
+              {(field) => (
+                <field.SwitchField
+                  label="Respect user sync settings"
+                  description="Only watchlists of users with sync on protect content."
+                  disabled={tagMode}
+                />
+              )}
+            </configForm.AppField>
+            <configForm.AppField name="deleteSyncTrackedOnly">
+              {(field) => (
+                <field.SwitchField
+                  label="Tracked content only"
+                  description="Only content requested through Pulsarr can be deleted."
+                />
+              )}
+            </configForm.AppField>
+            <configForm.AppField name="maxDeletionPrevention">
+              {(field) => (
+                <field.NumberField
+                  label="Max deletion"
+                  description={maxDeletionHelp(
+                    isValidMaxDeletion(values.maxDeletionPrevention)
+                      ? values.maxDeletionPrevention
+                      : undefined,
+                  )}
+                  unitSymbol="%"
+                  min={MAX_DELETION_PREVENTION.min}
+                  max={MAX_DELETION_PREVENTION.max}
+                  allowOutOfRange
+                />
+              )}
+            </configForm.AppField>
+            <configForm.AppField name="enablePlexPlaylistProtection">
+              {(field) => (
+                <field.SwitchField
+                  label="Playlist protection"
+                  description="Skips anything in any user's Plex playlist of this name."
+                />
+              )}
+            </configForm.AppField>
+            {!values.enablePlexPlaylistProtection && (
+              <LockLine reason="Turn on playlist protection first." />
+            )}
+            <configForm.AppField name="plexProtectionPlaylistName">
+              {(field) => (
+                <field.TextField
+                  label="Playlist name"
+                  description={playlistHelp(values.plexProtectionPlaylistName)}
+                  type="text"
+                  placeholder={PLEX_PROTECTION_PLAYLIST_DEFAULT}
+                  disabled={!values.enablePlexPlaylistProtection}
+                />
+              )}
+            </configForm.AppField>
+          </SettingsSection>
+          <SettingsSection
+            title="Notifications"
+            description="Where each run's summary goes, dry runs included."
+          >
+            <configForm.AppField name="deleteSyncNotify">
+              {(field) => (
+                <field.SelectField
+                  label="Send the run summary to"
+                  options={notifyOptions(config.deleteSyncNotify)}
+                />
+              )}
+            </configForm.AppField>
+            {values.deleteSyncNotify === 'none' && (
+              <LockLine reason="Pick where the summary goes first." />
+            )}
+            <configForm.AppField name="deleteSyncNotifyOnlyOnDeletion">
+              {(field) => (
+                <field.SwitchField
+                  label="Only when something was deleted"
+                  description="Skips the summary when a run deletes nothing."
+                  disabled={values.deleteSyncNotify === 'none'}
+                />
+              )}
+            </configForm.AppField>
+            <InfoLine action={<NavPageButton page={NAV_PAGES.webhooks} />}>
+              Webhooks always get the delete_sync.completed event.
+            </InfoLine>
+          </SettingsSection>
+          <SaveBar
+            dirty={dirty}
+            isSubmitting={saving}
+            saved={saved}
+            errorMessage={errorMessage}
+            onDiscard={discard}
+            saveDisabled={invalid}
+          />
+        </configForm.Form>
+      </configForm.AppForm>
+      <LeaveDialog
+        open={guard.blocked}
+        onStay={guard.reset}
+        onLeave={guard.proceed}
+      />
+      {latest && (
+        <DryRunItemsCredenza
+          key={latest.ranAt}
+          open={itemsOpen}
+          onOpenChange={setItemsOpen}
+          result={latest.data.results}
+          deleteFiles={latest.data.deleteFiles}
+        />
+      )}
+      <RunNowConfirm
+        open={confirm === 'run'}
+        onOpenChange={(open) => setConfirm(open ? 'run' : null)}
+        deleteFiles={config.deleteFiles}
+        dryRunLine={latestLine(savedKey)}
+        onDryRunFirst={() => {
+          setConfirm(null)
+          dryRun.run()
+        }}
+        onConfirm={() => {
+          setConfirm(null)
+          run.run()
+        }}
+      />
+      <ScheduleOnConfirm
+        open={confirm === 'schedule'}
+        onOpenChange={(open) => setConfirm(open ? 'schedule' : null)}
+        expression={scheduleValues.expression}
+        deleteFiles={values.deleteFiles}
+        dryRunLine={latestLine(draftKey)}
+        onConfirm={() => {
+          setConfirm(null)
+          submit()
+        }}
+      />
+    </Page>
+  )
+}
+
+export default function DeleteSyncPage() {
+  return (
+    <ConfigPageGate
+      section={SECTION}
+      title={TITLE}
+      description={DESCRIPTION}
+      skeleton={<SettingsPageSkeleton {...DELETE_SYNC_SKELETON} />}
+      schedule={{
+        name: SCHEDULE_NAME,
+        meta: { label: 'Delete sync', page: NAV_PAGES.deleteSync },
+      }}
+    >
+      {(config, job) => (
+        <DeleteSyncSettings
+          config={config}
+          schedule={job.schedule}
+          run={job.run}
+        />
+      )}
+    </ConfigPageGate>
   )
 }

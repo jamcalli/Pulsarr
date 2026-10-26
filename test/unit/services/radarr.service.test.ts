@@ -1,4 +1,7 @@
-import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
+import {
+  HttpError,
+  WebhookCallbackError,
+} from '@root/types/arr-connection.types.js'
 import type { RadarrInstance, RadarrPost } from '@root/types/radarr.types.js'
 import { RadarrService } from '@services/radarr.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -427,5 +430,274 @@ describe('RadarrService webhook setup', () => {
       await expect(result).rejects.not.toBeInstanceOf(WebhookCallbackError)
       expect(requests).toEqual([])
     })
+
+    it('rethrows a 400 Name failure as an HttpError', async () => {
+      serveHooks([])
+      server.use(
+        http.post(`${NOTIFICATION_URL}/test`, () =>
+          HttpResponse.json(
+            [{ propertyName: 'Name', errorMessage: 'Name should be unique' }],
+            { status: 400 },
+          ),
+        ),
+      )
+
+      const result = testCallback()
+      await expect(result).rejects.toBeInstanceOf(HttpError)
+      await expect(result).rejects.not.toBeInstanceOf(WebhookCallbackError)
+      await expect(result).rejects.toThrow('Name should be unique')
+    })
+  })
+})
+
+describe('RadarrService webhook definition', () => {
+  const fastify = {
+    server: { listening: true },
+    config: { basePath: '/', webhookSecret: 'secret' },
+  } as unknown as FastifyInstance
+
+  it('tests the same webhook definition that setupWebhook registers', async () => {
+    const bodies: { test?: object; create?: object } = {}
+    server.use(
+      http.get('http://radarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Radarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://radarr.test/api/v3/notification', () =>
+        HttpResponse.json([]),
+      ),
+      http.post(
+        'http://radarr.test/api/v3/notification/test',
+        async ({ request }) => {
+          bodies.test = (await request.json()) as object
+          return HttpResponse.json('{}')
+        },
+      ),
+      http.post(
+        'http://radarr.test/api/v3/notification',
+        async ({ request }) => {
+          bodies.create = (await request.json()) as object
+          return HttpResponse.json({ id: 1 }, { status: 201 })
+        },
+      ),
+    )
+
+    const tester = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+    const result = await tester.testConnection('http://radarr.test', 'key')
+    expect(result).toEqual({
+      success: true,
+      code: null,
+      message: 'Connection successful and webhook API accessible',
+    })
+
+    const registrar = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+    await registrar.initialize({ ...INSTANCE, apiKey: 'key' })
+
+    expect(bodies.test).toBeDefined()
+    expect(bodies.test).toEqual(bodies.create)
+  })
+
+  it('reports a webhook callback failure when the callback test times out', async () => {
+    const controllers: AbortController[] = []
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+      const controller = new AbortController()
+      controllers.push(controller)
+      return controller.signal
+    })
+    server.use(
+      http.get('http://radarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Radarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://radarr.test/api/v3/notification', () =>
+        HttpResponse.json([]),
+      ),
+      http.post('http://radarr.test/api/v3/notification/test', () => {
+        controllers.at(-1)?.abort(new DOMException('timed out', 'TimeoutError'))
+        return new Promise<never>(() => {})
+      }),
+    )
+    const tester = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    try {
+      const result = await tester.testConnection('http://radarr.test', 'key')
+
+      expect(result).toEqual({
+        success: false,
+        code: 'webhook_callback_failed',
+        message:
+          'Radarr did not finish calling Pulsarr back in time. Check the webhook address.',
+      })
+      expect(timeout.mock.calls).toEqual([[10000], [10000], [10000]])
+    } finally {
+      timeout.mockRestore()
+    }
+  })
+
+  it('reports unreachable when the notification list times out', async () => {
+    const controllers: AbortController[] = []
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+      const controller = new AbortController()
+      controllers.push(controller)
+      return controller.signal
+    })
+    server.use(
+      http.get('http://radarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Radarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://radarr.test/api/v3/notification', () => {
+        controllers.at(-1)?.abort(new DOMException('timed out', 'TimeoutError'))
+        return new Promise<never>(() => {})
+      }),
+    )
+    const tester = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    try {
+      const result = await tester.testConnection('http://radarr.test', 'key')
+
+      expect(result).toMatchObject({ success: false, code: 'unreachable' })
+    } finally {
+      timeout.mockRestore()
+    }
+  })
+
+  it('reports auth when the notification list is forbidden', async () => {
+    server.use(
+      http.get('http://radarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Radarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get(
+        'http://radarr.test/api/v3/notification',
+        () => new HttpResponse(null, { status: 403 }),
+      ),
+    )
+    const tester = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    const result = await tester.testConnection('http://radarr.test', 'key')
+
+    expect(result).toEqual({
+      success: false,
+      code: 'auth',
+      message:
+        'Connected to Radarr but cannot access notification API. Check API key permissions.',
+    })
+  })
+
+  it.each([
+    {
+      label: 'carries the existing hook id',
+      hooks: [{ id: 172, name: 'Pulsarr (localhost:3003)', fields: [] }],
+      id: 172,
+    },
+    {
+      label: 'carries no id without an existing hook',
+      hooks: [],
+      id: undefined,
+    },
+  ])('$label in the notification test body', async ({ hooks, id }) => {
+    let testBody: { id?: number } | undefined
+    server.use(
+      http.get('http://radarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Radarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://radarr.test/api/v3/notification', () =>
+        HttpResponse.json(hooks),
+      ),
+      http.post(
+        'http://radarr.test/api/v3/notification/test',
+        async ({ request }) => {
+          testBody = (await request.json()) as { id?: number }
+          return HttpResponse.json('{}')
+        },
+      ),
+    )
+    const tester = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    await tester.testConnection('http://radarr.test', 'key')
+
+    expect(testBody?.id).toBe(id)
+  })
+})
+
+describe('RadarrService.probe', () => {
+  it('reads the routing options with credentials and never initializes', async () => {
+    server.use(
+      http.get('http://radarr.test/api/v3/qualityprofile', () =>
+        HttpResponse.json([{ id: 3, name: 'HD' }]),
+      ),
+      http.get('http://radarr.test/api/v3/rootfolder', () =>
+        HttpResponse.json([{ id: 1, path: '/media' }]),
+      ),
+      http.get('http://radarr.test/api/v3/tag', () =>
+        HttpResponse.json([{ id: 5, label: 'kids' }]),
+      ),
+    )
+    const service = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      {} as FastifyInstance,
+    )
+    const initialize = vi.spyOn(service, 'initialize')
+
+    await expect(service.probe('http://radarr.test', 'key')).resolves.toEqual({
+      qualityProfiles: [{ id: 3, name: 'HD' }],
+      rootFolders: [{ id: 1, path: '/media' }],
+      tags: [{ id: 5, label: 'kids' }],
+    })
+    expect(initialize).not.toHaveBeenCalled()
   })
 })

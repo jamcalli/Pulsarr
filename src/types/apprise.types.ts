@@ -4,9 +4,6 @@ export type AppriseNotifyFormat = 'text' | 'html' | 'markdown'
 
 export type AppriseSchemaFormatMap = Map<string, AppriseNotifyFormat>
 
-/**
- * Response structure from Apprise /details endpoint.
- */
 export interface AppriseDetailsResponse {
   schemas: Array<{
     service_name: string
@@ -38,13 +35,4 @@ export interface AppriseNotificationBatch {
   body: string
   format: 'text' | 'html'
   includeAttachment: boolean
-}
-
-export interface AppriseNotification {
-  title: string
-  body: string
-  type?: AppriseMessageType
-  format?: AppriseNotifyFormat
-  body_html?: string
-  attachment?: string | string[]
 }

@@ -72,7 +72,7 @@ export async function generatePlexPin(
       expiresAt: string
     }
 
-    log.info(
+    log.debug(
       { pinId: data.id, clientId },
       'Generated Plex PIN for authentication',
     )

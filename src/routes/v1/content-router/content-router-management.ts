@@ -4,14 +4,17 @@ import type { ContentRouterRuleUpdate } from '@schemas/content-router/content-ro
 import {
   ContentRouterRuleErrorSchema,
   ContentRouterRuleListResponseSchema,
+  ContentRouterRuleOrderSchema,
   ContentRouterRuleResponseSchema,
   ContentRouterRuleSchema,
   ContentRouterRuleSuccessSchema,
   ContentRouterRuleToggleSchema,
   ContentRouterRuleUpdateSchema,
+  DEFAULT_ROUTE_PRIORITY,
 } from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { rejectedRouterRulePriority } from '@utils/router-rule-priority.js'
 import {
   invalidSeasonMonitoringMessage,
   rejectedSeasonMonitoring,
@@ -48,7 +51,7 @@ function normalizeRulePayload(
       ? null
       : (ruleData.quality_profile ?? null),
     tags: excludeFromRouting ? [] : ruleData.tags || [],
-    order: ruleData.order ?? 50,
+    order: ruleData.order ?? DEFAULT_ROUTE_PRIORITY,
     enabled: ruleData.enabled ?? true,
     search_on_add: ruleData.search_on_add ?? null,
     season_monitoring: ruleData.season_monitoring ?? null,
@@ -328,8 +331,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.badRequest('Target instance does not exist')
         }
 
+        const order =
+          request.body.order ??
+          (await fastify.db.nextRouterRuleOrder(request.body.target_type))
         const createdRule = await fastify.db.createRouterRule({
           ...normalizeRulePayload(request.body),
+          order,
           metadata: null,
         })
 
@@ -390,6 +397,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         )
         if (rejected !== undefined) {
           return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+        }
+
+        const rejectedPriority = rejectedRouterRulePriority(
+          request.body.order,
+          existingRule.order,
+        )
+        if (rejectedPriority !== undefined) {
+          return reply.badRequest(rejectedPriority)
         }
 
         if (!(await targetInstanceExists(fastify.db, request.body))) {
@@ -537,6 +552,57 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           enabled: request.body.enabled,
         })
         return reply.internalServerError('Unable to toggle router rule')
+      }
+    },
+  )
+
+  // Reorder router rules
+  fastify.patch(
+    '/rules/order',
+    {
+      schema: {
+        summary: 'Reorder router rules',
+        operationId: 'reorderRouterRules',
+        description: 'Set the priority of several content router rules at once',
+        body: ContentRouterRuleOrderSchema,
+        response: {
+          200: ContentRouterRuleListResponseSchema,
+          404: ContentRouterRuleErrorSchema,
+          500: ContentRouterRuleErrorSchema,
+        },
+        tags: ['Content Router'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { orders } = request.body
+
+        const existingIds = new Set(
+          (await fastify.db.getAllRouterRules()).map((rule) => rule.id),
+        )
+        const missing = orders.find(({ id }) => !existingIds.has(id))
+        if (missing) {
+          return reply.notFound(`Router rule with ID ${missing.id} not found`)
+        }
+
+        await fastify.db.setRouterRuleOrders(orders)
+
+        fastify.contentRouter.clearRouterRulesCache()
+
+        const rules = await fastify.db.getAllRouterRules()
+
+        const formattedRules = rules.map((rule) => formatRule(rule))
+
+        return {
+          success: true,
+          message: 'Router rules reordered successfully',
+          rules: formattedRules,
+        }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to reorder router rules',
+        })
+        return reply.internalServerError('Unable to reorder router rules')
       }
     },
   )

@@ -33,13 +33,13 @@ export default fp(
 
         const currentStatus = watchlistWorkflow.getStatus()
         if (currentStatus === 'running' || currentStatus === 'starting') {
-          fastify.log.info(
+          fastify.log.debug(
             `Config ready, but workflow is already ${currentStatus}. Skipping auto-start.`,
           )
           return
         }
 
-        fastify.log.info('Config ready, starting workflow')
+        fastify.log.debug('Config ready, starting workflow')
         await watchlistWorkflow.startWorkflow()
       } catch (err) {
         fastify.log.error({ error: err }, 'Error in workflow startup:')
@@ -56,7 +56,7 @@ export default fp(
     fastify.addHook('onClose', async () => {
       const status = watchlistWorkflow.getStatus()
       if (status === 'running' || status === 'starting') {
-        fastify.log.info('Stopping watchlist workflow during shutdown')
+        fastify.log.debug('Stopping watchlist workflow during shutdown')
         await watchlistWorkflow.stop()
       }
     })

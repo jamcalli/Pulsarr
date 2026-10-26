@@ -20,35 +20,42 @@
  * await fastify.deleteSync.run();
  */
 
-import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
+import {
+  MAX_DELETION_PREVENTION,
+  PLEX_PROTECTION_PLAYLIST_DEFAULT,
+} from '@root/schemas/shared/delete-sync-limits.js'
+import type {
+  DeleteSyncDryRunOutcome,
+  DeleteSyncResult,
+} from '@root/types/delete-sync.types.js'
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import {
-  ensureProtectionCache,
-  ensureTrackedCache,
-  TagCache,
-} from '@services/delete-sync/cache/index.js'
+import { ensureProtectionCache } from '@services/delete-sync/cache/protected-cache.js'
+import { TagCache } from '@services/delete-sync/cache/tag-cache.js'
+import { ensureTrackedCache } from '@services/delete-sync/cache/tracked-cache.js'
 import {
   cleanupApprovalRequestsForDeletedContent,
   cleanupOrphanedApprovalRequests,
-  cleanupRollingMonitoredShowsForDeletedContent,
-} from '@services/delete-sync/cleanup/index.js'
+} from '@services/delete-sync/cleanup/approval-cleanup.js'
+import { cleanupRollingMonitoredShowsForDeletedContent } from '@services/delete-sync/cleanup/rolling-monitor-cleanup.js'
 import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
   filterExcludedRoutedItems,
-} from '@services/delete-sync/data-fetching/index.js'
+} from '@services/delete-sync/data-fetching/watchlist-fetcher.js'
+import { executeTagBasedDeletion } from '@services/delete-sync/orchestration/tag-based-deletion.js'
+import { executeWatchlistDeletion } from '@services/delete-sync/orchestration/watchlist-deletion.js'
 import {
-  executeTagBasedDeletion,
-  executeWatchlistDeletion,
-} from '@services/delete-sync/orchestration/index.js'
-import {
+  createDryRunOutcome,
   createEmptyResult,
   createSafetyTriggeredResult,
-} from '@services/delete-sync/utils/index.js'
+} from '@services/delete-sync/utils/result-builder.js'
 import { performWatchlistSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
+import { errorMessage, toError } from '@utils/error-message.js'
 import { createGuidSet } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { createRunRecord } from '@utils/run-record.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class DeleteSyncService {
@@ -73,6 +80,8 @@ export class DeleteSyncService {
    */
   private _running = false
 
+  private readonly dryRun = createRunRecord<DeleteSyncDryRunOutcome>()
+
   /**
    * Track deleted content by type for approval cleanup
    */
@@ -92,7 +101,7 @@ export class DeleteSyncService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'DELETE_SYNC')
-    this.log.info('Initializing Delete Sync Service')
+    this.log.debug('Initializing Delete Sync Service')
   }
 
   /**
@@ -164,12 +173,50 @@ export class DeleteSyncService {
         return false
       }
 
-      this.log.info('Delete Sync Service initialized successfully')
+      this.log.debug('Delete Sync Service initialized successfully')
       return true
     } catch (error) {
       this.log.error({ error }, 'Error initializing Delete Sync Service:')
       return false
     }
+  }
+
+  /** Starts a dry run without waiting for it, false while any delete sync runs. */
+  startDryRun(): boolean {
+    if (this._running) return false
+    this.dryRun.begin()
+    this.emitDryRunPhase('running')
+    this.runDryRun().then(
+      (outcome) => {
+        this.dryRun.succeed(outcome)
+        this.emitDryRunPhase('complete')
+      },
+      (error) => {
+        this.dryRun.fail(error)
+        this.emitDryRunPhase('failed')
+      },
+    )
+    return true
+  }
+
+  async runDryRun(): Promise<DeleteSyncDryRunOutcome> {
+    return createDryRunOutcome(await this.run(true))
+  }
+
+  dryRunStatus() {
+    return this.dryRun.read()
+  }
+
+  private emitDryRunPhase(phase: 'running' | 'complete' | 'failed'): void {
+    if (!this.fastify.progress.hasActiveConnections()) return
+    const event: ProgressEvent = {
+      operationId: 'delete-sync-dry-run',
+      type: 'delete-sync-dry-run',
+      phase,
+      progress: phase === 'running' ? 0 : 100,
+      message: `Delete sync dry run ${phase}`,
+    }
+    this.fastify.progress.emit(event)
   }
 
   /**
@@ -187,7 +234,7 @@ export class DeleteSyncService {
     // Check if delete sync is already running
     if (this._running) {
       this.log.warn(
-        'Delete-sync already in progress – ignoring duplicate trigger',
+        'Delete-sync already in progress, ignoring duplicate trigger',
       )
       return this.handleEmptyResult('Duplicate delete-sync run skipped')
     }
@@ -213,8 +260,8 @@ export class DeleteSyncService {
         this.config.enablePlexPlaylistProtection &&
         !this.fastify.plexServerService.isInitialized()
       ) {
-        this.log.info(
-          'Plex playlist protection enabled but not initialized - initializing now',
+        this.log.debug(
+          'Plex playlist protection enabled but not initialized, initializing now',
         )
         const ok = await this.initialize()
         if (!ok) {
@@ -292,26 +339,14 @@ export class DeleteSyncService {
         // Step 6: Ensure we have at least some watchlist items (safety check)
         if (allWatchlistItems.size === 0) {
           return this.handleSafetyTriggered(
-            'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.',
+            'No watchlist items found, which could be an error condition. Aborting delete sync to prevent mass deletion.',
             dryRun,
             existingSeries.length,
             existingMovies.length,
           )
         }
 
-        // Step 6.5: Persist the row removal on real runs. The protected set
-        // above already reflects exclusions, so this is just DB cleanup.
-        if (!dryRun) {
-          const cleanedExcluded =
-            await this.dbService.cleanupExcludedWatchlistItems()
-          if (cleanedExcluded > 0) {
-            this.log.info(
-              `Removed ${cleanedExcluded} routed watchlist item(s) for excluded content`,
-            )
-          }
-        }
-
-        this.log.info(
+        this.log.debug(
           `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
         )
 
@@ -368,7 +403,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Delete sync operation${dryRun ? ' (DRY RUN)' : ''} completed successfully`,
+        `Delete sync${dryRun ? ' dry run' : ''} completed: ${result.movies.deleted} movies and ${result.shows.deleted} shows ${dryRun ? 'identified for deletion' : 'deleted'}, ${result.total.skipped} skipped, ${result.total.protected ?? 0} protected`,
       )
 
       // Step 10a: Clean up orphaned approval records (content deleted before setting was enabled)
@@ -414,12 +449,7 @@ export class DeleteSyncService {
       )
 
       // Step 12: Send notifications about results if enabled
-      if (this.fastify.notifications) {
-        await this.fastify.notifications.sendDeleteSyncNotification(
-          result,
-          dryRun,
-        )
-      }
+      void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
 
       return result
     } catch (error) {
@@ -464,13 +494,7 @@ export class DeleteSyncService {
     )
 
     // Send notification about the safety trigger if enabled
-    if (this.fastify.notifications) {
-      this.fastify.notifications
-        .sendDeleteSyncNotification(result, dryRun)
-        .catch((error) => {
-          this.logError('Error sending delete sync notification:', error)
-        })
-    }
+    void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
 
     return result
   }
@@ -510,7 +534,7 @@ export class DeleteSyncService {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
-          this.log.info(
+          this.log.debug(
             `Refreshing watchlists attempt ${attempt + 1}/${maxRetries + 1}`,
           )
         } else {
@@ -526,18 +550,14 @@ export class DeleteSyncService {
         return { success: true, message: 'Watchlists refreshed successfully' }
       } catch (refreshError) {
         const isLastAttempt = attempt === maxRetries
-        const errorMessage = `Failed to refresh watchlist data: ${
-          refreshError instanceof Error
-            ? refreshError.message
-            : String(refreshError)
-        }`
+        const message = `Failed to refresh watchlist data: ${errorMessage(refreshError)}`
 
         if (isLastAttempt) {
           this.log.error(
             { error: refreshError, attempts: attempt + 1 },
             'Error refreshing watchlist data after all retry attempts',
           )
-          return { success: false, message: errorMessage }
+          return { success: false, message }
         } else {
           const delay = baseDelay * 2 ** attempt // Exponential backoff
           this.log.warn(
@@ -565,7 +585,7 @@ export class DeleteSyncService {
       this.sonarrManager.fetchAllSeries(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
       this.radarrManager.fetchAllMovies(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
     ])
-    this.log.info(
+    this.log.debug(
       `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
     )
     return { existingSeries, existingMovies }
@@ -584,8 +604,8 @@ export class DeleteSyncService {
       return { success: true }
     }
 
-    this.log.info(
-      'Tracked-only deletion is enabled - only content from approval system will be deleted',
+    this.log.debug(
+      'Tracked-only deletion is enabled, so only content from the approval system will be deleted',
     )
 
     try {
@@ -595,19 +615,16 @@ export class DeleteSyncService {
         throw new Error('Failed to retrieve tracked content GUIDs')
       }
 
-      this.log.info(
+      this.log.debug(
         `Found ${trackedGuids.size} tracked content GUIDs in approval system`,
       )
 
       return { success: true }
     } catch (trackedError) {
-      const errorMsg = `Error retrieving tracked content GUIDs: ${trackedError instanceof Error ? trackedError.message : String(trackedError)}`
+      const errorMsg = `Error retrieving tracked content GUIDs: ${errorMessage(trackedError)}`
       this.log.error(
         {
-          error:
-            trackedError instanceof Error
-              ? trackedError
-              : new Error(String(trackedError)),
+          error: toError(trackedError),
         },
         errorMsg,
       )
@@ -644,7 +661,7 @@ export class DeleteSyncService {
         success: false,
         protectedGuids: null,
         result: this.handleSafetyTriggered(
-          'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
+          'Plex playlist protection is enabled but the Plex server is not properly initialized, so deletion cannot proceed safely',
           dryRun,
           seriesCount,
           moviesCount,
@@ -653,7 +670,7 @@ export class DeleteSyncService {
     }
 
     try {
-      this.log.info(
+      this.log.debug(
         `Beginning deletion analysis; Plex playlist protection enabled with playlist "${this.getProtectionPlaylistName()}"`,
       )
 
@@ -664,22 +681,19 @@ export class DeleteSyncService {
         throw new Error('Failed to retrieve protected items')
       }
 
-      this.log.info(
+      this.log.debug(
         `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${protectedGuids.size} protected GUIDs`,
       )
-      this.log.info(
+      this.log.debug(
         'Protection uses standardized GUIDs for maximum compatibility across all systems',
       )
 
       return { success: true, protectedGuids }
     } catch (protectedItemsError) {
-      const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
+      const errorMsg = `Error retrieving protected items from playlists: ${errorMessage(protectedItemsError)}`
       this.log.error(
         {
-          error:
-            protectedItemsError instanceof Error
-              ? protectedItemsError
-              : new Error(String(protectedItemsError)),
+          error: toError(protectedItemsError),
         },
         errorMsg,
       )
@@ -700,8 +714,7 @@ export class DeleteSyncService {
    * Helper method to log errors with consistent format
    */
   private logError(message: string, error: unknown): void {
-    const errObj = error instanceof Error ? error : new Error(String(error))
-    this.log.error({ error: errObj }, message)
+    this.log.error({ error: toError(error) }, message)
   }
 
   /**
@@ -836,7 +849,9 @@ export class DeleteSyncService {
           deleteEndedShow: this.config.deleteEndedShow,
           deleteContinuingShow: this.config.deleteContinuingShow,
           deleteFiles: this.config.deleteFiles,
-          maxDeletionPrevention: this.config.maxDeletionPrevention ?? 10,
+          maxDeletionPrevention:
+            this.config.maxDeletionPrevention ??
+            MAX_DELETION_PREVENTION.default,
           deleteSyncRequiredTagRegex: this.config.deleteSyncRequiredTagRegex,
         },
         sonarrManager: this.sonarrManager,
@@ -874,7 +889,9 @@ export class DeleteSyncService {
    * @returns The protection playlist name to use
    */
   private getProtectionPlaylistName(): string {
-    return this.config.plexProtectionPlaylistName || 'Do Not Delete'
+    return (
+      this.config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT
+    )
   }
 
   /**

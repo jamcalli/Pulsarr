@@ -1,9 +1,9 @@
 import {
-  ErrorSchema,
-  TestConnectionBodySchema,
-  TestConnectionResponseSchema,
-} from '@schemas/radarr/test-connection.schema.js'
-import { logRouteError, stripArrApiErrorPrefix } from '@utils/route-errors.js'
+  ArrTestConnectionBodySchema,
+  ArrTestConnectionResponseSchema,
+} from '@schemas/common/arr-test-connection.schema.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -15,9 +15,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'testRadarrConnection',
         description:
           'Test connectivity to a Radarr instance with provided credentials',
-        body: TestConnectionBodySchema,
+        body: ArrTestConnectionBodySchema,
         response: {
-          200: TestConnectionResponseSchema,
+          200: ArrTestConnectionResponseSchema,
           500: ErrorSchema,
         },
         tags: ['Radarr'],
@@ -26,15 +26,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { baseUrl, apiKey } = request.body
-        const result = await fastify.radarrManager.testConnection(
-          baseUrl,
-          apiKey,
-        )
-
-        return {
-          success: result.success,
-          message: result.message,
-        }
+        return await fastify.radarrManager.testConnection(baseUrl, apiKey)
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Error testing Radarr connection',
@@ -45,9 +37,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             ? error.message
             : 'Unable to test Radarr connection'
 
-        return reply.internalServerError(
-          stripArrApiErrorPrefix('radarr', errorMessage),
-        )
+        return reply.internalServerError(errorMessage)
       }
     },
   )

@@ -12,12 +12,12 @@ export async function lookupUserByUuid(
     return { userId: cachedEntry.userId, cache }
   }
 
-  deps.logger.info({ uuid }, 'Unknown UUID in friends RSS, refreshing cache')
+  deps.logger.debug({ uuid }, 'Unknown UUID in friends RSS, refreshing cache')
   const updatedCache = await refreshPlexUuidCache(cache, deps)
 
   const entryAfterRefresh = updatedCache.get(uuid)
   if (!entryAfterRefresh) {
-    deps.logger.info(
+    deps.logger.debug(
       { uuid },
       'RSS author not found in friends list - skipping',
     )

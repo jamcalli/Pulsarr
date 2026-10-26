@@ -8,12 +8,7 @@ export type AllowedUserMatcher = (
 
 export const allowAllUsers: AllowedUserMatcher = () => true
 
-/**
- * filterUsers holds Pulsarr user ids, but sessions carry Plex identity, so
- * configured ids resolve to user rows and match by plex.tv uuid, then name.
- * Raw matching covers legacy API-written values, minus values that resolved
- * to a user - a raw DB id would collide with small server-local session ids.
- */
+/** Matches plex.tv uuid, then name, then raw legacy values that did not resolve to a user, since a raw DB id collides with server-local session ids. */
 export function buildAllowedUserMatcher(
   filterUsers: string[] | undefined,
   resolvedUsers: User[],

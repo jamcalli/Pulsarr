@@ -100,7 +100,7 @@ function shouldProcessSeason(
   )
 
   if (seasonQueue.notifiedSeasons.has(seasonNumber) && !hasRecentEpisodes) {
-    logger.info(
+    logger.debug(
       { tvdbId, seasonNumber },
       'Season already notified and no recent episodes, clearing queue',
     )
@@ -123,7 +123,7 @@ function createSonarrPayload(
     seasonNumber: number
     title: string
     overview?: string
-    airDateUtc: string
+    airDateUtc?: string
   }>,
 ): WebhookPayload {
   return {

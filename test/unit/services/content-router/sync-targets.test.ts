@@ -6,6 +6,7 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 import { echoAppliedSonarr } from '../../../mocks/applied-routing.js'
 import { createContentRouterDeps } from '../../../mocks/content-router-deps.js'
+import { createTestRoutingLog } from '../../../mocks/routing-log.js'
 
 const showItem: ContentItem = {
   title: 'Test Show',
@@ -30,7 +31,9 @@ const params = (overrides: Partial<SyncTargetParams>): SyncTargetParams => ({
   userId: 3,
   syncTargetInstanceId: 2,
   decisions: [],
+  syncSourceInstanceId: 1,
   hasRulesTargetingSyncInstance: false,
+  routingLog: createTestRoutingLog(),
   ...overrides,
 })
 

@@ -1,12 +1,11 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr.svg" alt="Pulsarr Logo" width="150"/>
   <h1>Pulsarr</h1>
-  <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
+  <p>Pulsarr turns Plex watchlists into Sonarr and Radarr requests</p>
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
   ![Bun](https://img.shields.io/badge/bun-%3E%3D1.4-green?style=flat-square&logo=bun&logoColor=white)
-  ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   [![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
   ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr/latest?style=flat-square)
@@ -15,43 +14,22 @@
 
 ---
 
-Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition, **all from within the Plex app, no extra logins required.**
+Pulsarr is a Plex watchlist monitor for Sonarr and Radarr. It watches the watchlists of your Plex account and your Plex friends, sends new titles to a Sonarr or Radarr instance, and notifies the people who added them when they're available. Users do all of it from the Plex app, with no separate account to log into.
 
-Features include multi-user watchlist sync, intelligent content routing, approval workflows with quotas, and notifications via Discord, Plex mobile push, and Apprise.
+Pulsarr works through Plex friendship. It can only read the watchlists of people who are friends of the Plex account that owns the server, and each friend's watchlist has to be visible to friends in their Plex privacy settings. A private watchlist looks empty.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard" width="80%"/>
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/home.png" alt="Pulsarr home page" width="90%"/>
 </div>
 
-## 📚 Documentation
+## Quick start
 
-Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](https://jamcalli.github.io/Pulsarr/)**
+Create a `.env` with your time zone and a `docker-compose.yml` next to it, then run `docker compose up -d` and open `http://<your-server>:3003`.
 
-- [Quick Start Guide](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start)
-- [Native Installation](https://jamcalli.github.io/Pulsarr/docs/installation/native-installation)
-- [Configuration](https://jamcalli.github.io/Pulsarr/docs/installation/configuration)
-- [Discord Setup & Commands](https://jamcalli.github.io/Pulsarr/docs/notifications/discord)
-- [Features & Guides](https://jamcalli.github.io/Pulsarr/docs/intro)
-- [API Documentation](https://jamcalli.github.io/Pulsarr/docs/api-documentation)
-
-### API Documentation
-
-Our REST API is fully documented and accessible in two ways:
-
-- **Public Documentation**: [https://jamcalli.github.io/Pulsarr/docs/api-documentation](https://jamcalli.github.io/Pulsarr/docs/api-documentation)
-- **Interactive Docs**: Every Pulsarr instance includes built-in Scalar API documentation at `http://localhost:3003/api/docs`
-
-## 🚀 Quick Start
-
-### Docker Installation (Recommended)
-
-1. Create a `.env` file:
-```env
-# Your timezone
+```bash
 TZ=America/Los_Angeles
 ```
 
-2. Create `docker-compose.yml`:
 ```yaml
 services:
   pulsarr:
@@ -69,80 +47,49 @@ services:
       - .env
 ```
 
+Other settings go in `.env` or under `environment:`. The time zone is all first-run setup needs. The [quick start guide](https://jamcalli.github.io/Pulsarr/installation/quick-start) covers the rest, including the Plex privacy setting.
 
-3. Pull and start the service:
-```bash
-docker compose pull && docker compose up -d
-```
+## Features
 
-4. Access the web UI at `http://your-server:3003` to complete setup.
+- **Watchlist sync.** New items are picked up within seconds with Plex Pass, and about every five minutes without it.
+- **Multi-user.** Your friends' watchlists too, with per-user sync, approval, notification and quota settings.
+- **Content routing.** A predicate rule builder with nested all/any/not groups. Conditions: Genres, User, Plex list, Year, Language, Certification, Streaming services, IMDb rating, IMDb votes, RT critic score, RT audience score, TMDB rating, Season, Series status and Movie status. Each route picks the instance, root folder, quality profile, monitoring and tags, or skips the title, and can require approval or bypass quotas. One request can go to several instances.
+- **Multiple Sonarr and Radarr instances.** Connect as many as you like and copy content between them.
+- **Approvals and quotas.** Hold requests for your decision and cap how much each user can request, from the web UI or Discord.
+- **Delete sync.** Remove content once nobody wants it, by watchlist or by tag, with playlist protection.
+- **Exclusions.** Block titles from being requested, for one user or everyone.
+- **Session monitoring.** Grow rolling shows in Sonarr as people watch them.
+- **User tags and Plex labels.** Mark content in Sonarr, Radarr and Plex by who has it on their watchlist.
+- **Notifications.** Discord bot and channels, Plex mobile push, webhooks, and anything Apprise reaches.
+- **REST API.** Everything the web UI does, with API keys and interactive docs at `/api/docs`.
 
-> **Synology NAS / Legacy Systems:** If you're running on a Synology NAS or a system with Linux kernel < 4.11, use `lakker/pulsarr:node` instead. This alternative image uses Node.js runtime instead of Bun, avoiding kernel compatibility issues. Both images are functionally identical.
+## Documentation
 
+Everything is at [jamcalli.github.io/Pulsarr](https://jamcalli.github.io/Pulsarr/). Start with [how Pulsarr works](https://jamcalli.github.io/Pulsarr/how-it-works), then [installation](https://jamcalli.github.io/Pulsarr/installation) for Docker, the native installers for Linux, Windows and macOS, and PostgreSQL.
 
-### Native Installation
-
-Standalone builds with easy installers are available for Linux, macOS, and Windows. No Docker or runtime install required.
-
-| Platform | Install Method |
-|----------|---------------|
-| **Linux** | `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh \| sudo bash` |
-| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
-| **macOS** | Download `pulsarr-vX.X.X-macos-{arch}.dmg` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
-
-See the [Native Installation Guide](https://jamcalli.github.io/Pulsarr/docs/installation/native-installation) for detailed instructions, service management, and manual options.
-
-### Database Options
-
-Pulsarr uses SQLite by default but can also be configured to use PostgreSQL.
-
-See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration) for PostgreSQL setup details.
-
-## Hosted Deployment Options
+## Hosted option
 
 [ElfHosted](https://store.elfhosted.com/product/pulsarr/elf/jamcalli/?utm_source=github&utm_medium=readme&utm_campaign=pulsarr-readme) offers managed Pulsarr hosting with pre-configured media server bundles. 33% of every Pulsarr subscription supports the project.
 
-## ✨ Key Features
+## Community integrations
 
-- **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (5-minute staggered polling for non-Pass users)
-- **Smart Content Routing**: Build rules with AND/OR logic using genre, user, language, year, certification, season, IMDb/RT/TMDB ratings, or streaming service. Rules can require approval or bypass quotas
-- **Approval & Quota System**: Administrative approval workflows with configurable user quotas (daily/weekly/monthly limits)
-- **Plex Label Sync**: Automatically sync user watchlists and Radarr/Sonarr tags as Plex labels with real-time webhook updates
-- **Multi-Instance Support**: Distribute content across multiple Sonarr/Radarr instances 
-  with intelligent synchronization
-- **Multi-User Support**: Monitor watchlists for friends and family with granular permissions
-- **Discord Bot Integration**: Complete approval management directly from Discord with interactive commands
-- **Flexible Notifications**: Discord bot, Plex mobile push, webhooks, and 80+ services via Apprise
-- **Advanced Lifecycle Management**: Watchlist-based or tag-based deletion with playlist protection
-- **Watchlist Exclusions**: Prevent specific watchlist items from being routed to Sonarr/Radarr
-- **Plex Session Monitoring**: Auto-search for next seasons when users near season finales
-- **User Tagging**: Track who requested what content in Sonarr/Radarr
-- **Comprehensive Analytics**: Detailed dashboards with usage stats, genre analysis, and content distribution
-- **Automatic Plex Updates**: Configures webhooks for instant library refreshes
-- **Developer-Friendly API**: Full REST API with interactive documentation
-
-## Community Integrations
-
-- [Home Assistant Integration](https://github.com/SpaceFrags/pulsarr_enhanced_requests) - Community-maintained integration to manage Pulsarr requests from Home Assistant
-- [Pulsarr Card](https://github.com/SpaceFrags/pulsarr-requests-card) - Community-maintained companion card for the HA integration
+- [Home Assistant integration](https://github.com/SpaceFrags/pulsarr_enhanced_requests), community maintained, manages Pulsarr requests from Home Assistant.
+- [Pulsarr card](https://github.com/SpaceFrags/pulsarr-requests-card), the companion card for that integration.
 
 ## Transparency
 
-Pulsarr began as a TypeScript rewrite of Watchlistarr. It's developed with AI assistance, but every decision about architecture, features, and direction is human-made, and everything is reviewed before it ships. It has since grown with contributions from others in the community.
+Pulsarr began as a TypeScript rewrite of Watchlistarr and has grown with contributions from the community. It's developed with AI assistance. Every decision about architecture, features and direction is made by a person, and every change is reviewed before it ships.
 
-Security is a priority: Renovate keeps dependencies current, auth follows Fastify best practices, and all endpoints are protected by default. If you notice a problem or have a security concern, please reach out.
+Security is a priority. Renovate keeps dependencies current, auth follows Fastify best practices, and every endpoint is protected by default. To report a security concern, see [SECURITY.md](.github/SECURITY.md).
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](https://jamcalli.github.io/Pulsarr/docs/contributing) for details on:
-- Fork and branch naming conventions
-- Development workflow
-- Pull request guidelines
+Pull requests are welcome. Fork the repo, branch from `develop`, and open the PR against `develop`.
 
-## 💬 Support
+## Support
 
-- [Discord](https://discord.gg/9csTEJn5cR) - Help, discussions, and updates
-- [GitHub Issues](https://github.com/jamcalli/pulsarr/issues) - Bug reports and feature requests
+- [Discord](https://discord.gg/9csTEJn5cR) for help, discussion and updates.
+- [GitHub issues](https://github.com/jamcalli/pulsarr/issues) for bug reports and feature requests.
 
 ## Acknowledgements
 
@@ -152,11 +99,11 @@ We welcome contributions! Please see our [Contributing Guidelines](https://jamca
 
 Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
 
-## Repository Activity
+## Repository activity
 
 ![Repobeats analytics](https://repobeats.axiom.co/api/embed/1f978002c5cd8d37e83f1effcd593f2c534354a3.svg "Repobeats analytics image")
 
-## Star History
+## Star history
 
 <a href="https://star-history.com/#jamcalli/pulsarr&Date">
  <picture>
@@ -171,9 +118,3 @@ Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
 <a href="https://github.com/jamcalli/pulsarr/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=jamcalli/pulsarr" alt="Contributors" />
 </a>
-
----
-
-<div align="center">
-  <sub>Built with ❤️ for the self-hosted community</sub>
-</div>

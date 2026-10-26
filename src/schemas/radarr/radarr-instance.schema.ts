@@ -1,61 +1,75 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { ArrBaseUrlSchema } from '@root/schemas/common/url.schema.js'
 import {
   RadarrMinimumAvailabilitySchema,
   RadarrMonitorSchema,
 } from '@root/schemas/radarr/add-options.schema.js'
 import { z } from 'zod'
 
-// Base Radarr instance schema for creation (with defaults)
-export const RadarrInstanceSchema = z.object({
+export const RadarrInstanceFieldsSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }),
+  baseUrl: ArrBaseUrlSchema,
   apiKey: z.string().min(1, { error: 'API Key is required' }),
   qualityProfile: z.union([z.string(), z.number()]).nullish(),
   rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional().default(false),
-  searchOnAdd: z.boolean().optional().default(true),
-  minimumAvailability:
-    RadarrMinimumAvailabilitySchema.optional().default('released'),
-  monitor: RadarrMonitorSchema.optional().default('movieOnly'),
-  tags: z.array(z.string()).optional().default([]),
-  isDefault: z.boolean().optional().default(false),
-  syncedInstances: z.array(z.number()).optional(),
-  skipDefaultRoutingWhenNoMatch: z.boolean().optional().default(false),
+  bypassIgnored: z.boolean(),
+  searchOnAdd: z.boolean(),
+  minimumAvailability: RadarrMinimumAvailabilitySchema,
+  monitor: RadarrMonitorSchema,
+  tags: z.array(z.string()),
+  isDefault: z.boolean(),
+  syncedInstances: z.array(z.number()),
+  skipDefaultRoutingWhenNoMatch: z.boolean(),
 })
 
-// Radarr instance schema for updates (no defaults to prevent overwriting existing values)
-export const RadarrInstanceUpdateSchema = z.object({
-  name: z.string().min(1, { error: 'Name is required' }).optional(),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }).optional(),
-  apiKey: z.string().min(1, { error: 'API Key is required' }).optional(),
-  qualityProfile: z.union([z.string(), z.number()]).nullish(),
-  rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional(),
-  searchOnAdd: z.boolean().optional(),
-  minimumAvailability: RadarrMinimumAvailabilitySchema.optional(),
-  monitor: RadarrMonitorSchema.optional(),
-  tags: z.array(z.string()).optional(),
-  isDefault: z.boolean().optional(),
-  syncedInstances: z.array(z.number()).optional(),
-  skipDefaultRoutingWhenNoMatch: z.boolean().optional(),
+const radarrFields = RadarrInstanceFieldsSchema.shape
+
+export const RadarrInstanceSchema = RadarrInstanceFieldsSchema.extend({
+  bypassIgnored: radarrFields.bypassIgnored.default(false),
+  searchOnAdd: radarrFields.searchOnAdd.default(true),
+  minimumAvailability: radarrFields.minimumAvailability.default('released'),
+  monitor: radarrFields.monitor.default('movieOnly'),
+  tags: radarrFields.tags.default([]),
+  isDefault: radarrFields.isDefault.default(false),
+  syncedInstances: radarrFields.syncedInstances.optional(),
+  skipDefaultRoutingWhenNoMatch:
+    radarrFields.skipDefaultRoutingWhenNoMatch.default(false),
+}).meta({
+  id: 'RadarrInstancePayload',
+  description: 'A new Radarr instance, omitted settings take their defaults',
 })
 
-// Response schema for a single instance (includes id)
+export const RadarrInstanceUpdateSchema =
+  RadarrInstanceFieldsSchema.partial().meta({
+    id: 'RadarrInstanceUpdatePayload',
+    description:
+      'Partial Radarr instance update, omitted fields keep their stored value',
+  })
+
 export const RadarrInstanceResponseSchema = RadarrInstanceSchema.extend({
   id: z.number(),
+  baseUrl: z.string(),
+}).meta({
+  id: 'RadarrInstance',
+  description: 'A configured Radarr instance',
 })
 
-// Response schema for list of instances
-export const RadarrInstanceListResponseSchema = z.array(
-  RadarrInstanceResponseSchema,
-)
+export const RadarrInstanceListResponseSchema = z
+  .array(RadarrInstanceResponseSchema)
+  .meta({
+    id: 'RadarrInstanceListResponse',
+    description: 'All configured Radarr instances',
+  })
 
-// Response schema for instance creation
-export const RadarrInstanceCreateResponseSchema = z.object({
-  id: z.number().int().positive(),
-})
+export const RadarrInstanceCreateResponseSchema = z
+  .object({
+    id: z.number().int().positive(),
+  })
+  .meta({
+    id: 'RadarrInstanceCreateResponse',
+    description: 'Id of the newly created Radarr instance',
+  })
 
-// Inferred types for use in client and server
 export type RadarrInstance = z.infer<typeof RadarrInstanceSchema>
 export type RadarrInstanceUpdate = z.infer<typeof RadarrInstanceUpdateSchema>
 export type RadarrInstanceResponse = z.infer<
@@ -68,5 +82,4 @@ export type RadarrInstanceCreateResponse = z.infer<
   typeof RadarrInstanceCreateResponseSchema
 >
 
-// Re-export shared schemas for route use
 export { ErrorSchema }

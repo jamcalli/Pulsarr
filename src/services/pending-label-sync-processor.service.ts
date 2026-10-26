@@ -1,5 +1,6 @@
 import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-processor.types.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { pluralize } from '@utils/pluralize.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -17,8 +18,6 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
  * - retryInterval: How often to process pending syncs in seconds (default: 30)
  * - cleanupInterval: How often to clean expired syncs in seconds (default: 60)
  * - maxAge: Maximum age for pending syncs before expiration in minutes (default: 10)
- *
- * Note: Concurrency control is handled by the PlexLabelSyncService using config.plexLabelSync.concurrencyLimit
  *
  * Performance Improvements:
  * - Uses watchlist_item_id instead of GUID for direct database access
@@ -94,13 +93,16 @@ export class PendingLabelSyncProcessorService {
 
       if (result.updated > 0) {
         this.log.info(
+          `Labeled ${result.updated} pending ${pluralize(result.updated, 'item')}`,
+        )
+        this.log.debug(
           {
             processed: result.processed,
             updated: result.updated,
             failed: result.failed,
             pending: result.pending,
           },
-          `Processed ${result.updated} pending label syncs using direct Plex key access`,
+          'Pending label sync counts',
         )
       }
 

@@ -13,9 +13,9 @@ import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
 import { settingsFromRouting } from '@services/content-router/approved-routing.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
+import { errorMessage } from '@utils/error-message.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 function routingFor(decision: RouterDecision): RouterDecision['routing'] {
@@ -43,7 +43,7 @@ export class ApprovalService {
    * Log scheduled job execution with proper service prefix
    */
   logScheduledJob(action: 'start' | 'complete', jobName: string): void {
-    this.log.info(
+    this.log.debug(
       `${action === 'start' ? 'Running' : 'Completed'} scheduled job: ${jobName}`,
     )
   }
@@ -267,7 +267,7 @@ export class ApprovalService {
       this.queueDiscordApprovalNotification(result.request)
 
       this.log.info(
-        `New approval request created for "${result.request.contentTitle}" by user ${user.id}`,
+        `New approval request created for "${result.request.contentTitle}" by ${user.name}`,
       )
     } else {
       this.log.debug(
@@ -331,7 +331,7 @@ export class ApprovalService {
             'Content already added to system by another user request',
           )
 
-          this.log.info(
+          this.log.debug(
             `Auto-approved request ${matchingRequest.id} for user ${matchingRequest.userId}: ${matchingRequest.contentTitle} (content already available)`,
           )
         }
@@ -400,7 +400,7 @@ export class ApprovalService {
         const allInstanceIds = targets.map((target) => target.instanceId)
         const label = instanceType === 'radarr' ? 'Radarr' : 'Sonarr'
 
-        this.log.info(
+        this.log.debug(
           `Processing approval routing to ${allInstanceIds.length} instances: ${allInstanceIds.join(', ')} (primary: ${instanceId}, synced: ${syncedInstances?.join(', ') || 'none'})`,
         )
 
@@ -441,7 +441,7 @@ export class ApprovalService {
             routingResults.succeeded.push(target.instanceId)
           } catch (error) {
             if (isArrAlreadyAddedError(error)) {
-              this.log.info(
+              this.log.debug(
                 { instanceId: target.instanceId, title: request.contentTitle },
                 `Content already exists in ${label} instance, treating as successful routing`,
               )
@@ -521,7 +521,7 @@ export class ApprovalService {
       )
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage(error),
       }
     }
   }
@@ -575,7 +575,7 @@ export class ApprovalService {
               )
 
               if (result.success) {
-                this.log.info(
+                this.log.debug(
                   `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
                 )
               }
@@ -652,7 +652,7 @@ export class ApprovalService {
         return results
       }
 
-      this.log.info(
+      this.log.debug(
         `Re-evaluating ${pendingRequests.length} pending quota_exceeded approval requests`,
       )
 
@@ -666,15 +666,15 @@ export class ApprovalService {
 
         try {
           // Check current quota status for this user/content type
-          const quotaStatus = await this.fastify.db.getQuotaStatus(
-            request.userId,
-            request.contentType as 'movie' | 'show',
-            resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
-          )
+          const quotaStatus =
+            await this.fastify.quotaService.getUserQuotaStatus(
+              request.userId,
+              request.contentType as 'movie' | 'show',
+            )
 
           // Edge case: If quota was removed entirely, auto-approve (no quota = no restriction)
           if (!quotaStatus) {
-            this.log.info(
+            this.log.debug(
               {
                 requestId: request.id,
                 userId: request.userId,
@@ -719,7 +719,7 @@ export class ApprovalService {
           }
 
           // Period quota available - attempt to approve and route
-          this.log.info(
+          this.log.debug(
             {
               requestId: request.id,
               userId: request.userId,
@@ -752,7 +752,10 @@ export class ApprovalService {
         }
       }
 
-      this.log.info({ ...results }, 'Quota re-evaluation complete')
+      this.log.info(
+        { ...results },
+        `Quota re-evaluation complete: ${results.approved} approved, ${results.skipped} skipped, ${results.failed} failed`,
+      )
     } catch (error) {
       this.log.error(
         { error },
@@ -771,10 +774,9 @@ export class ApprovalService {
     content: ContentItem,
     routerDecision: RouterDecision,
   ): Promise<ApprovalContext> {
-    const quotaStatus = await this.fastify.db.getQuotaStatus(
+    const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(
       user.id,
       content.type,
-      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
     )
 
     return {
@@ -905,7 +907,7 @@ export class ApprovalService {
       this.log.error({ error, requestId }, 'Error in approveAndRoute')
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage(error),
       }
     }
   }
@@ -1034,9 +1036,7 @@ export class ApprovalService {
         }
       } catch (error) {
         results.failed.push(id)
-        results.errors.push(
-          `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
+        results.errors.push(`Request ${id}: ${errorMessage(error)}`)
       }
     }
 
@@ -1098,9 +1098,7 @@ export class ApprovalService {
         }
       } catch (error) {
         results.failed.push(id)
-        results.errors.push(
-          `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
+        results.errors.push(`Request ${id}: ${errorMessage(error)}`)
       }
     }
 
@@ -1126,9 +1124,8 @@ export class ApprovalService {
 
     // Set new timer to send batched notification
     this.notificationTimer = setTimeout(async () => {
-      await this.sendBatchedApprovalNotifications()
-      this.notificationQueue.clear()
       this.notificationTimer = null
+      await this.sendBatchedApprovalNotifications()
     }, this.NOTIFICATION_DEBOUNCE_MS)
   }
 
@@ -1137,45 +1134,31 @@ export class ApprovalService {
    * Delegates channel routing and delivery to the orchestration layer.
    */
   private async sendBatchedApprovalNotifications(): Promise<void> {
-    if (this.notificationQueue.size === 0) {
+    const queuedRequestIds = new Set(this.notificationQueue)
+    this.notificationQueue.clear()
+    if (queuedRequestIds.size === 0) {
       return
     }
 
-    // Get all pending approvals and the queued requests
     const pendingApprovals = await this.fastify.db.getPendingApprovalRequests()
     const totalPending = pendingApprovals.length
-    const queuedRequestIds = Array.from(this.notificationQueue)
-
-    // Find the queued requests in the pending approvals and map to orchestration format
-    const queuedRequests = pendingApprovals
-      .filter((approval) => queuedRequestIds.includes(approval.id))
-      .map((approval) => ({
-        id: approval.id,
-        contentTitle: approval.contentTitle,
-        contentType: approval.contentType,
-        contentKey: approval.contentKey,
-        contentGuids: approval.contentGuids,
-        userId: approval.userId,
-        userName: approval.userName,
-        triggeredBy: approval.triggeredBy,
-        approvalReason: approval.approvalReason ?? null,
-      }))
+    const queuedRequests = pendingApprovals.filter((approval) =>
+      queuedRequestIds.has(approval.id),
+    )
 
     if (queuedRequests.length === 0) {
       this.log.debug('No queued requests found in pending approvals')
       return
     }
 
-    // Delegate notification delivery to NotificationService
-    const successCount = await this.fastify.notifications.sendApprovalBatch(
-      queuedRequests,
-      totalPending,
-    )
-
-    this.log.debug(
-      { queuedCount: queuedRequests.length, successCount },
-      'Approval batch notification complete',
-    )
+    void this.fastify.notifications
+      .sendApprovalBatch(queuedRequests, totalPending)
+      .then((delivered) => {
+        this.log.debug(
+          { queuedCount: queuedRequests.length, delivered },
+          'Approval batch notification complete',
+        )
+      })
   }
 
   /**
@@ -1187,9 +1170,6 @@ export class ApprovalService {
       this.notificationTimer = null
     }
 
-    if (this.notificationQueue.size > 0) {
-      await this.sendBatchedApprovalNotifications()
-      this.notificationQueue.clear()
-    }
+    await this.sendBatchedApprovalNotifications()
   }
 }

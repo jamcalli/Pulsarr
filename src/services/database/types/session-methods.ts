@@ -1,36 +1,16 @@
 import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
-import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
+import type {
+  NewRollingMonitoredShow,
+  RollingMonitoredShow,
+  RollingShowMatches,
+  SeasonEpisodeCounts,
+} from '@root/types/plex-session.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
-    // PLEX SESSION MONITORING
-    /**
-     * Creates a new rolling monitored show entry
-     * @param data - The rolling monitored show data
-     * @returns Promise resolving to the created entry ID
-     */
-    createRollingMonitoredShow(data: {
-      sonarr_series_id: number
-      sonarr_instance_id: number
-      tvdb_id?: string
-      imdb_id?: string
-      show_title: string
-      monitoring_type: SonarrRollingMonitorOption
-      current_monitored_season: number
-      plex_user_id?: string
-      plex_username?: string
-    }): Promise<number>
+    createRollingMonitoredShow(data: NewRollingMonitoredShow): Promise<number>
 
-    /**
-     * Creates or finds an existing per-user rolling monitored show entry.
-     * Handles race conditions safely using database-level unique constraint.
-     * Requires a unique database constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id).
-     * @param globalShow - The master/global rolling show configuration
-     * @param plexUserId - The Plex user ID
-     * @param plexUsername - The Plex username
-     * @param plexUserUuid - The plex.tv uuid from the session avatar, if available
-     * @returns Promise resolving to the created or existing entry ID
-     */
+    /** Race-safe through the unique (sonarr_series_id, sonarr_instance_id, plex_user_id) constraint, returns the new or existing row id. */
     createOrFindUserRollingMonitoredShow(
       globalShow: RollingMonitoredShow,
       plexUserId: string,
@@ -38,119 +18,66 @@ declare module '@services/database.service.js' {
       plexUserUuid?: string | null,
     ): Promise<number>
 
-    /** Refreshes a per-user rolling show row's stored Plex identity */
+    /** Leaves activity timestamps alone so an identity refresh never counts as viewing activity. */
     updateRollingShowUserIdentity(
       id: number,
       plexUsername: string,
       plexUserUuid: string | null,
     ): Promise<boolean>
 
-    /**
-     * Gets all rolling monitored shows
-     * @returns Promise resolving to array of rolling monitored shows
-     */
+    /** Empty on a database error. */
     getRollingMonitoredShows(): Promise<RollingMonitoredShow[]>
 
-    /**
-     * Gets a rolling monitored show by ID
-     * @param id - The rolling monitored show ID
-     * @returns Promise resolving to the rolling monitored show or null
-     */
+    /** Null when missing or on a database error. */
     getRollingMonitoredShowById(
       id: number,
     ): Promise<RollingMonitoredShow | null>
 
-    /**
-     * Gets all rolling monitored shows matching a TVDB ID or title, one per enrolled Sonarr instance
-     * @param tvdbId - The TVDB ID
-     * @param title - The show title
-     * @param plexUserId - The Plex user ID for per-user tracking
-     * @returns Promise resolving to the matching rolling monitored shows
-     */
+    /** Matches by tvdbId, else by normalized title, returning that viewer's rows or the master rows when plexUserId is omitted. */
     getRollingMonitoredShowMatches(
       tvdbId?: string,
       title?: string,
       plexUserId?: string,
-    ): Promise<RollingMonitoredShow[]>
+    ): Promise<RollingShowMatches>
 
-    /**
-     * Updates rolling show progress
-     * @param id - The rolling monitored show ID
-     * @param season - The last watched season
-     * @param episode - The last watched episode
-     * @returns Promise resolving to boolean indicating success
-     */
+    /** Also stamps last_session_date, which inactivity reset and cleanup read as viewing activity. */
     updateRollingShowProgress(
       id: number,
       season: number,
       episode: number,
     ): Promise<boolean>
 
-    /**
-     * Updates the current monitored season for a rolling show
-     * @param id - The rolling monitored show ID
-     * @param season - The new current monitored season
-     * @returns Promise resolving to boolean indicating success
-     */
+    /** False when the series has no master row on that instance or the write fails. */
+    updateRollingShowSeasonEpisodeCounts(
+      sonarrSeriesId: number,
+      sonarrInstanceId: number,
+      counts: SeasonEpisodeCounts,
+    ): Promise<boolean>
+
+    /** Raises the mark on that row and its master row, never lowering either, false when the row is missing or the write fails. */
     updateRollingShowMonitoredSeason(
       id: number,
       season: number,
     ): Promise<boolean>
 
-    /**
-     * Deletes a rolling monitored show
-     * @param id - The rolling monitored show ID
-     * @returns Promise resolving to boolean indicating success
-     */
-    deleteRollingMonitoredShow(id: number): Promise<boolean>
-
-    /**
-     * Deletes all rolling monitored show entries for a given show
-     * (all users watching the same sonarr_series_id + sonarr_instance_id)
-     * @param id - The ID of any rolling monitored show entry for the show
-     * @returns Promise resolving to number of deleted entries
-     */
+    /** Deletes the master and every per-user row of the show that row id belongs to, 0 on error. */
     deleteAllRollingMonitoredShowEntries(id: number): Promise<number>
 
-    /**
-     * Resets a rolling monitored show to its original state:
-     * - Removes all user entries
-     * - Resets master record to its type's baseline season (0 for
-     *   allSeasonPilotRolling, 1 otherwise)
-     * @param id - The ID of any rolling monitored show entry for the show
-     * @returns Promise resolving to number of user entries deleted
-     */
+    /** Deletes the per-user rows and resets the master to its baseline season, returning the per-user rows deleted. */
     resetRollingMonitoredShowToOriginal(id: number): Promise<number>
 
-    /**
-     * Deletes all rolling monitored show entries matching any of the provided
-     * TVDB IDs or Sonarr series IDs. Used by delete sync to clean up orphaned
-     * rolling monitor records.
-     * @param tvdbIds - Array of TVDB ID strings to match against
-     * @param sonarrSeriesIds - Array of Sonarr series ID numbers to match against
-     * @returns Promise resolving to the number of deleted entries
-     */
+    /** Matches either id because entries enrolled without a TVDB GUID store an empty tvdb_id. */
     deleteRollingMonitoredShowsByIds(
       tvdbIds: string[],
       sonarrSeriesIds: number[],
     ): Promise<number>
 
-    /**
-     * Gets rolling monitored shows that haven't been updated recently
-     * @param inactivityDays - Number of days since last update to consider inactive
-     * @returns Promise resolving to array of inactive rolling monitored shows
-     */
+    /** One row per show (the master when present) whose master and per-user rows are all past the cutoff. */
     getInactiveRollingMonitoredShows(
       inactivityDays: number,
     ): Promise<RollingMonitoredShow[]>
 
-    /**
-     * Updates the monitoring type for a rolling monitored show, propagating to per-user entries.
-     * @param id - The ID of the master entry
-     * @param monitoringType - The new monitoring type
-     * @param currentMonitoredSeason - The initial season for the new type (master only)
-     * @returns True if the master entry was found and updated
-     */
+    /** Writes the type to every row of the show but the season to the master only, false when id is not a master. */
     updateRollingShowMonitoringType(
       id: number,
       monitoringType: SonarrRollingMonitorOption,

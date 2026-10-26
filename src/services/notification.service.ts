@@ -1,49 +1,57 @@
 import type {
-  MinimumAvailability,
-  RadarrMonitorType,
-} from '@root/schemas/radarr/add-options.schema.js'
-import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
-import {
-  buildRoutingPayload,
-  type WebhookPayloadMap,
-} from '@root/schemas/webhooks/webhook-payloads.schema.js'
-import type { ApprovalRequest } from '@root/types/approval.types.js'
+  ApprovalRequest,
+  RouterDecision,
+} from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
+import type {
+  NotificationTestResult,
+  SystemTestTarget,
+  UpdateAvailableRelease,
+  UserTestChannel,
+  WatchlistCapNotification,
+} from '@root/types/notification.types.js'
 import type { Friend, Item as WatchlistItem } from '@root/types/plex.types.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import type { RoutingDetails } from '@root/types/router.types.js'
-import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
-import type {
-  WebhookDispatchResult,
-  WebhookEventType,
-} from '@root/types/webhook-endpoint.types.js'
-import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { systemStatusEvent } from '@utils/system-status-event.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { AppriseService } from './notifications/channels/apprise.service.js'
+import { DiscordWebhookService } from './notifications/channels/discord-webhook.service.js'
+import { PlexMobileService } from './notifications/channels/plex-mobile.service.js'
+import { DiscordBotService } from './notifications/discord-bot/bot.service.js'
+import { sendApprovalBatch } from './notifications/orchestration/approval.js'
+import { sendDeleteSyncNotification } from './notifications/orchestration/delete-sync.js'
+import { sendMediaAvailable } from './notifications/orchestration/media-available.js'
+import type {
+  MediaAvailableOptions,
+  MediaInfo,
+} from './notifications/orchestration/media-available-enrichment.js'
 import {
-  AppriseService,
-  DiscordWebhookService,
-  dispatchWebhooks,
-  PlexMobileService,
-} from './notifications/channels/index.js'
+  sendApprovalAuto,
+  sendApprovalResolved,
+  sendUserCreated,
+  sendWatchlistRemoved,
+} from './notifications/orchestration/native-events.js'
 import {
-  type BotStatus,
-  DiscordBotService,
-} from './notifications/discord-bot/index.js'
+  type TestSendOutcome,
+  testSystemTarget,
+  testUserChannel,
+} from './notifications/orchestration/test-send.js'
+import { sendUpdateAvailable } from './notifications/orchestration/update-available.js'
 import {
-  type ApprovalRequest as ApprovalRequestNotification,
-  sendApprovalBatch,
-  sendDeleteSyncCompleted,
-  sendMediaAvailable,
-  sendUpdateAvailable,
   sendWatchlistAdded,
-  sendWatchlistCapNotification,
-  type UpdateAvailableRelease,
-  type WatchlistCapEvent,
   type WatchlistItemInfo,
-} from './notifications/orchestration/index.js'
+} from './notifications/orchestration/watchlist-added.js'
+import {
+  clearWatchlistCap,
+  sendWatchlistCapReached,
+} from './notifications/orchestration/watchlist-cap.js'
+import { NotificationState } from './notifications/state.js'
+import type { NotificationDeps } from './notifications/types.js'
+
+const SHUTDOWN_DRAIN_MS = 5_000
 
 export class NotificationService {
   private readonly log: FastifyBaseLogger
@@ -51,6 +59,8 @@ export class NotificationService {
   private readonly _discordWebhook: DiscordWebhookService
   private readonly _plexMobile: PlexMobileService
   private readonly _apprise: AppriseService
+  private readonly inFlight = new Set<Promise<boolean>>()
+  private readonly state = new NotificationState()
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -61,7 +71,7 @@ export class NotificationService {
 
     this._discordBot = new DiscordBotService(this.log, this.fastify)
     this._discordBot.onStatusChange(() => this.emitStatusEvents())
-    this._discordWebhook = new DiscordWebhookService(this.log, this.fastify)
+    this._discordWebhook = new DiscordWebhookService(this.log)
     this._plexMobile = new PlexMobileService(this.log, this.fastify)
     this._apprise = new AppriseService(this.log, this.fastify)
   }
@@ -80,10 +90,6 @@ export class NotificationService {
 
   get apprise(): AppriseService {
     return this._apprise
-  }
-
-  getBotStatus(): BotStatus {
-    return this._discordBot.getBotStatus()
   }
 
   statusEvents(): ProgressEvent[] {
@@ -116,7 +122,7 @@ export class NotificationService {
 
   async initialize(): Promise<void> {
     if (this.hasBotConfig) {
-      this.log.info('Discord bot configuration found, attempting auto-start')
+      this.log.debug('Discord bot configuration found, attempting auto-start')
       try {
         const started = await this._discordBot.startBot()
         if (!started) {
@@ -137,389 +143,181 @@ export class NotificationService {
       this.log.error({ error }, 'Failed to initialize Plex Mobile service')
     }
 
-    // Fire-and-forget to avoid blocking startup; callers fired during boot
-    // should await fastify.notifications.apprise.whenReady().
+    // Not awaited so startup never blocks, and boot-time callers await apprise.whenReady()
     this._apprise.initialize().catch((error) => {
       this.log.error({ error }, 'Unexpected error in Apprise initialization')
     })
   }
 
   async shutdown(): Promise<void> {
+    this._plexMobile.shutdown()
+    this.state.clearTimers()
+    await this.drainDeliveries()
+
     if (this._discordBot.getBotStatus() === 'running') {
-      this.log.info('Stopping Discord bot during shutdown')
+      this.log.debug('Stopping Discord bot during shutdown')
       await this._discordBot.stopBot()
     }
-
-    this._plexMobile.shutdown()
   }
 
-  async sendDeleteSyncNotification(
+  /** Resolves once every tracked delivery has finished, including deliveries started while waiting. */
+  async whenIdle(): Promise<void> {
+    while (this.inFlight.size > 0) {
+      await Promise.allSettled(this.inFlight)
+    }
+  }
+
+  private async drainDeliveries(): Promise<void> {
+    if (this.inFlight.size === 0) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    await Promise.race([
+      Promise.allSettled(this.inFlight),
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, SHUTDOWN_DRAIN_MS)
+      }),
+    ])
+    clearTimeout(timer)
+  }
+
+  /** Tracks delivery work for shutdown. The returned promise never rejects. */
+  private track(work: Promise<boolean>): Promise<boolean> {
+    const tracked = work.catch((error) => {
+      this.log.error({ error }, 'Notification delivery failed')
+      return false
+    })
+    this.inFlight.add(tracked)
+    void tracked.finally(() => this.inFlight.delete(tracked))
+    return tracked
+  }
+
+  // config is a getter because updateConfig reassigns fastify.config and deps outlive a single call
+  private get deps(): NotificationDeps {
+    const { fastify } = this
+    return {
+      db: fastify.db,
+      logger: this.log,
+      get config() {
+        return fastify.config
+      },
+      state: this.state,
+      discordBot: this._discordBot,
+      discordWebhook: this._discordWebhook,
+      apprise: this._apprise,
+      plexMobile: this._plexMobile,
+      progress: fastify.progress,
+      detach: (work) => {
+        void this.track(work)
+      },
+    }
+  }
+
+  private unwrapTestOutcome(outcome: TestSendOutcome): NotificationTestResult {
+    switch (outcome.status) {
+      case 'sent':
+        return outcome.result
+      case 'not_found':
+        throw this.fastify.httpErrors.notFound(outcome.message)
+      case 'not_configured':
+        throw this.fastify.httpErrors.badRequest(outcome.message)
+    }
+  }
+
+  /** Throws 400 when the setting has no saved URL. */
+  async testSystemTarget(
+    target: SystemTestTarget,
+  ): Promise<NotificationTestResult> {
+    return this.unwrapTestOutcome(await testSystemTarget(target, this.deps))
+  }
+
+  /** Throws 404 for an unknown user and 400 when the user lacks the channel. */
+  async testUserChannel(
+    userId: number,
+    channel: UserTestChannel,
+  ): Promise<NotificationTestResult> {
+    return this.unwrapTestOutcome(
+      await testUserChannel(userId, channel, this.deps),
+    )
+  }
+
+  sendDeleteSyncNotification(
     results: DeleteSyncResult,
     dryRun: boolean,
-    notifyOption?: string,
   ): Promise<boolean> {
-    return sendDeleteSyncCompleted(
-      {
-        db: this.fastify.db,
-        logger: this.log,
-        discordBot: this._discordBot,
-        discordWebhook: this._discordWebhook,
-        apprise: this._apprise,
-        config: {
-          deleteSyncNotify:
-            notifyOption || this.fastify.config.deleteSyncNotify || 'none',
-          deleteSyncNotifyOnlyOnDeletion:
-            this.fastify.config.deleteSyncNotifyOnlyOnDeletion || false,
-          discordWebhookUrl: this.fastify.config.discordWebhookUrl,
-        },
-      },
-      results,
-      dryRun,
-    )
+    return this.track(sendDeleteSyncNotification(this.deps, results, dryRun))
   }
 
-  async sendUpdateAvailableNotification(
+  sendUpdateAvailableNotification(
     release: UpdateAvailableRelease,
   ): Promise<boolean> {
-    return sendUpdateAvailable(
-      {
-        logger: this.log,
-        db: this.fastify.db,
-        discordWebhook: this._discordWebhook,
-        discordBot: this._discordBot,
-        apprise: this._apprise,
-        config: {
-          notifyOnUpdate: this.fastify.config.notifyOnUpdate,
-          discordWebhookUrl: this.fastify.config.discordWebhookUrl,
-        },
-      },
-      release,
-    )
+    return this.track(sendUpdateAvailable(this.deps, release))
   }
 
-  async sendWatchlistAdded(
+  sendWatchlistAdded(
     user: Friend & { userId: number },
     item: WatchlistItemInfo,
     routingDetails?: RoutingDetails[],
   ): Promise<boolean> {
-    return sendWatchlistAdded(
-      {
-        db: this.fastify.db,
-        logger: this.log,
-        discordBot: this._discordBot,
-        discordWebhook: this._discordWebhook,
-        apprise: this._apprise,
-        config: {
-          watchlistAddNotify: this.fastify.config.watchlistAddNotify || 'all',
-        },
-      },
-      user,
-      item,
-      routingDetails,
-    )
+    return this.track(sendWatchlistAdded(this.deps, user, item, routingDetails))
   }
 
-  async sendApprovalBatch(
-    queuedRequests: ApprovalRequestNotification[],
+  sendApprovalBatch(
+    queuedRequests: ApprovalRequest[],
     totalPending: number,
-  ): Promise<number> {
-    return sendApprovalBatch(
-      {
-        db: this.fastify.db,
-        logger: this.log,
-        discordBot: this._discordBot,
-        discordWebhook: this._discordWebhook,
-        apprise: this._apprise,
-        config: {
-          approvalNotify: this.fastify.config.approvalNotify || 'none',
-        },
-      },
-      queuedRequests,
-      totalPending,
+  ): Promise<boolean> {
+    return this.track(
+      sendApprovalBatch(this.deps, queuedRequests, totalPending),
     )
   }
 
-  // Trailing-edge debounce: each call resets the timer; fires after quiet period.
-  sendWatchlistCapReached(event: WatchlistCapEvent): void {
-    sendWatchlistCapNotification(
-      {
-        db: this.fastify.db,
-        logger: this.log,
-        discordBot: this._discordBot,
-        discordWebhook: this._discordWebhook,
-        apprise: this._apprise,
-        config: {
-          watchlistCapNotify: this.fastify.config.watchlistCapNotify || 'none',
-          watchlistCapNotifyUser:
-            this.fastify.config.watchlistCapNotifyUser || false,
-        },
-      },
-      event,
-    )
+  /** Trailing-edge debounce. Each call resets the timer and the delivery runs after the quiet period. */
+  sendWatchlistCapReached(event: WatchlistCapNotification): void {
+    sendWatchlistCapReached(this.deps, event)
   }
 
-  async sendMediaAvailable(
-    mediaInfo: {
-      type: 'movie' | 'show'
-      guid: string
-      title: string
-      episodes?: SonarrEpisodeSchema[]
-    },
-    options: {
-      isBulkRelease: boolean
-      instanceId?: number
-      instanceType?: 'sonarr' | 'radarr'
-      sequential?: boolean
-    },
+  /** Call when the user is at or under the cap, so going over again notifies even at a previously notified count. */
+  clearWatchlistCap(
+    userId: number,
+    contentType: WatchlistCapNotification['contentType'],
+  ): void {
+    clearWatchlistCap(this.state, userId, contentType)
+  }
+
+  /** Resolves once matching and record claims are done. Deliveries keep running in the background. */
+  sendMediaAvailable(
+    mediaInfo: MediaInfo,
+    options: MediaAvailableOptions,
   ): Promise<{ matchedCount: number }> {
-    return sendMediaAvailable(
-      {
-        db: this.fastify.db,
-        config: this.fastify.config,
-        logger: this.log,
-        discordBot: this._discordBot,
-        discordWebhook: this._discordWebhook,
-        plexMobile: this._plexMobile,
-        apprise: this._apprise,
-      },
-      mediaInfo,
-      options,
-    )
+    return sendMediaAvailable(this.deps, mediaInfo, options)
   }
 
-  async sendNativeWebhook<T extends WebhookEventType>(
-    eventType: T,
-    data: WebhookPayloadMap[T],
-  ): Promise<WebhookDispatchResult> {
-    return dispatchWebhooks(eventType, data, {
-      db: this.fastify.db,
-      log: this.log,
-    })
-  }
-
-  async sendApprovalResolved(
+  sendApprovalResolved(
     request: ApprovalRequest,
     resolution: 'approved' | 'denied',
     resolvedBy: number | null,
     notes?: string,
   ): Promise<boolean> {
-    // Include routing info only when approved (not for rejections)
-    const proposedRouting =
-      resolution === 'approved'
-        ? request.proposedRouterDecision?.approval?.proposedRouting
-        : undefined
-
-    // Map internal 'denied' status to 'rejected' for webhook payload
-    const status =
-      resolution === 'denied' ? ('rejected' as const) : ('approved' as const)
-
-    const routing = proposedRouting
-      ? buildRoutingPayload(proposedRouting)
-      : undefined
-
-    const payload = {
-      approvalId: request.id,
-      status,
-      content: {
-        title: request.contentTitle,
-        type: request.contentType,
-        key: request.contentKey,
-        guids: request.contentGuids,
-      },
-      requestedBy: {
-        userId: request.userId,
-        username: request.userName,
-      },
-      resolvedBy: {
-        userId: resolvedBy,
-      },
-      approvalNotes: notes,
-      triggeredBy: request.triggeredBy,
-      createdAt: request.createdAt,
-      resolvedAt: request.updatedAt,
-      routing,
-    }
-
-    const result = await dispatchWebhooks('approval.resolved', payload, {
-      db: this.fastify.db,
-      log: this.log,
-    })
-
-    if (result.succeeded > 0) {
-      try {
-        await this.fastify.db.createNotificationRecord({
-          watchlist_item_id: null,
-          user_id: request.userId,
-          type: 'approval_resolved',
-          title: request.contentTitle,
-          message: `Approval ${resolution}: ${request.contentTitle}`,
-          sent_to_discord: false,
-          sent_to_apprise: false,
-          sent_to_native_webhook: true,
-        })
-      } catch (error) {
-        this.log.error(
-          { error, requestId: request.id },
-          'Failed to record approval resolved notification',
-        )
-      }
-    }
-
-    return result.succeeded > 0
+    return this.track(
+      sendApprovalResolved(this.deps, request, resolution, resolvedBy, notes),
+    )
   }
 
-  async sendApprovalAuto(
+  sendApprovalAuto(
     request: ApprovalRequest,
-    routing: {
-      instanceType: 'radarr' | 'sonarr'
-      instanceId: number
-      qualityProfile: number | string | null
-      rootFolder: string | null
-      tags: string[]
-      searchOnAdd?: boolean | null
-      minimumAvailability?: MinimumAvailability | null
-      seasonMonitoring?: string | null
-      seriesType?: SonarrSeriesType | null
-      monitor?: RadarrMonitorType | null
-      syncedInstances?: number[]
-    },
+    routing: NonNullable<RouterDecision['routing']>,
     reason: string,
   ): Promise<boolean> {
-    const payload = {
-      approvalId: request.id,
-      content: {
-        title: request.contentTitle,
-        type: request.contentType,
-        key: request.contentKey,
-        guids: request.contentGuids,
-      },
-      user: {
-        userId: request.userId,
-        username: request.userName,
-      },
-      routing: buildRoutingPayload(routing),
-      reason,
-    }
-
-    const result = await dispatchWebhooks('approval.auto', payload, {
-      db: this.fastify.db,
-      log: this.log,
-    })
-
-    if (result.succeeded > 0) {
-      try {
-        await this.fastify.db.createNotificationRecord({
-          watchlist_item_id: null,
-          user_id: request.userId,
-          type: 'approval_auto',
-          title: request.contentTitle,
-          message: `Auto-approved: ${request.contentTitle}`,
-          sent_to_discord: false,
-          sent_to_apprise: false,
-          sent_to_native_webhook: true,
-        })
-      } catch (error) {
-        this.log.error(
-          { error, requestId: request.id },
-          'Failed to record auto-approval notification',
-        )
-      }
-    }
-
-    return result.succeeded > 0
+    return this.track(sendApprovalAuto(this.deps, request, routing, reason))
   }
 
-  async sendWatchlistRemoved(
+  sendWatchlistRemoved(
     userId: number,
     username: string,
     item: WatchlistItem & { id: number },
   ): Promise<boolean> {
-    const guids =
-      typeof item.guids === 'string'
-        ? parseGuids(item.guids)
-        : (item.guids ?? [])
-    const contentType =
-      item.type === 'show' ? ('show' as const) : ('movie' as const)
-
-    const payload = {
-      watchlistItemId: item.id,
-      content: {
-        title: item.title,
-        type: contentType,
-        key: item.key,
-        guids,
-      },
-      removedBy: {
-        userId,
-        username,
-      },
-    }
-
-    const result = await dispatchWebhooks('watchlist.removed', payload, {
-      db: this.fastify.db,
-      log: this.log,
-    })
-
-    if (result.succeeded > 0) {
-      try {
-        await this.fastify.db.createNotificationRecord({
-          watchlist_item_id: item.id,
-          user_id: userId,
-          type: 'watchlist_removed',
-          title: item.title,
-          message: `Removed from watchlist: ${item.title}`,
-          sent_to_discord: false,
-          sent_to_apprise: false,
-          sent_to_native_webhook: true,
-        })
-      } catch (error) {
-        this.log.error(
-          { error, userId, title: item.title },
-          'Failed to record watchlist removed notification',
-        )
-      }
-    }
-
-    return result.succeeded > 0
+    return this.track(sendWatchlistRemoved(this.deps, userId, username, item))
   }
 
-  async sendUserCreated(user: User): Promise<boolean> {
-    const payload = {
-      user: {
-        id: user.id,
-        name: user.name,
-        alias: user.alias ?? null,
-      },
-      canSync: user.can_sync ?? true,
-      requiresApproval: user.requires_approval ?? false,
-      createdAt: user.created_at ?? new Date().toISOString(),
-    }
-
-    const result = await dispatchWebhooks('user.created', payload, {
-      db: this.fastify.db,
-      log: this.log,
-    })
-
-    if (result.succeeded > 0) {
-      try {
-        await this.fastify.db.createNotificationRecord({
-          watchlist_item_id: null,
-          user_id: user.id,
-          type: 'user_created',
-          title: user.name,
-          message: `New user created: ${user.name}`,
-          sent_to_discord: false,
-          sent_to_apprise: false,
-          sent_to_native_webhook: true,
-        })
-      } catch (error) {
-        this.log.error(
-          { error, userId: user.id },
-          'Failed to record user created notification',
-        )
-      }
-    }
-
-    return result.succeeded > 0
+  sendUserCreated(user: User): Promise<boolean> {
+    return this.track(sendUserCreated(this.deps, user))
   }
 }

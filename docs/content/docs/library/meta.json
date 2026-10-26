@@ -1,0 +1,11 @@
+{
+  "title": "Library",
+  "pages": [
+    "index",
+    "sonarr-radarr",
+    "content-router",
+    "exclusions",
+    "delete-sync",
+    "session-monitoring"
+  ]
+}

@@ -48,7 +48,7 @@ const plexResourcesHandler = http.get(
 
 const plexUsersHandler = http.get('https://plex.tv/api/users', () => {
   return HttpResponse.text(
-    `<?xml version="1.0" encoding="UTF-8"?><MediaContainer size="4"><User id="1" title="test-user-primary" username="test-user-primary" email="user1@example.com" /><User id="2" title="test-user-discord-apprise" username="test-user-discord-apprise" email="user2@example.com" /><User id="3" title="test-user-all-notifications" username="test-user-all-notifications" email="user3@example.com" /><User id="4" title="test-user-no-sync" username="test-user-no-sync" email="user4@example.com" /></MediaContainer>`,
+    `<?xml version="1.0" encoding="UTF-8"?><MediaContainer size="4"><User id="1" title="test-user-primary" username="test-user-primary" email="user1@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60001/avatar?c=1" /><User id="2" title="test-user-discord-apprise" username="test-user-discord-apprise" email="user2@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60002/avatar?c=1" /><User id="3" title="test-user-all-notifications" username="test-user-all-notifications" email="user3@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60003/avatar?c=1" /><User id="4" title="test-user-no-sync" username="test-user-no-sync" email="user4@example.com" thumb="https://plex.tv/users/a1b2c3d4e5f60004/avatar?c=1" /></MediaContainer>`,
     { headers: { 'Content-Type': 'text/xml; charset=utf-8' } },
   )
 })
@@ -128,15 +128,9 @@ const plexCommunityHandler = http.post('https://community.plex.tv/api', () => {
   })
 })
 
-const plexWatchlistRssHandler = http.get(
+const plexDiscoverWatchlistHandler = http.get(
   'https://discover.provider.plex.tv/library/sections/watchlist/all',
-  () => {
-    return HttpResponse.text(
-      `<?xml version="1.0" encoding="UTF-8"?>
-<MediaContainer size="0" totalSize="0" />`,
-      { headers: { 'Content-Type': 'application/xml; charset=utf-8' } },
-    )
-  },
+  () => HttpResponse.json({ MediaContainer: { Metadata: [], totalSize: 0 } }),
 )
 
 const sonarrSeriesHandler = http.get(
@@ -282,6 +276,82 @@ const arrWebhookHandlers = (['sonarr', 'radarr'] as const).flatMap((arr) => {
   ]
 })
 
+export const sonarrRootFolderHandler = http.get(
+  'http://test-sonarr:8989/api/v3/rootfolder',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
+export const radarrRootFolderHandler = http.get(
+  'http://test-radarr:7878/api/v3/rootfolder',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
+export const sonarrTagHandler = http.get(
+  'http://test-sonarr:8989/api/v3/tag',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
+export const radarrTagHandler = http.get(
+  'http://test-radarr:7878/api/v3/tag',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
+export const PULSARR_TEST_BASE_URL = 'http://pulsarr-test'
+export const PULSARR_TEST_PORT = 3004
+export const PULSARR_TEST_WEBHOOK_ID = 172
+export const PULSARR_TEST_WEBHOOK_NAME = `Pulsarr (${new URL(PULSARR_TEST_BASE_URL).hostname}:${PULSARR_TEST_PORT})`
+
+export function pulsarrTestWebhook(arr: keyof typeof arrWebhookMocks) {
+  const instanceId = ARR_WEBHOOK_HOSTS[arr]
+    .replace(/https?:\/\//, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase()
+  return {
+    id: PULSARR_TEST_WEBHOOK_ID,
+    name: PULSARR_TEST_WEBHOOK_NAME,
+    url: `${PULSARR_TEST_BASE_URL}:${PULSARR_TEST_PORT}/v1/notifications/webhook?instanceId=${instanceId}`,
+  }
+}
+
+// The arr validates the definition before testing it and only skips the unique Name rule for the hook's own id.
+const pulsarrWebhookTestHandler = (arr: keyof typeof arrWebhookMocks) =>
+  http.post(
+    `${ARR_WEBHOOK_HOSTS[arr]}/api/v3/notification/test`,
+    async ({ request }) => {
+      const body = (await request.json()) as { id?: number; name?: string }
+      const collides =
+        body.id === undefined &&
+        arrWebhookMocks[arr].hooks.some(
+          (hook) => hook.name.toLowerCase() === body.name?.toLowerCase(),
+        )
+      if (collides) {
+        return HttpResponse.json(
+          [
+            {
+              propertyName: 'Name',
+              errorMessage: 'Should be unique',
+              attemptedValue: body.name,
+              severity: 'error',
+            },
+          ],
+          { status: 400 },
+        )
+      }
+      return HttpResponse.json('{}')
+    },
+  )
+
+export const sonarrNotificationTestHandler = pulsarrWebhookTestHandler('sonarr')
+export const radarrNotificationTestHandler = pulsarrWebhookTestHandler('radarr')
+
 export const plexApiHandlers = [
   plexResourcesHandler,
   plexUsersHandler,
@@ -290,10 +360,16 @@ export const plexApiHandlers = [
   plexUserHandler,
   plexWatchlistHandler,
   plexCommunityHandler,
-  plexWatchlistRssHandler,
+  plexDiscoverWatchlistHandler,
   sonarrSeriesHandler,
   radarrMovieHandler,
   sonarrQualityProfileHandler,
   radarrQualityProfileHandler,
   ...arrWebhookHandlers,
+  sonarrRootFolderHandler,
+  radarrRootFolderHandler,
+  sonarrTagHandler,
+  radarrTagHandler,
+  sonarrNotificationTestHandler,
+  radarrNotificationTestHandler,
 ]

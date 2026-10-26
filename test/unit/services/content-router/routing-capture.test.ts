@@ -29,7 +29,11 @@ describe('routeToArr', () => {
       sonarrManager: { routeItemToSonarr },
     })
 
-    const details = await routeToArr(target(movie), { rootFolder: null }, deps)
+    const { routing: details } = await routeToArr(
+      target(movie),
+      { rootFolder: null },
+      deps,
+    )
 
     expect(routeItemToRadarr).toHaveBeenCalledWith(movie, 'key', 3, 2, false, {
       rootFolder: null,
@@ -55,7 +59,7 @@ describe('routeToArr', () => {
       sonarrManager: { routeItemToSonarr },
     })
 
-    const details = await routeToArr(target(show), {}, deps)
+    const { routing: details } = await routeToArr(target(show), {}, deps)
 
     expect(details).toEqual(
       expect.objectContaining({
@@ -76,7 +80,7 @@ describe('routeToArr', () => {
       },
     })
 
-    const details = await routeToArr(target(movie), {}, deps)
+    const { routing: details } = await routeToArr(target(movie), {}, deps)
 
     expect(details.qualityProfile).toBeUndefined()
   })

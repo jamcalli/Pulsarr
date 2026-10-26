@@ -1,0 +1,36 @@
+---
+title: Exclusions
+description: Block watchlisted titles from being requested, for one user or for everyone.
+---
+
+An exclusion blocks a title, so Pulsarr never requests it even though it's on someone's watchlist. The title stays on their watchlist in Plex. Manage exclusions under **Library** > **Exclusions**, which lists every title on any watchlist.
+
+## Exclude a title
+
+There are two kinds:
+
+- **For one user.** Expand the title's row and select **Exclude** next to the user. **Remove** undoes it. This kind clears itself when the user removes the title from their watchlist, so adding it again later works normally.
+- **For everyone.** Select **Exclude for everyone** from the row's menu. It also blocks anyone who adds the title later, and it stays until you select **Remove global exclusion**.
+
+To act on several titles, select their rows and use **Exclude** with **Their watchlisters** or **Everyone**, or **Remove** to clear every exclusion on them.
+
+Use **Search titles** and the **User**, **Content type**, **Status** and **Exclusion** filters to find titles.
+
+## Exclusions and delete sync
+
+[Delete sync](/library/delete-sync) treats an excluded title as if nobody had it on their watchlist. That applies once every watchlister is excluded, or the title has an exclusion for everyone. Delete sync can then remove it, as long as its own settings and safety checks allow it. This is also how you stop a deleted title from being requested again while it's still on someone's watchlist.
+
+## Maintainerr
+
+Pulsarr can add exclusions for media that Maintainerr deletes, so stale watchlists don't request it again. It needs Maintainerr 3.23.0 or later, and Maintainerr must be able to reach Pulsarr.
+
+In the **Maintainerr** section, turn on **Use Maintainerr**, enter the **Maintainerr URL** and save. Pulsarr then sets up a webhook named "Pulsarr" in Maintainerr and connects it to the rule groups whose collections delete media. Groups that only unmonitor aren't connected, because the webhook doesn't say which action ran. Pulsarr reconnects on its own on a schedule, and **Sync now** does it straight away.
+
+**Exclude for** decides what Pulsarr adds when Maintainerr deletes a title:
+
+- **Current watchlisters** adds one exclusion for each user who has it watchlisted. Someone who adds it later can request it again.
+- **Everyone** adds one exclusion that blocks it for all users.
+
+Maintainerr only adds exclusions. Remove them on this page.
+
+If you use Maintainerr this way, consider turning delete sync off and keeping your removal rules in Maintainerr, so only one tool removes content.
