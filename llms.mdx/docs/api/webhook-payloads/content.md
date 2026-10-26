@@ -1,0 +1,15 @@
+# Webhook payloads (/api/webhook-payloads)
+
+Pulsarr posts these payloads to the endpoints you add under [Webhooks](/notifications/webhooks). They are outgoing requests from Pulsarr to your service, so no API key is involved. If you set an auth header on the endpoint, Pulsarr sends it with every request.
+
+Every payload has the same envelope:
+
+```json
+{
+  "event": "media.available",
+  "timestamp": "2026-10-23T10:30:00.000Z",
+  "data": { }
+}
+```
+
+`data` depends on the event. Each page here documents one event with its schema and an example. Pulsarr validates every payload against that schema before sending it, so the shape you see here is what arrives.

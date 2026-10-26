@@ -1,0 +1,66 @@
+3:"$Sreact.fragment"
+4:"/Pulsarr/_next/static/chunks/2eb9549pl9yl_.js"
+5:"/Pulsarr/_next/static/chunks/3stpsbuqu4qc8.js"
+6:"/Pulsarr/_next/static/chunks/1hkeatsjrpmiz.js"
+7:"/Pulsarr/_next/static/chunks/06kkm3k7df-yd.js"
+8:I[929713,["$4","$5","$6","$7"],"default"]
+9:I[759292,["$4","$5","$6","$7"],"default"]
+e:"/Pulsarr/_next/static/chunks/3uajxsple_7yh.js"
+f:"/Pulsarr/_next/static/chunks/2d0t8_-f4oaeq.js"
+10:"/Pulsarr/_next/static/chunks/259_9_8_x5zau.js"
+11:"/Pulsarr/_next/static/chunks/32hvp-nq1neu8.js"
+12:"/Pulsarr/_next/static/chunks/125akcrvtufnd.js"
+13:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsPage"]
+14:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsTitle"]
+15:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsDescription"]
+16:I[228634,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"Separator"]
+17:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsBody"]
+18:I[500074,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"Heading"]
+31:"ViewportBoundary"
+32:I[81896,["$4","$5","$6","$7"],"$31"]
+33:"MetadataBoundary"
+34:I[81896,["$4","$5","$6","$7"],"$33"]
+35:"$Sreact.suspense"
+36:I[404094,["$4","$5","$6","$7"],"IconMark"]
+b:X
+b:C
+c:X
+d:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$3","c",{"children":[["$","$L13",null,{"toc":[{"depth":2,"url":"#add-an-instance","title":"Add an instance"},{"depth":2,"url":"#where-content-lands","title":"Where content lands"},{"depth":2,"url":"#behavior","title":"Behavior"},{"depth":2,"url":"#remove-an-instance","title":"Remove an instance"}],"footer":{"enabled":true},"children":[["$","$L14",null,{"children":"Sonarr and Radarr"}],["$","$L15",null,{"className":"mb-0","children":"Connect Sonarr and Radarr instances, set where content lands, and copy content between instances."}],["$","$L16",null,{}],["$","$L17",null,{"children":[["$","p",null,{"children":["Shows go to Sonarr and movies go to Radarr. Manage them under ",["$","strong",null,{"children":"Library"}]," > ",["$","strong",null,{"children":"Sonarr"}]," and ",["$","strong",null,{"children":"Library"}]," > ",["$","strong",null,{"children":"Radarr"}],". Both pages work the same way, and the differences are noted below."]}],"\n",["$","$L18",null,{"as":"h2","id":"add-an-instance","children":"Add an instance"}],"\n",["$","p",null,{"children":["Select ",["$","strong",null,{"children":"Add instance"}],", then fill in ",["$","strong",null,{"children":"Connection"}],":"]}],"\n",["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Name"}]," is shown across Pulsarr, for example in the Content router."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"URL"}]," is the instance's address, including the port."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"API key"}]," is in Sonarr or Radarr under Settings > General."]}],"\n"]}],"\n",["$","p",null,{"children":["Select ",["$","strong",null,{"children":"Test connection"}],". Pulsarr needs a passing test before it can save, and the test also loads the quality profiles, root folders and tags for the next section."]}],"\n",["$","p",null,{"children":["The test also checks that Sonarr or Radarr can reach Pulsarr, which it needs to report finished downloads. If it can't, select ",["$","strong",null,{"children":"Fix the address"}]," and choose how your servers reach Pulsarr. You can also change that address in the ",["$","strong",null,{"children":"Webhooks"}]," section of the page. Sonarr and Radarr don't say why a webhook check failed, so look in their own log for the reason. An https address with no port is called on 443, not on Pulsarr's port. Pulsarr adds a secret header to the webhook it creates and rejects calls without it, so there is nothing to set up by hand."]}],"\n",["$","$L18",null,{"as":"h2","id":"where-content-lands","children":"Where content lands"}],"\n",["$","p",null,{"children":["These settings apply to everything Pulsarr sends to the instance. A Content router route can override ",["$","strong",null,{"children":"Quality profile"}],", ",["$","strong",null,{"children":"Root folder"}],", ",["$","strong",null,{"children":"Search on add"}]," and ",["$","strong",null,{"children":"Tags"}],", plus ",["$","strong",null,{"children":"Season monitoring"}]," and ",["$","strong",null,{"children":"Series type"}]," for Sonarr and ",["$","strong",null,{"children":"Monitor"}]," for Radarr."]}],"\n",["$","p",null,{"children":"For both:"}],"\n",["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Quality profile"}]," and ",["$","strong",null,{"children":"Root folder"}],"."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Search on add"}]," searches as soon as an item is added."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Tags"}]," are added to items that reach the instance because no route matched. A matching route uses its own tags instead."]}],"\n"]}],"\n",["$","p",null,{"children":"For Sonarr:"}],"\n",["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Season monitoring"}]," picks which episodes to monitor. The rolling options, ",["$","strong",null,{"children":"Pilot rolling"}],", ",["$","strong",null,{"children":"First season rolling"}]," and ",["$","strong",null,{"children":"All seasons pilot rolling"}],", start small and monitor more as people watch. They stay disabled until ","$L19"," is on."]}],"\n","$L1a","\n","$L1b","\n","$L1c","\n"]}],"\n","$L1d","\n","$L1e","\n","$L1f","\n","$L20","\n","$L21","\n","$L22","\n","$L23","\n","$L24","\n","$L25","\n","$L26","\n","$L27","\n","$L28","\n","$L29"]}],"$L2a"]}],["$L2b","$L2c","$L2d","$L2e"],"$L2f"]}],"p":"$@30","v":null,"s":"$c"}}]]
+2:[["children",{"s":{"n":"slug","t":"oc","k":"library/sonarr-radarr","s":["api","docs","llms-full.txt","llms.mdx","llms.txt","og"]},"h":64,"d":{"r":["$","$3","c",{"children":[null,["$","$L8",null,{"parallelRouterKey":"children","template":["$","$L9",null,{}]}]]}],"p":"$@a","v":"$b","s":"$c"},"c":"$Qd"}]]
+1:[["children",{"s":"(docs)","h":32,"c":"$Q2"}]]
+0:{"t":{"t":{"s":"","h":80,"c":"$Q1"},"h":{"r":["$","$3","h",{"children":[null,["$","$L32",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L34",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$35",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Sonarr and Radarr | Pulsarr"}],["$","meta","1",{"name":"description","content":"Connect Sonarr and Radarr instances, set where content lands, and copy content between instances."}],["$","link","2",{"rel":"canonical","href":"https://jamcalli.github.io/Pulsarr/library/sonarr-radarr/"}],["$","meta","3",{"property":"og:title","content":"Sonarr and Radarr | Pulsarr"}],["$","meta","4",{"property":"og:description","content":"Connect Sonarr and Radarr instances, set where content lands, and copy content between instances."}],["$","meta","5",{"property":"og:url","content":"https://jamcalli.github.io/Pulsarr/library/sonarr-radarr/"}],["$","meta","6",{"property":"og:site_name","content":"Pulsarr"}],["$","meta","7",{"property":"og:image","content":"https://jamcalli.github.io/Pulsarr/og/docs/library/sonarr-radarr/image.png"}],["$","meta","8",{"property":"og:type","content":"website"}],["$","meta","9",{"name":"twitter:card","content":"summary_large_image"}],["$","meta","10",{"name":"twitter:title","content":"Sonarr and Radarr | Pulsarr"}],["$","meta","11",{"name":"twitter:description","content":"Connect Sonarr and Radarr instances, set where content lands, and copy content between instances."}],["$","meta","12",{"name":"twitter:image","content":"https://jamcalli.github.io/Pulsarr/og/docs/library/sonarr-radarr/image.png"}],["$","link","13",{"rel":"icon","href":"/Pulsarr/favicon.ico?favicon.0b7unjwu1fikl.ico","sizes":"144x144","type":"image/x-icon"}],["$","link","14",{"rel":"icon","href":"/Pulsarr/icon.svg?icon.1gh3ozbeqj7fl.svg","sizes":"any","type":"image/svg+xml"}],["$","$L36","15",{}]]}]}],null]}],null]}],"p":"$@37","v":null,"s":"$c"}},"a":"$@38","u":"$@39","b":"HxluDsqXi3tHo4EG1_MbR"}
+3a:I[555254,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"default"]
+3b:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"PageLastUpdate"]
+3c:I[81896,["$4","$5","$6","$7"],"OutletBoundary"]
+:HL["/Pulsarr/_next/static/chunks/0iaxnelvtqw2u.css","style"]
+19:["$","$L3a",null,{"href":"/library/session-monitoring","children":"session monitoring"}]
+1a:["$","li",null,{"children":[["$","strong",null,{"children":"Series type"}]," is ",["$","strong",null,{"children":"Standard"}],", ",["$","strong",null,{"children":"Anime"}]," or ",["$","strong",null,{"children":"Daily"}],"."]}]
+1b:["$","li",null,{"children":[["$","strong",null,{"children":"Monitor new items"}]," decides whether seasons that air later are monitored."]}]
+1c:["$","li",null,{"children":[["$","strong",null,{"children":"Season folders"}]," puts each season in its own folder."]}]
+1d:["$","p",null,{"children":"For Radarr:"}]
+1e:["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Minimum availability"}]," is ",["$","strong",null,{"children":"Announced"}],", ",["$","strong",null,{"children":"In cinemas"}]," or ",["$","strong",null,{"children":"Released"}],"."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Monitor"}]," is ",["$","strong",null,{"children":"Movie only"}],", ",["$","strong",null,{"children":"Movie and collection"}]," or ",["$","strong",null,{"children":"None"}],"."]}],"\n"]}]
+1f:["$","p",null,{"children":"Before sending, Pulsarr checks only the instances the request is routed to. A title already on some other instance is still sent."}]
+20:["$","p",null,{"children":[["$","strong",null,{"children":"Skip content already on Plex"}],", under ",["$","$L3a",null,{"href":"/system/plex-connection","children":"Plex connection"}],", checks Plex servers, not Sonarr or Radarr. Shared servers count only for the admin's own watchlist."]}]
+21:["$","$L18",null,{"as":"h2","id":"behavior","children":"Behavior"}]
+22:["$","p",null,{"children":[["$","strong",null,{"children":"Bypass ignored"}]," adds content even when it's on the instance's import list exclusions."]}]
+23:["$","p",null,{"children":["Content that no Content router route claims goes to the ",["$","strong",null,{"children":"Default instance"}],". There's one default per type, and the first instance you add is always the default."]}]
+24:["$","p",null,{"children":"Only the default instance has these two settings:"}]
+25:["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Synced instances"}]," also receive content that falls back to the default because no route matched, for example to keep a 4K copy. Each synced instance uses its own settings."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Skip content no route matches"}],", when on, skips content that no route claims instead of sending it to the default."]}],"\n"]}]
+26:["$","p",null,{"children":["When you add a synced instance, ",["$","strong",null,{"children":"Copy existing content"}]," sends everything already on the default to it. New content syncs on its own."]}]
+27:["$","$L18",null,{"as":"h2","id":"remove-an-instance","children":"Remove an instance"}]
+28:["$","p",null,{"children":"The default instance can't be removed while other instances exist. Make another instance the default first."}]
+29:["$","p",null,{"children":"Removing an instance also deletes the Content router routes that send to it, its place in other instances' synced instances, and Pulsarr's record of which watchlist items are on it. The watchlist items themselves stay. For Sonarr, rolling monitored shows on the instance are removed too."}]
+2a:["$","$L3b",null,{"date":"$D2026-10-25T06:49:32.000Z"}]
+2b:["$","link","0",{"rel":"stylesheet","href":"/Pulsarr/_next/static/chunks/0iaxnelvtqw2u.css","precedence":"next"}]
+2c:["$","script","script-0",{"src":"/Pulsarr/_next/static/chunks/259_9_8_x5zau.js","async":true}]
+2d:["$","script","script-1",{"src":"/Pulsarr/_next/static/chunks/32hvp-nq1neu8.js","async":true}]
+2e:["$","script","script-2",{"src":"/Pulsarr/_next/static/chunks/125akcrvtufnd.js","async":true}]
+2f:["$","$L3c",null,{"children":["$","$35",null,{"name":"Next.MetadataOutlet","children":"$@3d"}]}]
+39:true
+c:300
+3d:null
+c:C
+38:0
+a:"$undefined"
+37:"$undefined"
+30:"$undefined"

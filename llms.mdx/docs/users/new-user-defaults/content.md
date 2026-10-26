@@ -1,0 +1,10 @@
+# New user defaults (/users/new-user-defaults)
+
+Each time Pulsarr syncs, any Plex friend it hasn't seen before becomes a user with these settings. Changing them doesn't affect existing users. Edit those on [Plex users](/users/plex-users). Find these under **Users** > **New user defaults**. You also set them during first-run setup.
+
+Under **Access**:
+
+- **Sync watchlist** is on by default. Turn it off to add new users without requesting what they watchlist.
+- **Require approval** holds every request from new users in the [approval queue](/requests/approval-queue).
+
+Under **Movies** and **Shows**, **Limit requests** gives new users a [quota](/requests/quotas) with a **Quota period** and **Requests per period**. **Bypass approval over the limit** sends their requests over the limit straight through and turns the cap off. With **Cap the watchlist** on, new watchlist items past the **Watchlist cap** are skipped instead of requested. The cap fields show only while **Limit requests** is on.

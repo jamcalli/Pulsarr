@@ -1,0 +1,30 @@
+# User tags (/users/user-tags)
+
+User tags mark each movie and show in Sonarr and Radarr with the users who have it on their watchlist. Set them up under **Users** > **User tags**.
+
+## Where to tag [#where-to-tag]
+
+**Tag movies in Radarr** and **Tag shows in Sonarr** add a tag for each user who has the item on their watchlist.
+
+## Tag format [#tag-format]
+
+A tag is the **Prefix** and the user's name, for example `pulsarr-user-jamie`. **Name from** picks **Username** or **Alias**. Users without an alias fall back to their Plex username.
+
+The format can't change while the tags exist in Sonarr or Radarr. Remove them first with **Remove all user tags** and **Also delete the tag definitions**.
+
+## When something leaves a watchlist [#when-something-leaves-a-watchlist]
+
+**Tag behavior** decides what happens to a user's tag when they remove the item:
+
+- **Remove the tag** removes it.
+- **Keep the tag** keeps it as a record of who asked.
+- **Swap for a removed tag** removes it, and adds the **Removed tag** once nobody wants the item, so you can find it. [Delete sync](/library/delete-sync) in tag based mode deletes content with that tag.
+
+**Clean up orphaned tags on sync** removes the tags of users who were deleted or renamed in Plex.
+
+## Actions [#actions]
+
+- **Sync tags** tags everything currently on a watchlist and clears tags that no longer apply.
+- **Create missing tags** adds a tag in each instance for any user who doesn't have one yet.
+- **Clean up orphaned tags** deletes tags left behind by users who were removed or renamed.
+- **Remove all user tags** strips every user tag from movies and shows. Your content isn't touched. **Also delete the tag definitions** removes the tags themselves from Sonarr and Radarr too.

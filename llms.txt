@@ -1,0 +1,45 @@
+# Docs
+
+- [Welcome to Pulsarr](/): Pulsarr turns Plex watchlists into Sonarr and Radarr requests.
+- [How Pulsarr works](/how-it-works): What happens between someone adding a title to their Plex watchlist and being told it's ready.
+- Installation
+  - [Installation](/installation): Install Pulsarr with Docker or the native installers, or find it in the Unraid and TrueNAS app catalogs.
+  - [Quick start](/installation/quick-start): Install Pulsarr with Docker and get your first watchlist item into Sonarr or Radarr.
+  - [Docker](/installation/docker): Run Pulsarr in Docker with Compose or docker run, and keep it updated.
+  - [Native installers](/installation/native): Install Pulsarr on Linux, Windows or macOS without Docker.
+  - [PostgreSQL](/installation/postgresql): Run Pulsarr on PostgreSQL instead of SQLite, from the start or by moving an existing install.
+  - [Environment variables](/installation/environment-variables): Every setting Pulsarr reads from .env, with its default.
+  - [Troubleshooting](/installation/troubleshooting): Causes and fixes for common problems.
+- [Home](/home): The dashboard you land on, with what needs your attention and how requests are flowing.
+- Requests
+  - [Requests](/requests): Hold requests for your approval and limit how much each user can request.
+  - [Approval queue](/requests/approval-queue): Review the requests waiting for your decision, and look back at past ones.
+  - [Approval settings](/requests/approval-settings): Decide what happens to requests nobody approves, where approval notifications go, and how long history is kept.
+  - [Quotas](/requests/quotas): Limit how many movies and shows each user can request, and cap the size of their watchlist.
+- Library
+  - [Library](/library): Where requests go in Sonarr and Radarr, what's kept out, and what's removed.
+  - [Sonarr and Radarr](/library/sonarr-radarr): Connect Sonarr and Radarr instances, set where content lands, and copy content between instances.
+  - [Content router](/library/content-router): Send each request to the right Sonarr or Radarr instance based on what it is and who asked for it.
+  - [Exclusions](/library/exclusions): Block watchlisted titles from being requested, for one user or for everyone.
+  - [Delete sync](/library/delete-sync): Remove movies and shows from Sonarr and Radarr once nobody wants them.
+  - [Session monitoring](/library/session-monitoring): Grow rolling shows in Sonarr as people watch them.
+- Users
+  - [Users](/users): Your Plex friends, what each one can request, and how their requests are tagged and labeled.
+  - [Plex users](/users/plex-users): Set sync, approval, notifications and quotas for each person.
+  - [New user defaults](/users/new-user-defaults): Set what users start with when Pulsarr first sees them.
+  - [User tags](/users/user-tags): Tag content in Sonarr and Radarr by who has it on their watchlist.
+  - [Plex labels](/users/plex-labels): Label movies and shows in Plex by who has them on their watchlist.
+- Notifications
+  - [Notifications](/notifications): Tell users when their requests are ready, and keep admins informed.
+  - [Discord](/notifications/discord): Post admin notifications to Discord channels, and message users through a bot.
+  - [Apprise](/notifications/apprise): Send notifications to Telegram, Slack, email and many other services through an Apprise server.
+  - [Webhooks](/notifications/webhooks): Post a JSON payload to your own service when something happens in Pulsarr.
+  - [Plex mobile](/notifications/plex-mobile): Push a notification to users' Plex app when something on their watchlist is ready.
+  - [Public content](/notifications/public-content): Announce every title that becomes available in shared Discord channels and Apprise targets.
+  - [Delivery](/notifications/delivery): Group episodes into fewer notifications, and choose where admin and user notifications go.
+- System
+  - [System](/system): The Plex connection, API keys, logs and your admin account.
+  - [Plex connection](/system/plex-connection): Link the Plex account and server Pulsarr reads watchlists through, and set up library refresh.
+  - [API keys](/system/api-keys): Let other apps and scripts call the Pulsarr API.
+  - [Logs](/system/logs): Read Pulsarr's log as it's written, and set how much it records.
+  - [Account](/system/account): Change the email, username and password of your Pulsarr admin account.

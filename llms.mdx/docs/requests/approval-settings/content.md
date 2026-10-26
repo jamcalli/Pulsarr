@@ -1,0 +1,36 @@
+# Approval settings (/requests/approval-settings)
+
+Find these under **Requests** > **Approval settings**.
+
+## Order of checks [#order-of-checks]
+
+Pulsarr checks each new watchlist item in this order.
+
+1. **Watchlist cap**. An item past the user's cap is skipped.
+2. Approval. A route with **Always require approval**, or the user's **Require approval**, holds the item. No route can turn **Require approval** off.
+3. Quota. An item over the user's [quota](/requests/quotas) waits for approval, unless the user has **Bypass approval over the limit** or the route has **Bypass user quotas**.
+
+An item the user already had approved skips these checks and goes where it was approved to go, even if a cap was set later.
+
+## Expiration [#expiration]
+
+**Expire approval requests** closes pending requests that wait too long for a decision. **Expire after** sets how long a request can wait.
+
+**When a request expires** decides what happens next:
+
+- **Mark as expired** closes the request and sends nothing to Sonarr or Radarr.
+- **Approve automatically** approves it and sends it where it was routed.
+
+**Approve automatically when a quota resets** approves requests held for quota, oldest first, once the user has room again. It works whether or not expiration is on.
+
+## Notifications [#notifications]
+
+**Send approval notifications to** picks where admins hear about requests that need a decision. The choices are **All channels**, **Apprise only**, **Discord webhook and direct messages**, **Discord direct messages only**, **Discord webhook only** and **None**. Set up the channels themselves under **Notifications**.
+
+## Cleanup [#cleanup]
+
+**Delete expired records after** removes expired requests older than this from **History**. Cleanup only runs while **Expire approval requests** is on.
+
+## Approval maintenance [#approval-maintenance]
+
+Expiring requests, approving them when a quota resets, and cleaning up old records all happen in one maintenance job. **Run on a schedule** turns it on or off, and **Run every** sets how often it runs.

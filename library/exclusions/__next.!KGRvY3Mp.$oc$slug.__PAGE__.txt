@@ -1,0 +1,52 @@
+3:"$Sreact.fragment"
+4:"/Pulsarr/_next/static/chunks/2eb9549pl9yl_.js"
+5:"/Pulsarr/_next/static/chunks/3stpsbuqu4qc8.js"
+6:"/Pulsarr/_next/static/chunks/1hkeatsjrpmiz.js"
+7:"/Pulsarr/_next/static/chunks/06kkm3k7df-yd.js"
+8:I[929713,["$4","$5","$6","$7"],"default"]
+9:I[759292,["$4","$5","$6","$7"],"default"]
+e:"/Pulsarr/_next/static/chunks/3uajxsple_7yh.js"
+f:"/Pulsarr/_next/static/chunks/2d0t8_-f4oaeq.js"
+10:"/Pulsarr/_next/static/chunks/259_9_8_x5zau.js"
+11:"/Pulsarr/_next/static/chunks/32hvp-nq1neu8.js"
+12:"/Pulsarr/_next/static/chunks/125akcrvtufnd.js"
+13:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsPage"]
+14:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsTitle"]
+15:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsDescription"]
+16:I[228634,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"Separator"]
+17:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"DocsBody"]
+18:I[500074,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"Heading"]
+19:I[555254,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"default"]
+24:"ViewportBoundary"
+25:I[81896,["$4","$5","$6","$7"],"$24"]
+26:"MetadataBoundary"
+27:I[81896,["$4","$5","$6","$7"],"$26"]
+28:"$Sreact.suspense"
+29:I[404094,["$4","$5","$6","$7"],"IconMark"]
+b:X
+b:C
+c:X
+d:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$3","c",{"children":[["$","$L13",null,{"toc":[{"depth":2,"url":"#exclude-a-title","title":"Exclude a title"},{"depth":2,"url":"#exclusions-and-delete-sync","title":"Exclusions and delete sync"},{"depth":2,"url":"#maintainerr","title":"Maintainerr"}],"footer":{"enabled":true},"children":[["$","$L14",null,{"children":"Exclusions"}],["$","$L15",null,{"className":"mb-0","children":"Block watchlisted titles from being requested, for one user or for everyone."}],["$","$L16",null,{}],["$","$L17",null,{"children":[["$","p",null,{"children":["An exclusion blocks a title, so Pulsarr never requests it even though it's on someone's watchlist. The title stays on their watchlist in Plex. Manage exclusions under ",["$","strong",null,{"children":"Library"}]," > ",["$","strong",null,{"children":"Exclusions"}],", which lists every title on any watchlist."]}],"\n",["$","$L18",null,{"as":"h2","id":"exclude-a-title","children":"Exclude a title"}],"\n",["$","p",null,{"children":"There are two kinds:"}],"\n",["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"For one user."}]," Expand the title's row and select ",["$","strong",null,{"children":"Exclude"}]," next to the user. ",["$","strong",null,{"children":"Remove"}]," undoes it. This kind clears itself when the user removes the title from their watchlist, so adding it again later works normally."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"For everyone."}]," Select ",["$","strong",null,{"children":"Exclude for everyone"}]," from the row's menu. It also blocks anyone who adds the title later, and it stays until you select ",["$","strong",null,{"children":"Remove global exclusion"}],"."]}],"\n"]}],"\n",["$","p",null,{"children":["To act on several titles, select their rows and use ",["$","strong",null,{"children":"Exclude"}]," with ",["$","strong",null,{"children":"Their watchlisters"}]," or ",["$","strong",null,{"children":"Everyone"}],", or ",["$","strong",null,{"children":"Remove"}]," to clear every exclusion on them."]}],"\n",["$","p",null,{"children":["Use ",["$","strong",null,{"children":"Search titles"}]," and the ",["$","strong",null,{"children":"User"}],", ",["$","strong",null,{"children":"Content type"}],", ",["$","strong",null,{"children":"Status"}]," and ",["$","strong",null,{"children":"Exclusion"}]," filters to find titles."]}],"\n",["$","$L18",null,{"as":"h2","id":"exclusions-and-delete-sync","children":"Exclusions and delete sync"}],"\n",["$","p",null,{"children":[["$","$L19",null,{"href":"/library/delete-sync","children":"Delete sync"}]," treats an excluded title as if nobody had it on their watchlist. That applies once every watchlister is excluded, or the title has an exclusion for everyone. Delete sync can then remove it, as long as its own settings and safety checks allow it. This is also how you stop a deleted title from being requested again while it's still on someone's watchlist."]}],"\n",["$","$L18",null,{"as":"h2","id":"maintainerr","children":"Maintainerr"}],"\n",["$","p",null,{"children":"Pulsarr can add exclusions for media that Maintainerr deletes, so stale watchlists don't request it again. It needs Maintainerr 3.23.0 or later, and Maintainerr must be able to reach Pulsarr."}],"\n",["$","p",null,{"children":["In the ",["$","strong",null,{"children":"Maintainerr"}]," section, turn on ",["$","strong",null,{"children":"Use Maintainerr"}],", enter the ",["$","strong",null,{"children":"Maintainerr URL"}]," and save. Pulsarr then sets up a webhook named \"Pulsarr\" in Maintainerr and connects it to the rule groups whose collections delete media. Groups that only unmonitor aren't connected, because the webhook doesn't say which action ran. Pulsarr reconnects on its own on a schedule, and ",["$","strong",null,{"children":"Sync now"}]," does it straight away."]}],"\n",["$","p",null,{"children":[["$","strong",null,{"children":"Exclude for"}]," decides what Pulsarr adds when Maintainerr deletes a title:"]}],"\n","$L1a","\n","$L1b","\n","$L1c"]}],"$L1d"]}],["$L1e","$L1f","$L20","$L21"],"$L22"]}],"p":"$@23","v":null,"s":"$c"}}]]
+2:[["children",{"s":{"n":"slug","t":"oc","k":"library/exclusions","s":["api","docs","llms-full.txt","llms.mdx","llms.txt","og"]},"h":64,"d":{"r":["$","$3","c",{"children":[null,["$","$L8",null,{"parallelRouterKey":"children","template":["$","$L9",null,{}]}]]}],"p":"$@a","v":"$b","s":"$c"},"c":"$Qd"}]]
+1:[["children",{"s":"(docs)","h":32,"c":"$Q2"}]]
+0:{"t":{"t":{"s":"","h":80,"c":"$Q1"},"h":{"r":["$","$3","h",{"children":[null,["$","$L25",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L27",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$28",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Exclusions | Pulsarr"}],["$","meta","1",{"name":"description","content":"Block watchlisted titles from being requested, for one user or for everyone."}],["$","link","2",{"rel":"canonical","href":"https://jamcalli.github.io/Pulsarr/library/exclusions/"}],["$","meta","3",{"property":"og:title","content":"Exclusions | Pulsarr"}],["$","meta","4",{"property":"og:description","content":"Block watchlisted titles from being requested, for one user or for everyone."}],["$","meta","5",{"property":"og:url","content":"https://jamcalli.github.io/Pulsarr/library/exclusions/"}],["$","meta","6",{"property":"og:site_name","content":"Pulsarr"}],["$","meta","7",{"property":"og:image","content":"https://jamcalli.github.io/Pulsarr/og/docs/library/exclusions/image.png"}],["$","meta","8",{"property":"og:type","content":"website"}],["$","meta","9",{"name":"twitter:card","content":"summary_large_image"}],["$","meta","10",{"name":"twitter:title","content":"Exclusions | Pulsarr"}],["$","meta","11",{"name":"twitter:description","content":"Block watchlisted titles from being requested, for one user or for everyone."}],["$","meta","12",{"name":"twitter:image","content":"https://jamcalli.github.io/Pulsarr/og/docs/library/exclusions/image.png"}],["$","link","13",{"rel":"icon","href":"/Pulsarr/favicon.ico?favicon.0b7unjwu1fikl.ico","sizes":"144x144","type":"image/x-icon"}],["$","link","14",{"rel":"icon","href":"/Pulsarr/icon.svg?icon.1gh3ozbeqj7fl.svg","sizes":"any","type":"image/svg+xml"}],["$","$L29","15",{}]]}]}],null]}],null]}],"p":"$@2a","v":null,"s":"$c"}},"a":"$@2b","u":"$@2c","b":"HxluDsqXi3tHo4EG1_MbR"}
+2d:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12"],"PageLastUpdate"]
+2e:I[81896,["$4","$5","$6","$7"],"OutletBoundary"]
+:HL["/Pulsarr/_next/static/chunks/0iaxnelvtqw2u.css","style"]
+1a:["$","ul",null,{"children":["\n",["$","li",null,{"children":[["$","strong",null,{"children":"Current watchlisters"}]," adds one exclusion for each user who has it watchlisted. Someone who adds it later can request it again."]}],"\n",["$","li",null,{"children":[["$","strong",null,{"children":"Everyone"}]," adds one exclusion that blocks it for all users."]}],"\n"]}]
+1b:["$","p",null,{"children":"Maintainerr only adds exclusions. Remove them on this page."}]
+1c:["$","p",null,{"children":"If you use Maintainerr this way, consider turning delete sync off and keeping your removal rules in Maintainerr, so only one tool removes content."}]
+1d:["$","$L2d",null,{"date":"$D2026-10-25T06:49:32.000Z"}]
+1e:["$","link","0",{"rel":"stylesheet","href":"/Pulsarr/_next/static/chunks/0iaxnelvtqw2u.css","precedence":"next"}]
+1f:["$","script","script-0",{"src":"/Pulsarr/_next/static/chunks/259_9_8_x5zau.js","async":true}]
+20:["$","script","script-1",{"src":"/Pulsarr/_next/static/chunks/32hvp-nq1neu8.js","async":true}]
+21:["$","script","script-2",{"src":"/Pulsarr/_next/static/chunks/125akcrvtufnd.js","async":true}]
+22:["$","$L2e",null,{"children":["$","$28",null,{"name":"Next.MetadataOutlet","children":"$@2f"}]}]
+2c:true
+c:300
+2f:null
+c:C
+2b:0
+a:"$undefined"
+2a:"$undefined"
+23:"$undefined"

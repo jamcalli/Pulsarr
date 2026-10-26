@@ -1,0 +1,21 @@
+# Pulsarr API (/api)
+
+Every route the web UI uses is part of the API. Your Pulsarr serves an interactive reference at `/api/docs`, behind your `basePath` if you set one. Try calls and download the spec there. The pages here are a read-only reference. Routes can change between releases.
+
+## Authentication [#authentication]
+
+Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. A signed-in browser session also works. A request body that fails validation returns a 400 with the reason.
+
+```bash
+curl -H "X-API-Key: <your-key>" http://<your-server>:3003/v1/approval/requests
+```
+
+`/health` needs no key and reports whether Pulsarr can reach its database.
+
+## Limits and paging [#limits-and-paging]
+
+Requests are rate limited per IP address, with the global limit set by [`rateLimitMax`](/installation/environment-variables). Sign-in, account changes and inbound webhooks with a bad secret have tighter limits, and webhooks with a valid secret are never limited. A `429` carries `Retry-After` and the `X-RateLimit` headers. List routes page with `limit` and `offset`.
+
+## Live streams [#live-streams]
+
+`/v1/progress` and `/v1/logs/stream` are server-sent event streams. They ask clients to reconnect after a few seconds and send a keep-alive comment about every half minute. The logs stream starts with a tail of recent lines. A reverse proxy in front of Pulsarr must not buffer them.

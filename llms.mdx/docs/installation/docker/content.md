@@ -1,0 +1,90 @@
+# Docker (/installation/docker)
+
+The Pulsarr image, `lakker/pulsarr`, is built for `linux/amd64` and `linux/arm64`. If this is your first install, the [quick start](/installation/quick-start) walks through the same steps and then first-run setup.
+
+## Docker Compose [#docker-compose]
+
+Create a folder for Pulsarr with a `.env` file and a `docker-compose.yml`.
+
+`.env` holds your time zone and any other Pulsarr [environment variables](/installation/environment-variables):
+
+```bash
+TZ=America/Los_Angeles
+```
+
+`docker-compose.yml`:
+
+```yaml
+services:
+  pulsarr:
+    image: lakker/pulsarr:latest
+    container_name: pulsarr
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: unless-stopped
+    env_file:
+      - .env
+```
+
+Start it:
+
+```bash
+docker compose up -d
+```
+
+Then open `http://<your-server>:3003`. Pulsarr keeps its database and logs in `./data`. To back up Pulsarr, stop the container and copy that folder.
+
+Pulsarr reads its settings from the container's environment. `env_file` passes `.env` into it, so the file must sit next to `docker-compose.yml`. A `.env` inside `./data` is not read. A variable can also go under `environment:`, which wins when both set it.
+
+## docker run [#docker-run]
+
+The same container without Compose, run from the folder with your `.env`:
+
+```bash
+docker run -d \
+  --name pulsarr \
+  -p 3003:3003 \
+  -v "$(pwd)/data:/app/data" \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  --env-file .env \
+  --restart unless-stopped \
+  lakker/pulsarr:latest
+```
+
+## Image tags [#image-tags]
+
+- `latest` is the newest release.
+- `beta` is the newest pre-release.
+- `0.20.0` pins an exact version, and `0.20` follows the newest patch of that minor version.
+- `node`, `beta-node`, `0.20.0-node` and `0.20-node` are the same tags for the Node.js image. It exists for hosts where the default image once failed to start, such as some Synology NAS models. That is fixed, so use the default image. The `node` tags will point at it in a future release.
+
+## File ownership [#file-ownership]
+
+Pulsarr runs as the user and group set by `PUID` and `PGID`, which both default to `1000`. On start it takes ownership of anything in `./data` that has a different owner. Set them to your user on the host, which `id -u` and `id -g` print.
+
+If you run the container with Compose's `user:` option instead, Pulsarr skips the ownership change. `./data` must then already be writable by that user, or the container stops with an error.
+
+## Health check [#health-check]
+
+The image checks `/health` on its own, so `docker ps` shows the container as healthy or unhealthy. The route needs no sign-in and returns `200` when the database answers and `503` when it does not, so a proxy status page or an uptime monitor can use it too.
+
+## Ports [#ports]
+
+To serve Pulsarr on another port, change the left side of the mapping, for example `"8080:3003"`. Sonarr and Radarr still need to reach Pulsarr for webhooks. If they can't, the connection test in Pulsarr offers **Fix the address**, where you set the address and port they should use.
+
+## Updating [#updating]
+
+Pull the new image and recreate the container:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Pulsarr updates its database on start, so there's nothing else to run.
