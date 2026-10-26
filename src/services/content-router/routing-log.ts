@@ -14,7 +14,7 @@ export interface RoutingLog {
   userId: number
   user: string
   instanceNames: ReadonlyMap<number, string>
-  /** Skips and holds log at debug, except a missing instance, which is always a warn. */
+  /** Skips and holds log at debug. Failures and a missing instance are never gated. */
   reconcile: boolean
 }
 
@@ -269,7 +269,7 @@ export function logRouteFailure(
     logSkipped(log, { reason: 'present', instanceIds: [instanceId] })
     return
   }
-  log.logger[log.reconcile ? 'debug' : 'warn'](
+  log.logger.error(
     { userId: log.userId, instanceId, guid: log.guid },
     failedSentence(log, instanceId, errorMessage(error)),
   )
