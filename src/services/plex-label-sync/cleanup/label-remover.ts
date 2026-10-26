@@ -65,7 +65,7 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
   }
 
   try {
-    deps.logger.info('Starting bulk Plex label removal')
+    deps.logger.debug('Starting bulk Plex label removal')
 
     if (emitProgress) {
       deps.fastify.progress.emit({
@@ -79,7 +79,7 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
 
     // Get all tracked labels from database
     const trackedLabels = await deps.db.getAllTrackedLabels()
-    deps.logger.info(`Found ${trackedLabels.length} tracked labels to process`)
+    deps.logger.debug(`Found ${trackedLabels.length} tracked labels to process`)
 
     if (emitProgress) {
       deps.fastify.progress.emit({
@@ -417,7 +417,7 @@ export async function resetLabels(
   const emitProgress = deps.fastify.progress.hasActiveConnections()
 
   try {
-    deps.logger.info(
+    deps.logger.debug(
       {
         mode: deps.removedLabelMode,
         providedItems: watchlistItems?.length || 0,
@@ -452,11 +452,11 @@ export async function resetLabels(
         deps.db.getAllShowWatchlistItems(),
       ])
       items = [...movieItems, ...showItems]
-      deps.logger.info(`Compiled ${items.length} watchlist items for reset`)
+      deps.logger.debug(`Compiled ${items.length} watchlist items for reset`)
     }
 
     if (items.length === 0) {
-      deps.logger.info('No watchlist items to process for reset')
+      deps.logger.debug('No watchlist items to process for reset')
       return { processed: 0, updated: 0, failed: 0 }
     }
 
@@ -559,7 +559,7 @@ export async function resetLabels(
     }
 
     if (orphanedEntries.length === 0) {
-      deps.logger.info('No orphaned tracking entries found')
+      deps.logger.debug('No orphaned tracking entries found')
       if (emitProgress) {
         deps.fastify.progress.emit({
           operationId,
@@ -572,7 +572,7 @@ export async function resetLabels(
       return { processed: items.length, updated: 0, failed: 0 }
     }
 
-    deps.logger.info(
+    deps.logger.debug(
       `Found ${orphanedEntries.length} orphaned tracking entries to clean up`,
     )
     if (emitProgress) {
@@ -641,7 +641,7 @@ export async function resetLabels(
     }
 
     if (deps.removedLabelMode === 'keep') {
-      deps.logger.info(
+      deps.logger.debug(
         'Removal mode is "keep", preserving orphaned labels and tracking entries',
       )
       // In keep mode, we don't remove anything

@@ -422,7 +422,7 @@ export async function createConfig(
     .returning('id')
 
   const id = this.extractId(result)
-  this.log.info(`Config created with ID: ${id}`)
+  this.log.debug(`Config created with ID: ${id}`)
   return id
 }
 

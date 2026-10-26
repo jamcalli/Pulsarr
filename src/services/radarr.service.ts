@@ -291,7 +291,7 @@ export class RadarrService {
     }
   }
 
-  private async setupWebhook(): Promise<void> {
+  private async setupWebhook(instanceName: string): Promise<void> {
     if (this.webhookInitialized) {
       return
     }
@@ -303,7 +303,7 @@ export class RadarrService {
         this.radarrConfig.radarrBaseUrl,
       )
       const webhookName = this.getWebhookName()
-      this.log.info(
+      this.log.debug(
         `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Radarr: ${expectedWebhookUrl}`,
       )
 
@@ -336,13 +336,14 @@ export class RadarrService {
             }
           }
           this.log.info(
-            { webhookId: existing.id },
-            `Updated Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
+            { webhookId: existing.id, url: expectedWebhookUrl },
+            `${instanceName} webhook verified`,
           )
         } else {
           await this.postToRadarr('notification', webhookConfig)
           this.log.info(
-            `Created Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
+            { url: expectedWebhookUrl },
+            `${instanceName} webhook created`,
           )
         }
       } catch (createError) {
@@ -482,7 +483,7 @@ export class RadarrService {
 
     // Skip webhook setup for placeholder credentials
     if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
-      this.log.info(
+      this.log.debug(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
       this.config = this.configFromInstance(instance)
@@ -496,11 +497,11 @@ export class RadarrService {
     )
 
     if (this.fastify.server.listening) {
-      await this.setupWebhook()
+      await this.setupWebhook(instance.name)
     } else {
       this.fastify.server.prependOnceListener('listening', async () => {
         try {
-          await this.setupWebhook()
+          await this.setupWebhook(instance.name)
         } catch (error) {
           this.log.error(
             { error, instanceName: instance.name },
@@ -1000,7 +1001,7 @@ export class RadarrService {
       if (radarrId > 0) {
         // Use the extracted Radarr ID directly
         await this.deleteFromRadarrById(radarrId, deleteFiles)
-        this.log.info(`Deleted ${item.title} from Radarr`)
+        this.log.debug(`Deleted ${item.title} from Radarr`)
         return
       }
 
@@ -1028,7 +1029,7 @@ export class RadarrService {
       }
 
       await this.deleteFromRadarrById(matchingRadarrId, deleteFiles)
-      this.log.info(`Deleted ${item.title} from Radarr`)
+      this.log.debug(`Deleted ${item.title} from Radarr`)
     } catch (err) {
       this.log.error({ error: err }, 'Error deleting from Radarr')
       throw err
@@ -1531,7 +1532,7 @@ export class RadarrService {
         await this.deleteNotification(existingPlexNotification.id)
         this.log.info('Successfully removed Plex notification from Radarr')
       } else {
-        this.log.info('No Plex notification found to remove from Radarr')
+        this.log.debug('No Plex notification found to remove from Radarr')
       }
     } catch (error) {
       this.log.error({ error }, 'Error removing Plex notification from Radarr:')
@@ -1664,7 +1665,7 @@ export class RadarrService {
       // Radarr returns 409 Conflict if the tag already exists
       if (err instanceof HttpError && err.status === 409) {
         this.log.debug(
-          `Tag "${label}" already exists in Radarr – skipping creation`,
+          `Tag "${label}" already exists in Radarr, skipping creation`,
         )
         // Invalidate cache and fetch fresh to find the existing tag
         this.invalidateTagsCache()

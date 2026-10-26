@@ -32,7 +32,7 @@ export default fp(
     fastify.decorate('db', dbService)
     fastify.addHook('onClose', async () => {
       if (process.env.NODE_ENV !== 'test') {
-        fastify.log.info('Closing database service...')
+        fastify.log.debug('Closing database service...')
         await dbService.close()
       }
     })
@@ -99,7 +99,7 @@ export default fp(
             existingSonarrInstances.length === 0 &&
             mergedConfig.sonarrBaseUrl
           ) {
-            fastify.log.info('Creating default Sonarr instance from .env')
+            fastify.log.debug('Creating default Sonarr instance from .env')
             await dbService.createSonarrInstance(
               defaultSonarrInstance(mergedConfig),
             )
@@ -109,13 +109,13 @@ export default fp(
             existingRadarrInstances.length === 0 &&
             mergedConfig.radarrBaseUrl
           ) {
-            fastify.log.info('Creating default Radarr instance from .env')
+            fastify.log.debug('Creating default Radarr instance from .env')
             await dbService.createRadarrInstance(
               defaultRadarrInstance(mergedConfig),
             )
           }
         } else {
-          fastify.log.info('No existing config found, creating initial config')
+          fastify.log.debug('No existing config found, creating initial config')
           const initialConfig = {
             ...envConfig,
             _isReady: false,
@@ -130,14 +130,14 @@ export default fp(
           })
 
           if (initialConfig.sonarrBaseUrl) {
-            fastify.log.info('Creating default Sonarr instance from .env')
+            fastify.log.debug('Creating default Sonarr instance from .env')
             await dbService.createSonarrInstance(
               defaultSonarrInstance(initialConfig),
             )
           }
 
           if (initialConfig.radarrBaseUrl) {
-            fastify.log.info('Creating default Radarr instance from .env')
+            fastify.log.debug('Creating default Radarr instance from .env')
             await dbService.createRadarrInstance(
               defaultRadarrInstance(initialConfig),
             )

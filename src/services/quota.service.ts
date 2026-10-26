@@ -27,7 +27,7 @@ export class QuotaService {
    * Log scheduled job execution with proper service prefix
    */
   logScheduledJob(action: 'start' | 'complete', jobName: string): void {
-    this.log.info(
+    this.log.debug(
       { jobName, action },
       action === 'start' ? 'Running scheduled job' : 'Completed scheduled job',
     )

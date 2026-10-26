@@ -98,7 +98,7 @@ export class RssFeedCacheManager {
 
     await Promise.all(primePromises)
 
-    this.log.info(
+    this.log.debug(
       {
         selfItems: this.selfCache.items.size,
         friendsItems: this.friendsCache.items.size,
@@ -202,7 +202,7 @@ export class RssFeedCacheManager {
 
     // Only log if there are changes or on debug level
     if (newItems.length > 0) {
-      this.log.info(
+      this.log.debug(
         {
           feed: feedType,
           totalItems: newCache.size,

@@ -52,7 +52,7 @@ export const getPlexWatchlistUrls = async (
   }
 
   const selfRss = await getRssFromPlexToken(token, 'watchlist', log)
-  log.info(
+  log.debug(
     `Generated watchlist RSS feed for self: ${selfRss ? 'Success' : 'None'}`,
   )
   log.debug(`Self watchlist RSS URL: ${selfRss}`)
@@ -60,7 +60,7 @@ export const getPlexWatchlistUrls = async (
   const friendsRss = skipFriendSync
     ? null
     : await getRssFromPlexToken(token, 'friendsWatchlist', log)
-  log.info(
+  log.debug(
     `Generated watchlist RSS feed for friends: ${friendsRss ? 'Success' : 'None'}`,
   )
   log.debug(`Friends watchlist RSS URL: ${friendsRss}`)

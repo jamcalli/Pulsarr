@@ -866,14 +866,16 @@ export async function cleanupOrphanedPlexLabels(
   const result = { removed: 0, failed: 0 }
 
   try {
-    deps.logger.info('Starting orphaned Plex label cleanup')
+    deps.logger.debug('Starting orphaned Plex label cleanup')
 
     // Step 1: Get all users with sync enabled
     const allUsers = await deps.db.getAllUsers()
     const syncEnabledUsers = allUsers.filter((user) => user.can_sync)
 
     if (syncEnabledUsers.length === 0) {
-      deps.logger.info('No sync-enabled users found, skipping orphaned cleanup')
+      deps.logger.debug(
+        'No sync-enabled users found, skipping orphaned cleanup',
+      )
       return { removed: 0, failed: 0 }
     }
 
@@ -1015,11 +1017,11 @@ export async function cleanupOrphanedPlexLabels(
     )
 
     if (orphanedLabelGroups.length === 0) {
-      deps.logger.info('No orphaned labels found in tracking table')
+      deps.logger.debug('No orphaned labels found in tracking table')
       return { removed: 0, failed: 0 }
     }
 
-    deps.logger.info(
+    deps.logger.debug(
       {
         affectedItems: orphanedLabelGroups.length,
         totalOrphanedLabels: orphanedLabelGroups.reduce(
@@ -1160,7 +1162,7 @@ export async function cleanupOrphanedPlexLabels(
       }
     }
 
-    deps.logger.info(
+    deps.logger.debug(
       {
         processedItems: orphanedLabelGroups.length,
         removedLabels: result.removed,

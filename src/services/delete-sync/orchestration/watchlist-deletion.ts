@@ -52,7 +52,7 @@ export async function executeWatchlistDeletion(
 ): Promise<DeleteSyncResult> {
   const { config, logger, sonarrManager, radarrManager, tagCache } = deps
 
-  logger.info(
+  logger.debug(
     `Beginning deletion ${dryRun ? '(DRY RUN)' : 'process'} based on configuration`,
   )
 

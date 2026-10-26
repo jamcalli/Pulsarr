@@ -75,7 +75,7 @@ export function performTagBasedSafetyCheck(
 
   const taggedPercentage = (totalTaggedItems / totalItems) * 100
 
-  logger.info(
+  logger.debug(
     `Tag-based deletion would affect ${totalTaggedItems} items out of ${totalItems} (${taggedPercentage.toFixed(2)}%)`,
   )
 

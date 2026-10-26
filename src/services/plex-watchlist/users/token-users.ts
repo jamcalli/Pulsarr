@@ -111,7 +111,7 @@ export async function ensureTokenUsers(
             deps.fastify.plexServerService.setAdminPlexId(userData.id)
             const hasPlexPass = userData.subscription?.active ?? false
             deps.fastify.plexServerService.setHasPlexPass(hasPlexPass)
-            deps.logger.info(
+            deps.logger.debug(
               `Plex Pass status: ${hasPlexPass ? 'active' : 'not detected'}`,
             )
           }

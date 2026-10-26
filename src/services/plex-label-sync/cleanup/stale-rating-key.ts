@@ -35,7 +35,7 @@ export async function resolveStaleRatingKey(
       ratingKey,
       current.ratingKey,
     )
-    deps.logger.info(
+    deps.logger.debug(
       { ratingKey, currentKey: current.ratingKey, moved },
       `Rating key ${ratingKey} is gone from Plex, moved its tracking to ${current.ratingKey}`,
     )
@@ -43,7 +43,7 @@ export async function resolveStaleRatingKey(
   }
 
   const deleted = await deps.db.cleanupRatingKeyTracking(ratingKey)
-  deps.logger.info(
+  deps.logger.debug(
     { ratingKey, deleted },
     `Rating key ${ratingKey} is gone from Plex and its content was not found, dropped its tracking`,
   )

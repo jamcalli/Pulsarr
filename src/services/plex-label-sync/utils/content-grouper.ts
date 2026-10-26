@@ -134,7 +134,7 @@ export async function groupWatchlistItemsByContent(
     })
   }
 
-  logger.info(
+  logger.debug(
     {
       watchlistItemCount: watchlistItems.length,
       uniqueContentCount: result.length,

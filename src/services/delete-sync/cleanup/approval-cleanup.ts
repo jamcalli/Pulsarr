@@ -123,7 +123,7 @@ export async function cleanupApprovalRequestsForDeletedContent(
 
     // Clean up movie approval requests
     if (deletedMovieGuids.size > 0) {
-      logger.info(
+      logger.debug(
         `Cleaning up movie approval requests for content with ${deletedMovieGuids.size} deleted GUIDs`,
       )
       const movieApprovals = await db.getApprovalRequestsByGuids(
@@ -143,12 +143,12 @@ export async function cleanupApprovalRequestsForDeletedContent(
         }
       }
 
-      logger.info(`Cleaned up ${movieApprovals.length} movie approval records`)
+      logger.debug(`Cleaned up ${movieApprovals.length} movie approval records`)
     }
 
     // Clean up show approval requests
     if (deletedShowGuids.size > 0) {
-      logger.info(
+      logger.debug(
         `Cleaning up show approval requests for content with ${deletedShowGuids.size} deleted GUIDs`,
       )
       const showApprovals = await db.getApprovalRequestsByGuids(
@@ -168,7 +168,7 @@ export async function cleanupApprovalRequestsForDeletedContent(
         }
       }
 
-      logger.info(`Cleaned up ${showApprovals.length} show approval records`)
+      logger.debug(`Cleaned up ${showApprovals.length} show approval records`)
     }
 
     if (totalCleaned > 0) {

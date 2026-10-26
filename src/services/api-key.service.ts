@@ -22,7 +22,7 @@ export class ApiKeyService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'API_KEY')
-    this.log.info('Initializing ApiKeyService')
+    this.log.debug('Initializing ApiKeyService')
   }
 
   /**

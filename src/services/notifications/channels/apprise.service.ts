@@ -88,7 +88,7 @@ export class AppriseService {
       const appriseUrl = this.fastify.config.appriseUrl || ''
 
       if (!appriseUrl) {
-        this.log.info(
+        this.log.debug(
           'No Apprise URL configured, Apprise notifications will be disabled',
         )
         await this.fastify.updateConfig({ enableApprise: false })

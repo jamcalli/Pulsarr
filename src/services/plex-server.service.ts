@@ -182,7 +182,7 @@ export class PlexServerService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'PLEX_SERVER')
-    this.log.info('Initializing PlexServerService')
+    this.log.debug('Initializing PlexServerService')
   }
 
   private get config() {
@@ -227,7 +227,7 @@ export class PlexServerService {
 
   async initialize(): Promise<boolean> {
     try {
-      this.log.info('Initializing PlexServerService connections and users')
+      this.log.debug('Initializing PlexServerService connections and users')
 
       const connections = await this.getPlexServerConnectionInfo()
       if (!connections || connections.length === 0) {
@@ -308,7 +308,7 @@ export class PlexServerService {
       !this.configuredServerUrl &&
       negotiation.best !== this.selectedConnectionUrl
     ) {
-      this.log.info(
+      this.log.debug(
         { previous: this.selectedConnectionUrl, selected: negotiation.best },
         'Selected Plex server connection',
       )
@@ -395,7 +395,7 @@ export class PlexServerService {
           .filter((conn) => !isSameServerEndpoint(conn.uri, configured))
           .map((conn) => connectionInfo(conn.uri, conn)),
       ]
-      this.log.info(
+      this.log.debug(
         `Discovered ${connections.length} Plex server connections (manual config will be used)`,
       )
       return { settled: true, connections, best: null, identity }
@@ -430,7 +430,7 @@ export class PlexServerService {
       return { settled: false, connections, identity }
     }
 
-    this.log.info(
+    this.log.debug(
       `Found ${connections.length} Plex server connections, ${ranked.filter(({ outcome }) => outcome.ok).length} reachable`,
     )
     return { settled: true, connections, best: best.connection.uri, identity }
@@ -932,7 +932,7 @@ export class PlexServerService {
         }
       }
 
-      this.log.info(`Checking protection playlists for ${users.length} users`)
+      this.log.debug(`Checking protection playlists for ${users.length} users`)
 
       for (const user of users) {
         try {
@@ -979,7 +979,7 @@ export class PlexServerService {
         }
       }
 
-      this.log.info(
+      this.log.debug(
         `Successfully processed protection playlists for ${playlistMap.size} of ${users.length} users`,
       )
 
@@ -1098,7 +1098,7 @@ export class PlexServerService {
         }
       }
 
-      this.log.info(
+      this.log.debug(
         `Found a total of ${protectedGuids.size} unique protected GUIDs across all users`,
       )
 
@@ -1238,7 +1238,7 @@ export class PlexServerService {
 
     for (const guid of parsedGuids) {
       if (protectedGuids.has(guid)) {
-        this.log.info(
+        this.log.debug(
           `Item${itemTitle ? ` "${itemTitle}"` : ''} is protected with matching GUID: "${guid}"`,
         )
         return true
@@ -1313,7 +1313,10 @@ export class PlexServerService {
     })
 
     this.eventSource.on('connected', () => {
-      this.log.info('SSE connected, reconciling with live sessions')
+      this.log.info(
+        { url: serverUrl },
+        `Connected to Plex server ${this.serverName ?? serverUrl}`,
+      )
       void this.reconcileSessionsOnConnect()
     })
 
@@ -1327,7 +1330,7 @@ export class PlexServerService {
           PlexServerService.STALE_SESSION_MS,
         )
         if (stale.length > 0) {
-          this.log.info(
+          this.log.debug(
             { count: stale.length },
             'Swept stale sessions from SSE tracker',
           )
@@ -1394,7 +1397,7 @@ export class PlexServerService {
 
       const added = this.sessionTracker?.hydrate(liveSessions) ?? 0
       if (added > 0) {
-        this.log.info(
+        this.log.debug(
           { total: liveSessions.length, added },
           'Hydrated session tracker from live sessions on SSE connect',
         )
@@ -1700,7 +1703,7 @@ export class PlexServerService {
         )
 
         if (found) {
-          this.log.info(
+          this.log.debug(
             `Content found on Plex server "${server.name}", skipping download`,
           )
           abortController.abort()

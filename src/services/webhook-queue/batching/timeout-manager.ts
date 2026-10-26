@@ -27,7 +27,7 @@ export function createQueueTimeout(
   return setTimeout(() => {
     const queuedCount =
       queue[tvdbId]?.seasons?.[seasonNumber]?.episodes?.length ?? 0
-    logger.info(
+    logger.debug(
       {
         tvdbId,
         seasonNumber,

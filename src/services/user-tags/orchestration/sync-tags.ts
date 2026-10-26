@@ -294,7 +294,7 @@ export async function syncTags(
 }
 
 export async function syncAllTags(deps: UserTagDeps): Promise<SyncAllResults> {
-  deps.logger.info('Starting complete user tag synchronization')
+  deps.logger.debug('Starting complete user tag synchronization')
 
   try {
     const [sonarr, radarr] = await Promise.all([

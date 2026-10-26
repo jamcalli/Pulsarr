@@ -71,12 +71,12 @@ export async function cleanupExistingManualSync(
     )
 
     if (existingSchedule) {
-      deps.logger.info(
+      deps.logger.debug(
         'Found existing periodic reconciliation job from previous run, cleaning up',
       )
       await deps.fastify.scheduler.unscheduleJob(RECONCILIATION_JOB_NAME)
       await deps.fastify.db.deleteSchedule(RECONCILIATION_JOB_NAME)
-      deps.logger.info(
+      deps.logger.debug(
         'Successfully cleaned up existing periodic reconciliation job',
       )
     }
@@ -99,7 +99,7 @@ export async function setupPeriodicReconciliation(
   try {
     await deps.fastify.scheduler.scheduleJob(RECONCILIATION_JOB_NAME, onTick)
 
-    deps.logger.info(
+    deps.logger.debug(
       'Periodic watchlist reconciliation job created (will be dynamically scheduled)',
     )
   } catch (error) {

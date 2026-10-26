@@ -43,7 +43,7 @@ export class PlexLabelSyncService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'PLEX_LABEL_SYNC')
-    this.log.info('Initializing PlexLabelSyncService')
+    this.log.debug('Initializing PlexLabelSyncService')
   }
 
   private get config(): PlexLabelSyncConfig {

@@ -229,7 +229,7 @@ export async function updateAutoApprovalUserAttribution(
     }
 
     if (updatedRecords > 0) {
-      deps.logger.info(
+      deps.logger.debug(
         `Updated user attribution for ${updatedRecords} auto-approval records`,
       )
     } else {

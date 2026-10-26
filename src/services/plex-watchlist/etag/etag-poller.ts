@@ -172,7 +172,7 @@ export class EtagPoller {
       ),
     )
 
-    this.log.info(
+    this.log.debug(
       { friendCount: friends.length },
       'Watchlist baselines established for all users',
     )
@@ -334,7 +334,7 @@ export class EtagPoller {
     this.staggeredUserQueue = [this.staggeredPrimaryUser, ...friends]
     this.staggeredCurrentIndex = 0
 
-    this.log.info(
+    this.log.debug(
       { userCount: this.staggeredUserQueue.length },
       'Starting staggered ETag polling (5-minute cycles)',
     )

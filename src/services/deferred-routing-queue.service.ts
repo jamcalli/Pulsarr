@@ -87,7 +87,7 @@ export class DeferredRoutingQueue {
       HEALTH_CHECK_INTERVAL_MS,
     )
 
-    this.log.info('Deferred routing queue started')
+    this.log.debug('Deferred routing queue started')
   }
 
   /**
@@ -108,7 +108,7 @@ export class DeferredRoutingQueue {
         'Deferred routing queue stopped, items dropped',
       )
     } else {
-      this.log.info('Deferred routing queue stopped')
+      this.log.debug('Deferred routing queue stopped')
     }
   }
 
@@ -181,7 +181,7 @@ export class DeferredRoutingQueue {
         return
       }
 
-      this.log.info(
+      this.log.debug(
         { queueSize: this.queue.length },
         'All instances healthy, draining deferred queue',
       )

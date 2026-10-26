@@ -81,7 +81,7 @@ export interface BatchSyncDeps {
  * @returns Promise resolving to sync results
  */
 export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
-  deps.logger.info('Starting Plex label synchronization')
+  deps.logger.debug('Starting Plex label synchronization')
 
   if (!deps.config.enabled) {
     deps.logger.warn(
@@ -115,7 +115,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
     }
     // Reset labels if auto-reset is enabled - this handles dangling entries from mode changes
     if (deps.config.autoResetOnScheduledSync) {
-      deps.logger.info(
+      deps.logger.debug(
         {
           currentMode: deps.removedLabelMode,
         },
@@ -142,7 +142,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
             message: 'Reset complete, starting sync...',
           })
         }
-        deps.logger.info('Label reset completed successfully')
+        deps.logger.debug('Label reset completed successfully')
       } catch (resetError) {
         deps.logger.error({ error: resetError }, 'Error during label reset:')
         // Continue with sync even if reset fails
@@ -171,7 +171,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
     ])
     const watchlistItems = [...movieItems, ...showItems]
 
-    deps.logger.info(
+    deps.logger.debug(
       {
         movieItemsCount: movieItems.length,
         showItemsCount: showItems.length,
@@ -232,7 +232,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
       radarrMoviesWithTags = radarrData
       sonarrSeriesWithTags = sonarrData
 
-      deps.logger.info(
+      deps.logger.debug(
         {
           radarrMoviesCount: radarrMoviesWithTags.length,
           sonarrSeriesCount: sonarrSeriesWithTags.length,
@@ -315,7 +315,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
           }
         }
       }
-      deps.logger.info(
+      deps.logger.debug(
         { contentCount: unavailable.length, queuedWatchlistItems: queuedCount },
         'Queued unavailable content for pending sync',
       )
@@ -483,7 +483,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
         )
         if (cleanupResult.removed > 0 || cleanupResult.failed > 0) {
           cleanupMessage = `, cleaned up ${cleanupResult.removed} orphaned labels (${cleanupResult.failed} failed)`
-          deps.logger.info(
+          deps.logger.debug(
             cleanupResult,
             'Completed orphaned Plex label cleanup',
           )
@@ -497,7 +497,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
       }
     }
 
-    deps.logger.info(
+    deps.logger.debug(
       {
         ...result,
         totalLabelsAdded,

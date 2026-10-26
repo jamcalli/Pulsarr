@@ -254,7 +254,7 @@ export class SonarrService {
     }
   }
 
-  private async setupWebhook(): Promise<void> {
+  private async setupWebhook(instanceName: string): Promise<void> {
     if (this.webhookInitialized) {
       return
     }
@@ -266,7 +266,7 @@ export class SonarrService {
         this.sonarrConfig.sonarrBaseUrl,
       )
       const webhookName = this.getWebhookName()
-      this.log.info(
+      this.log.debug(
         `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Sonarr: ${expectedWebhookUrl}`,
       )
 
@@ -299,13 +299,14 @@ export class SonarrService {
             }
           }
           this.log.info(
-            { webhookId: existing.id },
-            `Updated Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
+            { webhookId: existing.id, url: expectedWebhookUrl },
+            `${instanceName} webhook verified`,
           )
         } else {
           await this.postToSonarr('notification', webhookConfig)
           this.log.info(
-            `Created Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
+            { url: expectedWebhookUrl },
+            `${instanceName} webhook created`,
           )
         }
       } catch (createError) {
@@ -431,7 +432,7 @@ export class SonarrService {
 
     // Skip webhook setup for placeholder credentials
     if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
-      this.log.info(
+      this.log.debug(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
       this.config = this.configFromInstance(instance)
@@ -445,11 +446,11 @@ export class SonarrService {
     )
 
     if (this.fastify.server.listening) {
-      await this.setupWebhook()
+      await this.setupWebhook(instance.name)
     } else {
       this.fastify.server.prependOnceListener('listening', async () => {
         try {
-          await this.setupWebhook()
+          await this.setupWebhook(instance.name)
         } catch (error) {
           this.log.error(
             { error, instanceName: instance.name },
@@ -1286,7 +1287,7 @@ export class SonarrService {
       if (sonarrId > 0) {
         // Use the extracted Sonarr ID directly
         await this.deleteFromSonarrById(sonarrId, deleteFiles)
-        this.log.info(`Deleted ${item.title} from Sonarr`)
+        this.log.debug(`Deleted ${item.title} from Sonarr`)
         return
       }
 
@@ -1314,7 +1315,7 @@ export class SonarrService {
       }
 
       await this.deleteFromSonarrById(matchingSonarrId, deleteFiles)
-      this.log.info(`Deleted ${item.title} from Sonarr`)
+      this.log.debug(`Deleted ${item.title} from Sonarr`)
     } catch (err) {
       this.log.error({ error: err }, 'Error deleting from Sonarr')
       throw err
@@ -1498,7 +1499,7 @@ export class SonarrService {
         await this.deleteNotification(existingPlexNotification.id)
         this.log.info('Successfully removed Plex notification from Sonarr')
       } else {
-        this.log.info('No Plex notification found to remove from Sonarr')
+        this.log.debug('No Plex notification found to remove from Sonarr')
       }
     } catch (error) {
       this.log.error({ error }, 'Error removing Plex notification from Sonarr:')
@@ -1624,7 +1625,7 @@ export class SonarrService {
       // Sonarr returns 409 Conflict if the tag already exists
       if (err instanceof HttpError && err.status === 409) {
         this.log.debug(
-          `Tag "${label}" already exists in Sonarr – skipping creation`,
+          `Tag "${label}" already exists in Sonarr, skipping creation`,
         )
         // Invalidate cache and fetch fresh to find the existing tag
         this.invalidateTagsCache()
@@ -1871,20 +1872,20 @@ export class SonarrService {
       if (!season.monitored) {
         season.monitored = true
         needsUpdate = true
-        this.log.info(
+        this.log.debug(
           `Enabling monitoring for series ${seriesId} season ${seasonNumber}`,
         )
       }
       if (!series.monitored) {
         series.monitored = true
         needsUpdate = true
-        this.log.info(`Enabling monitoring for series ${seriesId}`)
+        this.log.debug(`Enabling monitoring for series ${seriesId}`)
       }
 
       // STEP 4: Update series if monitoring changed
       if (needsUpdate) {
         await this.putToSonarr(`series/${seriesId}`, series)
-        this.log.info(
+        this.log.debug(
           `Updated monitoring for series ${seriesId} season ${seasonNumber}`,
         )
       }
@@ -1896,7 +1897,7 @@ export class SonarrService {
         seasonNumber,
       })
 
-      this.log.info(
+      this.log.debug(
         `Triggered search for series ${seriesId} season ${seasonNumber}`,
       )
     } catch (error) {
@@ -1919,7 +1920,7 @@ export class SonarrService {
         episodeIds,
       })
 
-      this.log.info(`Triggered search for ${episodeIds.length} episodes`)
+      this.log.debug(`Triggered search for ${episodeIds.length} episodes`)
     } catch (error) {
       this.log.error({ error }, 'Error searching episodes')
       throw error
@@ -1960,7 +1961,7 @@ export class SonarrService {
       // Update the series
       await this.putToSonarr(`series/${seriesId}`, series)
 
-      this.log.info(
+      this.log.debug(
         `Updated monitoring for series ${seriesId} season ${seasonNumber} to ${monitored}`,
       )
     } catch (error) {
@@ -1993,7 +1994,7 @@ export class SonarrService {
       // Send update
       await this.putToSonarr(`series/${seriesId}`, updatedSeries)
 
-      this.log.info(`Updated series ${seriesId} monitoring settings`)
+      this.log.debug(`Updated series ${seriesId} monitoring settings`)
     } catch (error) {
       this.log.error({ error }, 'Error updating series monitoring:')
       throw error
@@ -2117,7 +2118,7 @@ export class SonarrService {
         })
       }
 
-      this.log.info(
+      this.log.debug(
         `Updated monitoring for ${episodes.length} episodes (${toMonitor.length} monitored, ${toUnmonitor.length} unmonitored)`,
       )
     } catch (error) {
@@ -2147,7 +2148,7 @@ export class SonarrService {
       // Send update
       await this.putToSonarr(`episode/${episodeId}`, episode)
 
-      this.log.info(`Updated episode ${episodeId} monitoring to ${monitored}`)
+      this.log.debug(`Updated episode ${episodeId} monitoring to ${monitored}`)
     } catch (error) {
       this.log.error(
         { error },
@@ -2165,7 +2166,7 @@ export class SonarrService {
     try {
       await this.sonarrDelete(`episodefile/${episodeFileId}`)
 
-      this.log.info(`Deleted episode file ${episodeFileId}`)
+      this.log.debug(`Deleted episode file ${episodeFileId}`)
     } catch (error) {
       this.log.error({ error }, `Error deleting episode file ${episodeFileId}:`)
       throw error
@@ -2219,7 +2220,7 @@ export class SonarrService {
         )
       }
 
-      this.log.info(`Successfully deleted ${successCount} episode files`)
+      this.log.debug(`Successfully deleted ${successCount} episode files`)
     } catch (error) {
       // Re-throw errors from Promise.allSettled analysis above
       if (

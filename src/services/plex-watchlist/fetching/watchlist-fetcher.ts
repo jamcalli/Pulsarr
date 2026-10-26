@@ -61,7 +61,7 @@ export const fetchSelfWatchlist = async (
               `Plex returned an empty page at start=${currentStart} while reporting ${totalSize} items`,
             )
           }
-          log.info('User has no items in their watchlist')
+          log.debug('User has no items in their watchlist')
           break
         }
 
@@ -122,7 +122,7 @@ export const fetchSelfWatchlist = async (
       }
 
       try {
-        log.info(`Falling back to existing database items for user ${userId}`)
+        log.debug(`Falling back to existing database items for user ${userId}`)
         onFallback?.(userId)
         const existingItems = await getAllWatchlistItemsForUser(userId)
         if (existingItems.length === 0) {
@@ -155,7 +155,7 @@ export const fetchSelfWatchlist = async (
           }
         }
 
-        log.info(
+        log.debug(
           `Successfully fell back to ${existingItems.length} existing database items for user ${userId}`,
         )
         break

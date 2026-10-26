@@ -55,7 +55,7 @@ export async function createRollingMonitoredShow(
 
     const id = this.extractId(result)
 
-    this.log.info(
+    this.log.debug(
       `Created rolling monitored show: ${data.show_title} (ID: ${id})`,
     )
     return id
@@ -108,7 +108,7 @@ export async function createOrFindUserRollingMonitoredShow(
 
       if (result && result.length > 0) {
         const id = this.extractId(result)
-        this.log.info(
+        this.log.debug(
           `Created/updated per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
         )
         return id
@@ -123,7 +123,7 @@ export async function createOrFindUserRollingMonitoredShow(
 
       if (result && result.length > 0) {
         const id = this.extractId(result)
-        this.log.info(
+        this.log.debug(
           `Created/updated per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
         )
         return id
@@ -401,7 +401,7 @@ export async function deleteAllRollingMonitoredShowEntries(
         })
         .delete()
 
-      this.log.info(
+      this.log.debug(
         `Deleted ${deleted} rolling monitored show entries for ${show.show_title} (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
       )
 
@@ -467,7 +467,7 @@ export async function resetRollingMonitoredShowToOriginal(
           last_updated_at: this.timestamp,
         })
 
-      this.log.info(
+      this.log.debug(
         `Reset ${master.show_title} to original state: removed ${deletedUserEntries} user entries, reset master record (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
       )
 
@@ -503,7 +503,7 @@ export async function deleteRollingMonitoredShowsByIds(
     const deleted = await query.delete()
 
     if (deleted > 0) {
-      this.log.info(
+      this.log.debug(
         `Deleted ${deleted} rolling monitored show entries (${tvdbIds.length} TVDB IDs, ${sonarrSeriesIds.length} Sonarr series IDs)`,
       )
     }

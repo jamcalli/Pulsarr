@@ -18,7 +18,7 @@ export async function ensureMigrationComplete(
   deps.logger.debug(`${type} migration check: needsMigration=${needsMigration}`)
   if (!needsMigration) return
 
-  deps.logger.info(`Starting ${type} tag migration (colon -> hyphen)`)
+  deps.logger.debug(`Starting ${type} tag migration (colon -> hyphen)`)
   const results = await deps.migration.migrateInstanceTags(type)
   const failed = results.filter((result) => !result.success)
   if (failed.length > 0) {

@@ -101,7 +101,7 @@ export class DeleteSyncService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'DELETE_SYNC')
-    this.log.info('Initializing Delete Sync Service')
+    this.log.debug('Initializing Delete Sync Service')
   }
 
   /**
@@ -173,7 +173,7 @@ export class DeleteSyncService {
         return false
       }
 
-      this.log.info('Delete Sync Service initialized successfully')
+      this.log.debug('Delete Sync Service initialized successfully')
       return true
     } catch (error) {
       this.log.error({ error }, 'Error initializing Delete Sync Service:')
@@ -260,7 +260,7 @@ export class DeleteSyncService {
         this.config.enablePlexPlaylistProtection &&
         !this.fastify.plexServerService.isInitialized()
       ) {
-        this.log.info(
+        this.log.debug(
           'Plex playlist protection enabled but not initialized, initializing now',
         )
         const ok = await this.initialize()
@@ -346,7 +346,7 @@ export class DeleteSyncService {
           )
         }
 
-        this.log.info(
+        this.log.debug(
           `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
         )
 
@@ -403,7 +403,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Delete sync operation${dryRun ? ' (DRY RUN)' : ''} completed successfully`,
+        `Delete sync${dryRun ? ' dry run' : ''} completed: ${result.movies.deleted} movies and ${result.shows.deleted} shows ${dryRun ? 'identified for deletion' : 'deleted'}, ${result.total.skipped} skipped, ${result.total.protected ?? 0} protected`,
       )
 
       // Step 10a: Clean up orphaned approval records (content deleted before setting was enabled)
@@ -534,7 +534,7 @@ export class DeleteSyncService {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
-          this.log.info(
+          this.log.debug(
             `Refreshing watchlists attempt ${attempt + 1}/${maxRetries + 1}`,
           )
         } else {
@@ -585,7 +585,7 @@ export class DeleteSyncService {
       this.sonarrManager.fetchAllSeries(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
       this.radarrManager.fetchAllMovies(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
     ])
-    this.log.info(
+    this.log.debug(
       `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
     )
     return { existingSeries, existingMovies }
@@ -604,7 +604,7 @@ export class DeleteSyncService {
       return { success: true }
     }
 
-    this.log.info(
+    this.log.debug(
       'Tracked-only deletion is enabled, so only content from the approval system will be deleted',
     )
 
@@ -615,7 +615,7 @@ export class DeleteSyncService {
         throw new Error('Failed to retrieve tracked content GUIDs')
       }
 
-      this.log.info(
+      this.log.debug(
         `Found ${trackedGuids.size} tracked content GUIDs in approval system`,
       )
 
@@ -670,7 +670,7 @@ export class DeleteSyncService {
     }
 
     try {
-      this.log.info(
+      this.log.debug(
         `Beginning deletion analysis; Plex playlist protection enabled with playlist "${this.getProtectionPlaylistName()}"`,
       )
 
@@ -681,10 +681,10 @@ export class DeleteSyncService {
         throw new Error('Failed to retrieve protected items')
       }
 
-      this.log.info(
+      this.log.debug(
         `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${protectedGuids.size} protected GUIDs`,
       )
-      this.log.info(
+      this.log.debug(
         'Protection uses standardized GUIDs for maximum compatibility across all systems',
       )
 

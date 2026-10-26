@@ -40,7 +40,7 @@ export const notificationsCommand = {
   ): Promise<void> {
     const { logger } = deps
 
-    logger.info(
+    logger.debug(
       { userId: interaction.user.id },
       'User accessed notification settings',
     )

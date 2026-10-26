@@ -240,13 +240,13 @@ export class StatusService {
           ? await this.syncRadarrInstance(instanceId)
           : await this.syncSonarrInstance(instanceId)
 
-      this.log.info(
+      this.log.debug(
         `Syncing statuses for ${instanceType} instance ${instanceId}`,
       )
 
       await this.syncAllStatuses()
 
-      this.log.info(
+      this.log.debug(
         `Completed sync for ${instanceType} instance ${instanceId}: ${itemsCopied} items copied and statuses updated`,
       )
 
@@ -315,7 +315,7 @@ export class StatusService {
       const batchResults = await Promise.all(
         batch.map(async (instance) => {
           try {
-            this.log.info(
+            this.log.debug(
               `Syncing ${label} instance ${instance.id} (${instance.name})`,
             )
             const itemsCopied = await syncFn(instance.id)

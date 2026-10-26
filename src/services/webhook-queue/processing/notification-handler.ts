@@ -148,7 +148,7 @@ export async function shouldSuppressRadarrNotification(
       const isSyncing = await isRadarrItemSyncing(itemId, instance.id)
 
       if (isSyncing) {
-        logger.info(
+        logger.debug(
           { title: item.title, instanceName: instance.name },
           'Suppressing notification for synced item',
         )

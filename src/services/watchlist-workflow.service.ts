@@ -34,7 +34,7 @@ export class WatchlistWorkflowService {
       Math.ceil(Math.random() * 2_000),
   ) {
     this.log = createServiceLogger(baseLog, 'WATCHLIST_WORKFLOW')
-    this.log.info('Initializing Watchlist Workflow Service')
+    this.log.debug('Initializing Watchlist Workflow Service')
   }
 
   // config is a getter because updateConfig reassigns fastify.config and deps outlive a single call
@@ -264,7 +264,7 @@ export class WatchlistWorkflowService {
     }
     try {
       await this.fastify.updateConfigAndPersist({ _isReady: autoStart })
-      this.log.info(`Updated config _isReady to ${autoStart}`)
+      this.log.debug(`Updated config _isReady to ${autoStart}`)
     } catch (error) {
       this.log.warn({ error }, 'Failed to update _isReady config value')
     }

@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
 const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
-  fastify.log.info(
+  fastify.log.debug(
     `Using baseUrl: ${fastify.config.baseUrl} for service connections`,
   )
 

@@ -33,7 +33,7 @@ export async function ensureTrackedCache(
     // Get all GUIDs from approved and auto-approved requests
     const trackedGuids = await dbService.getTrackedContentGuids()
 
-    logger.info(
+    logger.debug(
       `Loaded ${trackedGuids.size} tracked content GUIDs from approval system`,
     )
 
