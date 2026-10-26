@@ -11,11 +11,14 @@ import {
 } from '@root/schemas/notifications/webhook.schema.js'
 import { isWebhookProcessable } from '@utils/arr-webhook-validator.js'
 import { episodeRange } from '@utils/episode-code.js'
+import { createServiceLogger } from '@utils/logger.js'
 import { logRouteError } from '@utils/route-errors.js'
 import { safeSecretCompare } from '@utils/webhook-secret.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  const log = createServiceLogger(fastify.log, 'WEBHOOK')
+
   fastify.post(
     '/webhook',
     {
@@ -55,7 +58,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       // Validate webhook secret (timing-safe comparison)
       const providedSecret = request.headers['x-pulsarr-secret']
       if (!safeSecretCompare(providedSecret, fastify.config.webhookSecret)) {
-        fastify.log.warn(
+        log.warn(
           { hasSecret: !!providedSecret },
           'Webhook rejected because the secret is invalid or missing',
         )
@@ -63,12 +66,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       }
 
       if ('eventType' in body && body.eventType === 'Test') {
-        fastify.log.debug('Received test webhook')
+        log.debug('Received test webhook')
         return { success: true }
       }
 
-      if (!isWebhookProcessable(body, fastify.log)) {
-        fastify.log.debug(
+      if (!isWebhookProcessable(body, log)) {
+        log.debug(
           {
             instanceName: body.instanceName,
             eventType: 'eventType' in body ? body.eventType : 'unknown',
@@ -87,7 +90,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             ? await fastify.db.getRadarrInstanceByIdentifier(instanceId)
             : null
 
-          fastify.log.debug(
+          log.debug(
             {
               instanceId,
               foundInstance: !!instance,
@@ -95,7 +98,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             },
             'Radarr instance lookup result',
           )
-          fastify.log.info(
+          log.info(
             { instanceId: instance?.id },
             `${instance?.name ?? body.instanceName}: ${body.movie.title} downloaded`,
           )
@@ -117,7 +120,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             ? await fastify.db.getSonarrInstanceByIdentifier(instanceId)
             : null
 
-          fastify.log.debug(
+          log.debug(
             {
               instanceId,
               foundInstance: !!instance,
@@ -125,7 +128,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             },
             'Sonarr instance lookup result',
           )
-          fastify.log.info(
+          log.info(
             { instanceId: instance?.id },
             `${instance?.name ?? body.instanceName}: ${body.series.title} ${episodeRange(body.episodes)} downloaded`,
           )

@@ -2,8 +2,9 @@ import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import { buildPosterUrl } from '@root/utils/poster-url.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { recipientLabel } from '@utils/recipient-label.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { notifyAdmins, recipientLabel } from '../dispatch.js'
+import { notifyAdmins } from '../dispatch.js'
 import {
   APPROVAL_TRIGGER_LABELS,
   describeContent,

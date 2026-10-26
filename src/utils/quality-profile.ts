@@ -24,3 +24,11 @@ export function parseQualityProfileId(value: unknown): number | undefined {
   }
   return undefined
 }
+
+export function findQualityProfileName(
+  profiles: ReadonlyArray<{ id: number; name: string }>,
+  value: number | string | null | undefined,
+): string | undefined {
+  const id = parseQualityProfileId(value)
+  return profiles.find((profile) => profile.id === id)?.name
+}

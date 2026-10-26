@@ -12,6 +12,7 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 import { echoAppliedRadarr } from '../../../mocks/applied-routing.js'
 import { createContentRouterDeps } from '../../../mocks/content-router-deps.js'
+import { createTestRoutingLog } from '../../../mocks/routing-log.js'
 
 const item: ContentItem = {
   title: 'Test Movie',
@@ -249,7 +250,14 @@ describe('checkExistingApprovalRequest', () => {
   it('continues when no request exists, keyed by the item key', async () => {
     const { deps, getApprovalRequestByContent } = existingDeps(null)
 
-    expect(await checkExistingApprovalRequest(item, context, deps)).toBeNull()
+    expect(
+      await checkExistingApprovalRequest(
+        item,
+        context,
+        createTestRoutingLog(),
+        deps,
+      ),
+    ).toBeNull()
     expect(getApprovalRequestByContent).toHaveBeenCalledWith(1, 'key')
   })
 
@@ -258,7 +266,14 @@ describe('checkExistingApprovalRequest', () => {
     async (status) => {
       const { deps, routeItemToRadarr } = existingDeps(request({ status }))
 
-      expect(await checkExistingApprovalRequest(item, context, deps)).toEqual({
+      expect(
+        await checkExistingApprovalRequest(
+          item,
+          context,
+          createTestRoutingLog(),
+          deps,
+        ),
+      ).toEqual({
         routedInstances: [],
         routingDetails: [],
       })
@@ -269,7 +284,14 @@ describe('checkExistingApprovalRequest', () => {
   it('continues on an expired request', async () => {
     const { deps } = existingDeps(request({ status: 'expired' }))
 
-    expect(await checkExistingApprovalRequest(item, context, deps)).toBeNull()
+    expect(
+      await checkExistingApprovalRequest(
+        item,
+        context,
+        createTestRoutingLog(),
+        deps,
+      ),
+    ).toBeNull()
   })
 
   it('replays an approved request', async () => {
@@ -277,7 +299,12 @@ describe('checkExistingApprovalRequest', () => {
       request({ status: 'approved' }),
     )
 
-    const result = await checkExistingApprovalRequest(item, context, deps)
+    const result = await checkExistingApprovalRequest(
+      item,
+      context,
+      createTestRoutingLog(),
+      deps,
+    )
 
     expect(result?.routedInstances).toEqual([4])
     expect(routeItemToRadarr).toHaveBeenCalledTimes(1)

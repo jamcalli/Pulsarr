@@ -28,6 +28,7 @@ export interface BatchProcessorDeps {
 export interface BatchCopyItem {
   item: DatabaseWatchlistItem
   matchingContent: SonarrItem | RadarrItem
+  sourceInstanceId: number
 }
 
 /**
@@ -63,7 +64,7 @@ export async function processBatchCopy(
   let completedCount = 0
 
   const results = await Promise.all(
-    items.map(({ item, matchingContent }) =>
+    items.map(({ item, matchingContent, sourceInstanceId }) =>
       limit(async () => {
         const user = userMap.get(item.user_id)
 
@@ -71,6 +72,7 @@ export async function processBatchCopy(
           item,
           matchingContent,
           instanceId,
+          sourceInstanceId,
           contentType,
           user,
         })

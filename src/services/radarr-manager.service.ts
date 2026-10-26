@@ -311,6 +311,7 @@ export class RadarrManagerService {
         instanceId: targetInstanceId,
         instanceType: 'radarr',
         qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        qualityProfileName: added.qualityProfileName,
         rootFolder: added.rootFolder,
         tags: added.tags,
         searchOnAdd: targetSearchOnAdd,
@@ -318,7 +319,7 @@ export class RadarrManagerService {
         monitor: targetMonitor,
       }
     } catch (error) {
-      this.log.error(
+      this.log.debug(
         {
           error,
           instanceId: targetInstanceId,

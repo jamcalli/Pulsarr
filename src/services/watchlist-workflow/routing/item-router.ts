@@ -21,6 +21,7 @@ export interface RouteSingleItemParams {
   item: Item
   userId: number
   userName: string
+  userAlias?: string | null
   primaryUser: { id: number } | null
   existingShows?: SonarrItem[]
   existingMovies?: RadarrItem[]
@@ -30,8 +31,15 @@ export async function routeSingleItem(
   params: RouteSingleItemParams,
   deps: ContentRoutingDeps,
 ): Promise<boolean> {
-  const { item, userId, userName, primaryUser, existingShows, existingMovies } =
-    params
+  const {
+    item,
+    userId,
+    userName,
+    userAlias,
+    primaryUser,
+    existingShows,
+    existingMovies,
+  } = params
 
   const parsedGuids = parseGuids(item.guids)
   const parsedGenres = parseGenres(item.genres)
@@ -84,6 +92,7 @@ export async function routeSingleItem(
         tempItem,
         userId,
         userName,
+        userAlias,
         sonarrItem,
         existingSeries: existingShows,
         primaryUser,
@@ -120,6 +129,7 @@ export async function routeSingleItem(
         tempItem,
         userId,
         userName,
+        userAlias,
         radarrItem,
         existingMovies,
         primaryUser,
@@ -188,6 +198,7 @@ export async function routeEnrichedItemsForUser(
           item,
           userId,
           userName: user.name,
+          userAlias: user.alias,
           primaryUser: primaryUser ?? null,
         },
         deps,
@@ -260,7 +271,7 @@ export async function routeNewItemsForUser(
   const allItemsToRoute = [...processedItems, ...linkedItems]
 
   if (allItemsToRoute.length > 0) {
-    deps.logger.info(
+    deps.logger.debug(
       {
         username: user.name,
         newItems: brandNewCount,

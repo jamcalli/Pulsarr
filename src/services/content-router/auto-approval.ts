@@ -109,7 +109,7 @@ export async function createAutoApprovalRecord(
       },
     )
 
-    logger.info(
+    logger.debug(
       `Created auto-approval tracking record for "${item.title}" (request ID: ${approvalRequest.id})`,
     )
 

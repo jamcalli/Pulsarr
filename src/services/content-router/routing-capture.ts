@@ -1,12 +1,14 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type {
+  AppliedRadarrRouting,
+  AppliedSonarrRouting,
   ContentItem,
   RouteSettings,
   RoutingDecision,
   RoutingDetails,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
-import type { ContentRouterDeps } from './types.js'
+import type { AppliedSettings, ContentRouterDeps } from './types.js'
 
 export interface ArrTarget {
   item: ContentItem
@@ -16,12 +18,40 @@ export interface ArrTarget {
   syncing: boolean
 }
 
+export interface ArrRouted {
+  routing: RoutingDetails
+  settings: AppliedSettings
+}
+
+function appliedSettings(
+  applied: AppliedRadarrRouting | AppliedSonarrRouting,
+): AppliedSettings {
+  const base = {
+    qualityProfile:
+      applied.qualityProfileName ?? applied.qualityProfile?.toString(),
+    rootFolder: applied.rootFolder,
+    tags: applied.tags,
+    searchOnAdd: applied.searchOnAdd,
+  }
+  return applied.instanceType === 'radarr'
+    ? {
+        ...base,
+        minimumAvailability: applied.minimumAvailability,
+        monitor: applied.monitor,
+      }
+    : {
+        ...base,
+        seasonMonitoring: applied.seasonMonitoring,
+        seriesType: applied.seriesType,
+      }
+}
+
 /** Propagates manager errors so the caller decides whether one failed instance stops the rest. */
 export async function routeToArr(
   target: ArrTarget,
   settings: RouteSettings,
   deps: Pick<ContentRouterDeps, 'radarrManager' | 'sonarrManager'>,
-): Promise<RoutingDetails> {
+): Promise<ArrRouted> {
   const { item, key, userId, instanceId, syncing } = target
   const applied =
     item.type === 'movie'
@@ -41,7 +71,11 @@ export async function routeToArr(
           syncing,
           settings,
         )
-  return { ...applied, qualityProfile: applied.qualityProfile?.toString() }
+  const { qualityProfileName, ...routing } = applied
+  return {
+    routing: { ...routing, qualityProfile: routing.qualityProfile?.toString() },
+    settings: appliedSettings(applied),
+  }
 }
 
 export function settingsFromDecision(decision: RoutingDecision): RouteSettings {

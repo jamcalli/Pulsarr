@@ -412,6 +412,7 @@ export class SonarrManagerService {
         instanceId: targetInstanceId,
         instanceType: 'sonarr',
         qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        qualityProfileName: added.qualityProfileName,
         rootFolder: added.rootFolder,
         tags: added.tags,
         searchOnAdd: targetSearchOnAdd,
@@ -419,7 +420,7 @@ export class SonarrManagerService {
         seriesType: targetSeriesType,
       }
     } catch (error) {
-      this.log.error(
+      this.log.debug(
         {
           error,
           instanceId: targetInstanceId,

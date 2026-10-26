@@ -42,6 +42,7 @@ export type ProgressEmitter = (event: {
  */
 interface SyncableInstance {
   id: number
+  name: string
   syncedInstances?: number[] | string | null
 }
 
@@ -68,6 +69,7 @@ interface ItemsToCopyResult<TContent> {
   itemsToCopy: Array<{
     item: DatabaseWatchlistItem
     matchingContent: TContent
+    sourceInstanceId: number
   }>
 }
 
@@ -150,11 +152,14 @@ export async function syncInstance<
       })
     }
 
-    logger.info(`Starting sync for ${contentLabel} instance ${instanceId}`)
     const instance = await getInstance(instanceId)
     if (!instance) {
       throw new Error(`${contentLabel} instance ${instanceId} not found`)
     }
+    logger.info(
+      { instanceId },
+      `Starting ${contentLabel.toLowerCase()} sync to ${instance.name}`,
+    )
 
     const defaultInstance = await getDefaultInstance()
 
@@ -183,7 +188,7 @@ export async function syncInstance<
       }
     }
     const uniqueWatchlistItems = Array.from(uniqueByGuid.values())
-    logger.info(
+    logger.debug(
       `Deduplicated watchlist items from ${watchlistItems.length} to ${uniqueWatchlistItems.length} unique media items`,
     )
 
@@ -260,9 +265,10 @@ export async function syncInstance<
 
       // Build batch items
       const batchItems: BatchCopyItem[] = itemsToCopy.map(
-        ({ item, matchingContent }) => ({
+        ({ item, matchingContent, sourceInstanceId }) => ({
           item,
           matchingContent,
+          sourceInstanceId,
         }),
       )
 
@@ -311,8 +317,10 @@ export async function syncInstance<
       }
     }
 
+    const itemsSkipped = itemsToCopy.length - itemsCopied
     logger.info(
-      `Completed sync for ${contentLabel} instance ${instanceId}, copied ${itemsCopied} items`,
+      { instanceId, copied: itemsCopied, skipped: itemsSkipped },
+      `Completed ${contentLabel.toLowerCase()} sync to ${instance.name}, copied ${itemsCopied} and skipped ${itemsSkipped}`,
     )
     return itemsCopied
   } catch (error) {
@@ -388,6 +396,7 @@ async function buildItemsToCopy<
   const itemsToCopy: Array<{
     item: DatabaseWatchlistItem
     matchingContent: TContent
+    sourceInstanceId: number
   }> = []
 
   for (const item of uniqueWatchlistItems) {
@@ -406,10 +415,12 @@ async function buildItemsToCopy<
 
       // Determine if item should be in this instance
       let shouldBeInInstance = false
+      let sourceInstanceId = instanceId
 
       if (shouldSyncFromDefault && defaultInstance) {
         if (currentInstanceIds.includes(defaultInstance.id)) {
           shouldBeInInstance = true
+          sourceInstanceId = defaultInstance.id
           logger.debug(
             `${contentLabel} ${item.title} should be synced from default instance ${defaultInstance.id}`,
           )
@@ -421,6 +432,7 @@ async function buildItemsToCopy<
         for (const syncedId of syncedInstances) {
           if (currentInstanceIds.includes(syncedId)) {
             shouldBeInInstance = true
+            sourceInstanceId = syncedId
             logger.debug(
               `${contentLabel} ${item.title} should be synced from instance ${syncedId}`,
             )
@@ -464,7 +476,7 @@ async function buildItemsToCopy<
             thumb: item.thumb,
             added: item.added,
           }
-          itemsToCopy.push({ item: dbItem, matchingContent })
+          itemsToCopy.push({ item: dbItem, matchingContent, sourceInstanceId })
         } else {
           logger.debug(
             `No matching ${contentLabel.toLowerCase()} found for ${item.title} to copy to instance ${instanceId}`,
