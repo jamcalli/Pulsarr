@@ -48,7 +48,7 @@ export default fp(
 
             // Only log if work was actually done
             if (totalProcessed > 0 || totalDeleted > 0) {
-              fastify.log.info(
+              fastify.log.debug(
                 `Delete sync completed: ${totalDeleted} items deleted, ${totalProcessed} total items processed`,
               )
             }

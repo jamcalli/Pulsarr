@@ -1130,7 +1130,7 @@ export async function clearAllLabelTracking(
   const deleted = await this.knex('plex_label_tracking').delete()
 
   if (deleted > 0) {
-    this.log.info(
+    this.log.debug(
       `Cleared all ${deleted} Plex label tracking records from database`,
     )
   }

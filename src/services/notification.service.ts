@@ -122,7 +122,7 @@ export class NotificationService {
 
   async initialize(): Promise<void> {
     if (this.hasBotConfig) {
-      this.log.info('Discord bot configuration found, attempting auto-start')
+      this.log.debug('Discord bot configuration found, attempting auto-start')
       try {
         const started = await this._discordBot.startBot()
         if (!started) {
@@ -155,7 +155,7 @@ export class NotificationService {
     await this.drainDeliveries()
 
     if (this._discordBot.getBotStatus() === 'running') {
-      this.log.info('Stopping Discord bot during shutdown')
+      this.log.debug('Stopping Discord bot during shutdown')
       await this._discordBot.stopBot()
     }
   }

@@ -102,7 +102,7 @@ export class PlexSessionMonitorService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'PLEX_SESSION_MONITOR')
-    this.log.info('PlexSessionMonitorService initialized')
+    this.log.debug('PlexSessionMonitorService initialized')
   }
 
   private get config() {
@@ -1053,7 +1053,7 @@ export class PlexSessionMonitorService {
           const deletedUserEntries =
             await this.db.resetRollingMonitoredShowToOriginal(show.id)
 
-          this.log.info(
+          this.log.debug(
             `Successfully reset inactive rolling show: ${show.show_title}${deletedUserEntries > 0 ? ` (removed ${deletedUserEntries} user ${deletedUserEntries === 1 ? 'entry' : 'entries'})` : ''}`,
           )
         } catch (error) {
@@ -1165,7 +1165,7 @@ export class PlexSessionMonitorService {
       }
 
       if (seasonsToCleanup.length > 0) {
-        this.log.info(
+        this.log.debug(
           `Progressive cleanup for ${rollingShow.show_title}: removing seasons ${seasonsToCleanup.join(', ')}`,
         )
         await this.cleanupSeasons(rollingShow, seasonsToCleanup)
@@ -1311,7 +1311,9 @@ export class PlexSessionMonitorService {
         return
       }
 
-      this.log.info(`Syncing new season pilots for ${masterShows.length} shows`)
+      this.log.debug(
+        `Syncing new season pilots for ${masterShows.length} shows`,
+      )
 
       for (const show of masterShows) {
         try {

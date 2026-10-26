@@ -89,24 +89,24 @@ export class PlexMobileService {
   async initialize(): Promise<void> {
     const hasPlexPass = this.fastify.plexServerService.getHasPlexPass()
     if (hasPlexPass === null) {
-      this.log.info(
+      this.log.debug(
         'Plex Pass status not yet determined, so Plex mobile notifications are deferred',
       )
       return
     }
     if (!hasPlexPass) {
-      this.log.info(
+      this.log.debug(
         'Plex Pass not detected, so Plex mobile notifications are unavailable',
       )
       return
     }
 
     if (!this.isEnabled()) {
-      this.log.info('Plex mobile notifications are disabled in configuration')
+      this.log.debug('Plex mobile notifications are disabled in configuration')
       return
     }
 
-    this.log.info('Plex mobile notification service initialized')
+    this.log.debug('Plex mobile notification service initialized')
   }
 
   shutdown(): void {

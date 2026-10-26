@@ -85,7 +85,7 @@ export class SchedulerService {
   ) {
     this.log = createServiceLogger(baseLog, 'SCHEDULER')
     this.scheduler = new ToadScheduler()
-    this.log.info('Scheduler service initialized')
+    this.log.debug('Scheduler service initialized')
   }
 
   /**
@@ -340,7 +340,7 @@ export class SchedulerService {
             `Registered handler for job: ${name} (during initialization)`,
           )
         } else {
-          this.log.info(`Registered handler for new job: ${name}`)
+          this.log.debug(`Registered handler for new job: ${name}`)
         }
       }
 
@@ -448,7 +448,7 @@ export class SchedulerService {
 
     return this.trackRun(name, async () => {
       try {
-        this.log.info(`Manually running job: ${name}`)
+        this.log.debug(`Manually running job: ${name}`)
 
         // Run the handler
         await jobData.handler(name)
@@ -700,7 +700,7 @@ export class SchedulerService {
    * Should be called during application shutdown.
    */
   stop(): void {
-    this.log.info('Stopping all scheduled jobs')
+    this.log.debug('Stopping all scheduled jobs')
     if (this.initializationTimer) {
       clearTimeout(this.initializationTimer)
       this.initializationTimer = null

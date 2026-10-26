@@ -276,7 +276,7 @@ export async function getBestServerConnection(
     serverName,
   })
 
-  logger.info(
+  logger.debug(
     `Selected best connection for server "${serverName}": ${bestConnection.uri}`,
   )
 

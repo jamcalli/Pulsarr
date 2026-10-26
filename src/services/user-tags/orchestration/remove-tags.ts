@@ -149,7 +149,7 @@ export async function removeAllUserTags(
   deleteTagDefinitions: boolean,
   deps: UserTagDeps,
 ): Promise<Record<ArrType, RemoveResults>> {
-  deps.logger.info(
+  deps.logger.debug(
     `Starting complete user tag removal in parallel (deleteDefinitions=${deleteTagDefinitions})`,
   )
 

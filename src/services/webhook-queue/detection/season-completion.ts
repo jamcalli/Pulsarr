@@ -117,7 +117,7 @@ export function isSeasonComplete(
   const isComplete = receivedCount >= expectedCount
 
   if (isComplete) {
-    logger.info(
+    logger.debug(
       {
         tvdbId,
         seasonNumber,

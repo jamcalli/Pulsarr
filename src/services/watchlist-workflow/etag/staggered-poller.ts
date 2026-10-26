@@ -150,7 +150,7 @@ export async function refreshFriendsForStaggeredPolling(
         : null
 
     for (const newFriend of friendChanges.added) {
-      deps.logger.info(
+      deps.logger.debug(
         { username: newFriend.username, userId: newFriend.userId },
         'New friend detected in staggered polling cycle',
       )
@@ -201,7 +201,7 @@ export async function refreshFriendsForStaggeredPolling(
               'staggered-new-friend',
             )
           } else {
-            deps.logger.info(
+            deps.logger.debug(
               {
                 userId: newFriend.userId,
                 brandNew: brandNewItems.length,

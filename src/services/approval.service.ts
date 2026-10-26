@@ -43,7 +43,7 @@ export class ApprovalService {
    * Log scheduled job execution with proper service prefix
    */
   logScheduledJob(action: 'start' | 'complete', jobName: string): void {
-    this.log.info(
+    this.log.debug(
       `${action === 'start' ? 'Running' : 'Completed'} scheduled job: ${jobName}`,
     )
   }
@@ -267,7 +267,7 @@ export class ApprovalService {
       this.queueDiscordApprovalNotification(result.request)
 
       this.log.info(
-        `New approval request created for "${result.request.contentTitle}" by user ${user.id}`,
+        `New approval request created for "${result.request.contentTitle}" by ${user.name}`,
       )
     } else {
       this.log.debug(
@@ -331,7 +331,7 @@ export class ApprovalService {
             'Content already added to system by another user request',
           )
 
-          this.log.info(
+          this.log.debug(
             `Auto-approved request ${matchingRequest.id} for user ${matchingRequest.userId}: ${matchingRequest.contentTitle} (content already available)`,
           )
         }
@@ -400,7 +400,7 @@ export class ApprovalService {
         const allInstanceIds = targets.map((target) => target.instanceId)
         const label = instanceType === 'radarr' ? 'Radarr' : 'Sonarr'
 
-        this.log.info(
+        this.log.debug(
           `Processing approval routing to ${allInstanceIds.length} instances: ${allInstanceIds.join(', ')} (primary: ${instanceId}, synced: ${syncedInstances?.join(', ') || 'none'})`,
         )
 
@@ -441,7 +441,7 @@ export class ApprovalService {
             routingResults.succeeded.push(target.instanceId)
           } catch (error) {
             if (isArrAlreadyAddedError(error)) {
-              this.log.info(
+              this.log.debug(
                 { instanceId: target.instanceId, title: request.contentTitle },
                 `Content already exists in ${label} instance, treating as successful routing`,
               )
@@ -575,7 +575,7 @@ export class ApprovalService {
               )
 
               if (result.success) {
-                this.log.info(
+                this.log.debug(
                   `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
                 )
               }
@@ -652,7 +652,7 @@ export class ApprovalService {
         return results
       }
 
-      this.log.info(
+      this.log.debug(
         `Re-evaluating ${pendingRequests.length} pending quota_exceeded approval requests`,
       )
 
@@ -674,7 +674,7 @@ export class ApprovalService {
 
           // Edge case: If quota was removed entirely, auto-approve (no quota = no restriction)
           if (!quotaStatus) {
-            this.log.info(
+            this.log.debug(
               {
                 requestId: request.id,
                 userId: request.userId,
@@ -719,7 +719,7 @@ export class ApprovalService {
           }
 
           // Period quota available - attempt to approve and route
-          this.log.info(
+          this.log.debug(
             {
               requestId: request.id,
               userId: request.userId,
@@ -752,7 +752,10 @@ export class ApprovalService {
         }
       }
 
-      this.log.info({ ...results }, 'Quota re-evaluation complete')
+      this.log.info(
+        { ...results },
+        `Quota re-evaluation complete: ${results.approved} approved, ${results.skipped} skipped, ${results.failed} failed`,
+      )
     } catch (error) {
       this.log.error(
         { error },

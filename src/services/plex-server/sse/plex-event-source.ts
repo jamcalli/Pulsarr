@@ -132,7 +132,7 @@ export class PlexEventSource {
     if (this.shutdownRequested) return
 
     const url = `${this.serverUrl}/:/eventsource/notifications`
-    this.log.info({ url }, 'Opening SSE connection to Plex')
+    this.log.debug({ url }, 'Opening SSE connection to Plex')
 
     this.es = new EventSource(url, {
       fetch: (input, init) =>
@@ -242,7 +242,7 @@ export class PlexEventSource {
       this.connectionTimer = null
     }
     this.connectedSince = Date.now()
-    this.log.info('SSE connection to Plex established')
+    this.log.debug('SSE connection to Plex established')
     this.resetHeartbeat()
     this.emitter.emit('connected')
   }

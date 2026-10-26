@@ -48,7 +48,7 @@ export async function cleanupRollingMonitoredShowsForDeletedContent(
       return
     }
 
-    logger.info(
+    logger.debug(
       `Cleaning up rolling monitored shows for deleted series (${tvdbIds.length} TVDB IDs, ${sonarrSeriesIds.length} Sonarr series IDs)`,
     )
 

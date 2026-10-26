@@ -35,7 +35,7 @@ export default fp(
             'PlexServerService failed to initialize - some features may not work properly',
           )
         } else {
-          fastify.log.info('PlexServerService initialized successfully')
+          fastify.log.debug('PlexServerService initialized successfully')
 
           try {
             await service.connectSSE()

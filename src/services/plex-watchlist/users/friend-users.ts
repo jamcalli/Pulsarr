@@ -178,14 +178,14 @@ export async function checkForRemovedFriends(
     })
 
     if (usersToDelete.length > 0) {
-      deps.logger.info(
+      deps.logger.debug(
         `Found ${usersToDelete.length} users who are no longer friends, removing them from database`,
       )
 
       const userIds = usersToDelete.map((user) => user.id)
       const result = await deps.db.deleteUsers(userIds)
 
-      deps.logger.info(
+      deps.logger.debug(
         `Successfully removed ${result.deletedCount} former friends from database`,
       )
 

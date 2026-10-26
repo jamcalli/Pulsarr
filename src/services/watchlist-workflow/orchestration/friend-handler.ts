@@ -38,7 +38,7 @@ export async function handleNewFriendEtagMode(
   newFriend: EtagUserInfo,
   deps: WorkflowDeps,
 ): Promise<NewFriendHandlerResult> {
-  deps.logger.info(
+  deps.logger.debug(
     { userId: newFriend.userId, username: newFriend.username },
     'New friend detected',
   )
@@ -85,7 +85,7 @@ export async function handleNewFriendEtagMode(
           'Some instances unavailable, queued new friend items for deferred routing',
         )
       } else {
-        deps.logger.info(
+        deps.logger.debug(
           {
             userId: newFriend.userId,
             brandNew: brandNewItems.length,
@@ -127,7 +127,7 @@ export async function handleNewFriendFullMode(
   newFriend: EtagUserInfo,
   deps: Pick<WorkflowDeps, 'logger' | 'state'>,
 ): Promise<void> {
-  deps.logger.info(
+  deps.logger.debug(
     { userId: newFriend.userId, username: newFriend.username },
     'New friend detected',
   )

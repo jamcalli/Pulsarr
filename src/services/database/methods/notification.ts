@@ -195,7 +195,7 @@ export async function resetContentNotifications(
   }
 
   const count = await query
-  this.log.info(`Reset ${count} notifications`)
+  this.log.debug(`Reset ${count} notifications`)
   return count
 }
 

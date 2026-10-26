@@ -157,7 +157,7 @@ export class TagMigrationService {
     try {
       const migrationFile = getMigrationFilePath()
       await unlink(migrationFile)
-      this.log.info('Deleted pre-migration prefix file')
+      this.log.debug('Deleted pre-migration prefix file')
       return true
     } catch (error) {
       // File might already be deleted or not exist - this is fine
@@ -178,7 +178,7 @@ export class TagMigrationService {
   async migrateInstanceTags(
     instanceType: 'radarr' | 'sonarr',
   ): Promise<InstanceMigrationResult[]> {
-    this.log.info(
+    this.log.debug(
       `Starting tag migration for ${instanceType} instances (colon -> hyphen format)`,
     )
 
@@ -283,7 +283,7 @@ export class TagMigrationService {
     })
 
     if (colonTags.length === 0) {
-      this.log.info(
+      this.log.debug(
         `No tags with colons found in ${instanceType} instance ${instanceName}, marking as migrated`,
       )
       await this.markInstanceAsMigrated(instanceType, instanceId, 0, 0)
@@ -296,7 +296,7 @@ export class TagMigrationService {
       }
     }
 
-    this.log.info(
+    this.log.debug(
       `Found ${colonTags.length} colon-based tags in ${instanceName} that need migration`,
     )
 
@@ -334,7 +334,7 @@ export class TagMigrationService {
 
       updates = this.buildContentUpdates(instanceType, contentMap, tagMapping)
 
-      this.log.info(
+      this.log.debug(
         `Updating ${updates.length} movies with new tag format in ${instanceName}`,
       )
 
@@ -364,7 +364,7 @@ export class TagMigrationService {
 
       updates = this.buildContentUpdates(instanceType, contentMap, tagMapping)
 
-      this.log.info(
+      this.log.debug(
         `Updating ${updates.length} series with new tag format in ${instanceName}`,
       )
 
@@ -569,7 +569,7 @@ export class TagMigrationService {
 
     // Only update if they're still using colon format
     if (currentPrefix.includes(':') || currentRemovedPrefix.includes(':')) {
-      this.log.info(
+      this.log.debug(
         'Updating global tag prefixes to hyphen format (transforming existing values)',
       )
 
@@ -670,7 +670,7 @@ export class TagMigrationService {
   async cleanupOrphanedTagReferences(): Promise<
     Omit<CleanupOrphanedRefsResponse, 'success' | 'message'>
   > {
-    this.log.info('Starting orphaned tag reference cleanup')
+    this.log.debug('Starting orphaned tag reference cleanup')
 
     const results: Omit<CleanupOrphanedRefsResponse, 'success' | 'message'> = {
       radarr: {},
@@ -785,7 +785,7 @@ export class TagMigrationService {
 
     // Bulk update movies with orphaned tags removed
     if (updates.length > 0) {
-      this.log.info(
+      this.log.debug(
         `Updating ${updates.length} movies in Radarr instance ${instance.name} to remove orphaned tags`,
       )
       await radarrService.bulkUpdateMovieTags(updates)
@@ -861,7 +861,7 @@ export class TagMigrationService {
 
     // Bulk update series with orphaned tags removed
     if (updates.length > 0) {
-      this.log.info(
+      this.log.debug(
         `Updating ${updates.length} series in Sonarr instance ${instance.name} to remove orphaned tags`,
       )
       await sonarrService.bulkUpdateSeriesTags(updates)

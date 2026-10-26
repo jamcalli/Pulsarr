@@ -112,7 +112,7 @@ export async function handlePlexUsernameModal(
   await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
   try {
-    logger.info(
+    logger.debug(
       { userId: interaction.user.id },
       'Attempting to link Discord account with Plex',
     )

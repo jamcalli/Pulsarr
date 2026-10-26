@@ -53,7 +53,7 @@ export async function fetchSchemaFormats(
       }
     }
 
-    log.info(
+    log.debug(
       { schemaCount: formatMap.size },
       'Cached Apprise schema formats from /details endpoint',
     )

@@ -54,7 +54,7 @@ export const toItemsBatch = async (
         1,
         Math.floor(currentConcurrencyLimit * 0.7),
       )
-      log.info(
+      log.debug(
         `Adjusted concurrency to ${currentConcurrencyLimit} after global rate limit cooldown`,
       )
       continue
@@ -116,7 +116,7 @@ export const toItemsBatch = async (
                 1,
                 Math.floor(currentConcurrencyLimit * 0.7),
               )
-              log.info(
+              log.debug(
                 `Reduced concurrency to ${currentConcurrencyLimit} after rate limit exhaustion`,
               )
             }
@@ -139,7 +139,7 @@ export const toItemsBatch = async (
                 1,
                 Math.floor(currentConcurrencyLimit * 0.7),
               )
-              log.info(
+              log.debug(
                 `Reduced concurrency to ${currentConcurrencyLimit} after rate limit detection`,
               )
             } else {

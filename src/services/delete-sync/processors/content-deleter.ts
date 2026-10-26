@@ -221,7 +221,7 @@ export async function processMovieDeletions(
 
   // Check if movie deletion is enabled
   if (!config.deleteMovie) {
-    logger.info('Movie deletion disabled in configuration, skipping')
+    logger.debug('Movie deletion disabled in configuration, skipping')
     return
   }
 
@@ -286,7 +286,7 @@ export async function processMovieDeletions(
         }
 
         if (validation.protected) {
-          logger.info(
+          logger.debug(
             `Skipping deletion of movie "${movie.title}" as it is protected in Plex playlist "${playlistName || PLEX_PROTECTION_PLAYLIST_DEFAULT}"`,
           )
           counters.incrementMovieProtected()
@@ -373,7 +373,7 @@ export async function processShowDeletions(
 
   // Check if any show deletion is enabled
   if (!config.deleteEndedShow && !config.deleteContinuingShow) {
-    logger.info('TV show deletion disabled in configuration, skipping')
+    logger.debug('TV show deletion disabled in configuration, skipping')
     return
   }
 
@@ -449,7 +449,7 @@ export async function processShowDeletions(
         }
 
         if (validation.protected) {
-          logger.info(
+          logger.debug(
             `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is protected in Plex playlist "${playlistName || PLEX_PROTECTION_PLAYLIST_DEFAULT}"`,
           )
           counters.incrementShowProtected()

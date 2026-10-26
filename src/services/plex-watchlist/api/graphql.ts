@@ -116,7 +116,7 @@ export const getWatchlist = async (
       }
 
       if (!responseData.MediaContainer.Metadata) {
-        log.info('Plex API returned MediaContainer without Metadata array')
+        log.debug('Plex API returned MediaContainer without Metadata array')
         responseData.MediaContainer.Metadata = []
       }
 
@@ -411,7 +411,7 @@ export const getWatchlistForUser = async ({
         seenKeys,
         allItems,
       )
-      log.info(
+      log.debug(
         `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
       )
       onFallback?.()

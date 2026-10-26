@@ -93,7 +93,9 @@ export async function fetchAllSonarrSeries(
       ),
     )
 
-    logger.info(`Processed ${processedSeries.length} total series for tag sync`)
+    logger.debug(
+      `Processed ${processedSeries.length} total series for tag sync`,
+    )
     return processedSeries
   } catch (error) {
     logger.error({ error }, 'Error fetching Sonarr series for tag sync:')

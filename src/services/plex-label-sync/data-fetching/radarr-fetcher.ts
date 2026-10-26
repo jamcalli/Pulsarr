@@ -86,7 +86,9 @@ export async function fetchAllRadarrMovies(
       ),
     )
 
-    logger.info(`Processed ${processedMovies.length} total movies for tag sync`)
+    logger.debug(
+      `Processed ${processedMovies.length} total movies for tag sync`,
+    )
     return processedMovies
   } catch (error) {
     logger.error({ error }, 'Error fetching Radarr movies for tag sync:')

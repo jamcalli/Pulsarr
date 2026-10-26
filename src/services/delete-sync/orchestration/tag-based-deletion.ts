@@ -197,10 +197,10 @@ export async function executeTagBasedDeletion(
   )
   if (!removalTagPrefix) {
     logger.info(
-      'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
+      'Tag-based deletion requested but removedTagPrefix is blank, skipping operation',
     )
     return createEmptyResult(
-      'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
+      'Tag-based deletion requested but removedTagPrefix is blank, skipping operation',
     )
   }
 

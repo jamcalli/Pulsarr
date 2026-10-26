@@ -20,7 +20,7 @@ export default fp(
       .getLoadedEvaluators()
       .map((p) => p.name)
       .join(', ')
-    fastify.log.info(`Content router initialized with plugins: ${pluginNames}`)
+    fastify.log.debug(`Content router initialized with plugins: ${pluginNames}`)
   },
   {
     name: 'content-router',

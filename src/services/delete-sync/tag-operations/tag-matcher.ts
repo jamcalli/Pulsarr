@@ -46,7 +46,7 @@ export async function hasRemovalTag(
       getRemovalTagPrefixNormalized(removedTagPrefix)
     if (!removalTagPrefixNormalized) {
       logger.debug(
-        'removedTagPrefix is blank – tag-based deletion will never match any items',
+        'removedTagPrefix is blank, so tag-based deletion will never match any items',
       )
       return false
     }

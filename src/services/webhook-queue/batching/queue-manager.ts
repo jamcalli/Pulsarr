@@ -194,7 +194,7 @@ export async function addEpisodeToQueue(
   // Check season completion - process immediately if complete
   if (isSeasonComplete(tvdbId, seasonNumber)) {
     clearSeasonTimeout(tvdbId, seasonNumber, queue)
-    logger.info(
+    logger.debug(
       {
         tvdbId,
         seasonNumber,
@@ -284,7 +284,7 @@ export async function addEpisodesToQueue(
   // Check season completion - process immediately if complete
   if (isSeasonComplete(tvdbId, seasonNumber)) {
     clearSeasonTimeout(tvdbId, seasonNumber, queue)
-    logger.info(
+    logger.debug(
       {
         tvdbId,
         seasonNumber,

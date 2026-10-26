@@ -118,7 +118,7 @@ export class DiscordBotService {
 
       await this.botClient.login(this.botConfig.discordBotToken)
       if (isStale()) return false
-      this.log.info('Discord bot started successfully')
+      this.log.debug('Discord bot started successfully')
       return true
     } catch (error) {
       if (isStale()) return false
@@ -137,7 +137,7 @@ export class DiscordBotService {
 
     this.startAttempt += 1
     try {
-      this.log.info('Stopping Discord bot')
+      this.log.debug('Stopping Discord bot')
       this.setBotStatus('stopping')
 
       if (this.botClient) {
