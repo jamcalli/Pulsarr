@@ -152,6 +152,7 @@ export type RouteSettings = RadarrRouteSettings & SonarrRouteSettings
 export interface ArrAddedSettings {
   rootFolder: string
   qualityProfileId: number | string | null
+  qualityProfileName?: string
   tags: string[]
 }
 
@@ -159,6 +160,7 @@ export interface AppliedRadarrRouting {
   instanceId: number
   instanceType: 'radarr'
   qualityProfile: number | undefined
+  qualityProfileName?: string
   rootFolder: string | undefined
   tags: string[]
   searchOnAdd: boolean
@@ -170,6 +172,7 @@ export interface AppliedSonarrRouting {
   instanceId: number
   instanceType: 'sonarr'
   qualityProfile: number | undefined
+  qualityProfileName?: string
   rootFolder: string | undefined
   tags: string[]
   searchOnAdd: boolean

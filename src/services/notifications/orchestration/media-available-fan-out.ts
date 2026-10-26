@@ -5,14 +5,10 @@ import type {
 } from '@root/types/notification.types.js'
 import { getPublicContentUrls } from '@root/utils/notifications/url-parser.js'
 import { errorMessage } from '@utils/error-message.js'
+import { recipientLabel } from '@utils/recipient-label.js'
 import pLimit from 'p-limit'
 import type { PlexMobileDelivery } from '../channels/plex-mobile.service.js'
-import {
-  dispatchNative,
-  recipientLabel,
-  sendAndLog,
-  sendToUser,
-} from '../dispatch.js'
+import { dispatchNative, sendAndLog, sendToUser } from '../dispatch.js'
 import { describeContent } from '../templates/labels.js'
 import { createMediaAvailableMessage } from '../templates/messages.js'
 import type {

@@ -8,6 +8,7 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 import { echoAppliedRadarr } from '../../../mocks/applied-routing.js'
 import { createContentRouterDeps } from '../../../mocks/content-router-deps.js'
+import { createTestRoutingLog } from '../../../mocks/routing-log.js'
 
 const movieItem: ContentItem = {
   title: 'Test Movie',
@@ -251,7 +252,14 @@ describe('routeUsingDefault', () => {
       radarrManager: { routeItemToRadarr },
     })
 
-    const routings = await routeUsingDefault(movieItem, 'key', 3, false, deps)
+    const routings = await routeUsingDefault(
+      movieItem,
+      'key',
+      3,
+      false,
+      createTestRoutingLog(),
+      deps,
+    )
 
     expect(routings).toEqual([
       expect.objectContaining({
@@ -283,7 +291,14 @@ describe('routeUsingDefault', () => {
     })
 
     await expect(
-      routeUsingDefault(movieItem, 'key', 3, false, deps),
+      routeUsingDefault(
+        movieItem,
+        'key',
+        3,
+        false,
+        createTestRoutingLog(),
+        deps,
+      ),
     ).rejects.toThrow('db')
     expect(routeItemToRadarr).not.toHaveBeenCalled()
   })

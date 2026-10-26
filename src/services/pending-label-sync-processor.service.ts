@@ -1,5 +1,6 @@
 import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-processor.types.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { pluralize } from '@utils/pluralize.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -92,13 +93,16 @@ export class PendingLabelSyncProcessorService {
 
       if (result.updated > 0) {
         this.log.info(
+          `Labeled ${result.updated} pending ${pluralize(result.updated, 'item')}`,
+        )
+        this.log.debug(
           {
             processed: result.processed,
             updated: result.updated,
             failed: result.failed,
             pending: result.pending,
           },
-          `Processed ${result.updated} pending label syncs using direct Plex key access`,
+          'Pending label sync counts',
         )
       }
 

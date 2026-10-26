@@ -38,6 +38,7 @@ import {
   normalizeGuid,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { findQualityProfileName } from '@utils/quality-profile.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
@@ -56,6 +57,9 @@ export class RadarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
+  private qualityProfilesCache: Map<number, QualityProfile[]> = new Map()
+  private qualityProfilesCacheExpiry: Map<number, number> = new Map()
+  private QUALITY_PROFILE_CACHE_TTL = 30000
   private exclusionTmdbIds: Promise<Set<number>> | null = null
   private exclusionCacheExpiry = 0
   private readonly EXCLUSION_CACHE_TTL = 30000
@@ -548,6 +552,43 @@ export class RadarrService {
     }
   }
 
+  async getQualityProfiles(): Promise<QualityProfile[]> {
+    if (!this.instanceId) {
+      return this.fetchQualityProfiles()
+    }
+
+    const cacheExpiry = this.qualityProfilesCacheExpiry.get(this.instanceId)
+    const cached = this.qualityProfilesCache.get(this.instanceId)
+    if (cacheExpiry && Date.now() < cacheExpiry && cached) {
+      return cached
+    }
+
+    return this.refreshQualityProfilesCache(this.instanceId)
+  }
+
+  private async refreshQualityProfilesCache(
+    instanceId: number,
+  ): Promise<QualityProfile[]> {
+    try {
+      const profiles = await this.fetchQualityProfiles()
+      this.qualityProfilesCache.set(instanceId, profiles)
+      this.qualityProfilesCacheExpiry.set(
+        instanceId,
+        Date.now() + this.QUALITY_PROFILE_CACHE_TTL,
+      )
+      return profiles
+    } catch (error) {
+      const stale = this.qualityProfilesCache.get(instanceId)
+      if (stale) {
+        this.log.warn(
+          `Using stale quality profiles cache for Radarr instance ${instanceId}`,
+        )
+        return stale
+      }
+      throw error
+    }
+  }
+
   async fetchQualityProfiles(): Promise<QualityProfile[]> {
     try {
       const profiles =
@@ -745,7 +786,7 @@ export class RadarrService {
     }
 
     const defaultPath = rootFolders[0].path
-    this.log.info(`Using root folder: ${defaultPath}`)
+    this.log.debug(`Using root folder: ${defaultPath}`)
     return defaultPath
   }
 
@@ -760,7 +801,7 @@ export class RadarrService {
 
     if (configProfile === null) {
       const defaultId = profiles[0].id
-      this.log.info(
+      this.log.debug(
         `Using default quality profile: ${profiles[0].name} (ID: ${defaultId})`,
       )
       return defaultId
@@ -776,7 +817,7 @@ export class RadarrService {
     )
 
     if (matchingProfile) {
-      this.log.info(
+      this.log.debug(
         `Using matched quality profile: ${matchingProfile.name} (ID: ${matchingProfile.id})`,
       )
       return matchingProfile.id
@@ -817,13 +858,14 @@ export class RadarrService {
 
       const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
 
-      // Only fetch quality profiles if no override provided
+      const qualityProfiles =
+        overrideQualityProfileId !== undefined
+          ? await this.getQualityProfiles().catch(() => [])
+          : await this.getQualityProfiles()
       const qualityProfileId =
         overrideQualityProfileId !== undefined
           ? overrideQualityProfileId
-          : await this.resolveQualityProfileId(
-              await this.fetchQualityProfiles(),
-            )
+          : await this.resolveQualityProfileId(qualityProfiles)
 
       // Collection for valid tag IDs (using Set to avoid duplicates)
       const tagIdsSet = new Set<string>()
@@ -917,7 +959,7 @@ export class RadarrService {
         'movie',
         movie,
       )
-      this.log.info(
+      this.log.debug(
         {
           title: item.title,
           qualityProfileId,
@@ -934,6 +976,10 @@ export class RadarrService {
       return {
         rootFolder: created?.rootFolderPath ?? rootFolderPath,
         qualityProfileId: created?.qualityProfileId ?? qualityProfileId,
+        qualityProfileName: findQualityProfileName(
+          qualityProfiles,
+          created?.qualityProfileId ?? qualityProfileId,
+        ),
         tags: (created?.tags ?? tags.map(Number)).map(
           (id) => labelById.get(id) ?? String(id),
         ),
@@ -1736,7 +1782,7 @@ export class RadarrService {
 
       await Promise.all(promises)
 
-      this.log.info(
+      this.log.debug(
         `Bulk updated tags for ${updates.length} movies across ${tagGroups.size} tag groups (mode: ${applyTags})`,
       )
     } catch (error) {

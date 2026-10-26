@@ -26,7 +26,7 @@ export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
       )
       if (signal.aborted) return
       if (selfResult.changed && selfResult.newItems.length > 0) {
-        deps.logger.info(
+        deps.logger.debug(
           { newItems: selfResult.newItems.length },
           'New items detected in self RSS feed',
         )
@@ -41,7 +41,7 @@ export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
       )
       if (signal.aborted) return
       if (friendsResult.changed && friendsResult.newItems.length > 0) {
-        deps.logger.info(
+        deps.logger.debug(
           { newItems: friendsResult.newItems.length },
           'New items detected in friends RSS feed',
         )

@@ -4,6 +4,8 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/orchestration/unified-processor.js'
+import { pluralize } from '@utils/pluralize.js'
+import { recipientLabel } from '@utils/recipient-label.js'
 import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
@@ -64,6 +66,10 @@ export async function processRssFriendsItems(
       deps.logger.warn({ userId, authorUuid }, 'User not found for author UUID')
       continue
     }
+    deps.logger.info(
+      { userId, newItems: authorItems.length },
+      `${authorItems.length} new ${pluralize(authorItems.length, 'item')} in the friends RSS feed for ${recipientLabel(user)}`,
+    )
 
     const enrichedItems = await enrichRssItems(authorItems, userId, {
       logger: deps.logger,

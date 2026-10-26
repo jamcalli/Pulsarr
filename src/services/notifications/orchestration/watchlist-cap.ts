@@ -1,9 +1,9 @@
 import type { User } from '@root/types/config.types.js'
 import type { WatchlistCapNotification } from '@root/types/notification.types.js'
+import { recipientLabel } from '@utils/recipient-label.js'
 import {
   deliverToAdmins,
   NOTHING_DELIVERED,
-  recipientLabel,
   recordDelivery,
   sendToUser,
 } from '../dispatch.js'

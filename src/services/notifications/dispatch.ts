@@ -5,6 +5,7 @@ import type {
 } from '@root/types/notification.types.js'
 import type { WebhookEventType } from '@root/types/webhook-endpoint.types.js'
 import { errorMessage } from '@utils/error-message.js'
+import { recipientLabel } from '@utils/recipient-label.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { dispatchWebhooks } from './channels/native-webhook.js'
 import { ADMIN_CHANNELS, type AdminChannel } from './routing.js'
@@ -30,13 +31,6 @@ const ADMIN_CHANNEL_LABELS: Record<AdminChannel, DeliveryChannel> = {
   discordWebhook: 'Discord webhook',
   discordDm: 'Discord DM',
   apprise: 'Apprise',
-}
-
-export function recipientLabel(user: {
-  name: string
-  alias?: string | null
-}): string {
-  return user.alias ? `${user.name} (${user.alias})` : user.name
 }
 
 function logDelivery(

@@ -12,6 +12,7 @@ import {
   type ContentRouterDepsOverrides,
   createContentRouterDeps,
 } from '../../../mocks/content-router-deps.js'
+import { createTestRoutingLog } from '../../../mocks/routing-log.js'
 
 const item: ContentItem = {
   title: 'Test Movie',
@@ -39,6 +40,7 @@ const params = (overrides: Partial<GateParams> = {}): GateParams => ({
   context,
   decisions: [decision],
   syncedInstances: undefined,
+  routingLog: createTestRoutingLog(),
   ...overrides,
 })
 

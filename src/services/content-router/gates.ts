@@ -1,13 +1,16 @@
+import type { QuotaType } from '@root/types/approval.types.js'
 import type {
   ContentItem,
   RoutingContext,
   RoutingDecision,
 } from '@root/types/router.types.js'
+import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import {
   approvalRoutingFor,
   checkApprovalRequirements,
   checkExistingApprovalRequest,
 } from './approval-checks.js'
+import { logHeld, type RoutingLog } from './routing-log.js'
 import type { ContentRouterDeps, GateOutcome } from './types.js'
 
 export interface GateParams {
@@ -15,6 +18,7 @@ export interface GateParams {
   context: RoutingContext
   decisions: RoutingDecision[]
   syncedInstances: number[] | undefined
+  routingLog: RoutingLog
 }
 
 /** Bypass users are always uncapped. */
@@ -57,6 +61,7 @@ export async function applyPreRoutingGates(
   deps: Pick<
     ContentRouterDeps,
     | 'logger'
+    | 'config'
     | 'db'
     | 'approvalService'
     | 'quotaService'
@@ -65,13 +70,18 @@ export async function applyPreRoutingGates(
     | 'sonarrManager'
   >,
 ): Promise<GateOutcome> {
-  const { item, context, decisions, syncedInstances } = params
+  const { item, context, decisions, syncedInstances, routingLog } = params
   const { logger } = deps
   if (context.syncing) {
     return { action: 'proceed' }
   }
 
-  const existingResult = await checkExistingApprovalRequest(item, context, deps)
+  const existingResult = await checkExistingApprovalRequest(
+    item,
+    context,
+    routingLog,
+    deps,
+  )
   if (existingResult) {
     return { action: 'handled', result: existingResult }
   }
@@ -104,7 +114,7 @@ export async function applyPreRoutingGates(
   )
 
   if (approvalResult.required) {
-    logger.info(
+    logger.debug(
       `Approval required for "${item.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
     )
 
@@ -134,6 +144,17 @@ export async function applyPreRoutingGates(
       approvalResult.data?.ruleId,
     )
 
+    logHeld(
+      routingLog,
+      approvalResult.trigger === 'router_rule'
+        ? {
+            reason: 'rule',
+            ruleId: decisions[0]?.ruleId,
+            ruleName: decisions[0]?.ruleName,
+          }
+        : { reason: 'user' },
+    )
+
     return { action: 'blocked' }
   }
 
@@ -157,17 +178,18 @@ export async function applyPreRoutingGates(
     if (quotaResult.hasQuota && !quotaResult.consumed) {
       const wouldBeUsage = quotaResult.currentUsage + 1
 
-      logger.info(
+      logger.debug(
         `Quota exceeded for "${item.title}" by user ${context.userName || context.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
       )
 
       if (quotaResult.userBypassEnabled) {
         logger.info(
-          `User ${context.userId} has quota bypass enabled, auto-approving quota-exceeded item "${item.title}"`,
+          `User ${context.userName || context.userId} has quota bypass enabled, auto-approving quota-exceeded item "${item.title}"`,
         )
         return { action: 'proceed' }
       }
 
+      const quotaType = quotaResult.quotaType as QuotaType
       const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
 
       await deps.approvalService.createApprovalRequest(
@@ -182,10 +204,7 @@ export async function applyPreRoutingGates(
             reason: approvalReasonText,
             triggeredBy: 'quota_exceeded',
             data: {
-              quotaType: quotaResult.quotaType as
-                | 'daily'
-                | 'weekly_rolling'
-                | 'monthly',
+              quotaType,
               quotaUsage: wouldBeUsage,
               quotaLimit: quotaResult.quotaLimit,
             },
@@ -202,9 +221,14 @@ export async function applyPreRoutingGates(
         context.itemKey,
       )
 
-      logger.info(
-        `Created approval request for quota-exceeded item "${item.title}"`,
-      )
+      logHeld(routingLog, {
+        reason: 'quota',
+        quotaType,
+        used: wouldBeUsage,
+        limit: quotaResult.quotaLimit,
+        weeklyRollingDays: resolveQuotaWindowSettings(deps.config.quotaSettings)
+          .weeklyRollingDays,
+      })
 
       return { action: 'blocked' }
     }

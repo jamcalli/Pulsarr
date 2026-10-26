@@ -6,7 +6,8 @@ import type { User } from '@root/types/config.types.js'
 import type { Item as WatchlistItem } from '@root/types/plex.types.js'
 import { toContentType } from '@utils/content-type.js'
 import { parseGuids } from '@utils/guid-handler.js'
-import { dispatchAndRecord, recipientLabel } from '../dispatch.js'
+import { recipientLabel } from '@utils/recipient-label.js'
+import { dispatchAndRecord } from '../dispatch.js'
 import { describeContent } from '../templates/labels.js'
 import {
   buildContentPayload,

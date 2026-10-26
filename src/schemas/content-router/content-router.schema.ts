@@ -344,7 +344,7 @@ export const ConditionGroupSchema = z
 
 // Base router rule schema
 export const BaseRouterRuleSchema = z.object({
-  name: z.string().min(1, { error: 'Name is required' }),
+  name: z.string().trim().min(1, { error: 'Name is required' }),
   target_type: InstanceTypeSchema,
   target_instance_id: z.number().min(1).nullable(),
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),

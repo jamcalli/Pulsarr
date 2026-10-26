@@ -19,6 +19,7 @@ import {
   echoAppliedRadarr,
   echoAppliedSonarr,
 } from '../../../../mocks/applied-routing.js'
+import { createMockLogger } from '../../../../mocks/logger.js'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 const SONARR_ITEM: SonarrItem = {
@@ -96,6 +97,7 @@ function buildDeps(
       updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
     },
     contentRouter: {
+      log: createMockLogger(),
       getTargetInstances: vi.fn(async () => ({ instanceIds })),
       routeContent: vi.fn(async () => ({
         routedInstances: [1],
