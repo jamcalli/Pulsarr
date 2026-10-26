@@ -1,15 +1,15 @@
-vi.mock('@services/notifications/channels/native-webhook.js', () => ({
-  dispatchWebhooks: vi
-    .fn()
-    .mockResolvedValue({ dispatched: 0, succeeded: 0, failed: 0, results: [] }),
-}))
-
 import type { Config } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import { sendDeleteSyncNotification } from '@services/notifications/orchestration/delete-sync.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createNotificationDeps } from '../../../../mocks/notification-deps.js'
 import { createMockUser } from '../../../../mocks/user.js'
+
+vi.mock('@services/notifications/channels/native-webhook.js', () => ({
+  dispatchWebhooks: vi
+    .fn()
+    .mockResolvedValue({ dispatched: 0, succeeded: 0, failed: 0, results: [] }),
+}))
 
 describe('delete-sync orchestration', () => {
   let fakes: ReturnType<typeof createNotificationDeps>
