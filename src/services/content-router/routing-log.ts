@@ -66,13 +66,16 @@ export function createRoutingLog(subject: RoutingLogSubject): RoutingLog {
   }
 }
 
+/** Names are for log text only, so a failed lookup yields no names rather than failing the route. */
 export function listRoutingInstances(
   contentType: ContentItem['type'],
   deps: Pick<ContentRouterDeps, 'radarrManager' | 'sonarrManager'>,
 ): Promise<ReadonlyArray<{ id: number; name: string }>> {
-  return contentType === 'movie'
-    ? deps.radarrManager.getAllInstances()
-    : deps.sonarrManager.getAllInstances()
+  const instances =
+    contentType === 'movie'
+      ? deps.radarrManager.getAllInstances()
+      : deps.sonarrManager.getAllInstances()
+  return instances.catch(() => [])
 }
 
 export type RoutingNames = Pick<RoutingLog, 'title' | 'user' | 'instanceNames'>

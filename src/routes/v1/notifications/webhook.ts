@@ -70,7 +70,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return { success: true }
       }
 
-      if (!isWebhookProcessable(body, fastify.log)) {
+      if (!isWebhookProcessable(body, log)) {
         log.debug(
           {
             instanceName: body.instanceName,
