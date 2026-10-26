@@ -151,7 +151,7 @@
     "embla-carousel-react": "^8.6.0",
     "happy-dom": "^21.0.0",
     "husky": "^9.1.7",
-    "jsdom": "^27",
+    "jsdom": "^30.0.0",
     "lucide-react": "^1.0.0",
     "msw": "^3.0.0",
     "openapi-fetch": "^0.17.0",
