@@ -9,12 +9,17 @@ import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type {
   DatabaseWatchlistItem,
-  StatusUpdateResult,
+  JunctionUpdateResult,
   WatchlistInstanceStatus,
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
-import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import {
+  buildGuidIndex,
+  extractSonarrId,
+  findBestGuidMatch,
+  parseGuids,
+} from '@utils/guid-handler.js'
 import { isStatusUpgrade } from '@utils/watchlist-status-rank.js'
 import type { FastifyBaseLogger } from 'fastify'
 
@@ -40,6 +45,7 @@ interface JunctionEntry {
  */
 interface SonarrJunctionEntry extends JunctionEntry {
   sonarr_instance_id: number
+  sonarr_series_id: number | null
 }
 
 /**
@@ -61,6 +67,11 @@ interface JunctionConfig<
   getItemInstanceId: (item: TItem) => number | undefined
   /** Get the instance ID from a junction entry */
   getEntryInstanceId: (entry: TEntry) => number
+  /** Series id to write, or undefined when the entry already holds it */
+  getSeriesIdToWrite?: (
+    item: TItem,
+    entry: TEntry | undefined,
+  ) => number | undefined
   /** Fetch all junction entries for the given watchlist IDs */
   fetchJunctions: (watchlistIds: number[]) => Promise<TEntry[]>
   /** Bulk add junction entries */
@@ -71,6 +82,7 @@ interface JunctionConfig<
       status: WatchlistStatus
       is_primary: boolean
       last_notified_at?: string
+      sonarr_series_id?: number
     }>,
   ) => Promise<void>
   /** Bulk update junction entries */
@@ -81,6 +93,7 @@ interface JunctionConfig<
       status?: WatchlistStatus
       is_primary?: boolean
       last_notified_at?: string
+      sonarr_series_id?: number
     }>,
   ) => Promise<void>
   /** Bulk remove junction entries */
@@ -125,9 +138,10 @@ export async function processJunctionUpdates<
   config: JunctionConfig<TItem, TEntry>,
   arrItems: TItem[],
   watchlistItems: DatabaseWatchlistItem[],
-): Promise<StatusUpdateResult> {
+): Promise<JunctionUpdateResult<TItem>> {
   let updateCount = 0
   const userIds = new Set<number>()
+  const matches = new Map<number, TItem[]>()
 
   try {
     // 1. Extract all watchlist IDs we need to process
@@ -135,7 +149,7 @@ export async function processJunctionUpdates<
       .filter((item) => item.id !== undefined)
       .map((item) => item.id as number)
 
-    if (watchlistIds.length === 0) return { updated: 0, userIds: [] }
+    if (watchlistIds.length === 0) return { updated: 0, userIds: [], matches }
 
     // 2. Prefetch ALL current junction associations in a single query
     const allJunctionEntries = await config.fetchJunctions(watchlistIds)
@@ -169,6 +183,10 @@ export async function processJunctionUpdates<
         instanceItemMap.set(instanceId, existing)
       }
     }
+    const instanceIndexes = [...instanceItemMap].map(
+      ([instanceId, instanceItems]) =>
+        [instanceId, buildGuidIndex(instanceItems)] as const,
+    )
 
     // 5. Prepare batch operation collections
     const junctionsToAdd: Array<{
@@ -177,6 +195,7 @@ export async function processJunctionUpdates<
       status: WatchlistStatus
       is_primary: boolean
       last_notified_at?: string
+      sonarr_series_id?: number
     }> = []
 
     const junctionsToUpdate: Array<{
@@ -185,6 +204,7 @@ export async function processJunctionUpdates<
       status?: WatchlistStatus
       is_primary?: boolean
       last_notified_at?: string
+      sonarr_series_id?: number
     }> = []
 
     const junctionsToRemove: Array<{
@@ -213,23 +233,16 @@ export async function processJunctionUpdates<
         currentInstanceSet.add(config.getEntryInstanceId(entry))
       }
 
-      // Process each instance
-      for (const [instanceId, instanceItems] of instanceItemMap.entries()) {
-        // Find best matches using GUID scoring
-        const potentialMatches = instanceItems
-          .map((arrItem) => ({
-            item: arrItem,
-            score: getGuidMatchScore(
-              parseGuids((arrItem as SonarrItem | RadarrItem).guids),
-              parseGuids(item.guids),
-            ),
-          }))
-          .filter((match) => match.score > 0)
-          .sort((a, b) => b.score - a.score)
+      const itemGuids = parseGuids(item.guids)
 
-        if (potentialMatches.length > 0) {
-          const matchingItem = potentialMatches[0].item
+      for (const [instanceId, instanceIndex] of instanceIndexes) {
+        const matchingItem = findBestGuidMatch(instanceIndex, itemGuids)
+
+        if (matchingItem) {
           existingInstanceSet.add(instanceId)
+          const rowMatches = matches.get(numericId)
+          if (rowMatches) rowMatches.push(matchingItem)
+          else matches.set(numericId, [matchingItem])
           const junctionKey = `${numericId}-${instanceId}`
           const currentJunction = junctionMap.get(junctionKey)
 
@@ -249,6 +262,10 @@ export async function processJunctionUpdates<
                   ? 'notified'
                   : validateStatus(matchingItem.status),
               is_primary: isPrimary,
+              sonarr_series_id: config.getSeriesIdToWrite?.(
+                matchingItem,
+                undefined,
+              ),
             })
 
             if (isPrimary) {
@@ -263,6 +280,7 @@ export async function processJunctionUpdates<
               status?: WatchlistStatus
               is_primary?: boolean
               last_notified_at?: string
+              sonarr_series_id?: number
             } = {
               watchlist_id: numericId,
               instance_id: instanceId,
@@ -285,6 +303,17 @@ export async function processJunctionUpdates<
                 updates.status = arrStatus
                 needsUpdate = true
               }
+            }
+
+            const seriesId = config.getSeriesIdToWrite?.(
+              matchingItem,
+              itemEntries.find(
+                (entry) => config.getEntryInstanceId(entry) === instanceId,
+              ),
+            )
+            if (seriesId !== undefined) {
+              updates.sonarr_series_id = seriesId
+              needsUpdate = true
             }
 
             if (needsUpdate) {
@@ -354,7 +383,7 @@ export async function processJunctionUpdates<
       )
     }
 
-    return { updated: updateCount, userIds: [...userIds] }
+    return { updated: updateCount, userIds: [...userIds], matches }
   } catch (error) {
     deps.logger.error(
       { error },
@@ -374,6 +403,12 @@ export function createSonarrJunctionConfig(
     contentType: 'show',
     getItemInstanceId: (item) => item.sonarr_instance_id,
     getEntryInstanceId: (entry) => entry.sonarr_instance_id,
+    getSeriesIdToWrite: (item, entry) => {
+      const seriesId = extractSonarrId(item.guids)
+      return seriesId > 0 && entry?.sonarr_series_id !== seriesId
+        ? seriesId
+        : undefined
+    },
     fetchJunctions: (ids) => db.getAllWatchlistSonarrInstanceJunctions(ids),
     bulkAdd: (entries) =>
       db.bulkAddWatchlistToSonarrInstances(
@@ -383,6 +418,7 @@ export function createSonarrJunctionConfig(
           status: e.status,
           is_primary: e.is_primary,
           last_notified_at: e.last_notified_at,
+          sonarr_series_id: e.sonarr_series_id,
         })),
       ),
     bulkUpdate: (entries) =>
@@ -393,6 +429,7 @@ export function createSonarrJunctionConfig(
           status: e.status,
           is_primary: e.is_primary,
           last_notified_at: e.last_notified_at,
+          sonarr_series_id: e.sonarr_series_id,
         })),
       ),
     bulkRemove: (entries) =>

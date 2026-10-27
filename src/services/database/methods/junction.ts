@@ -640,6 +640,7 @@ export async function getAllWatchlistSonarrInstanceJunctions(
     status: 'pending' | 'requested' | 'grabbed' | 'notified'
     is_primary: boolean
     last_notified_at: string | null
+    sonarr_series_id: number | null
   }>
 > {
   return this.knex('watchlist_sonarr_instances')
@@ -661,6 +662,7 @@ export async function bulkAddWatchlistToSonarrInstances(
     is_primary: boolean
     last_notified_at?: string
     syncing?: boolean
+    sonarr_series_id?: number
   }>,
 ): Promise<void> {
   const timestamp = this.timestamp
@@ -672,6 +674,7 @@ export async function bulkAddWatchlistToSonarrInstances(
     is_primary: junction.is_primary,
     syncing: junction.syncing ?? false,
     last_notified_at: junction.last_notified_at || null,
+    sonarr_series_id: junction.sonarr_series_id ?? null,
     created_at: timestamp,
     updated_at: timestamp,
   }))
@@ -709,6 +712,7 @@ export async function bulkUpdateWatchlistSonarrInstanceStatuses(
     status?: 'pending' | 'requested' | 'grabbed' | 'notified'
     is_primary?: boolean
     last_notified_at?: string
+    sonarr_series_id?: number
   }>,
 ): Promise<void> {
   const timestamp = this.timestamp

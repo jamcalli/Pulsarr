@@ -2,6 +2,7 @@ import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type {
   DatabaseWatchlistItem,
+  JunctionUpdateResult,
   StatusUpdateResult,
 } from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
@@ -81,15 +82,15 @@ export class StatusService {
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 
-      // Process status updates using unified processor
-      const mainUpdates = processStatusUpdates(
-        { logger: this.log },
-        createSonarrStatusConfig(),
-        existingSeries,
-        dbWatchlistItems,
-      )
-      const result = await this.commitMainThenJunction(mainUpdates, () =>
-        this.processShowJunctionUpdates(existingSeries, dbWatchlistItems),
+      const result = await this.commitJunctionThenMain(
+        await this.processShowJunctionUpdates(existingSeries, dbWatchlistItems),
+        (matches) =>
+          processStatusUpdates(
+            { logger: this.log },
+            createSonarrStatusConfig(),
+            matches,
+            dbWatchlistItems,
+          ),
       )
 
       // Apply user tags if the service is available and enabled
@@ -127,15 +128,18 @@ export class StatusService {
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
 
-      // Process status updates using unified processor
-      const mainUpdates = processStatusUpdates(
-        { logger: this.log },
-        createRadarrStatusConfig(this.log),
-        existingMovies,
-        dbWatchlistItems,
-      )
-      const result = await this.commitMainThenJunction(mainUpdates, () =>
-        this.processMovieJunctionUpdates(existingMovies, dbWatchlistItems),
+      const result = await this.commitJunctionThenMain(
+        await this.processMovieJunctionUpdates(
+          existingMovies,
+          dbWatchlistItems,
+        ),
+        (matches) =>
+          processStatusUpdates(
+            { logger: this.log },
+            createRadarrStatusConfig(this.log),
+            matches,
+            dbWatchlistItems,
+          ),
       )
 
       // Apply user tags if the service is available and enabled
@@ -162,23 +166,24 @@ export class StatusService {
     }
   }
 
-  private async commitMainThenJunction(
-    mainUpdates: (ShowStatusUpdate | MovieStatusUpdate)[],
-    junctionStep: () => Promise<StatusUpdateResult>,
+  private async commitJunctionThenMain<TItem extends SonarrItem | RadarrItem>(
+    junction: JunctionUpdateResult<TItem>,
+    mainStep: (
+      matches: Map<number, TItem[]>,
+    ) => (ShowStatusUpdate | MovieStatusUpdate)[],
   ): Promise<StatusUpdateResult> {
-    const updated =
-      mainUpdates.length > 0
-        ? await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
-        : 0
-    const committed = mainUpdates.map((update) => update.userId)
     try {
-      const junction = await junctionStep()
+      const mainUpdates = mainStep(junction.matches)
+      const updated =
+        mainUpdates.length > 0
+          ? await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
+          : 0
       return {
-        updated: updated + junction.updated,
-        userIds: [...committed, ...junction.userIds],
+        updated: junction.updated + updated,
+        userIds: [...junction.userIds, ...mainUpdates.map((u) => u.userId)],
       }
     } catch (error) {
-      emitWatchlistChange(this.fastify.progress, 'status', committed)
+      emitWatchlistChange(this.fastify.progress, 'status', junction.userIds)
       throw error
     }
   }
@@ -196,7 +201,7 @@ export class StatusService {
   async processShowJunctionUpdates(
     sonarrItems: SonarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-  ): Promise<StatusUpdateResult> {
+  ): Promise<JunctionUpdateResult<SonarrItem>> {
     return processJunctionUpdates(
       { logger: this.log },
       createSonarrJunctionConfig(this.dbService),
@@ -209,7 +214,7 @@ export class StatusService {
   async processMovieJunctionUpdates(
     radarrItems: RadarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-  ): Promise<StatusUpdateResult> {
+  ): Promise<JunctionUpdateResult<RadarrItem>> {
     return processJunctionUpdates(
       { logger: this.log },
       createRadarrJunctionConfig(this.dbService),

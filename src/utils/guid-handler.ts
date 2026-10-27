@@ -310,6 +310,55 @@ export function hasMatchingParsedGuids(
   return getGuidMatchScore(parsedGuids1, parsedGuids2) > 0
 }
 
+export type GuidIndex<T> = Map<string, Array<{ item: T; position: number }>>
+
+export interface GuidMatch<T> {
+  item: T
+  score: number
+}
+
+export function buildGuidIndex<T extends { guids: string[] | string }>(
+  items: readonly T[],
+): GuidIndex<T> {
+  const index: GuidIndex<T> = new Map()
+  items.forEach((item, position) => {
+    for (const guid of parseGuids(item.guids)) {
+      const bucket = index.get(guid)
+      if (bucket) bucket.push({ item, position })
+      else index.set(guid, [{ item, position }])
+    }
+  })
+  return index
+}
+
+/** Expects `parsedGuids` from parseGuids. Returns hits in indexed order, scored as getGuidMatchScore. */
+export function findGuidMatches<T>(
+  index: GuidIndex<T>,
+  parsedGuids: string[],
+): GuidMatch<T>[] {
+  const hits = new Map<number, GuidMatch<T>>()
+  for (const guid of parsedGuids) {
+    for (const { item, position } of index.get(guid) ?? []) {
+      const hit = hits.get(position)
+      if (hit) hit.score++
+      else hits.set(position, { item, score: 1 })
+    }
+  }
+  return [...hits.entries()].sort(([a], [b]) => a - b).map(([, hit]) => hit)
+}
+
+/** Highest score wins, ties go to the earliest indexed item. */
+export function findBestGuidMatch<T>(
+  index: GuidIndex<T>,
+  parsedGuids: string[],
+): T | undefined {
+  let best: GuidMatch<T> | undefined
+  for (const match of findGuidMatches(index, parsedGuids)) {
+    if (!best || match.score > best.score) best = match
+  }
+  return best?.item
+}
+
 /**
  * Returns the numeric Radarr ID from the first GUID with a "radarr:" prefix.
  *

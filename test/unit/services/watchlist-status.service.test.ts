@@ -13,7 +13,7 @@ vi.mock(
       (
         _deps: unknown,
         _config: unknown,
-        _arrItems: unknown,
+        _matches: unknown,
         items: DatabaseWatchlistItem[],
       ) => items.map((item) => ({ userId: item.user_id, key: item.key })),
     ),
@@ -24,7 +24,11 @@ vi.mock(
   '@services/watchlist-status/junction/junction-processor.js',
   async (importOriginal) => ({
     ...(await importOriginal()),
-    processJunctionUpdates: vi.fn(async () => ({ updated: 0, userIds: [] })),
+    processJunctionUpdates: vi.fn(async () => ({
+      updated: 0,
+      userIds: [],
+      matches: new Map(),
+    })),
   }),
 )
 
@@ -118,6 +122,7 @@ describe('StatusService.syncAllStatuses', () => {
       async (_deps, _config, _arrItems, items) => ({
         updated: items.length,
         userIds: items.map((item) => item.user_id),
+        matches: new Map(),
       }),
     )
     const { service, emit } = createService([], [4])
@@ -135,20 +140,34 @@ describe('StatusService.syncAllStatuses', () => {
     )
   })
 
-  it('emits the Sonarr main-row users when the junction step fails, then rejects', async () => {
+  it('feeds the junction matches to the main pass', async () => {
+    const matches = new Map([[1, [{ guids: ['tvdb:100'] } as SonarrItem]]])
+    vi.mocked(processJunctionUpdates).mockResolvedValueOnce({
+      updated: 0,
+      userIds: [],
+      matches,
+    })
+    const { service } = createService([1], [])
+
+    await service.syncSonarrStatuses([])
+
+    expect(vi.mocked(processStatusUpdates).mock.calls[0][2]).toBe(matches)
+  })
+
+  it('emits the junction users when the main write fails, then rejects', async () => {
     vi.mocked(processJunctionUpdates).mockImplementation(
-      async (_deps, _config, _arrItems, items) => {
-        if (items.some((item) => item.user_id === 5)) {
-          throw new Error('junction failed')
-        }
-        return { updated: 0, userIds: [] }
-      },
+      async (_deps, _config, _arrItems, items) => ({
+        updated: items.length,
+        userIds: items.map((item) => item.user_id),
+        matches: new Map(),
+      }),
     )
-    const { service, emit } = createService([5], [])
+    const { service, emit, db } = createService([5], [])
+    db.bulkUpdateWatchlistItems.mockRejectedValueOnce(new Error('write failed'))
 
     await expect(
       service.syncAllStatuses({ existingSeries: [], existingMovies: [] }),
-    ).rejects.toThrow('junction failed')
+    ).rejects.toThrow('write failed')
 
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit).toHaveBeenCalledWith(
@@ -177,7 +196,6 @@ describe('StatusService import-list exclusions', () => {
       { guids: ['tvdb:200'], status: 'requested', isExclusion: true },
     ] as SonarrItem[])
 
-    expect(arrGuids(vi.mocked(processStatusUpdates))).toEqual([['tvdb:100']])
     expect(arrGuids(vi.mocked(processJunctionUpdates))).toEqual([['tvdb:100']])
   })
 
@@ -189,7 +207,6 @@ describe('StatusService import-list exclusions', () => {
       { guids: ['tmdb:400'], status: 'requested', isExclusion: true },
     ] as RadarrItem[])
 
-    expect(arrGuids(vi.mocked(processStatusUpdates))).toEqual([['tmdb:300']])
     expect(arrGuids(vi.mocked(processJunctionUpdates))).toEqual([['tmdb:300']])
   })
 })

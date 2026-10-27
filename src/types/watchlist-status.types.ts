@@ -29,6 +29,11 @@ export interface StatusUpdateResult {
   userIds: number[]
 }
 
+export interface JunctionUpdateResult<TItem> extends StatusUpdateResult {
+  /** Per watchlist id, the arr item matched on each instance the row is on, in instance order. */
+  matches: Map<number, TItem[]>
+}
+
 export interface WatchlistInstanceStatus {
   status: WatchlistStatus
   last_notified_at: string | null
