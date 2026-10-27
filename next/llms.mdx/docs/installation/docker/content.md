@@ -1,6 +1,6 @@
 # Docker (/installation/docker)
 
-The Pulsarr image, `lakker/pulsarr`, is built for `linux/amd64` and `linux/arm64`. If this is your first install, the [quick start](/installation/quick-start) walks through the same steps and then first-run setup.
+The Pulsarr image, `lakker/pulsarr`, is built for `linux/amd64` and `linux/arm64`. It is also published as `ghcr.io/jamcalli/pulsarr`. If this is your first install, the [quick start](/installation/quick-start) walks through the same steps and then first-run setup.
 
 ## Docker Compose [#docker-compose]
 
@@ -61,8 +61,9 @@ docker run -d \
 
 - `latest` is the newest release.
 - `beta` is the newest pre-release.
-- `0.20.0` pins an exact version, and `0.20` follows the newest patch of that minor version.
-- `node`, `beta-node`, `0.20.0-node` and `0.20-node` are the same tags for the Node.js image. It exists for hosts where the default image once failed to start, such as some Synology NAS models. That is fixed, so use the default image. The `node` tags will point at it in a future release.
+- `1.0.0` pins an exact version, and `1.0` follows the newest patch of that minor version.
+- `node`, `beta-node`, `1.0.0-node` and `1.0-node` are the same tags for the Node.js image. It exists for hosts where the default image once failed to start, such as some Synology NAS models. That is fixed, so use the default image. The `node` tags will point at it in a future release.
+- Every tag is on both `lakker/pulsarr` and `ghcr.io/jamcalli/pulsarr` with the same digest, so you can swap the image name and keep the tag.
 
 ## File ownership [#file-ownership]
 
