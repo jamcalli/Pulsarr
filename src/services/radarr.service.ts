@@ -1131,8 +1131,17 @@ export class RadarrService {
     baseUrl: string,
     apiKey: string,
     endpoint: string,
-    init?: { method: 'POST'; body: object },
   ): Promise<T> {
+    const response = await this.fetchWithCredentials(baseUrl, apiKey, endpoint)
+    return response.json() as Promise<T>
+  }
+
+  private async fetchWithCredentials(
+    baseUrl: string,
+    apiKey: string,
+    endpoint: string,
+    init?: { method: 'POST'; body: object },
+  ): Promise<Response> {
     const url = new URL(
       `${this.ensureUrlHasProtocol(baseUrl)}/api/v3/${endpoint}`,
     )
@@ -1154,7 +1163,7 @@ export class RadarrService {
       )
     }
 
-    return response.json() as Promise<T>
+    return response
   }
 
   /** Reads routing options with unsaved credentials and never touches this service's config or webhook. */
@@ -1323,7 +1332,7 @@ export class RadarrService {
       }
 
       try {
-        await this.requestWithCredentials<string>(
+        await this.fetchWithCredentials(
           safeBaseUrl,
           apiKey,
           'notification/test',
