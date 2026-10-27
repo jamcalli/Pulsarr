@@ -362,17 +362,22 @@ jobs:
           cosign sign --recursive "$GHCR_BUN_REF"
           cosign sign --recursive "$GHCR_NODE_REF"
 
-      - name: Generate SBOMs
+      - name: Generate and attest per-platform SBOMs
         run: |
-          trivy image --format cyclonedx --output sbom-bun.cdx.json "$BUN_REF"
-          trivy image --format cyclonedx --output sbom-node.cdx.json "$NODE_REF"
-
-      - name: Attest SBOMs
-        run: |
-          cosign attest --type cyclonedx --predicate sbom-bun.cdx.json "$BUN_REF"
-          cosign attest --type cyclonedx --predicate sbom-node.cdx.json "$NODE_REF"
-          cosign attest --type cyclonedx --predicate sbom-bun.cdx.json "$GHCR_BUN_REF"
-          cosign attest --type cyclonedx --predicate sbom-node.cdx.json "$GHCR_NODE_REF"
+          for ref in "$BUN_REF" "$NODE_REF"; do
+            # unknown/unknown entries are BuildKit provenance manifests, not images
+            mapfile -t digests < <(docker buildx imagetools inspect --raw "$ref" \
+              | jq -r '.manifests[] | select(.platform.architecture != "unknown") | .digest')
+            if [ "${#digests[@]}" -eq 0 ]; then
+              echo "No platform manifests found in $ref"
+              exit 1
+            fi
+            for digest in "${digests[@]}"; do
+              trivy image --format cyclonedx --output sbom.cdx.json "lakker/pulsarr@${digest}"
+              cosign attest --type cyclonedx --predicate sbom.cdx.json "lakker/pulsarr@${digest}"
+              cosign attest --type cyclonedx --predicate sbom.cdx.json "ghcr.io/jamcalli/pulsarr@${digest}"
+            done
+          done
 
   verify:
     needs: [docker-bun-manifest, docker-node-manifest, sign]
