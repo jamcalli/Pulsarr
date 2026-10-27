@@ -85,10 +85,6 @@ declare module '@services/database.service.js' {
         status?: WatchlistStatus
         series_status?: 'continuing' | 'ended'
         movie_status?: 'available' | 'unavailable'
-        last_notified_at?: string
-        sonarr_instance_id?: number | null
-        sonarr_series_id?: number
-        radarr_instance_id?: number | null
       }>,
     ): Promise<number>
 
@@ -153,21 +149,6 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to true if deleted, false otherwise
      */
     deleteCustomGenre(this: DatabaseService, id: number): Promise<boolean>
-
-    /**
-     * Bulk updates the status of show watchlist items
-     * @param updates - Array of show status updates
-     * @returns Promise resolving to the number of items updated
-     */
-    bulkUpdateShowStatuses(
-      this: DatabaseService,
-      updates: Array<{
-        key: string
-        userId: number
-        added?: string
-        status?: WatchlistStatus
-      }>,
-    ): Promise<number>
 
     /**
      * Retrieves all show watchlist items

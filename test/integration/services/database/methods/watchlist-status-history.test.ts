@@ -71,12 +71,7 @@ describe('watchlist status history', () => {
   describe('bulkUpdateWatchlistItems', () => {
     it('records a status change', async () => {
       await fastify.db.bulkUpdateWatchlistItems([
-        {
-          userId: 1,
-          key: SHOW_KEY,
-          status: 'requested',
-          sonarr_instance_id: 1,
-        },
+        { userId: 1, key: SHOW_KEY, status: 'requested' },
       ])
 
       expect(await historyFor(SHOW_KEY)).toEqual([{ status: 'requested' }])

@@ -624,17 +624,7 @@ export async function getWatchlistItemsByKeys(
   }))
 }
 
-/**
- * Bulk-updates multiple watchlist items and their Radarr/Sonarr associations in a single transactional operation.
- *
- * Processes the provided updates in chunks (100 per batch) inside a transaction. Status changes are applied monotonically (regressions are ignored) via the status-rank rules; status history rows are recorded only when the main watchlist row actually progresses. Radarr/Sonarr junction handling:
- * - A numeric instance ID creates or updates an association (new association becomes primary and others are demoted).
- * - A null instance ID deletes all associations for that service on the item.
- * - Omitting an instance field leaves junctions unchanged.
- *
- * @param updates - Array of update objects (each must include userId and key). Supported fields: added, status, series_status, movie_status, last_notified_at, sonarr_instance_id, radarr_instance_id. Status updates are applied only when they represent allowed progression; last_notified_at is propagated to new/updated junction rows.
- * @returns The number of watchlist items that were modified (counts an item once even if both main and junction changes occurred)
- */
+/** Status only progresses, and the return counts rows actually written. Junction rows are not touched. */
 export async function bulkUpdateWatchlistItems(
   this: DatabaseService,
   updates: Array<{
@@ -644,10 +634,6 @@ export async function bulkUpdateWatchlistItems(
     status?: 'pending' | 'requested' | 'grabbed' | 'notified'
     series_status?: 'continuing' | 'ended'
     movie_status?: 'available' | 'unavailable'
-    last_notified_at?: string
-    sonarr_instance_id?: number | null
-    sonarr_series_id?: number
-    radarr_instance_id?: number | null
   }>,
 ): Promise<number> {
   let updatedCount = 0
@@ -678,27 +664,17 @@ export async function bulkUpdateWatchlistItems(
         const effectiveStatus = statusResult.effectiveStatus
 
         const mainTableFields: Partial<
-          Record<
-            | 'added'
-            | 'series_status'
-            | 'movie_status'
-            | 'last_notified_at'
-            | 'status',
-            string
-          >
+          Record<'added' | 'series_status' | 'movie_status' | 'status', string>
         > = {}
         if (update.added !== undefined) mainTableFields.added = update.added
         if (update.series_status !== undefined)
           mainTableFields.series_status = update.series_status
         if (update.movie_status !== undefined)
           mainTableFields.movie_status = update.movie_status
-        if (update.last_notified_at !== undefined)
-          mainTableFields.last_notified_at = update.last_notified_at
         if (statusResult.shouldUpdateStatus)
           mainTableFields.status = effectiveStatus
 
         let wroteMain = false
-        let wroteJunction = false
         if (Object.keys(mainTableFields).length > 0) {
           const builder = trx('watchlist_items').where({
             user_id: update.userId,
@@ -717,159 +693,6 @@ export async function bulkUpdateWatchlistItems(
             updatedCount += 1
             wroteMain = true
           }
-        }
-
-        // Handle Radarr instance junction updates
-        if (update.radarr_instance_id !== undefined) {
-          const radarrInstanceId = update.radarr_instance_id
-
-          if (radarrInstanceId === null) {
-            const del = await trx('watchlist_radarr_instances')
-              .where({ watchlist_id: currentItem.id })
-              .delete()
-            wroteJunction = wroteJunction || Number(del) > 0
-          } else {
-            const existingAssoc = await trx('watchlist_radarr_instances')
-              .where({
-                watchlist_id: currentItem.id,
-                radarr_instance_id: radarrInstanceId,
-              })
-              .first()
-
-            if (!existingAssoc) {
-              await trx('watchlist_radarr_instances').insert({
-                watchlist_id: currentItem.id,
-                radarr_instance_id: radarrInstanceId,
-                status: effectiveStatus,
-                is_primary: true,
-                last_notified_at: update.last_notified_at,
-                created_at: this.timestamp,
-                updated_at: this.timestamp,
-              })
-              wroteJunction = true
-
-              const nonPrimaryUpdated = await trx('watchlist_radarr_instances')
-                .where({ watchlist_id: currentItem.id })
-                .whereNot({ radarr_instance_id: radarrInstanceId })
-                .update({
-                  is_primary: false,
-                  updated_at: this.timestamp,
-                })
-              wroteJunction = wroteJunction || Number(nonPrimaryUpdated) > 0
-            } else {
-              const rb = trx('watchlist_radarr_instances').where({
-                watchlist_id: currentItem.id,
-                radarr_instance_id: radarrInstanceId,
-              })
-              if (statusResult.shouldUpdateStatus) {
-                rb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
-              }
-              const affected = await rb.update({
-                ...(statusResult.shouldUpdateStatus
-                  ? { status: effectiveStatus }
-                  : {}),
-                is_primary: true,
-                last_notified_at:
-                  update.last_notified_at !== undefined
-                    ? update.last_notified_at
-                    : existingAssoc.last_notified_at,
-                updated_at: this.timestamp,
-              })
-              wroteJunction = wroteJunction || Number(affected) > 0
-
-              const demoted = await trx('watchlist_radarr_instances')
-                .where({ watchlist_id: currentItem.id })
-                .whereNot({ radarr_instance_id: radarrInstanceId })
-                .update({
-                  is_primary: false,
-                  updated_at: this.timestamp,
-                })
-              wroteJunction = wroteJunction || Number(demoted) > 0
-            }
-          }
-        }
-
-        // Handle Sonarr instance junction updates
-        if (update.sonarr_instance_id !== undefined) {
-          const sonarrInstanceId = update.sonarr_instance_id
-
-          if (sonarrInstanceId === null) {
-            const del = await trx('watchlist_sonarr_instances')
-              .where({ watchlist_id: currentItem.id })
-              .delete()
-            wroteJunction = wroteJunction || Number(del) > 0
-          } else {
-            const existingAssoc = await trx('watchlist_sonarr_instances')
-              .where({
-                watchlist_id: currentItem.id,
-                sonarr_instance_id: sonarrInstanceId,
-              })
-              .first()
-
-            if (!existingAssoc) {
-              await trx('watchlist_sonarr_instances').insert({
-                watchlist_id: currentItem.id,
-                sonarr_instance_id: sonarrInstanceId,
-                ...(update.sonarr_series_id !== undefined && {
-                  sonarr_series_id: update.sonarr_series_id,
-                }),
-                status: effectiveStatus,
-                is_primary: true,
-                last_notified_at: update.last_notified_at,
-                created_at: this.timestamp,
-                updated_at: this.timestamp,
-              })
-              wroteJunction = true
-
-              const nonPrimaryUpdated = await trx('watchlist_sonarr_instances')
-                .where({ watchlist_id: currentItem.id })
-                .whereNot({ sonarr_instance_id: sonarrInstanceId })
-                .update({
-                  is_primary: false,
-                  updated_at: this.timestamp,
-                })
-              wroteJunction = wroteJunction || Number(nonPrimaryUpdated) > 0
-            } else {
-              const sb = trx('watchlist_sonarr_instances').where({
-                watchlist_id: currentItem.id,
-                sonarr_instance_id: sonarrInstanceId,
-              })
-              if (statusResult.shouldUpdateStatus) {
-                sb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
-              }
-              const affected = await sb.update({
-                ...(statusResult.shouldUpdateStatus
-                  ? { status: effectiveStatus }
-                  : {}),
-                ...(update.sonarr_series_id !== undefined &&
-                  existingAssoc.sonarr_series_id !==
-                    update.sonarr_series_id && {
-                    sonarr_series_id: update.sonarr_series_id,
-                  }),
-                is_primary: true,
-                last_notified_at:
-                  update.last_notified_at !== undefined
-                    ? update.last_notified_at
-                    : existingAssoc.last_notified_at,
-                updated_at: this.timestamp,
-              })
-              wroteJunction = wroteJunction || Number(affected) > 0
-
-              const demoted = await trx('watchlist_sonarr_instances')
-                .where({ watchlist_id: currentItem.id })
-                .whereNot({ sonarr_instance_id: sonarrInstanceId })
-                .update({
-                  is_primary: false,
-                  updated_at: this.timestamp,
-                })
-              wroteJunction = wroteJunction || Number(demoted) > 0
-            }
-          }
-        }
-
-        // Count item updated when only junction changes occurred
-        if (!wroteMain && wroteJunction) {
-          updatedCount += 1
         }
 
         // Record status history only when the main row actually progressed
@@ -1143,28 +966,6 @@ export async function deleteCustomGenre(
     .where({ id, is_custom: true })
     .delete()
   return deleted > 0
-}
-
-/**
- * Performs a bulk update of show watchlist item statuses.
- *
- * Calls the underlying bulk update function to modify statuses and series statuses for multiple show watchlist items.
- *
- * @param updates - List of updates specifying user, key, and new status values for each show item
- * @returns The number of watchlist items successfully updated
- */
-export async function bulkUpdateShowStatuses(
-  this: DatabaseService,
-  updates: Array<{
-    key: string
-    userId: number
-    added?: string
-    status?: 'pending' | 'requested' | 'grabbed' | 'notified'
-    series_status?: 'continuing' | 'ended'
-  }>,
-): Promise<number> {
-  const updatedCount = await this.bulkUpdateWatchlistItems(updates)
-  return updatedCount
 }
 
 /**
