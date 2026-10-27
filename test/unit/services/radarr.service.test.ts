@@ -511,6 +511,40 @@ describe('RadarrService webhook definition', () => {
     expect(bodies.test).toEqual(bodies.create)
   })
 
+  it('succeeds when the notification test returns no content', async () => {
+    server.use(
+      http.get('http://radarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Radarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://radarr.test/api/v3/notification', () =>
+        HttpResponse.json([]),
+      ),
+      http.post(
+        'http://radarr.test/api/v3/notification/test',
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    )
+    const tester = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+
+    const result = await tester.testConnection('http://radarr.test', 'key')
+
+    expect(result).toEqual({
+      success: true,
+      code: null,
+      message: 'Connection successful and webhook API accessible',
+    })
+  })
+
   it('reports a webhook callback failure when the callback test times out', async () => {
     const controllers: AbortController[] = []
     const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {

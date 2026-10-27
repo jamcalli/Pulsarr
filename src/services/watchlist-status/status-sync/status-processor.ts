@@ -8,9 +8,11 @@
 
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
-import { extractSonarrId, parseGuids } from '@utils/guid-handler.js'
-import { isStatusUpgrade } from '@utils/watchlist-status-rank.js'
+import type {
+  DatabaseWatchlistItem,
+  WatchlistStatus,
+} from '@root/types/watchlist-status.types.js'
+import { isStatusUpgrade, STATUS_RANK } from '@utils/watchlist-status-rank.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -35,8 +37,6 @@ interface BaseStatusUpdate {
  */
 export interface ShowStatusUpdate extends BaseStatusUpdate {
   series_status?: 'continuing' | 'ended'
-  sonarr_instance_id?: number
-  sonarr_series_id?: number
 }
 
 /**
@@ -44,7 +44,6 @@ export interface ShowStatusUpdate extends BaseStatusUpdate {
  */
 export interface MovieStatusUpdate extends BaseStatusUpdate {
   movie_status?: 'available' | 'unavailable'
-  radarr_instance_id?: number
 }
 
 /**
@@ -54,14 +53,10 @@ export interface StatusProcessorConfig<
   TContent extends SonarrItem | RadarrItem,
   TUpdate extends ShowStatusUpdate | MovieStatusUpdate,
 > {
-  /** Get the instance ID from content */
-  getInstanceId: (content: TContent) => number | undefined
-
-  /** Build content-specific update fields */
+  /** Build content-specific update fields from a non-empty match list */
   buildContentUpdate: (
     item: DatabaseWatchlistItem,
-    content: TContent,
-    instanceId: number | undefined,
+    matches: TContent[],
   ) => Partial<TUpdate>
 
   /** Validate content-specific status (e.g., movie_status validation) */
@@ -72,18 +67,31 @@ export interface StatusProcessorConfig<
   ) => boolean
 }
 
-/**
- * Find matching content by GUIDs
- */
-function findMatch<T extends SonarrItem | RadarrItem>(
-  items: T[],
-  itemGuids: string[] | string | undefined,
-): T | undefined {
-  if (!itemGuids) return undefined
-  const guids = parseGuids(itemGuids)
-  return items.find((item) =>
-    item.guids.some((itemGuid) => guids.includes(itemGuid)),
-  )
+function highestStatus(
+  matches: Array<SonarrItem | RadarrItem>,
+): WatchlistStatus | undefined {
+  let best: WatchlistStatus | undefined
+  for (const { status } of matches) {
+    if (status && (!best || STATUS_RANK[status] > STATUS_RANK[best])) {
+      best = status
+    }
+  }
+  return best
+}
+
+function earliestAdded(
+  matches: Array<SonarrItem | RadarrItem>,
+): string | undefined {
+  let earliest: string | undefined
+  for (const { added } of matches) {
+    if (
+      added !== undefined &&
+      (earliest === undefined || Date.parse(added) < Date.parse(earliest))
+    ) {
+      earliest = added
+    }
+  }
+  return earliest
 }
 
 /**
@@ -96,51 +104,42 @@ export function processStatusUpdates<
 >(
   deps: StatusProcessorDeps,
   config: StatusProcessorConfig<TContent, TUpdate>,
-  arrItems: TContent[],
+  matchesByWatchlistId: Map<number, TContent[]>,
   watchlistItems: DatabaseWatchlistItem[],
 ): TUpdate[] {
   const { logger } = deps
-  const { getInstanceId, buildContentUpdate, validateContentStatus } = config
+  const { buildContentUpdate, validateContentStatus } = config
 
   const updates: TUpdate[] = []
 
   for (const item of watchlistItems) {
-    const contentMatch = findMatch(arrItems, item.guids)
-    if (!contentMatch) continue
+    if (item.id === undefined) continue
+    const matches = (matchesByWatchlistId.get(item.id) ?? []).filter(
+      (match) =>
+        !validateContentStatus ||
+        validateContentStatus(match, logger, item.key),
+    )
+    if (matches.length === 0) continue
 
-    // Validate content-specific status if validator provided
-    if (
-      validateContentStatus &&
-      !validateContentStatus(contentMatch, logger, item.key)
-    ) {
-      continue
-    }
-
-    const instanceId = getInstanceId(contentMatch)
-
-    // Build base update
     const update: BaseStatusUpdate = {
       userId: item.user_id,
       key: item.key,
     }
 
-    // Check added date change
-    if (item.added !== contentMatch.added) {
-      update.added = contentMatch.added
+    const added = earliestAdded(matches)
+    if (added !== undefined && item.added !== added) {
+      update.added = added
     }
 
-    if (
-      contentMatch.status &&
-      isStatusUpgrade(item.status, contentMatch.status)
-    ) {
-      update.status = contentMatch.status
+    const status = highestStatus(matches)
+    if (status && isStatusUpgrade(item.status, status)) {
+      update.status = status
     }
 
-    // Build content-specific fields
-    const contentUpdate = buildContentUpdate(item, contentMatch, instanceId)
-
-    // Merge updates
-    const fullUpdate = { ...update, ...contentUpdate } as TUpdate
+    const fullUpdate = {
+      ...update,
+      ...buildContentUpdate(item, matches),
+    } as TUpdate
 
     // Only include if there are actual changes (more than just userId and key)
     if (Object.keys(fullUpdate).length > 2) {
@@ -159,25 +158,11 @@ export function createSonarrStatusConfig(): StatusProcessorConfig<
   ShowStatusUpdate
 > {
   return {
-    getInstanceId: (content) => content.sonarr_instance_id,
-    buildContentUpdate: (item, content, instanceId) => {
+    buildContentUpdate: (item, [first]) => {
       const update: Partial<ShowStatusUpdate> = {}
 
-      if (item.series_status !== content.series_status) {
-        update.series_status = content.series_status
-      }
-
-      if (item.sonarr_instance_id !== instanceId) {
-        update.sonarr_instance_id = instanceId
-      }
-
-      // Backfill sonarr_series_id from the synthetic "sonarr:{id}" guid
-      // injected by toItem(), but only when we have an instance
-      if (instanceId !== undefined) {
-        const seriesId = extractSonarrId(content.guids)
-        if (seriesId > 0) {
-          update.sonarr_series_id = seriesId
-        }
+      if (item.series_status !== first.series_status) {
+        update.series_status = first.series_status
       }
 
       return update
@@ -192,12 +177,13 @@ export function createRadarrStatusConfig(
   logger: FastifyBaseLogger,
 ): StatusProcessorConfig<RadarrItem, MovieStatusUpdate> {
   return {
-    getInstanceId: (content) => content.radarr_instance_id,
-    buildContentUpdate: (item, content, instanceId) => {
+    buildContentUpdate: (item, matches) => {
       const update: Partial<MovieStatusUpdate> = {}
+      const ms = matches.some((match) => match.movie_status === 'available')
+        ? 'available'
+        : matches.find((match) => match.movie_status)?.movie_status
 
-      if (item.movie_status !== content.movie_status) {
-        const ms = content.movie_status
+      if (item.movie_status !== ms) {
         if (ms === 'available' || ms === 'unavailable') {
           update.movie_status = ms
         } else {
@@ -206,10 +192,6 @@ export function createRadarrStatusConfig(
             'Invalid movie_status; skipping update',
           )
         }
-      }
-
-      if (item.radarr_instance_id !== instanceId) {
-        update.radarr_instance_id = instanceId
       }
 
       return update

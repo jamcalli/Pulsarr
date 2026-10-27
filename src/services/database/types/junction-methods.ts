@@ -233,6 +233,7 @@ declare module '@services/database.service.js' {
         status: WatchlistStatus
         is_primary: boolean
         last_notified_at: string | null
+        sonarr_series_id: number | null
       }>
     >
 
@@ -249,6 +250,7 @@ declare module '@services/database.service.js' {
         is_primary: boolean
         last_notified_at?: string
         syncing?: boolean
+        sonarr_series_id?: number
       }>,
     ): Promise<void>
 
@@ -264,6 +266,7 @@ declare module '@services/database.service.js' {
         status?: WatchlistStatus
         is_primary?: boolean
         last_notified_at?: string
+        sonarr_series_id?: number
       }>,
     ): Promise<void>
 

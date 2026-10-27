@@ -1,4 +1,5 @@
 import {
+  buildGuidIndex,
   buildPlexGuid,
   canonicalImdbId,
   canonicalNumericId,
@@ -11,6 +12,8 @@ import {
   extractTmdbId,
   extractTvdbId,
   extractTypedGuid,
+  findBestGuidMatch,
+  findGuidMatches,
   getGuidMatchScore,
   getTmdbUrl,
   hasMatchingGuids,
@@ -393,6 +396,64 @@ describe('guid-handler', () => {
 
     it('should return false for empty arrays', () => {
       expect(hasMatchingParsedGuids([], [])).toBe(false)
+    })
+  })
+
+  describe('findGuidMatches', () => {
+    it('should count duplicate and unnormalized GUIDs once on both sides', () => {
+      const items = [
+        { id: 'a', guids: ['TMDB://1', 'tmdb:1', ' imdb:tt1 ', 'tvdb:9'] },
+      ]
+      const rowGuids = parseGuids(['tmdb://1', 'TMDB:1', 'IMDB://tt1'])
+      const index = buildGuidIndex(items)
+      expect(findGuidMatches(index, rowGuids)).toEqual([
+        { item: items[0], score: 2 },
+      ])
+      expect(getGuidMatchScore(parseGuids(items[0].guids), rowGuids)).toBe(2)
+    })
+
+    it('should return hits in original item order', () => {
+      const items = [
+        { id: 'a', guids: ['tvdb:9'] },
+        { id: 'b', guids: ['imdb:tt1'] },
+        { id: 'c', guids: ['tmdb:1', 'imdb:tt1'] },
+      ]
+      const index = buildGuidIndex(items)
+      const matches = findGuidMatches(index, ['tmdb:1', 'imdb:tt1'])
+      expect(matches.map((match) => match.item.id)).toEqual(['b', 'c'])
+      expect(matches[0].item.id).toBe('b')
+    })
+
+    it('should return no matches when nothing shares a GUID', () => {
+      const index = buildGuidIndex([{ guids: ['tmdb:1'] }])
+      expect(findGuidMatches(index, ['tmdb:2'])).toEqual([])
+      expect(findGuidMatches(index, [])).toEqual([])
+    })
+  })
+
+  describe('findBestGuidMatch', () => {
+    it('should pick the highest score', () => {
+      const items = [
+        { id: 'a', guids: ['tmdb:1'] },
+        { id: 'b', guids: ['tmdb:1', 'imdb:tt1'] },
+      ]
+      const index = buildGuidIndex(items)
+      expect(findBestGuidMatch(index, ['tmdb:1', 'imdb:tt1'])?.id).toBe('b')
+    })
+
+    it('should break score ties by original order', () => {
+      const items = [
+        { id: 'a', guids: ['tvdb:9'] },
+        { id: 'b', guids: ['imdb:tt1'] },
+        { id: 'c', guids: ['tmdb:1'] },
+      ]
+      const index = buildGuidIndex(items)
+      expect(findBestGuidMatch(index, ['tmdb:1', 'imdb:tt1'])?.id).toBe('b')
+    })
+
+    it('should return undefined when nothing matches', () => {
+      const index = buildGuidIndex([{ guids: ['tmdb:1'] }])
+      expect(findBestGuidMatch(index, ['tmdb:2'])).toBeUndefined()
     })
   })
 
