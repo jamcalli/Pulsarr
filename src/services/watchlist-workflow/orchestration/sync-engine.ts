@@ -5,6 +5,7 @@ import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import { errorMessage } from '@utils/error-message.js'
 import {
+  buildGuidIndex,
   extractTmdbId,
   extractTvdbId,
   parseGenres,
@@ -176,6 +177,8 @@ export async function syncWatchlistItems(
       deps.radarrManager.getAllInstances(),
     ])
     const approvedRecords = indexApprovedRecords(approvedRequests)
+    const seriesIndex = buildGuidIndex(existingSeries)
+    const movieIndex = buildGuidIndex(existingMovies)
     const sonarrInstanceIds = new Set(sonarrInstances.map((i) => i.id))
     const radarrInstanceIds = new Set(radarrInstances.map((i) => i.id))
 
@@ -317,7 +320,7 @@ export async function syncWatchlistItems(
                   userName: user?.name,
                   userAlias: user?.alias,
                   sonarrItem,
-                  existingSeries,
+                  seriesIndex,
                   approvedRecords,
                   arrInstanceIds: sonarrInstanceIds,
                   arrInstances: sonarrInstances,
@@ -365,7 +368,7 @@ export async function syncWatchlistItems(
                   userName: user?.name,
                   userAlias: user?.alias,
                   radarrItem,
-                  existingMovies,
+                  movieIndex,
                   approvedRecords,
                   arrInstanceIds: radarrInstanceIds,
                   arrInstances: radarrInstances,

@@ -262,40 +262,15 @@ async function performJunctionMonotonicUpdate(
   return Number(updated) || 0
 }
 
-/**
- * Update a single watchlist item (by user and key) with provided changes.
- *
- * Runs inside a transaction (or uses an externally provided one). No-ops and early-returns
- * when the item does not exist. Status updates are applied monotonically (regressions are
- * prevented) and, when progressed, a status history row is inserted (non-fatal on failure).
- * Main item fields are updated with monotonic constraints, and Radarr/Sonarr junctions are
- * created, deleted, or adjusted as requested:
- * - Passing `{ radarr_instance_id: null }` or `{ sonarr_instance_id: null }` deletes all
- *   corresponding associations for the item.
- * - Providing an instance id will create the junction if missing or set that instance as
- *   primary if already present.
- * - When status progresses, junction rows are updated to the effective status using the
- *   same monotonic rules.
- * - If `syncing` is provided it will update the syncing flag on the relevant junction.
- *
- * This function does not return a value; it performs updates atomically within the
- * transaction context.
- *
- * @param userId - Owner user id for the watchlist item (used to locate the row)
- * @param key - Item key unique to the user identifying the watchlist item
- * @param updates - Partial fields to apply; may include `status`, `radarr_instance_id`,
- *                  `sonarr_instance_id`, and `syncing` among other watchlist fields
- * @param externalTrx - Optional external transaction; if provided, operations run within
- *                      this transaction instead of creating a new one
- */
+/** Status only progresses. Returns true only when the watchlist_items row itself was written. */
 export async function updateWatchlistItem(
   this: DatabaseService,
   userId: number,
   key: string,
   updates: WatchlistItemUpdate,
   externalTrx?: Knex.Transaction,
-): Promise<void> {
-  const executeUpdate = async (trx: Knex.Transaction) => {
+): Promise<boolean> {
+  const executeUpdate = async (trx: Knex.Transaction): Promise<boolean> => {
     const item = await trx('watchlist_items')
       .where({ user_id: userId, key })
       .first()
@@ -304,7 +279,7 @@ export async function updateWatchlistItem(
       this.log.warn(
         `Tried to update non-existent watchlist item with key: ${key} for user: ${userId}`,
       )
-      return
+      return false
     }
 
     const {
@@ -470,13 +445,13 @@ export async function updateWatchlistItem(
         }
       }
     }
+    return updatedRows > 0
   }
 
   if (externalTrx) {
-    await executeUpdate(externalTrx)
-  } else {
-    await this.knex.transaction(executeUpdate)
+    return await executeUpdate(externalTrx)
   }
+  return await this.knex.transaction(executeUpdate)
 }
 
 /**

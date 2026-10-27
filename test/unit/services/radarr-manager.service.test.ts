@@ -157,7 +157,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
         }),
       ),
       updateWatchlistItem: vi.fn<DatabaseService['updateWatchlistItem']>(
-        async () => undefined,
+        async () => true,
       ),
     }
     const fastify: Partial<FastifyInstance> = {

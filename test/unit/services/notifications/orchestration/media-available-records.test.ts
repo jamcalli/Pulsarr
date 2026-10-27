@@ -46,7 +46,7 @@ function createDeps(
   const db = {
     getUsersByIds: vi.fn().mockResolvedValue(users),
     hasActiveNotification: vi.fn().mockResolvedValue(false),
-    updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
+    updateWatchlistItem: vi.fn().mockResolvedValue(true),
     createNotificationRecord: vi.fn().mockResolvedValue(1),
     transaction: vi.fn(
       async (cb: (trx: unknown) => Promise<void>) => await cb({}),

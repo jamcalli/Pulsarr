@@ -1,0 +1,112 @@
+import type { FastifyInstance } from 'fastify'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { build } from '../../../../helpers/app.js'
+import { getTestDatabase, resetDatabase } from '../../../../helpers/database.js'
+import { seedConfig } from '../../../../helpers/seeds/config.js'
+import { seedInstances } from '../../../../helpers/seeds/instances.js'
+import { seedUsers } from '../../../../helpers/seeds/users.js'
+import { seedWatchlist } from '../../../../helpers/seeds/watchlist.js'
+
+const MOVIE_KEY = '5d77683585719b001f3a3946'
+const JUNCTION_TIMESTAMP = '2020-01-01 00:00:00'
+
+const itemFor = (key: string) =>
+  getTestDatabase()('watchlist_items').where({ user_id: 1, key }).first()
+
+const junctionFor = async (key: string) => {
+  const item = await itemFor(key)
+  return getTestDatabase()('watchlist_radarr_instances')
+    .where({ watchlist_id: item.id, radarr_instance_id: 1 })
+    .first()
+}
+
+describe('updateWatchlistItem', () => {
+  let fastify: FastifyInstance
+
+  beforeAll(async () => {
+    fastify = await build()
+    await fastify.ready()
+  })
+
+  afterAll(async () => {
+    await fastify.close()
+  })
+
+  beforeEach(async () => {
+    const knex = getTestDatabase()
+    await resetDatabase()
+    await seedConfig(knex)
+    await seedInstances(knex)
+    await seedUsers(knex)
+    await seedWatchlist(knex)
+    await knex('watchlist_items')
+      .where({ key: MOVIE_KEY })
+      .update({ status: 'pending' })
+    const item = await itemFor(MOVIE_KEY)
+    await knex('watchlist_radarr_instances').insert({
+      watchlist_id: item.id,
+      radarr_instance_id: 1,
+      status: 'pending',
+      is_primary: true,
+      syncing: false,
+      created_at: JUNCTION_TIMESTAMP,
+      updated_at: JUNCTION_TIMESTAMP,
+    })
+    fastify.contentRouter.clearRouterRulesCache()
+  })
+
+  it('reports a write when the status progresses', async () => {
+    expect(
+      await fastify.db.updateWatchlistItem(1, MOVIE_KEY, {
+        status: 'requested',
+      }),
+    ).toBe(true)
+
+    expect((await itemFor(MOVIE_KEY)).status).toBe('requested')
+  })
+
+  it.each(['requested', 'grabbed', 'notified'] as const)(
+    'reports no write for an item already %s and leaves its junction alone',
+    async (status) => {
+      await getTestDatabase()('watchlist_items')
+        .where({ key: MOVIE_KEY })
+        .update({ status })
+
+      expect(
+        await fastify.db.updateWatchlistItem(1, MOVIE_KEY, {
+          status: 'requested',
+        }),
+      ).toBe(false)
+
+      const junction = await junctionFor(MOVIE_KEY)
+      expect(junction.updated_at).toBe(JUNCTION_TIMESTAMP)
+      expect(junction.status).toBe('pending')
+      expect(Boolean(junction.is_primary)).toBe(true)
+    },
+  )
+
+  it('reports no write inside an external transaction for a no-op', async () => {
+    await getTestDatabase()('watchlist_items')
+      .where({ key: MOVIE_KEY })
+      .update({ status: 'grabbed' })
+
+    const written = await getTestDatabase().transaction((trx) =>
+      fastify.db.updateWatchlistItem(
+        1,
+        MOVIE_KEY,
+        { status: 'requested' },
+        trx,
+      ),
+    )
+
+    expect(written).toBe(false)
+  })
+
+  it('reports no write for a missing item', async () => {
+    expect(
+      await fastify.db.updateWatchlistItem(1, 'missing-key', {
+        status: 'requested',
+      }),
+    ).toBe(false)
+  })
+})
