@@ -47,6 +47,8 @@ services:
       - .env
 ```
 
+The image is also published as `ghcr.io/jamcalli/pulsarr`.
+
 Other settings go in `.env` or under `environment:`. The time zone is all first-run setup needs. The [quick start guide](https://jamcalli.github.io/Pulsarr/installation/quick-start) covers the rest, including the Plex privacy setting.
 
 ## Features
