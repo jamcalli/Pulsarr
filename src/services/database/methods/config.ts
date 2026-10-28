@@ -211,17 +211,6 @@ export async function getConfig(
     removedTagPrefix:
       config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
     deletionMode: config.deletionMode || 'watchlist',
-    tagMigration: config.tagMigration
-      ? parseJsonOr(
-          config.tagMigration,
-          {
-            radarr: {},
-            sonarr: {},
-          },
-          this.log,
-          'config.tagMigration',
-        )
-      : undefined,
     tmdbRegion: config.tmdbRegion || 'US',
     maintainerrEnabled: Boolean(config.maintainerrEnabled),
     maintainerrUrl: config.maintainerrUrl || '',
@@ -316,9 +305,6 @@ export async function createConfig(
       removedTagPrefix:
         config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
       deletionMode: config.deletionMode || 'watchlist',
-      tagMigration: config.tagMigration
-        ? JSON.stringify(config.tagMigration)
-        : null,
       plexLabelSync: config.plexLabelSync
         ? JSON.stringify({
             enabled: config.plexLabelSync.enabled,
@@ -479,7 +465,6 @@ const ALLOWED_COLUMNS = new Set([
   'tagNamingSource',
   'removedTagMode',
   'removedTagPrefix',
-  'tagMigration',
 
   'plexLabelSync',
 
@@ -512,7 +497,6 @@ const JSON_COLUMNS = new Set([
   'quotaSettings',
   'approvalExpiration',
   'plexLabelSync',
-  'tagMigration',
 ])
 
 /** Silently drops keys outside ALLOWED_COLUMNS, and returns false only when the row is missing or the query fails. */

@@ -2,7 +2,6 @@ import type { Config, RemovedTagMode, User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
-import type { TagMigrationService } from '@services/tag-migration.service.js'
 import type { NamingSource } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -73,7 +72,6 @@ export interface UserTagDeps {
   progress: FastifyInstance['progress']
   sonarrManager: SonarrManagerService
   radarrManager: RadarrManagerService
-  migration: TagMigrationService
 }
 
 export interface TagSettings {
