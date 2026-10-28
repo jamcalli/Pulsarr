@@ -4,6 +4,7 @@ import type {
   RecentRequestStatus,
 } from '@root/schemas/shared/recent-request.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 import { isStatusUpgrade } from '@utils/watchlist-status-rank.js'
 import type { Knex } from 'knex'
 
@@ -87,7 +88,7 @@ export async function getRecentRequests(
           title: row.title,
           key: row.key,
           contentType: row.content_type as 'movie' | 'show',
-          guids: this.safeJsonParse(row.guids, [], 'approval.guids'),
+          guids: parseJsonOr(row.guids, [], this.log, 'approval.guids'),
           thumb: row.thumb || null,
           status: 'pending_approval',
           userId: row.user_id,
@@ -244,7 +245,12 @@ export async function getRecentRequests(
               title: row.title,
               key: row.key,
               contentType: row.content_type as 'movie' | 'show',
-              guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+              guids: parseJsonOr(
+                row.guids,
+                [],
+                this.log,
+                'watchlist_item.guids',
+              ),
               thumb: row.thumb || null,
               userId: row.user_id,
               userName: row.user_name || 'Unknown',

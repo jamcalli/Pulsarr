@@ -5,6 +5,7 @@ import type {
   JobRunInfo,
 } from '@root/types/scheduler.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 
 /** Returns null for an unknown type or a parse failure */
 function parseScheduleRow(
@@ -28,18 +29,20 @@ function parseScheduleRow(
       enabled: Boolean(schedule.enabled),
       last_run: schedule.last_run
         ? typeof schedule.last_run === 'string'
-          ? this.safeJsonParse<JobRunInfo>(
+          ? parseJsonOr<JobRunInfo>(
               schedule.last_run,
               {} as JobRunInfo,
+              this.log,
               'schedule.last_run',
             )
           : (schedule.last_run as JobRunInfo)
         : null,
       next_run: schedule.next_run
         ? typeof schedule.next_run === 'string'
-          ? this.safeJsonParse<JobRunInfo>(
+          ? parseJsonOr<JobRunInfo>(
               schedule.next_run,
               {} as JobRunInfo,
+              this.log,
               'schedule.next_run',
             )
           : (schedule.next_run as JobRunInfo)
@@ -50,7 +53,7 @@ function parseScheduleRow(
 
     const parsedConfig =
       typeof schedule.config === 'string'
-        ? this.safeJsonParse(schedule.config, {}, 'schedule.config')
+        ? parseJsonOr(schedule.config, {}, this.log, 'schedule.config')
         : schedule.config
 
     if (schedule.type === 'interval') {

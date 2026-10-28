@@ -18,6 +18,7 @@ import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.sche
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 
 /** Parses the JSON columns and fills defaults for missing or malformed fields. */
 export async function getConfig(
@@ -28,15 +29,17 @@ export async function getConfig(
 
   return {
     ...config,
-    plexTokens: this.safeJsonParse<string[]>(
+    plexTokens: parseJsonOr<string[]>(
       config.plexTokens,
       [],
+      this.log,
       'config.plexTokens',
     ),
     plexSessionMonitoring: config.plexSessionMonitoring
-      ? this.safeJsonParse(
+      ? parseJsonOr(
           config.plexSessionMonitoring,
           PLEX_SESSION_MONITORING_DEFAULTS,
+          this.log,
           'config.plexSessionMonitoring',
         )
       : undefined,
@@ -49,23 +52,24 @@ export async function getConfig(
       appriseUrlsMovies: '',
       appriseUrlsShows: '',
       ...(config.publicContentNotifications
-        ? this.safeJsonParse(
+        ? parseJsonOr(
             config.publicContentNotifications,
             {},
+            this.log,
             'config.publicContentNotifications',
           )
         : {}),
     },
     quotaSettings: (() => {
       const parsed = config.quotaSettings
-        ? this.safeJsonParse<{
+        ? parseJsonOr<{
             cleanup?: { enabled?: boolean; retentionDays?: number }
             weeklyRolling?: { resetDays?: number }
             monthly?: {
               resetDay?: number
               handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
             }
-          }>(config.quotaSettings, {}, 'config.quotaSettings')
+          }>(config.quotaSettings, {}, this.log, 'config.quotaSettings')
         : {}
       return {
         cleanup: {
@@ -91,9 +95,10 @@ export async function getConfig(
       autoApproveOnQuotaAvailable: false,
       cleanupExpiredDays: 30,
       ...(config.approvalExpiration
-        ? this.safeJsonParse(
+        ? parseJsonOr(
             config.approvalExpiration,
             {},
+            this.log,
             'config.approvalExpiration',
           )
         : {}),
@@ -180,9 +185,10 @@ export async function getConfig(
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
     plexLabelSync: (() => {
       const parsed = config.plexLabelSync
-        ? this.safeJsonParse<Partial<PlexLabelSyncConfig>>(
+        ? parseJsonOr<Partial<PlexLabelSyncConfig>>(
             config.plexLabelSync,
             {},
+            this.log,
             'config.plexLabelSync',
           )
         : {}
@@ -206,12 +212,13 @@ export async function getConfig(
       config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
     deletionMode: config.deletionMode || 'watchlist',
     tagMigration: config.tagMigration
-      ? this.safeJsonParse(
+      ? parseJsonOr(
           config.tagMigration,
           {
             radarr: {},
             sonarr: {},
           },
+          this.log,
           'config.tagMigration',
         )
       : undefined,

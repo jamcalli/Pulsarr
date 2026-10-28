@@ -13,17 +13,6 @@ export const ANIME_SOURCES = ['tvdb', 'tmdb_movie', 'tmdb_tv', 'imdb'] as const
 export type AnimeSource = (typeof ANIME_SOURCES)[number]
 
 /**
- * Database row type for anime_ids table
- */
-export interface AnimeIdRow {
-  id: number
-  external_id: string
-  source: string
-  created_at: Date
-  updated_at: Date
-}
-
-/**
  * Insert type for anime_ids table
  */
 export interface InsertAnimeId {

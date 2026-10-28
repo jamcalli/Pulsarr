@@ -1,5 +1,6 @@
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
+import { parseJsonOr } from '@utils/json.js'
 
 const BATCH_CHUNK_SIZE = 50
 
@@ -530,9 +531,10 @@ export async function untrackPlexLabelBulk(
                 continue
               }
 
-              const currentLabels = this.safeJsonParse<string[]>(
+              const currentLabels = parseJsonOr<string[]>(
                 existing.labels_applied,
                 [],
+                this.log,
                 'plex_label_tracking.labels_applied',
               )
               const updatedLabels = currentLabels.filter(
@@ -604,54 +606,6 @@ export async function untrackPlexLabelBulk(
   return { processedCount, failedIds }
 }
 
-/** Postgres returns true even when no record matched, and only SQLite returns false for a miss. */
-export async function untrackPlexLabel(
-  this: DatabaseService,
-  contentGuids: string[],
-  userId: number | null,
-  plexRatingKey: string,
-  labelApplied: string,
-): Promise<boolean> {
-  const result = await this.untrackPlexLabelBulk([
-    {
-      contentGuids,
-      userId,
-      plexRatingKey,
-      labelApplied,
-    },
-  ])
-
-  return result.processedCount > 0
-}
-
-export async function getTrackedLabelsForUser(
-  this: DatabaseService,
-  userId: number,
-): Promise<PlexLabelTracking[]> {
-  const rows = (await this.knex('plex_label_tracking')
-    .where('user_id', userId)
-    .orderBy('synced_at', 'asc')
-    .select('*')) as PlexLabelTrackingRow[]
-
-  return rows.map((row) => ({
-    id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
-      row.content_guids,
-      [],
-      'plex_label_tracking.content_guids',
-    ),
-    content_type: row.content_type,
-    user_id: row.user_id,
-    plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
-      row.labels_applied,
-      [],
-      'plex_label_tracking.labels_applied',
-    ),
-    synced_at: row.synced_at,
-  }))
-}
-
 /** Spans all users, matching records that share any of the GUIDs. */
 export async function getTrackedLabelsForContent(
   this: DatabaseService,
@@ -699,17 +653,19 @@ export async function getTrackedLabelsForContent(
 
   return rows.map((row) => ({
     id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
+    content_guids: parseJsonOr<string[]>(
       row.content_guids,
       [],
+      this.log,
       'plex_label_tracking.content_guids',
     ),
     content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
+    labels_applied: parseJsonOr<string[]>(
       row.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     ),
     synced_at: row.synced_at,
@@ -772,23 +728,6 @@ export async function cleanupUserContentTracking(
   return deleted
 }
 
-export async function cleanupUserTracking(
-  this: DatabaseService,
-  userId: number,
-): Promise<number> {
-  const deleted = await this.knex('plex_label_tracking')
-    .where('user_id', userId)
-    .delete()
-
-  if (deleted > 0) {
-    this.log.debug(
-      `Cleaned up ${deleted} Plex label tracking records for user ${userId}`,
-    )
-  }
-
-  return deleted
-}
-
 export async function getAllTrackedLabels(
   this: DatabaseService,
 ): Promise<PlexLabelTracking[]> {
@@ -798,17 +737,19 @@ export async function getAllTrackedLabels(
 
   return rows.map((row) => ({
     id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
+    content_guids: parseJsonOr<string[]>(
       row.content_guids,
       [],
+      this.log,
       'plex_label_tracking.content_guids',
     ),
     content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
+    labels_applied: parseJsonOr<string[]>(
       row.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     ),
     synced_at: row.synced_at,
@@ -826,17 +767,19 @@ export async function getTrackedLabelsForRatingKey(
 
   return rows.map((row) => ({
     id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
+    content_guids: parseJsonOr<string[]>(
       row.content_guids,
       [],
+      this.log,
       'plex_label_tracking.content_guids',
     ),
     content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
+    labels_applied: parseJsonOr<string[]>(
       row.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     ),
     synced_at: row.synced_at,
@@ -877,9 +820,10 @@ export async function updateTrackingRatingKey(
     const identity = (row: PlexLabelTrackingRow) =>
       `${row.content_guids}|${row.user_id ?? -1}|${row.content_type}`
     const parseLabels = (row: PlexLabelTrackingRow) =>
-      this.safeJsonParse<string[]>(
+      parseJsonOr<string[]>(
         row.labels_applied,
         [],
+        this.log,
         'plex_label_tracking.labels_applied',
       )
     const counterparts = new Map(
@@ -1145,9 +1089,10 @@ export async function removeTrackedLabels(
               const toDelete: number[] = []
 
               for (const record of records) {
-                const labels = this.safeJsonParse<string[]>(
+                const labels = parseJsonOr<string[]>(
                   record.labels_applied,
                   [],
+                  this.log,
                   'plex_label_tracking.labels_applied',
                 )
                 const updatedLabels = labels.filter(
@@ -1230,32 +1175,6 @@ export async function removeTrackedLabels(
   return { processedCount, failedIds, totalUpdatedCount }
 }
 
-/** Returns 0 when the removal fails. */
-export async function removeTrackedLabel(
-  this: DatabaseService,
-  plexRatingKey: string,
-  labelApplied: string,
-): Promise<number> {
-  const result = await this.removeTrackedLabels([
-    { plexRatingKey, labelsToRemove: [labelApplied] },
-  ])
-
-  if (result.failedIds.length > 0) {
-    this.log.warn(
-      `Failed to remove label "${labelApplied}" for rating key ${plexRatingKey}`,
-    )
-    return 0
-  }
-
-  if (result.totalUpdatedCount > 0) {
-    this.log.debug(
-      `Updated ${result.totalUpdatedCount} tracking record(s) to remove label "${labelApplied}" on rating key ${plexRatingKey}`,
-    )
-  }
-
-  return result.totalUpdatedCount
-}
-
 /** validLabels must be lowercase, and only labels under `labelPrefix:` can be orphaned. */
 export async function getOrphanedLabelTracking(
   this: DatabaseService,
@@ -1287,9 +1206,10 @@ export async function getOrphanedLabelTracking(
   const orphanedByRatingKey = new Map<string, string[]>()
 
   for (const record of filteredRecords) {
-    const labels = this.safeJsonParse<string[]>(
+    const labels = parseJsonOr<string[]>(
       record.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     )
     const orphanedLabels: string[] = []
@@ -1487,9 +1407,10 @@ export async function removeOrphanedTrackingBulk(
               const toDelete: number[] = []
 
               for (const record of records) {
-                const labels = this.safeJsonParse<string[]>(
+                const labels = parseJsonOr<string[]>(
                   record.labels_applied,
                   [],
+                  this.log,
                   'plex_label_tracking.labels_applied',
                 )
                 const updatedLabels = labels.filter(
@@ -1575,36 +1496,4 @@ export async function removeOrphanedTrackingBulk(
   }
 
   return { processedCount, failedIds, totalUpdatedCount }
-}
-
-/** Returns 0 when no labels are given or the removal fails. */
-export async function removeOrphanedTracking(
-  this: DatabaseService,
-  plexRatingKey: string,
-  orphanedLabels: string[],
-): Promise<number> {
-  if (orphanedLabels.length === 0) {
-    return 0
-  }
-
-  const result = await this.removeOrphanedTrackingBulk([
-    { plexRatingKey, orphanedLabels },
-  ])
-
-  if (result.failedIds.length > 0) {
-    this.log.warn(
-      { orphanedLabels },
-      `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
-    )
-    return 0
-  }
-
-  if (result.totalUpdatedCount > 0) {
-    this.log.debug(
-      { orphanedLabels },
-      `Updated ${result.totalUpdatedCount} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
-    )
-  }
-
-  return result.totalUpdatedCount
 }

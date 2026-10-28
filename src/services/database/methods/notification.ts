@@ -126,54 +126,6 @@ export async function hasActiveNotification(
   return row !== undefined
 }
 
-/** Resets active rows matching every given filter, so no filters resets them all. */
-export async function resetContentNotifications(
-  this: DatabaseService,
-  options: {
-    olderThan?: Date
-    watchlistItemId?: number
-    userId?: number
-    contentType?: string
-    seasonNumber?: number
-    episodeNumber?: number
-  },
-): Promise<number> {
-  const query = this.knex('notifications')
-    .where('notification_status', 'active')
-    .update({
-      notification_status: 'reset',
-      updated_at: this.timestamp,
-    })
-
-  if (options.olderThan) {
-    query.where('created_at', '<', options.olderThan.toISOString())
-  }
-
-  if (options.watchlistItemId) {
-    query.where('watchlist_item_id', options.watchlistItemId)
-  }
-
-  if (options.userId) {
-    query.where('user_id', options.userId)
-  }
-
-  if (options.contentType) {
-    query.where('type', options.contentType)
-  }
-
-  if (options.seasonNumber !== undefined) {
-    query.where('season_number', options.seasonNumber)
-  }
-
-  if (options.episodeNumber !== undefined) {
-    query.where('episode_number', options.episodeNumber)
-  }
-
-  const count = await query
-  this.log.debug(`Reset ${count} notifications`)
-  return count
-}
-
 export async function getNotificationStats(
   this: DatabaseService,
   days = 30,

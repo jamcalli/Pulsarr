@@ -367,63 +367,6 @@ export async function updateAdminUsername(
   }
 }
 
-/** Returns true on error as the conservative default. */
-export async function hasUsersWithSyncDisabled(
-  this: DatabaseService,
-): Promise<boolean> {
-  try {
-    const count = await this.knex('users')
-      .where({ can_sync: false })
-      .where('id', '>', 0)
-      .count('* as count')
-      .first()
-
-    return Number(count?.count || 0) > 0
-  } catch (error) {
-    this.log.error({ error }, 'Error checking for users with sync disabled:')
-    return true
-  }
-}
-
-/** True when any user requires approval, any quota exists, or any router rule requires approval or bypasses quotas, and also true on error. */
-export async function hasUsersWithApprovalConfig(
-  this: DatabaseService,
-): Promise<boolean> {
-  try {
-    const usersRequiringApproval = await this.knex('users')
-      .where({ requires_approval: true })
-      .andWhere('id', '>', 0)
-      .count('* as count')
-      .first()
-
-    if (Number(usersRequiringApproval?.count || 0) > 0) {
-      return true
-    }
-
-    const quotaCount = await this.knex('user_quotas')
-      .count('* as count')
-      .first()
-
-    if (Number(quotaCount?.count || 0) > 0) {
-      return true
-    }
-
-    const approvalRulesCount = await this.knex('router_rules')
-      .where({ always_require_approval: true })
-      .orWhere({ bypass_user_quotas: true })
-      .count('* as count')
-      .first()
-
-    return Number(approvalRulesCount?.count || 0) > 0
-  } catch (error) {
-    this.log.error(
-      { error },
-      'Error checking for users with approval configuration',
-    )
-    return true
-  }
-}
-
 /** Refuses the system user, clears every other primary flag in one transaction, and returns false on refusal or error. */
 export async function setPrimaryUser(
   this: DatabaseService,
@@ -450,37 +393,6 @@ export async function setPrimaryUser(
     return true
   } catch (error) {
     this.log.error({ error }, `Error setting primary user ${userId}:`)
-    return false
-  }
-}
-
-/** Refuses the system user and the primary token user, and returns false on refusal, miss or error. */
-export async function deleteUser(
-  this: DatabaseService,
-  userId: number,
-): Promise<boolean> {
-  try {
-    const primary = await this.getPrimaryUser()
-    if (primary?.id === userId) {
-      this.log.warn(`Refusing to delete primary token user ${userId}`)
-      return false
-    }
-    if (userId <= 0) {
-      this.log.warn('Refusing to delete system user (ID <= 0)')
-      return false
-    }
-
-    const deleted = await this.knex('users').where({ id: userId }).del()
-
-    if (deleted > 0) {
-      this.log.debug(`Deleted user ${userId}`)
-      return true
-    } else {
-      this.log.debug(`No user found with ID ${userId} to delete`)
-      return false
-    }
-  } catch (error) {
-    this.log.error({ error, userId }, 'Error deleting user:')
     return false
   }
 }

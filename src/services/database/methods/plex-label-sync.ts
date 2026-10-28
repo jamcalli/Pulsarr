@@ -1,4 +1,5 @@
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 
 interface PendingLabelSyncRow {
   id: number
@@ -85,9 +86,10 @@ export async function getPendingLabelSyncs(
     id: row.id,
     watchlist_item_id: row.watchlist_item_id,
     content_title: row.content_title,
-    webhook_tags: this.safeJsonParse<string[]>(
+    webhook_tags: parseJsonOr<string[]>(
       row.webhook_tags,
       [],
+      this.log,
       'pending_label_syncs.webhook_tags',
     ),
     retry_count: row.retry_count,
@@ -142,34 +144,6 @@ export async function expirePendingLabelSyncs(
   return deleted
 }
 
-export async function getWatchlistItemWithPlexKey(
-  this: DatabaseService,
-  watchlistItemId: number,
-): Promise<{
-  id: number
-  user_id: number
-  title: string
-  plex_key: string | null
-  guids: string[]
-} | null> {
-  const row = await this.knex('watchlist_items')
-    .where('id', watchlistItemId)
-    .select('id', 'user_id', 'title', 'key as plex_key', 'guids')
-    .first()
-
-  if (!row) {
-    return null
-  }
-
-  return {
-    id: row.id,
-    user_id: row.user_id,
-    title: row.title,
-    plex_key: row.plex_key,
-    guids: this.safeJsonParse(row.guids, [], 'watchlist_items.guids'),
-  }
-}
-
 /** Non-expired rows only, oldest first. */
 export async function getPendingLabelSyncsWithPlexKeys(
   this: DatabaseService,
@@ -196,9 +170,10 @@ export async function getPendingLabelSyncsWithPlexKeys(
     id: row.id,
     watchlist_item_id: row.watchlist_item_id,
     content_title: row.content_title,
-    webhook_tags: this.safeJsonParse<string[]>(
+    webhook_tags: parseJsonOr<string[]>(
       row.webhook_tags,
       [],
+      this.log,
       'pending_label_syncs.webhook_tags',
     ),
     retry_count: row.retry_count,
@@ -207,7 +182,7 @@ export async function getPendingLabelSyncsWithPlexKeys(
     expires_at: row.expires_at,
     plex_key: row.plex_key,
     user_id: row.user_id,
-    guids: this.safeJsonParse(row.guids, [], 'watchlist_items.guids'),
+    guids: parseJsonOr(row.guids, [], this.log, 'watchlist_items.guids'),
     type: row.type,
   }))
 }

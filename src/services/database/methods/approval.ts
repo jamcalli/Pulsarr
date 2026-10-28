@@ -1,4 +1,3 @@
-import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type {
   ApprovalRequest,
   ApprovalRequestRow,
@@ -7,11 +6,11 @@ import type {
   ApprovalTrigger,
   CreateApprovalRequestData,
   UpdateApprovalRequestData,
-  UserApprovalStats,
 } from '@root/types/approval.types.js'
 import { normalizeGuid } from '@root/utils/guid-handler.js'
 import { applySearchFilter } from '@services/database/search-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 import type { Knex } from 'knex'
 
 type ApprovalRequestJoinedRow = ApprovalRequestRow & {
@@ -38,14 +37,16 @@ function mapRowToApprovalRequest(
     contentTitle: row.content_title,
     contentKey: row.content_key,
     thumb: row.thumb || null,
-    contentGuids: this.safeJsonParse(
+    contentGuids: parseJsonOr(
       row.content_guids,
       [],
+      this.log,
       'approval.content_guids',
     ),
-    proposedRouterDecision: this.safeJsonParse(
+    proposedRouterDecision: parseJsonOr(
       row.router_decision,
       { action: 'continue' as const },
+      this.log,
       'approval.router_decision',
     ),
     routerRuleId: row.router_rule_id,
@@ -431,57 +432,6 @@ export async function getApprovalStats(
   return result
 }
 
-/** currentQuotaUsage is always 0, and the quota fields come from whichever user_quotas row is found first */
-export async function getUserApprovalStats(
-  this: DatabaseService,
-  userId: number,
-): Promise<UserApprovalStats> {
-  const [userInfo, requestStats, quotaInfo] = await Promise.all([
-    this.knex('users').select('name').where('id', userId).first(),
-    this.knex('approval_requests')
-      .select('status')
-      .count('* as count')
-      .where('user_id', userId)
-      .groupBy('status'),
-    this.knex('user_quotas').where('user_id', userId).first(),
-  ])
-
-  const stats = {
-    userId,
-    userName: userInfo?.name || 'Unknown',
-    totalRequests: 0,
-    approvedRequests: 0,
-    rejectedRequests: 0,
-    pendingRequests: 0,
-    currentQuotaUsage: 0,
-    quotaLimit: quotaInfo?.quota_limit || 0,
-    quotaType: quotaInfo?.quota_type || QUOTA_DEFAULTS.quotaType,
-    bypassApproval: Boolean(quotaInfo?.bypass_approval),
-  }
-
-  for (const stat of requestStats) {
-    const count = Number.parseInt(String(stat.count), 10)
-    stats.totalRequests += count
-
-    switch (stat.status as ApprovalStatus) {
-      case 'approved':
-        stats.approvedRequests += count
-        break
-      case 'auto_approved':
-        stats.approvedRequests += count
-        break
-      case 'rejected':
-        stats.rejectedRequests = count
-        break
-      case 'pending':
-        stats.pendingRequests = count
-        break
-    }
-  }
-
-  return stats
-}
-
 export async function expireOldRequests(
   this: DatabaseService,
 ): Promise<number> {
@@ -556,9 +506,10 @@ export async function getTrackedContentGuids(
 
   for (const row of rows) {
     try {
-      const guids = this.safeJsonParse<string[]>(
+      const guids = parseJsonOr<string[]>(
         row.content_guids,
         [],
+        this.log,
         'approval.content_guids',
       )
       for (const guid of guids) {

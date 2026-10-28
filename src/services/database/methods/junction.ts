@@ -1,8 +1,5 @@
 import type { User } from '@root/types/config.types.js'
-import type {
-  SonarrShowWithEnrollmentStatus,
-  WatchlistInstanceStatus,
-} from '@root/types/watchlist-status.types.js'
+import type { SonarrShowWithEnrollmentStatus } from '@root/types/watchlist-status.types.js'
 import { mapRowToUser } from '@services/database/user-rows.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
@@ -28,31 +25,6 @@ export async function getWatchlistRadarrInstanceIds(
       'Error getting Radarr instance IDs for watchlist',
     )
     return []
-  }
-}
-
-/** Returns null when not found or on error */
-export async function getWatchlistRadarrInstanceStatus(
-  this: DatabaseService,
-  watchlistId: number,
-  instanceId: number,
-): Promise<WatchlistInstanceStatus | null> {
-  try {
-    const result = await this.knex('watchlist_radarr_instances')
-      .select('status', 'last_notified_at', 'is_primary')
-      .where({
-        watchlist_id: watchlistId,
-        radarr_instance_id: instanceId,
-      })
-      .first()
-
-    return result || null
-  } catch (error) {
-    this.log.error(
-      { error, watchlistId, instanceId },
-      'Error getting Radarr instance status for watchlist',
-    )
-    return null
   }
 }
 
@@ -124,31 +96,6 @@ export async function updateWatchlistRadarrInstanceStatus(
     this.log.error(
       { error, watchlistId, instanceId },
       'Error updating watchlist Radarr instance status',
-    )
-    throw error
-  }
-}
-
-export async function removeWatchlistFromRadarrInstance(
-  this: DatabaseService,
-  watchlistId: number,
-  instanceId: number,
-): Promise<void> {
-  try {
-    await this.knex('watchlist_radarr_instances')
-      .where({
-        watchlist_id: watchlistId,
-        radarr_instance_id: instanceId,
-      })
-      .delete()
-
-    this.log.debug(
-      `Removed watchlist ${watchlistId} from Radarr instance ${instanceId}`,
-    )
-  } catch (error) {
-    this.log.error(
-      { error, watchlistId, instanceId },
-      'Error removing watchlist from Radarr instance',
     )
     throw error
   }
@@ -347,31 +294,6 @@ export async function getWatchlistSonarrInstanceIds(
   }
 }
 
-/** Returns null when not found or on error */
-export async function getWatchlistSonarrInstanceStatus(
-  this: DatabaseService,
-  watchlistId: number,
-  instanceId: number,
-): Promise<WatchlistInstanceStatus | null> {
-  try {
-    const result = await this.knex('watchlist_sonarr_instances')
-      .select('status', 'last_notified_at', 'is_primary')
-      .where({
-        watchlist_id: watchlistId,
-        sonarr_instance_id: instanceId,
-      })
-      .first()
-
-    return result || null
-  } catch (error) {
-    this.log.error(
-      { error, watchlistId, instanceId },
-      'Error getting Sonarr instance status for watchlist',
-    )
-    return null
-  }
-}
-
 /** Upserts, overwriting status, primary, syncing and a given sonarrSeriesId on an existing row */
 export async function addWatchlistToSonarrInstance(
   this: DatabaseService,
@@ -416,67 +338,6 @@ export async function addWatchlistToSonarrInstance(
     this.log.error(
       { error, watchlistId, instanceId },
       'Error adding watchlist to Sonarr instance',
-    )
-    throw error
-  }
-}
-
-export async function updateWatchlistSonarrInstanceStatus(
-  this: DatabaseService,
-  watchlistId: number,
-  instanceId: number,
-  status: 'pending' | 'requested' | 'grabbed' | 'notified',
-  lastNotifiedAt: string | null = null,
-): Promise<void> {
-  try {
-    const updateData: Record<string, unknown> = {
-      status,
-      updated_at: this.timestamp,
-    }
-
-    if (lastNotifiedAt !== undefined) {
-      updateData.last_notified_at = lastNotifiedAt
-    }
-
-    await this.knex('watchlist_sonarr_instances')
-      .where({
-        watchlist_id: watchlistId,
-        sonarr_instance_id: instanceId,
-      })
-      .update(updateData)
-
-    this.log.debug(
-      `Updated watchlist ${watchlistId} Sonarr instance ${instanceId} status to ${status}`,
-    )
-  } catch (error) {
-    this.log.error(
-      { error, watchlistId, instanceId },
-      'Error updating watchlist Sonarr instance status',
-    )
-    throw error
-  }
-}
-
-export async function removeWatchlistFromSonarrInstance(
-  this: DatabaseService,
-  watchlistId: number,
-  instanceId: number,
-): Promise<void> {
-  try {
-    await this.knex('watchlist_sonarr_instances')
-      .where({
-        watchlist_id: watchlistId,
-        sonarr_instance_id: instanceId,
-      })
-      .delete()
-
-    this.log.debug(
-      `Removed watchlist ${watchlistId} from Sonarr instance ${instanceId}`,
-    )
-  } catch (error) {
-    this.log.error(
-      { error, watchlistId, instanceId },
-      'Error removing watchlist from Sonarr instance',
     )
     throw error
   }
@@ -857,21 +718,6 @@ export async function isRadarrItemSyncing(
     .where({
       watchlist_id: watchlistId,
       radarr_instance_id: instanceId,
-    })
-    .first()
-
-  return item ? Boolean(item.syncing) : false
-}
-
-export async function isSonarrItemSyncing(
-  this: DatabaseService,
-  watchlistId: number,
-  instanceId: number,
-): Promise<boolean> {
-  const item = await this.knex('watchlist_sonarr_instances')
-    .where({
-      watchlist_id: watchlistId,
-      sonarr_instance_id: instanceId,
     })
     .first()
 

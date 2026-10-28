@@ -5,6 +5,7 @@ import type {
   WebhookEventType,
 } from '@root/types/webhook-endpoint.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 import { toBoolean } from '@utils/to-boolean.js'
 
 interface WebhookEndpointRow {
@@ -29,9 +30,10 @@ function rowToEndpoint(
     url: row.url,
     auth_header_name: row.auth_header_name,
     auth_header_value: row.auth_header_value,
-    event_types: this.safeJsonParse<WebhookEventType[]>(
+    event_types: parseJsonOr<WebhookEventType[]>(
       row.event_types,
       [],
+      this.log,
       'webhook_endpoint.event_types',
     ),
     enabled: toBoolean(row.enabled, true),

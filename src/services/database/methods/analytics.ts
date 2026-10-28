@@ -1,4 +1,5 @@
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 
 function cutoffISO(days: number): string {
   const date = new Date()
@@ -44,9 +45,10 @@ export async function getTopGenres(
       for (const item of batch) {
         let parsed: string[]
         try {
-          parsed = this.safeJsonParse(
+          parsed = parseJsonOr(
             item.genres,
             [],
+            this.log,
             'watchlist_item.genres',
           ) as string[]
         } catch (_err) {
@@ -144,11 +146,12 @@ export async function getMostWatchlistedShows(
     title: row.title,
     count: Number(row.count),
     thumb: row.thumb,
-    guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+    guids: parseJsonOr(row.guids, [], this.log, 'watchlist_item.guids'),
     content_type: 'show' as const,
-    users: this.safeJsonParse(
+    users: parseJsonOr(
       row.user_names,
       [],
+      this.log,
       'watchlist_item.user_names',
     ).filter(Boolean),
   }))
@@ -200,11 +203,12 @@ export async function getMostWatchlistedMovies(
     title: row.title,
     count: Number(row.count),
     thumb: row.thumb,
-    guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+    guids: parseJsonOr(row.guids, [], this.log, 'watchlist_item.guids'),
     content_type: 'movie' as const,
-    users: this.safeJsonParse(
+    users: parseJsonOr(
       row.user_names,
       [],
+      this.log,
       'watchlist_item.user_names',
     ).filter(Boolean),
   }))

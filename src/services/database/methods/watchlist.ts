@@ -9,7 +9,8 @@ import type {
 } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
-import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
+import { normalizeGuid } from '@utils/guid-handler.js'
+import { parseJsonOr } from '@utils/json.js'
 import {
   allowedStatusesUpTo,
   STATUS_RANK,
@@ -386,31 +387,6 @@ export async function updateWatchlistItem(
   return await this.knex.transaction(executeUpdate)
 }
 
-export async function getWatchlistItem(
-  this: DatabaseService,
-  userId: number,
-  key: string,
-): Promise<WatchlistItem | undefined> {
-  const numericUserId =
-    typeof userId === 'object' ? (userId as { id: number }).id : userId
-
-  const result = await this.knex('watchlist_items')
-    .where({
-      user_id: numericUserId,
-      key,
-    })
-    .first()
-
-  if (!result) return undefined
-
-  return {
-    ...result,
-    guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
-    genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
-    ratings: parseRatingsFromRow(result),
-  }
-}
-
 export async function getWatchlistItemById(
   this: DatabaseService,
   id: number,
@@ -421,8 +397,8 @@ export async function getWatchlistItemById(
 
   return {
     ...result,
-    guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
-    genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
+    guids: parseJsonOr(result.guids, [], this.log, 'watchlist_item.guids'),
+    genres: parseJsonOr(result.genres, [], this.log, 'watchlist_item.genres'),
     ratings: parseRatingsFromRow(result),
   }
 }
@@ -464,8 +440,8 @@ export async function getBulkWatchlistItems(
 
   return results.map((row) => ({
     ...row,
-    guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
-    genres: this.safeJsonParse(row.genres, [], 'watchlist_item.genres'),
+    guids: parseJsonOr(row.guids, [], this.log, 'watchlist_item.guids'),
+    genres: parseJsonOr(row.genres, [], this.log, 'watchlist_item.genres'),
     ratings: parseRatingsFromRow(row),
   }))
 }
@@ -494,8 +470,8 @@ export async function getWatchlistItemsByKeys(
     ...item,
     thumb: item.thumb || undefined,
     added: item.added || undefined,
-    guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
-    genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
+    guids: parseJsonOr(item.guids, [], this.log, 'watchlist_item.guids'),
+    genres: parseJsonOr(item.genres, [], this.log, 'watchlist_item.genres'),
     ratings: parseRatingsFromRow(item),
   }))
 }
@@ -587,49 +563,6 @@ export async function bulkUpdateWatchlistItems(
   return updatedCount
 }
 
-/** Returns distinct GUIDs, lowercased */
-export async function getAllGuidsMapped(
-  this: DatabaseService,
-): Promise<string[]> {
-  const rows = await this.knex('watchlist_items')
-    .whereNotNull('guids')
-    .where('guids', '!=', '[]')
-    .select('guids')
-
-  const guids = new Set<string>()
-
-  for (const row of rows) {
-    const parsedGuids = parseGuids(row.guids)
-
-    for (const guid of parsedGuids) {
-      guids.add(guid.toLowerCase())
-    }
-  }
-
-  return Array.from(guids)
-}
-
-export async function getAllGuidsFromWatchlist(
-  this: DatabaseService,
-  types?: string[],
-): Promise<Array<{ id: number; guids: string[] }>> {
-  let query = this.knex('watchlist_items')
-    .whereNotNull('guids')
-    .where('guids', '!=', '[]')
-    .select('id', 'guids')
-
-  if (types && types.length > 0) {
-    query = query.whereIn('type', types)
-  }
-
-  const items = await query
-
-  return items.map((item) => ({
-    id: item.id,
-    guids: parseGuids(item.guids),
-  }))
-}
-
 /** Maps each title to whether a watchlist_add notification was already sent to the user */
 export async function checkExistingWebhooks(
   this: DatabaseService,
@@ -662,62 +595,6 @@ export async function checkExistingWebhooks(
   return result
 }
 
-/** Falls back to getAllGuidsMapped when the SQLite raw result is not an array */
-export async function getUniqueGuidsRaw(
-  this: DatabaseService,
-): Promise<string[]> {
-  if (this.isPostgres) {
-    const result = await this.knex.raw(`
-      SELECT DISTINCT lower(guid_element::text) as guid
-      FROM watchlist_items,
-           jsonb_array_elements_text(
-             CASE 
-               WHEN jsonb_typeof(guids) = 'array' THEN guids
-               ELSE jsonb_build_array(guids)
-             END
-           ) as guid_element
-      WHERE guids IS NOT NULL 
-        AND jsonb_typeof(guids) != 'null'
-        AND jsonb_array_length(
-          CASE 
-            WHEN jsonb_typeof(guids) = 'array' THEN guids
-            ELSE jsonb_build_array(guids)
-          END
-        ) > 0
-        AND guid_element::text != ''
-    `)
-
-    return (
-      result.rows?.map((row: { guid: string }) => row.guid).filter(Boolean) ||
-      []
-    )
-  }
-
-  const result = await this.knex.raw(`
-      WITH extracted_guids AS (
-        SELECT DISTINCT json_extract(value, '$') as guid
-        FROM watchlist_items
-        JOIN json_each(
-          CASE 
-            WHEN json_valid(guids) THEN guids
-            ELSE json_array(guids)
-          END
-        )
-        WHERE guids IS NOT NULL AND guids != '[]'
-      )
-      SELECT DISTINCT lower(guid) as guid 
-      FROM extracted_guids 
-      WHERE guid IS NOT NULL AND guid != '';
-    `)
-
-  if (Array.isArray(result)) {
-    return result.map((row) => row.guid || row[0]).filter(Boolean)
-  }
-
-  this.log.warn('Could not extract GUIDs from raw query result')
-  return this.getAllGuidsMapped()
-}
-
 export async function syncGenresFromWatchlist(
   this: DatabaseService,
 ): Promise<void> {
@@ -729,9 +606,10 @@ export async function syncGenresFromWatchlist(
   const uniqueGenres = new Set<string>()
 
   for (const row of items) {
-    const parsedGenres = this.safeJsonParse<string[]>(
+    const parsedGenres = parseJsonOr<string[]>(
       row.genres,
       [],
+      this.log,
       'watchlist_item.genres',
     )
     if (Array.isArray(parsedGenres)) {
@@ -758,46 +636,12 @@ export async function syncGenresFromWatchlist(
   }
 }
 
-/** Throws when the genre already exists */
-export async function addCustomGenre(
-  this: DatabaseService,
-  name: string,
-): Promise<number> {
-  const result = await this.knex('genres')
-    .insert({
-      name: name.trim(),
-      is_custom: true,
-      created_at: this.timestamp,
-      updated_at: this.timestamp,
-    })
-    .onConflict('name')
-    .ignore()
-    .returning('id')
-
-  if (!result || result.length === 0) {
-    throw new Error('Genre already exists')
-  }
-
-  return this.extractId(result)
-}
-
 export async function getAllGenres(
   this: DatabaseService,
 ): Promise<Array<{ id: number; name: string; is_custom: boolean }>> {
   return await this.knex('genres')
     .select('id', 'name', 'is_custom')
     .orderBy('name', 'asc')
-}
-
-/** Only deletes custom genres, and returns false when none matched */
-export async function deleteCustomGenre(
-  this: DatabaseService,
-  id: number,
-): Promise<boolean> {
-  const deleted = await this.knex('genres')
-    .where({ id, is_custom: true })
-    .delete()
-  return deleted > 0
 }
 
 export async function getAllShowWatchlistItems(
@@ -812,11 +656,11 @@ export async function getAllShowWatchlistItems(
     id: String(item.id),
     guids:
       typeof item.guids === 'string'
-        ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
+        ? parseJsonOr(item.guids, [], this.log, 'watchlist_item.guids')
         : item.guids || [],
     genres:
       typeof item.genres === 'string'
-        ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
+        ? parseJsonOr(item.genres, [], this.log, 'watchlist_item.genres')
         : item.genres || [],
     ratings: parseRatingsFromRow(item),
   }))
@@ -834,11 +678,11 @@ export async function getAllMovieWatchlistItems(
     id: String(item.id),
     guids:
       typeof item.guids === 'string'
-        ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
+        ? parseJsonOr(item.guids, [], this.log, 'watchlist_item.guids')
         : item.guids || [],
     genres:
       typeof item.genres === 'string'
-        ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
+        ? parseJsonOr(item.genres, [], this.log, 'watchlist_item.genres')
         : item.genres || [],
     ratings: parseRatingsFromRow(item),
   }))
@@ -1011,8 +855,8 @@ export async function getAllWatchlistItemsForUser(
 
   return items.map((item) => ({
     ...item,
-    guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
-    genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
+    guids: parseJsonOr(item.guids, [], this.log, 'watchlist_item.guids'),
+    genres: parseJsonOr(item.genres, [], this.log, 'watchlist_item.genres'),
     ratings: parseRatingsFromRow(item),
   }))
 }
@@ -1042,53 +886,20 @@ export async function getWatchlistItemsByGuid(
   return items.map((item) => ({
     ...item,
     id: String(item.id),
-    guids: this.safeJsonParse<string[]>(item.guids, [], 'watchlist_item.guids'),
-    genres: this.safeJsonParse<string[]>(
+    guids: parseJsonOr<string[]>(
+      item.guids,
+      [],
+      this.log,
+      'watchlist_item.guids',
+    ),
+    genres: parseJsonOr<string[]>(
       item.genres,
       [],
+      this.log,
       'watchlist_item.genres',
     ),
     ratings: parseRatingsFromRow(item),
   }))
-}
-
-/** Returns every distinct GUID from items that carry tvdb:{tvdbId} */
-export async function getAllGuidsByTvdbId(
-  this: DatabaseService,
-  tvdbId: number,
-): Promise<string[]> {
-  const tvdbGuid = `tvdb:${tvdbId}`
-
-  const items = this.isPostgres
-    ? await this.knex('watchlist_items')
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
-          [tvdbGuid],
-        )
-        .select('guids')
-    : await this.knex('watchlist_items')
-        .whereRaw(
-          "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
-          [tvdbGuid],
-        )
-        .select('guids')
-
-  const allGuids = new Set<string>()
-
-  for (const item of items) {
-    const guids = this.safeJsonParse<string[]>(
-      item.guids,
-      [],
-      'watchlist_item.guids',
-    )
-    for (const guid of guids) {
-      if (guid && guid.trim() !== '') {
-        allGuids.add(guid.trim())
-      }
-    }
-  }
-
-  return Array.from(allGuids)
 }
 
 export async function getWatchlistItemsWithUsersByGuids(
@@ -1158,10 +969,16 @@ export async function getWatchlistItemsWithUsersByGuids(
 
   return items.map((item) => ({
     ...item,
-    guids: this.safeJsonParse<string[]>(item.guids, [], 'watchlist_item.guids'),
-    genres: this.safeJsonParse<string[]>(
+    guids: parseJsonOr<string[]>(
+      item.guids,
+      [],
+      this.log,
+      'watchlist_item.guids',
+    ),
+    genres: parseJsonOr<string[]>(
       item.genres,
       [],
+      this.log,
       'watchlist_item.genres',
     ),
   }))

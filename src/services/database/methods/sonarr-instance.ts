@@ -2,6 +2,7 @@ import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.j
 import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 import { toBoolean } from '@utils/to-boolean.js'
 import type { Knex } from 'knex'
 
@@ -34,11 +35,12 @@ function mapRowToSonarrInstance(
     monitorNewItems: (row.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: toBoolean(row.search_on_add, true),
     createSeasonFolders: toBoolean(row.create_season_folders, false),
-    tags: this.safeJsonParse(row.tags, [], 'sonarr.tags'),
+    tags: parseJsonOr(row.tags, [], this.log, 'sonarr.tags'),
     isDefault: Boolean(row.is_default),
-    syncedInstances: this.safeJsonParse(
+    syncedInstances: parseJsonOr(
       row.synced_instances,
       [],
+      this.log,
       'sonarr.synced_instances',
     ),
     seriesType: (row.series_type as SonarrSeriesType) || 'standard',
@@ -244,9 +246,10 @@ export async function cleanupDeletedSonarrInstanceReferences(
 
     for (const instance of instances) {
       try {
-        const syncedInstances = this.safeJsonParse<number[]>(
+        const syncedInstances = parseJsonOr<number[]>(
           instance.synced_instances,
           [],
+          this.log,
           'synced_instances',
         )
 

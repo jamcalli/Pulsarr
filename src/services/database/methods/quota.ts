@@ -1,7 +1,6 @@
 import type {
   CreateUserQuotaData,
   EnabledQuotaData,
-  QuotaExceeded,
   QuotaStatus,
   QuotaType,
   QuotaUsage,
@@ -489,30 +488,6 @@ export async function getBulkQuotaStatus(
   return results
 }
 
-/** Returns null when contentType is missing or the quota is not exceeded */
-export async function checkQuotaExceeded(
-  this: DatabaseService,
-  userId: number,
-  settings: QuotaWindowSettings,
-  contentType?: 'movie' | 'show',
-): Promise<QuotaExceeded | null> {
-  if (!contentType) {
-    return null
-  }
-
-  const status = await this.getQuotaStatus(userId, contentType, settings)
-  if (!status?.exceeded) {
-    return null
-  }
-
-  return {
-    type: status.quotaType,
-    limit: status.quotaLimit,
-    usage: status.currentUsage,
-    exceeded: true,
-  }
-}
-
 export async function getUsersWithQuotas(
   this: DatabaseService,
 ): Promise<UserQuotaConfig[]> {
@@ -676,18 +651,6 @@ export async function getUsersWithQuotaType(
     .where('quota_type', quotaType)
     .select('*')
   return rows.map(mapRowToUserQuotaConfig)
-}
-
-export async function getLatestQuotaUsage(
-  this: DatabaseService,
-  userId: number,
-): Promise<QuotaUsage | null> {
-  const row = await this.knex('quota_usage')
-    .where('user_id', userId)
-    .orderBy('request_date', 'desc')
-    .first()
-
-  return row ? mapRowToQuotaUsage(row) : null
 }
 
 /** processedCount sums deleted quota rows (up to two per user), not users */

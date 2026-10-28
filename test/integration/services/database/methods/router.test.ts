@@ -25,9 +25,9 @@ describe('router database methods', () => {
     fastify.contentRouter.clearRouterRulesCache()
   })
 
-  describe('hasAnyRouterRules', () => {
-    const insertRule = (enabled: boolean | null) =>
-      getTestDatabase()('router_rules').insert({
+  describe('getAllRouterRules', () => {
+    it('treats a NULL enabled rule as disabled', async () => {
+      await getTestDatabase()('router_rules').insert({
         name: 'Rule',
         type: 'conditional',
         target_type: 'radarr',
@@ -37,19 +37,43 @@ describe('router database methods', () => {
         }),
         tags: JSON.stringify([]),
         order: 50,
-        enabled,
+        enabled: null,
       })
-
-    it('counts an enabled rule', async () => {
-      await insertRule(true)
-      expect(await fastify.db.hasAnyRouterRules()).toBe(true)
-    })
-
-    it('treats a NULL enabled rule as disabled, like the rule formatter', async () => {
-      await insertRule(null)
-      expect(await fastify.db.hasAnyRouterRules()).toBe(false)
       const [rule] = await fastify.db.getAllRouterRules()
       expect(rule.enabled).toBe(false)
+    })
+    it('falls back to an empty AND group for invalid criteria JSON', async () => {
+      await getTestDatabase()('router_rules').insert({
+        name: 'Rule',
+        type: 'conditional',
+        target_type: 'radarr',
+        target_instance_id: 1,
+        criteria: '{not json',
+        tags: JSON.stringify([]),
+        order: 50,
+        enabled: true,
+      })
+      const [rule] = await fastify.db.getAllRouterRules()
+      expect(rule.criteria).toEqual({
+        condition: { operator: 'AND', conditions: [] },
+      })
+    })
+
+    it('falls back to no tags for invalid tags JSON', async () => {
+      await getTestDatabase()('router_rules').insert({
+        name: 'Rule',
+        type: 'conditional',
+        target_type: 'radarr',
+        target_instance_id: 1,
+        criteria: JSON.stringify({
+          condition: { operator: 'AND', negate: false, conditions: [] },
+        }),
+        tags: '{not json',
+        order: 50,
+        enabled: true,
+      })
+      const [rule] = await fastify.db.getAllRouterRules()
+      expect(rule.tags).toEqual([])
     })
   })
 })

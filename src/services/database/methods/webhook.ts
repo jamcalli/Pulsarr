@@ -3,6 +3,7 @@ import type {
   PendingWebhookCreate,
 } from '@root/types/pending-webhooks.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 
 export async function createPendingWebhook(
   this: DatabaseService,
@@ -48,9 +49,10 @@ export async function getPendingWebhooks(
       ...webhook,
       payload: (() => {
         try {
-          return this.safeJsonParse(
+          return parseJsonOr(
             webhook.payload,
             {},
+            this.log,
             'pending_webhook.payload',
           )
         } catch (e) {
@@ -98,42 +100,5 @@ export async function cleanupExpiredWebhooks(
   } catch (error) {
     this.log.error({ error }, 'Error cleaning up expired webhooks:')
     return 0
-  }
-}
-
-/** Non-expired rows only, and returns an empty array on error. */
-export async function getWebhooksByGuid(
-  this: DatabaseService,
-  guid: string,
-  mediaType: 'movie' | 'show',
-): Promise<PendingWebhook[]> {
-  try {
-    const webhooks = await this.knex('pending_webhooks')
-      .where({ guid, media_type: mediaType })
-      .where('expires_at', '>', new Date().toISOString())
-
-    return webhooks.map((webhook) => ({
-      ...webhook,
-      payload: (() => {
-        try {
-          return this.safeJsonParse(
-            webhook.payload,
-            {},
-            'pending_webhook.payload',
-          )
-        } catch (e) {
-          this.log.warn(
-            { webhookId: webhook.id, guid, error: e },
-            'Malformed webhook payload - using empty object',
-          )
-          return {}
-        }
-      })(),
-      received_at: new Date(webhook.received_at),
-      expires_at: new Date(webhook.expires_at),
-    }))
-  } catch (error) {
-    this.log.error({ error }, `Error getting webhooks for ${guid}:`)
-    return []
   }
 }

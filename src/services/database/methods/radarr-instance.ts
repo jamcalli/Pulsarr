@@ -6,6 +6,7 @@ import {
 import type { RadarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 import type { Knex } from 'knex'
 
 /** Null or undefined becomes 'released', and an unknown value throws. */
@@ -41,11 +42,12 @@ function mapRowToRadarrInstance(
     searchOnAdd: row.search_on_add === null ? true : Boolean(row.search_on_add),
     minimumAvailability: normaliseMinimumAvailability(row.minimum_availability),
     monitor: row.monitor as RadarrMonitorType,
-    tags: this.safeJsonParse(row.tags, [], 'radarr.tags'),
+    tags: parseJsonOr(row.tags, [], this.log, 'radarr.tags'),
     isDefault: Boolean(row.is_default),
-    syncedInstances: this.safeJsonParse(
+    syncedInstances: parseJsonOr(
       row.synced_instances,
       [],
+      this.log,
       'radarr.synced_instances',
     ),
     skipDefaultRoutingWhenNoMatch: Boolean(
@@ -240,9 +242,10 @@ export async function cleanupDeletedRadarrInstanceReferences(
 
     for (const instance of instances) {
       try {
-        const syncedInstances = this.safeJsonParse<number[]>(
+        const syncedInstances = parseJsonOr<number[]>(
           instance.synced_instances,
           [],
+          this.log,
           'synced_instances',
         )
 

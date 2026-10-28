@@ -234,21 +234,6 @@ export class DatabaseService {
     }
   }
 
-  /** Returns defaultValue on empty or invalid JSON and logs the parse error */
-  public safeJsonParse<T>(
-    value: string | null | undefined,
-    defaultValue: T,
-    context?: string,
-  ): T {
-    if (!value) return defaultValue
-    try {
-      return JSON.parse(value)
-    } catch (error) {
-      this.log.warn({ value, context, error }, 'JSON parse error')
-      return defaultValue
-    }
-  }
-
   /** Returns SQL for date1 minus date2 in days */
   public getDateDiffSQL(date1: string, date2: string, alias?: string): string {
     const diff = this.isPostgres

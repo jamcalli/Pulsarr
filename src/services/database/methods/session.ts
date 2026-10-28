@@ -10,7 +10,9 @@ import type {
 } from '@root/types/plex-session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { isUniqueViolation } from '@utils/db-errors.js'
+import { parseJsonOr } from '@utils/json.js'
 import { normalizeTitle } from '@utils/title-normalization.js'
+import type { FastifyBaseLogger } from 'fastify'
 
 type RollingMonitoredShowRow = Omit<
   RollingMonitoredShow,
@@ -19,7 +21,7 @@ type RollingMonitoredShowRow = Omit<
 
 // SQLite returns the JSON column as a string and Postgres as an object.
 function toRollingMonitoredShow(
-  db: DatabaseService,
+  log: FastifyBaseLogger,
   row: RollingMonitoredShowRow,
 ): RollingMonitoredShow {
   const counts = row.season_episode_counts
@@ -27,9 +29,10 @@ function toRollingMonitoredShow(
     ...row,
     season_episode_counts:
       typeof counts === 'string'
-        ? db.safeJsonParse<SeasonEpisodeCounts | null>(
+        ? parseJsonOr<SeasonEpisodeCounts | null>(
             counts,
             null,
+            log,
             'rolling_monitored_shows.season_episode_counts',
           )
         : counts,
@@ -168,7 +171,7 @@ export async function getRollingMonitoredShows(
     const rows: RollingMonitoredShowRow[] = await this.knex(
       'rolling_monitored_shows',
     ).orderBy('show_title', 'asc')
-    return rows.map((row) => toRollingMonitoredShow(this, row))
+    return rows.map((row) => toRollingMonitoredShow(this.log, row))
   } catch (error) {
     this.log.error({ error }, 'Error getting rolling monitored shows:')
     return []
@@ -187,7 +190,7 @@ export async function getRollingMonitoredShowById(
       .where('id', id)
       .first()
 
-    return result ? toRollingMonitoredShow(this, result) : null
+    return result ? toRollingMonitoredShow(this.log, result) : null
   } catch (error) {
     this.log.error({ error }, 'Error getting rolling monitored show by ID:')
     return null
@@ -213,7 +216,7 @@ export async function getRollingMonitoredShowMatches(
       'sonarr_instance_id',
       'asc',
     )
-    return rows.map((row) => toRollingMonitoredShow(this, row))
+    return rows.map((row) => toRollingMonitoredShow(this.log, row))
   }
 
   try {
@@ -527,7 +530,7 @@ export async function getInactiveRollingMonitoredShows(
     const rows: RollingMonitoredShowRow[] = await this.knex(
       'rolling_monitored_shows',
     ).orderBy('last_updated_at', 'asc')
-    const allShows = rows.map((row) => toRollingMonitoredShow(this, row))
+    const allShows = rows.map((row) => toRollingMonitoredShow(this.log, row))
 
     const showMap = new Map<string, RollingMonitoredShow[]>()
 

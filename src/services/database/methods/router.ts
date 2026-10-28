@@ -8,9 +8,11 @@ import {
   ROUTER_RULE_PRIORITY,
 } from '@schemas/content-router/content-router.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
+import type { FastifyBaseLogger } from 'fastify'
 
 function formatRouterRule(
-  db: DatabaseService,
+  log: FastifyBaseLogger,
   rule: {
     id: number
     name: string
@@ -46,19 +48,20 @@ function formatRouterRule(
     exclude_from_routing: Boolean(rule.exclude_from_routing ?? false),
     criteria:
       typeof rule.criteria === 'string'
-        ? db.safeJsonParse(
+        ? parseJsonOr(
             rule.criteria,
             { condition: { operator: 'AND' as const, conditions: [] } },
+            log,
             'router_rule.criteria',
           )
         : (rule.criteria as { condition: Condition | ConditionGroup }),
     tags:
       typeof rule.tags === 'string'
-        ? db.safeJsonParse(rule.tags, [], 'router_rule.tags')
+        ? parseJsonOr(rule.tags, [], log, 'router_rule.tags')
         : rule.tags || [],
     metadata: rule.metadata
       ? typeof rule.metadata === 'string'
-        ? db.safeJsonParse(rule.metadata, null, 'router_rule.metadata')
+        ? parseJsonOr(rule.metadata, null, log, 'router_rule.metadata')
         : rule.metadata
       : null,
   }
@@ -72,7 +75,7 @@ export async function getAllRouterRules(
     .orderBy('order', 'desc')
     .orderBy('id', 'asc')
 
-  return rules.map((rule) => formatRouterRule(this, rule))
+  return rules.map((rule) => formatRouterRule(this.log, rule))
 }
 
 export async function getRouterRuleById(
@@ -83,7 +86,7 @@ export async function getRouterRuleById(
 
   if (!rule) return null
 
-  return formatRouterRule(this, rule)
+  return formatRouterRule(this.log, rule)
 }
 
 export async function getRouterRulesByType(
@@ -99,32 +102,7 @@ export async function getRouterRulesByType(
 
   const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
 
-  return rules.map((rule) => formatRouterRule(this, rule))
-}
-
-/** require_approval and bypass_quotas match their flag columns, and any other action matches the rule type */
-export async function getRouterRulesByAction(
-  this: DatabaseService,
-  action: string,
-  enabledOnly = true,
-): Promise<RouterRule[]> {
-  let query = this.knex('router_rules').select('*')
-
-  if (action === 'require_approval') {
-    query = query.where('always_require_approval', true)
-  } else if (action === 'bypass_quotas') {
-    query = query.where('bypass_user_quotas', true)
-  } else {
-    query = query.where('type', action)
-  }
-
-  if (enabledOnly) {
-    query.where('enabled', true)
-  }
-
-  const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
-
-  return rules.map((rule) => formatRouterRule(this, rule))
+  return rules.map((rule) => formatRouterRule(this.log, rule))
 }
 
 export async function createRouterRule(
@@ -146,7 +124,7 @@ export async function createRouterRule(
 
   if (!createdRule) throw new Error('Failed to create router rule')
 
-  return formatRouterRule(this, createdRule)
+  return formatRouterRule(this.log, createdRule)
 }
 
 /** Throws when the rule does not exist, and writes only whitelisted columns */
@@ -249,7 +227,7 @@ export async function updateRouterRule(
     )
   }
 
-  return formatRouterRule(this, updatedRule)
+  return formatRouterRule(this.log, updatedRule)
 }
 
 export async function deleteRouterRule(
@@ -275,7 +253,7 @@ export async function getRouterRulesByTarget(
     .orderBy('order', 'desc')
     .orderBy('id', 'asc')
 
-  return rules.map((rule) => formatRouterRule(this, rule))
+  return rules.map((rule) => formatRouterRule(this.log, rule))
 }
 
 export async function getRouterRulesByTargetType(
@@ -293,7 +271,7 @@ export async function getRouterRulesByTargetType(
       `Found ${rules.length} router rules for target type: ${targetType}`,
     )
 
-    return rules.map((rule) => formatRouterRule(this, rule))
+    return rules.map((rule) => formatRouterRule(this.log, rule))
   } catch (error) {
     this.log.error(
       { error },
@@ -323,7 +301,7 @@ export async function toggleRouterRule(
     )
   }
 
-  return formatRouterRule(this, updatedRule)
+  return formatRouterRule(this.log, updatedRule)
 }
 
 /** Stores every priority in one transaction, so a failure leaves all rules unchanged. */
@@ -358,22 +336,4 @@ export async function nextRouterRuleOrder(
 
   if (row?.lowest == null) return DEFAULT_ROUTE_PRIORITY
   return Math.max(ROUTER_RULE_PRIORITY.min, Number(row.lowest) - 1)
-}
-
-/** Returns true on error, so a failed check never skips rule evaluation */
-export async function hasAnyRouterRules(
-  this: DatabaseService,
-): Promise<boolean> {
-  try {
-    const result = await this.knex('router_rules')
-      .where('enabled', true)
-      .count('* as count')
-      .first()
-
-    return Number(result?.count || 0) > 0
-  } catch (error) {
-    this.log.error({ error }, 'Error checking for router rules:')
-
-    return true
-  }
 }
