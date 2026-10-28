@@ -123,7 +123,10 @@ export async function syncLabelsOnWebhook(
     )
 
     // Get all watchlist items matching this content
-    const watchlistItems = await deps.db.getWatchlistItemsByGuid(guids[0])
+    const watchlistItems = await deps.db.getWatchlistItemsByGuid(
+      guids[0],
+      contentType,
+    )
     if (watchlistItems.length === 0) {
       deps.logger.debug(
         {

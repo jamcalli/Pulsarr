@@ -492,6 +492,10 @@ describe('label-remover', () => {
         const result = await removeAllLabels(baseDeps)
 
         expect(result).toEqual({ processed: 1, removed: 1, failed: 0 })
+        expect(mockDb.getWatchlistItemsByGuid).toHaveBeenCalledWith(
+          'tmdb:278',
+          'movie',
+        )
         expect(mockDb.updateTrackingRatingKey).toHaveBeenCalledWith(
           '12345',
           '99999',
@@ -897,6 +901,10 @@ describe('label-remover', () => {
       )
 
       expect(result).toEqual({ processed: 1, updated: 1, failed: 0 })
+      expect(mockDb.getWatchlistItemsByGuid).toHaveBeenCalledWith(
+        'imdb:tt9999999',
+        'movie',
+      )
       expect(mockDb.updateTrackingRatingKey).toHaveBeenCalledWith(
         '67890',
         '99999',

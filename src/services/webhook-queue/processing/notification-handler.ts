@@ -16,6 +16,7 @@ export interface NotificationHandlerDeps {
   logger: FastifyBaseLogger
   getWatchlistItemsByGuid: (
     guid: string,
+    type: 'movie' | 'show',
   ) => Promise<Array<{ id: number | string; title: string }>>
   sendMediaAvailable: (
     mediaInfo: {
@@ -67,7 +68,7 @@ export async function notifyOrQueueShow(
     queuePendingWebhook,
   } = deps
   const tvdbGuid = `tvdb:${tvdbId}`
-  const matchingItems = await getWatchlistItemsByGuid(tvdbGuid)
+  const matchingItems = await getWatchlistItemsByGuid(tvdbGuid, 'show')
 
   if (matchingItems.length === 0) {
     logger.info(
