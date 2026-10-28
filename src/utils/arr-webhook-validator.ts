@@ -2,10 +2,11 @@ import crypto from 'node:crypto'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-const webhookCache = new Map<
+export type WebhookDedupeCache = Map<
   string,
   { timestamp: number; contentInfo: string }
->()
+>
+
 const WEBHOOK_CACHE_TTL_MS = 10_000
 
 // Event type and upgrade status stay out of the hash so related events dedupe together
@@ -79,6 +80,7 @@ function validateSonarrWebhook(
 
 function checkDuplicateWebhook(
   payload: WebhookPayload,
+  webhookCache: WebhookDedupeCache,
   logger?: FastifyBaseLogger,
 ): boolean {
   const hash = createWebhookHash(payload)
@@ -86,7 +88,7 @@ function checkDuplicateWebhook(
   const existing = webhookCache.get(hash)
 
   if (existing && now - existing.timestamp < WEBHOOK_CACHE_TTL_MS) {
-    logger?.info(
+    logger?.debug(
       {
         hash,
         ageMs: now - existing.timestamp,
@@ -135,6 +137,7 @@ function checkDuplicateWebhook(
 /** Skips test events, Sonarr payloads without a downloaded file, and duplicates inside the dedupe window. */
 export function isWebhookProcessable(
   payload: WebhookPayload,
+  webhookCache: WebhookDedupeCache,
   logger?: FastifyBaseLogger,
 ): boolean {
   if ('eventType' in payload && payload.eventType === 'Test') {
@@ -147,9 +150,5 @@ export function isWebhookProcessable(
     }
   }
 
-  return !checkDuplicateWebhook(payload, logger)
-}
-
-export function clearWebhookCacheForTests(): void {
-  webhookCache.clear()
+  return !checkDuplicateWebhook(payload, webhookCache, logger)
 }

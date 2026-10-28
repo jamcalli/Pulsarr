@@ -1,20 +1,18 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import {
-  clearWebhookCacheForTests,
   isWebhookProcessable,
+  type WebhookDedupeCache,
 } from '@utils/arr-webhook-validator.js'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
 
 describe('arr-webhook-validator', () => {
   const mockLogger = createMockLogger()
 
-  beforeEach(() => {
-    clearWebhookCacheForTests()
-  })
+  let cache: WebhookDedupeCache
 
-  afterEach(() => {
-    clearWebhookCacheForTests()
+  beforeEach(() => {
+    cache = new Map()
   })
 
   describe('isWebhookProcessable', () => {
@@ -25,7 +23,7 @@ describe('arr-webhook-validator', () => {
           instanceName: 'Sonarr',
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(false)
       })
@@ -53,7 +51,7 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(true)
       })
@@ -75,7 +73,7 @@ describe('arr-webhook-validator', () => {
           ],
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(false)
       })
@@ -97,7 +95,7 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(false)
       })
@@ -116,7 +114,7 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(false)
       })
@@ -141,7 +139,7 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(false)
       })
@@ -163,7 +161,7 @@ describe('arr-webhook-validator', () => {
           ],
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(false)
       })
@@ -191,7 +189,7 @@ describe('arr-webhook-validator', () => {
           ],
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(true)
       })
@@ -208,7 +206,7 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload, mockLogger)
+        const result = isWebhookProcessable(payload, cache, mockLogger)
 
         expect(result).toBe(true)
       })
@@ -236,10 +234,10 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const firstResult = isWebhookProcessable(payload, mockLogger)
+        const firstResult = isWebhookProcessable(payload, cache, mockLogger)
         expect(firstResult).toBe(true)
 
-        const secondResult = isWebhookProcessable(payload, mockLogger)
+        const secondResult = isWebhookProcessable(payload, cache, mockLogger)
         expect(secondResult).toBe(false)
       })
 
@@ -284,8 +282,8 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result1 = isWebhookProcessable(payload1, mockLogger)
-        const result2 = isWebhookProcessable(payload2, mockLogger)
+        const result1 = isWebhookProcessable(payload1, cache, mockLogger)
+        const result2 = isWebhookProcessable(payload2, cache, mockLogger)
 
         expect(result1).toBe(true)
         expect(result2).toBe(true)
@@ -310,8 +308,8 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result1 = isWebhookProcessable(payload1, mockLogger)
-        const result2 = isWebhookProcessable(payload2, mockLogger)
+        const result1 = isWebhookProcessable(payload1, cache, mockLogger)
+        const result2 = isWebhookProcessable(payload2, cache, mockLogger)
 
         expect(result1).toBe(true)
         expect(result2).toBe(true)
@@ -329,7 +327,7 @@ describe('arr-webhook-validator', () => {
           },
         } as unknown as WebhookPayload
 
-        const result = isWebhookProcessable(payload)
+        const result = isWebhookProcessable(payload, cache)
 
         expect(result).toBe(true)
       })

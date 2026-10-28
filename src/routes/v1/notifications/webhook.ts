@@ -9,7 +9,6 @@ import {
   WebhookQuerySchema,
   WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
-import { isWebhookProcessable } from '@utils/arr-webhook-validator.js'
 import { episodeRange } from '@utils/episode-code.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -70,7 +69,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return { success: true }
       }
 
-      if (!isWebhookProcessable(body, log)) {
+      if (!fastify.webhookQueue.isWebhookProcessable(body)) {
         log.debug(
           {
             instanceName: body.instanceName,
