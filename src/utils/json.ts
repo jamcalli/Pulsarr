@@ -11,7 +11,7 @@ export function parseJsonOr<T>(
   try {
     return JSON.parse(value)
   } catch (error) {
-    log?.warn({ value, context, error }, 'JSON parse error')
+    log?.warn({ context, length: value.length, error }, 'JSON parse error')
     return fallback
   }
 }
