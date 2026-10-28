@@ -1646,64 +1646,6 @@ export class SonarrService {
   }
 
   /**
-   * Update the tags for a specific series
-   *
-   * @param seriesId The Sonarr series ID
-   * @param tagIds Array of tag IDs to apply
-   * @returns Promise resolving when the update is complete
-   */
-  async updateSeriesTags(
-    seriesId: number,
-    tagIds: number[],
-    applyTags: 'add' | 'remove' | 'replace' = 'replace',
-  ): Promise<void> {
-    try {
-      // First get the current series to preserve all fields
-      const series = await this.getFromSonarr<SonarrSeries>(
-        `series/${seriesId}`,
-      )
-
-      const existingTags = series.tags || []
-      const tagIdSet = new Set(tagIds)
-
-      // Compute the resulting tags based on applyTags mode
-      let resultTags: number[]
-      if (applyTags === 'add') {
-        resultTags = [...new Set([...existingTags, ...tagIds])]
-      } else if (applyTags === 'remove') {
-        resultTags = existingTags.filter((t) => !tagIdSet.has(t))
-      } else {
-        resultTags = [...new Set(tagIds)]
-      }
-
-      // Normalize for comparison
-      const currentSorted = [...new Set(existingTags)].sort()
-      const resultSorted = [...new Set(resultTags)].sort()
-
-      // Skip update if tags are already correct
-      if (JSON.stringify(currentSorted) === JSON.stringify(resultSorted)) {
-        this.log.debug(
-          `Tags already correct for series ID ${seriesId}, skipping update`,
-        )
-        return
-      }
-
-      series.tags = resultTags
-
-      // Send the update
-      await this.putToSonarr(`series/${seriesId}`, series)
-
-      this.log.debug(
-        { seriesId, tagIds },
-        `Updated tags for series ${seriesId}`,
-      )
-    } catch (error) {
-      this.log.error({ error }, `Failed to update tags for series ${seriesId}:`)
-      throw error
-    }
-  }
-
-  /**
    * Bulk update tags for multiple series using the serieseditor endpoint
    * This provides significant performance improvements over individual updates
    *

@@ -1686,59 +1686,6 @@ export class RadarrService {
   }
 
   /**
-   * Update the tags for a specific movie
-   *
-   * @param movieId The Radarr movie ID
-   * @param tagIds Array of tag IDs to apply
-   * @returns Promise resolving when the update is complete
-   */
-  async updateMovieTags(
-    movieId: number,
-    tagIds: number[],
-    applyTags: 'add' | 'remove' | 'replace' = 'replace',
-  ): Promise<void> {
-    try {
-      // First get the current movie to preserve all fields
-      const movie = await this.getFromRadarr<RadarrMovie>(`movie/${movieId}`)
-
-      const existingTags = movie.tags || []
-      const tagIdSet = new Set(tagIds)
-
-      // Compute the resulting tags based on applyTags mode
-      let resultTags: number[]
-      if (applyTags === 'add') {
-        resultTags = [...new Set([...existingTags, ...tagIds])]
-      } else if (applyTags === 'remove') {
-        resultTags = existingTags.filter((t) => !tagIdSet.has(t))
-      } else {
-        resultTags = [...new Set(tagIds)]
-      }
-
-      // Normalize for comparison
-      const currentSorted = [...new Set(existingTags)].sort()
-      const resultSorted = [...new Set(resultTags)].sort()
-
-      // Skip update if tags are already correct
-      if (JSON.stringify(currentSorted) === JSON.stringify(resultSorted)) {
-        this.log.debug(
-          `Tags already correct for movie ID ${movieId}, skipping update`,
-        )
-        return
-      }
-
-      movie.tags = resultTags
-
-      // Send the update
-      await this.putToRadarr(`movie/${movieId}`, movie)
-
-      this.log.debug({ movieId, tagIds }, `Updated tags for movie ${movieId}`)
-    } catch (error) {
-      this.log.error({ error }, `Failed to update tags for movie ${movieId}:`)
-      throw error
-    }
-  }
-
-  /**
    * Bulk update tags for multiple movies using the movieeditor endpoint
    * This provides significant performance improvements over individual updates
    *
