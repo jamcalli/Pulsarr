@@ -20,6 +20,8 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { PlaceholderResetError } from '@utils/arr-default-instance.js'
+import { errorMessage } from '@utils/error-message.js'
+import { extractTvdbId } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -162,10 +164,7 @@ export class SonarrManagerService {
       return {
         success: false,
         code: 'unreachable',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Unknown error testing connection',
+        message: errorMessage(error),
       }
     }
   }
@@ -344,11 +343,7 @@ export class SonarrManagerService {
       // If rolling monitoring was used, create tracking entry
       if (isRollingMonitoring) {
         try {
-          // Extract TVDB ID
-          const tvdbGuid = sonarrItem.guids.find((g) =>
-            g.toLowerCase().startsWith('tvdb:'),
-          )
-          const tvdbId = tvdbGuid ? tvdbGuid.replace(/^tvdb:/i, '') : undefined
+          const tvdbId = extractTvdbId(sonarrItem.guids)
 
           // Create rolling monitoring entry
           const plexSessionMonitor = this.fastify.plexSessionMonitor
@@ -356,7 +351,7 @@ export class SonarrManagerService {
             await plexSessionMonitor.createRollingMonitoredShow(
               sonarrSeriesId,
               targetInstanceId,
-              tvdbId || '',
+              tvdbId ? String(tvdbId) : '',
               sonarrItem.title,
               targetSeasonMonitoring,
             )
@@ -373,7 +368,7 @@ export class SonarrManagerService {
               {
                 seriesId: sonarrSeriesId,
                 instanceId: targetInstanceId,
-                tvdbId: tvdbId ?? null,
+                tvdbId: tvdbId || null,
                 monitoring: targetSeasonMonitoring,
               },
               'Created rolling monitoring entry',
@@ -497,7 +492,7 @@ export class SonarrManagerService {
             checked: false,
             serviceName: 'Sonarr',
             instanceId,
-            error: err instanceof Error ? err.message : String(err),
+            error: errorMessage(err),
           }
         }
       }
@@ -820,10 +815,7 @@ export class SonarrManagerService {
                   error instanceof WebhookCallbackError
                     ? 'callback_failed'
                     : 'unreachable',
-                message:
-                  error instanceof Error
-                    ? error.message
-                    : 'Webhook check failed',
+                message: errorMessage(error),
               }
             }
           }),

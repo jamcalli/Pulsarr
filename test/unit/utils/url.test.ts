@@ -1,5 +1,6 @@
 import {
   delayWithBackoffAndJitter,
+  ensureHttpScheme,
   isSameServerEndpoint,
   normalizeBasePath,
   normalizeEndpointWithPath,
@@ -7,6 +8,22 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('url', () => {
+  describe('ensureHttpScheme', () => {
+    it('prefixes http:// to a bare host', () => {
+      expect(ensureHttpScheme('sonarr:8989')).toBe('http://sonarr:8989')
+    })
+
+    it('keeps an existing http or https scheme', () => {
+      expect(ensureHttpScheme('http://sonarr')).toBe('http://sonarr')
+      expect(ensureHttpScheme('https://sonarr')).toBe('https://sonarr')
+    })
+
+    it('keeps an uppercase or mixed-case scheme', () => {
+      expect(ensureHttpScheme('HTTPS://sonarr')).toBe('HTTPS://sonarr')
+      expect(ensureHttpScheme('Http://sonarr')).toBe('Http://sonarr')
+    })
+  })
+
   describe('normalizeBasePath', () => {
     it('should return / for root path', () => {
       expect(normalizeBasePath('/')).toBe('/')

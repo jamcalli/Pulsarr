@@ -131,7 +131,7 @@ export async function fetchSonarrTagsForItem(
       }
 
       // Use the targeted lookup to find the series
-      const series = await sonarrService.getFromSonarr<
+      const series = await sonarrService.client.get<
         Array<{ id: number; title: string; tags?: number[] }>
       >(`series/lookup?term=tvdb:${tvdbId}`)
 

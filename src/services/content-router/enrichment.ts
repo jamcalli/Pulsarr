@@ -242,7 +242,7 @@ export async function enrichItemMetadata(
               log.debug(
                 `Calling Radarr API for "${item.title}" with TMDB ID: ${itemId}`,
               )
-              const apiResponse = await lookupService.getFromRadarr<
+              const apiResponse = await lookupService.client.get<
                 RadarrMovieLookupResponse | RadarrMovieLookupResponse[]
               >(`movie/lookup/tmdb?tmdbId=${itemId}`)
 
@@ -354,7 +354,7 @@ export async function enrichItemMetadata(
               log.debug(
                 `Calling Sonarr API for "${item.title}" with TVDB ID: ${itemId}`,
               )
-              const apiResponse = await lookupService.getFromSonarr<
+              const apiResponse = await lookupService.client.get<
                 SonarrSeriesLookupResponse | SonarrSeriesLookupResponse[]
               >(`series/lookup?term=tvdb:${itemId}`)
 
