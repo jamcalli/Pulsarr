@@ -60,9 +60,13 @@ describe('stale-rating-key', () => {
       items: [plexItem('999')],
     })
 
-    const result = await resolveStaleRatingKey(deps, '123', ['tmdb:1'])
+    const result = await resolveStaleRatingKey(deps, '123', ['tmdb:1'], 'movie')
 
     expect(result).toEqual({ outcome: 'relocated', ratingKey: '999' })
+    expect(mockDb.getWatchlistItemsByGuid).toHaveBeenCalledWith(
+      'tmdb:1',
+      'movie',
+    )
     expect(mockPlexServer.lookupByGuid).toHaveBeenCalledWith('plex://movie/abc')
     expect(mockDb.updateTrackingRatingKey).toHaveBeenCalledWith('123', '999')
     expect(mockDb.cleanupRatingKeyTracking).not.toHaveBeenCalled()
@@ -77,13 +81,19 @@ describe('stale-rating-key', () => {
       items: [plexItem('555')],
     })
 
-    const result = await resolveStaleRatingKey(deps, '123', [
-      'tmdb:1',
-      'tvdb:2',
-    ])
+    const result = await resolveStaleRatingKey(
+      deps,
+      '123',
+      ['tmdb:1', 'tvdb:2'],
+      'show',
+    )
 
     expect(result).toEqual({ outcome: 'relocated', ratingKey: '555' })
     expect(mockDb.getWatchlistItemsByGuid).toHaveBeenCalledTimes(2)
+    expect(mockDb.getWatchlistItemsByGuid).toHaveBeenCalledWith(
+      'tvdb:2',
+      'show',
+    )
     expect(mockPlexServer.lookupByGuid).toHaveBeenCalledWith('plex://show/def')
   })
 
@@ -92,10 +102,12 @@ describe('stale-rating-key', () => {
       watchlistItem('abc', 'movie'),
     ])
 
-    const result = await resolveStaleRatingKey(deps, '123', [
-      'tmdb:1',
-      'imdb:tt1',
-    ])
+    const result = await resolveStaleRatingKey(
+      deps,
+      '123',
+      ['tmdb:1', 'imdb:tt1'],
+      'movie',
+    )
 
     expect(result).toEqual({ outcome: 'deleted' })
     expect(mockDb.cleanupRatingKeyTracking).toHaveBeenCalledWith('123')
@@ -110,7 +122,7 @@ describe('stale-rating-key', () => {
       status: 'error',
     })
 
-    const result = await resolveStaleRatingKey(deps, '123', ['tmdb:1'])
+    const result = await resolveStaleRatingKey(deps, '123', ['tmdb:1'], 'movie')
 
     expect(result).toEqual({ outcome: 'unresolved' })
     expect(mockDb.cleanupRatingKeyTracking).not.toHaveBeenCalled()

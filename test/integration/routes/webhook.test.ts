@@ -1,5 +1,4 @@
 import type { DeliveryResult } from '@root/types/notification.types.js'
-import { clearWebhookCacheForTests } from '@utils/arr-webhook-validator.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -96,7 +95,7 @@ describe('Webhook Routes', () => {
       beforeEach(async () => {
         await resetDatabase()
         await seedAll(getTestDatabase())
-        clearWebhookCacheForTests()
+        app.webhookQueue.clearDedupeCache()
       })
 
       afterEach(() => {
@@ -125,13 +124,53 @@ describe('Webhook Routes', () => {
         await vi.waitFor(() => expect(sendDm).toHaveBeenCalledTimes(1))
         delivery.resolve({ ok: true })
       })
+
+      it('leaves a show sharing the tmdb id untouched', async () => {
+        const sendDm = vi
+          .spyOn(app.notifications.discordBot, 'sendNotification')
+          .mockResolvedValue({ ok: true })
+        const knex = getTestDatabase()
+        const [show] = await knex('watchlist_items')
+          .insert({
+            user_id: 2,
+            title: 'Same Id Show',
+            key: 'shared-tmdb-show',
+            type: 'show',
+            guids: JSON.stringify(['tmdb:10331']),
+            genres: JSON.stringify([]),
+            status: 'requested',
+          })
+          .returning('id')
+
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/notifications/webhook',
+          headers: {
+            'x-pulsarr-secret': app.config.webhookSecret,
+          },
+          payload: {
+            instanceName: 'Radarr',
+            movie: { title: 'Night of the Living Dead', tmdbId: 10331 },
+          },
+        })
+
+        expect(res.statusCode).toBe(200)
+        await vi.waitFor(() => expect(sendDm).toHaveBeenCalledTimes(1))
+        const showRow = await knex('watchlist_items')
+          .where({ id: show.id })
+          .first()
+        expect(showRow.status).toBe('requested')
+        expect(
+          await knex('notifications').where({ watchlist_item_id: show.id }),
+        ).toEqual([])
+      })
     })
 
     describe('with a Sonarr episode that has no air date', () => {
       beforeEach(async () => {
         await resetDatabase()
         await seedAll(getTestDatabase())
-        clearWebhookCacheForTests()
+        app.webhookQueue.clearDedupeCache()
       })
 
       it('accepts the download and queues the episode', async () => {

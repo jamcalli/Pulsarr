@@ -6,6 +6,10 @@ import type {
 import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { WebhookQueue } from '@root/types/webhook.types.js'
+import {
+  isWebhookProcessable,
+  type WebhookDedupeCache,
+} from '@utils/arr-webhook-validator.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -56,6 +60,7 @@ export interface WebhookQueueConfig {
 export class WebhookQueueService {
   private readonly log: FastifyBaseLogger
   private readonly _queue: WebhookQueue = {}
+  private readonly _dedupeCache: WebhookDedupeCache = new Map()
   private readonly _config: WebhookQueueConfig
   private _isRunning = false
   private _processingState = {
@@ -157,8 +162,8 @@ export class WebhookQueueService {
   private get notificationHandlerDeps(): NotificationHandlerDeps {
     return {
       logger: this.log,
-      getWatchlistItemsByGuid: (guid) =>
-        this.fastify.db.getWatchlistItemsByGuid(guid),
+      getWatchlistItemsByGuid: (guid, type) =>
+        this.fastify.db.getWatchlistItemsByGuid(guid, type),
       sendMediaAvailable: (mediaInfo, options) =>
         this.fastify.notifications.sendMediaAvailable(mediaInfo, options),
       queuePendingWebhook: (params) => this.queuePendingWebhook(params),
@@ -185,6 +190,14 @@ export class WebhookQueueService {
       updateRadarrSyncingStatus: (itemId, instanceId, syncing) =>
         this.fastify.db.updateRadarrSyncingStatus(itemId, instanceId, syncing),
     }
+  }
+
+  isWebhookProcessable(payload: WebhookPayload): boolean {
+    return isWebhookProcessable(payload, this._dedupeCache, this.log)
+  }
+
+  clearDedupeCache(): void {
+    this._dedupeCache.clear()
   }
 
   isEpisodeAlreadyQueued(
@@ -235,8 +248,10 @@ export class WebhookQueueService {
     instance: RadarrInstance | null,
   ): Promise<void> {
     const tmdbGuid = `tmdb:${body.movie.tmdbId}`
-    const matchingItems =
-      await this.fastify.db.getWatchlistItemsByGuid(tmdbGuid)
+    const matchingItems = await this.fastify.db.getWatchlistItemsByGuid(
+      tmdbGuid,
+      'movie',
+    )
 
     if (matchingItems.length === 0) {
       this.log.info(

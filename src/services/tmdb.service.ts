@@ -109,7 +109,7 @@ export class TmdbService {
           fetchDetails(this.api, 'movie', tmdbId),
           fetchWatchProviders(this.api, 'movie', tmdbId, movieRegion),
           fetchRadarrLookup(this.lookupDeps, tmdbId),
-          fetchPlexRatings(this.lookupDeps, tmdbId),
+          fetchPlexRatings(this.lookupDeps, tmdbId, 'movie'),
         ])
 
       if (details.status === 'rejected') {
@@ -161,7 +161,7 @@ export class TmdbService {
       const [details, watchProviders, plexRatings] = await Promise.allSettled([
         fetchDetails(this.api, 'tv', tmdbId),
         fetchWatchProviders(this.api, 'tv', tmdbId, tvRegion),
-        fetchPlexRatings(this.lookupDeps, tmdbId),
+        fetchPlexRatings(this.lookupDeps, tmdbId, 'show'),
       ])
 
       if (details.status === 'rejected') {
