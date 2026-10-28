@@ -653,7 +653,6 @@ export async function getUsersWithQuotaType(
   return rows.map(mapRowToUserQuotaConfig)
 }
 
-/** processedCount sums deleted quota rows (up to two per user), not users */
 export async function bulkDeleteQuotas(
   this: DatabaseService,
   userIds: number[],
@@ -668,13 +667,11 @@ export async function bulkDeleteQuotas(
         const batchIds = userIds.slice(i, i + BATCH_SIZE)
 
         try {
-          const deletedQuotas = await trx('user_quotas')
-            .whereIn('user_id', batchIds)
-            .del()
+          await trx('user_quotas').whereIn('user_id', batchIds).del()
 
           await trx('quota_usage').whereIn('user_id', batchIds).del()
 
-          processedCount += deletedQuotas
+          processedCount += batchIds.length
         } catch (batchError) {
           this.log.error(`Error deleting quota batch: ${batchError}`)
           failedIds.push(...batchIds)
