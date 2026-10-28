@@ -5,45 +5,6 @@ export interface SonarrAddOptions {
   searchForMissingEpisodes: boolean | null
 }
 
-interface QualityItem {
-  id: number
-  name: string
-  quality: {
-    id: number
-    name: string
-    source: string
-    resolution: number
-  }
-  items: string[]
-  allowed: boolean
-}
-
-interface FormatItem {
-  id: number
-  format: number
-  name: string
-  score: number
-}
-
-export type QualityProfile = {
-  id: number
-  name: string
-  upgradeAllowed: boolean
-  cutoff: number
-  items: QualityItem[]
-  minFormatScore: number
-  cutoffFormatScore: number
-  minUpgradeFormatScore: number
-  formatItems: FormatItem[]
-}
-
-export type RootFolder = {
-  path: string
-  accessible: boolean
-  freeSpace: number | null
-  id: number
-}
-
 export interface SonarrPost {
   title: string
   tvdbId: number
@@ -208,22 +169,6 @@ export interface SonarrSeries {
   previousAiring?: string
 }
 
-export interface WebhookNotification {
-  id: number
-  name: string
-  implementation: string
-  implementationName: string
-  onGrab: boolean
-  onDownload: boolean
-  onUpgrade: boolean
-  onSeriesAdd: boolean
-  onSeriesDelete: boolean
-  fields: Array<{
-    name: string
-    value: string | number | boolean | undefined | null
-  }>
-}
-
 import type { ContentItem } from '@root/types/router.types.js'
 
 export interface Item extends ContentItem {
@@ -242,10 +187,7 @@ export interface Item extends ContentItem {
 export type SonarrItem = Item
 
 export interface SonarrConfiguration {
-  sonarrBaseUrl: string
-  sonarrApiKey: string
   sonarrQualityProfileId: string | number | null
-  sonarrLanguageProfileId: number
   sonarrRootFolder: string | null
   sonarrTagIds: string[]
   sonarrSeasonMonitoring: string

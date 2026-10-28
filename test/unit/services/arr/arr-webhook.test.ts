@@ -2,10 +2,10 @@ import {
   HttpError,
   WebhookCallbackError,
 } from '@root/types/arr-connection.types.js'
+import { type ArrProduct, RADARR, SONARR } from '@services/arr/arr-product.js'
 import type {
   ArrNotification,
   ArrWebhookClient,
-  ArrWebhookProduct,
   ArrWebhookTarget,
   PulsarrAddress,
 } from '@services/arr/arr-webhook.js'
@@ -17,8 +17,6 @@ import {
   webhookName,
   webhookUrl,
 } from '@services/arr/arr-webhook.js'
-import { RADARR_WEBHOOK } from '@services/radarr.service.js'
-import { SONARR_WEBHOOK } from '@services/sonarr.service.js'
 import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 
@@ -72,7 +70,7 @@ function hook(id: number, name: string, url = 'http://stale'): ArrNotification {
 }
 
 function targetFor(
-  product: ArrWebhookProduct,
+  product: ArrProduct,
   hooks: ArrNotification[],
 ): { target: ArrWebhookTarget; client: FakeClient } {
   const client = new FakeClient(hooks)
@@ -113,8 +111,8 @@ describe('webhook address', () => {
 })
 
 describe.each([
-  { product: SONARR_WEBHOOK, flag: 'onImportComplete' },
-  { product: RADARR_WEBHOOK, flag: 'onMovieAdded' },
+  { product: SONARR, flag: 'onImportComplete' },
+  { product: RADARR, flag: 'onMovieAdded' },
 ])('$product.appName webhook lifecycle', ({ product, flag }) => {
   const log = createMockLogger()
 
@@ -135,7 +133,7 @@ describe.each([
       name: NAME,
       onDownload: true,
       [flag]: false,
-      infoLink: product.infoLink,
+      infoLink: product.webhook.infoLink,
     })
   })
 
@@ -160,7 +158,7 @@ describe.each([
     expect(endpoints(client)).toEqual(['POST notification'])
     expect(postedBody(client)).not.toHaveProperty('id')
     expect(postedBody(client)).toMatchObject({
-      fields: product.fields(HOOK_URL, 'secret'),
+      fields: product.webhook.fields(HOOK_URL, 'secret'),
     })
   })
 

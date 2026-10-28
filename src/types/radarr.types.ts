@@ -157,30 +157,12 @@ export interface RadarrPost {
 }
 
 export interface RadarrConfiguration {
-  radarrApiKey: string
-  radarrBaseUrl: string
   radarrQualityProfileId: number | null | string
   radarrRootFolder: string | null
   radarrTagIds: string[]
   searchOnAdd?: boolean
   minimumAvailability?: MinimumAvailability
   monitor?: RadarrMonitorType
-}
-
-export type RootFolder = {
-  path: string
-  accessible: boolean
-  freeSpace: number | null
-  unmappedFolders: unknown[]
-  id: number
-}
-
-export type QualityProfile = {
-  name: string
-  upgradeAllowed: boolean
-  cutoff: number
-  items: unknown[]
-  id: number
 }
 
 export interface RadarrExclusion {
@@ -249,58 +231,6 @@ export interface RadarrHealthCheck {
     query: string
     fragment: string
   }
-}
-
-export interface WebhookNotification {
-  id: number
-  name: string
-  fields: {
-    order: number
-    name: string
-    label: string
-    value?: string | number | boolean | null | undefined
-    type: string
-    advanced: boolean
-    privacy?: string
-    helpText?: string
-    isFloat?: boolean
-    selectOptions?: {
-      value: number
-      name: string
-      order: number
-      dividerAfter: boolean
-    }[]
-  }[]
-  implementationName: string
-  implementation: string
-  configContract: string
-  infoLink: string
-  tags: number[]
-  onGrab: boolean
-  onDownload: boolean
-  onUpgrade: boolean
-  onRename: boolean
-  onMovieAdded: boolean
-  onMovieDelete: boolean
-  onMovieFileDelete: boolean
-  onMovieFileDeleteForUpgrade: boolean
-  onHealthIssue: boolean
-  includeHealthWarnings: boolean
-  onHealthRestored: boolean
-  onApplicationUpdate: boolean
-  onManualInteractionRequired: boolean
-  supportsOnGrab: boolean
-  supportsOnDownload: boolean
-  supportsOnUpgrade: boolean
-  supportsOnRename: boolean
-  supportsOnMovieAdded: boolean
-  supportsOnMovieDelete: boolean
-  supportsOnMovieFileDelete: boolean
-  supportsOnMovieFileDeleteForUpgrade: boolean
-  supportsOnHealthIssue: boolean
-  supportsOnHealthRestored: boolean
-  supportsOnApplicationUpdate: boolean
-  supportsOnManualInteractionRequired: boolean
 }
 
 export type { ConnectionTestResult } from '@root/types/arr-connection.types.js'
