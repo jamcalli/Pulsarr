@@ -17,6 +17,11 @@ describe('url', () => {
       expect(ensureHttpScheme('http://sonarr')).toBe('http://sonarr')
       expect(ensureHttpScheme('https://sonarr')).toBe('https://sonarr')
     })
+
+    it('keeps an uppercase or mixed-case scheme', () => {
+      expect(ensureHttpScheme('HTTPS://sonarr')).toBe('HTTPS://sonarr')
+      expect(ensureHttpScheme('Http://sonarr')).toBe('Http://sonarr')
+    })
   })
 
   describe('normalizeBasePath', () => {

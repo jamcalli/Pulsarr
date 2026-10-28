@@ -58,6 +58,8 @@ export class ArrClient {
       const result = await this.get<PagedResult<T>>(
         `${endpoint}?page=${page}&pageSize=${pageSize}&sortDirection=ascending&sortKey=${sortKey}`,
       )
+      // An empty page means the reported total went stale mid-fetch
+      if (result.records.length === 0) break
       totalRecords = result.totalRecords
       records.push(...result.records)
       page++

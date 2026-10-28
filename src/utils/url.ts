@@ -14,7 +14,7 @@ export function normalizeBasePath(basePath?: string): string {
 
 /** Prefixes http:// unless the URL already starts with http:// or https://. */
 export function ensureHttpScheme(url: string): string {
-  return /^https?:\/\//.test(url) ? url : `http://${url}`
+  return /^https?:\/\//i.test(url) ? url : `http://${url}`
 }
 
 /**

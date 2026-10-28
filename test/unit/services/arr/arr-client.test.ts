@@ -146,6 +146,28 @@ describe('ArrClient', () => {
     ])
   })
 
+  it('stops paging when a page comes back empty under a stale total', async () => {
+    let requests = 0
+    server.use(
+      http.get('http://arr.test/api/v3/importlistexclusion/paged', () => {
+        requests++
+        return HttpResponse.json({
+          totalRecords: 5,
+          records: requests === 1 ? [{ id: 1 }, { id: 2 }] : [],
+        })
+      }),
+    )
+
+    await expect(
+      client().getAllPages<{ id: number }>(
+        'importlistexclusion/paged',
+        'title',
+        2,
+      ),
+    ).resolves.toEqual([{ id: 1 }, { id: 2 }])
+    expect(requests).toBe(2)
+  })
+
   it('builds paged errors from the arr response', async () => {
     server.use(
       http.get('http://arr.test/api/v3/exclusions/paged', () =>
