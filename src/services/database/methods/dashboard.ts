@@ -47,13 +47,10 @@ export async function getRecentRequests(
     const items: RecentRequestItem[] = []
     const pendingApprovalKeys = new Set<string>()
 
-    // Only fetch approvals if not filtering to watchlist-only statuses
     const shouldFetchApprovals = !status || status === 'pending_approval'
 
-    // Only fetch watchlist items if not filtering to approval-only status
     const shouldFetchWatchlist = !status || status !== 'pending_approval'
 
-    // 1. Get pending approval requests
     if (shouldFetchApprovals) {
       const approvals = await this.knex('approval_requests')
         .select(
@@ -103,7 +100,6 @@ export async function getRecentRequests(
       }
     }
 
-    // 2. Get watchlist items with their instance info
     if (shouldFetchWatchlist) {
       const scopeWatchlistQuery =
         (type: 'movie' | 'show', junctionTable: string) =>
@@ -148,7 +144,6 @@ export async function getRecentRequests(
         }
       }
 
-      // Fetch watchlist items for movies (Radarr)
       const radarrItems = await this.knex('watchlist_items as wi')
         .select(
           'wi.id',
@@ -178,7 +173,6 @@ export async function getRecentRequests(
         .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
 
-      // Fetch watchlist items for shows (Sonarr)
       const sonarrItems = await this.knex('watchlist_items as wi')
         .select(
           'wi.id',
@@ -208,7 +202,6 @@ export async function getRecentRequests(
         .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
 
-      // Group instances by watchlist item ID
       const watchlistItemsMap = new Map<
         number,
         {
@@ -276,13 +269,10 @@ export async function getRecentRequests(
         }
       }
 
-      // Convert map to array and build RecentRequestItem objects
       for (const item of watchlistItemsMap.values()) {
-        // Find primary instance or use first
         const primaryInstance =
           item.instances.find((i) => i.isPrimary) || item.instances[0]
 
-        // Map all instances to the response format
         const allInstances = item.instances.map((i) => ({
           id: i.id,
           name: i.name,
@@ -290,12 +280,10 @@ export async function getRecentRequests(
           junctionStatus: toJunctionStatus(i.status),
         }))
 
-        // Determine the best status across all instances
         const bestStatus = getBestStatus(
           item.instances.map((i) => toJunctionStatus(i.status)),
         )
 
-        // Apply status filter if provided
         if (status && bestStatus !== status) {
           continue
         }
@@ -326,7 +314,6 @@ export async function getRecentRequests(
       }
     }
 
-    // Sort all items by createdAt descending and limit
     items.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),

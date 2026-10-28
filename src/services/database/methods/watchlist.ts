@@ -16,13 +16,6 @@ import {
 } from '@utils/watchlist-status-rank.js'
 import type { Knex } from 'knex'
 
-// ============================================================================
-// Rating Helpers
-// ============================================================================
-
-/**
- * Database row shape for rating columns
- */
 interface RatingColumns {
   imdb_rating?: number | null
   imdb_votes?: number | null
@@ -31,10 +24,7 @@ interface RatingColumns {
   tmdb_rating?: number | null
 }
 
-/**
- * Parse rating columns from a database row into an ItemRatings object.
- * Returns undefined if no ratings are present.
- */
+/** Returns undefined when the row has no ratings */
 function parseRatingsFromRow(row: RatingColumns): ItemRatings | undefined {
   const hasAnyRating =
     row.imdb_rating != null ||
@@ -70,9 +60,6 @@ function parseRatingsFromRow(row: RatingColumns): ItemRatings | undefined {
   return ratings
 }
 
-/**
- * Convert an ItemRatings object to database column values.
- */
 function ratingsToColumns(ratings: ItemRatings | undefined): RatingColumns {
   if (!ratings) {
     return {}
@@ -87,22 +74,7 @@ function ratingsToColumns(ratings: ItemRatings | undefined): RatingColumns {
   }
 }
 
-/**
- * Compute an effective watchlist status update while preventing regressions.
- *
- * Determines whether an incoming `newStatus` should be applied relative to
- * `currentStatus` using the file's configured status ranking. Prevents moving to
- * a lower-ranked status (regression) and treats identical or undefined `newStatus`
- * as a no-op.
- *
- * @param currentStatus - The item's current watchlist status.
- * @param newStatus - The proposed new status (may be `undefined` to indicate no change).
- * @param context - Short identifier used in warning logs when a regression is prevented.
- * @returns An object with:
- *  - `effectiveStatus`: the status that should be used for downstream updates,
- *  - `shouldUpdateStatus`: true when the status should be written to the DB,
- *  - `shouldWriteHistory`: true when a status-history entry should be recorded.
- */
+/** Treats a missing or identical newStatus as a no-op and never moves to a lower-ranked status */
 function processStatusUpdate(
   currentStatus: WatchlistStatus,
   newStatus: WatchlistStatus | undefined,
@@ -122,7 +94,6 @@ function processStatusUpdate(
   }
 
   if (newStatus === currentStatus) {
-    // No-op status change
     return {
       effectiveStatus: currentStatus,
       shouldUpdateStatus: false,
@@ -134,7 +105,6 @@ function processStatusUpdate(
   const newRank = STATUS_RANK[newStatus] || 0
 
   if (newRank < currentRank) {
-    // Prevent status regression
     log.debug(
       `Preventing status regression for ${context}: ${currentStatus} → ${newStatus}`,
     )
@@ -144,7 +114,6 @@ function processStatusUpdate(
       shouldWriteHistory: false,
     }
   } else {
-    // Allow status progression
     return {
       effectiveStatus: newStatus,
       shouldUpdateStatus: true,
@@ -153,15 +122,7 @@ function processStatusUpdate(
   }
 }
 
-/**
- * Insert a status entry for a watchlist item into the status history table, ignoring duplicate (watchlist_item_id, status) rows.
- *
- * This function is safe to call inside a transaction: it uses database-level deduplication (ON CONFLICT ... DO NOTHING)
- * and will log errors without throwing, so history-recording failures do not abort the surrounding transaction.
- *
- * @param context - Short context string included in log messages to identify the operation source.
- * @param timestamp - ISO 8601 timestamp to record for the history entry.
- */
+/** Ignores duplicate (item, status) rows and logs instead of throwing, so it never aborts the surrounding transaction */
 async function recordStatusHistory(
   trx: Knex.Transaction,
   itemId: number,
@@ -171,7 +132,6 @@ async function recordStatusHistory(
   log: DatabaseService['log'],
 ): Promise<void> {
   try {
-    // Use database-level deduplication via onConflict
     await trx('watchlist_status_history')
       .insert({
         watchlist_item_id: itemId,
@@ -189,23 +149,10 @@ async function recordStatusHistory(
       { error, itemId, status },
       `Failed to record status history for ${context}`,
     )
-    // Don't fail the whole transaction for history recording errors
   }
 }
 
-/**
- * Apply updates to rows while enforcing monotonic (non-regressing) status progression.
- *
- * If `statusResult.shouldUpdateStatus` is true, the update is constrained to rows whose current
- * status rank is less than or equal to `statusResult.effectiveStatus` to prevent status regression.
- * The function always sets `updated_at` to the provided `timestamp`.
- *
- * @param whereClause - A Knex query builder selecting the target rows (will be augmented when status progression is enforced)
- * @param updates - Columns to update on the selected rows; `updated_at` will be overwritten with `timestamp`
- * @param statusResult - Result from `processStatusUpdate`; when `shouldUpdateStatus` is true, `effectiveStatus` is used to restrict updates
- * @param timestamp - ISO timestamp string to set on `updated_at`
- * @returns The number of rows actually updated (0 if no rows matched or the update was blocked by the monotonic constraint)
- */
+/** When status is changing, only updates rows whose current status ranks at or below the target */
 async function performMonotonicUpdate(
   whereClause: Knex.QueryBuilder,
   updates: Partial<WatchlistItemUpdate> & { updated_at?: string },
@@ -215,7 +162,6 @@ async function performMonotonicUpdate(
   },
   timestamp: string,
 ): Promise<number> {
-  // Prevent status regression with monotonic constraint
   if (statusResult.shouldUpdateStatus) {
     whereClause.whereIn(
       'status',
@@ -231,18 +177,7 @@ async function performMonotonicUpdate(
   return Number(updated) || 0
 }
 
-/**
- * Atomically updates a junction row's status to a newer status without allowing regression.
- *
- * Updates only rows that match `whereClause` and whose current status rank is less than or
- * equal to `targetStatus`'s rank, setting `status` to `targetStatus` and `updated_at` to `timestamp`.
- *
- * @param tableName - Junction table name; expected to be 'watchlist_radarr_instances' or 'watchlist_sonarr_instances'
- * @param whereClause - Column/value conditions identifying the target junction row(s)
- * @param targetStatus - Status to apply (update occurs only if current status is at or below this rank)
- * @param timestamp - Value to set for the `updated_at` column
- * @returns The number of rows that were updated
- */
+/** Only updates rows whose current status ranks at or below targetStatus */
 async function performJunctionMonotonicUpdate(
   trx: Knex.Transaction,
   tableName: string,
@@ -252,7 +187,6 @@ async function performJunctionMonotonicUpdate(
 ): Promise<number> {
   const query = trx(tableName).where(whereClause)
 
-  // Only update if current status is at or below target status rank
   query.whereIn('status', allowedStatusesUpTo(targetStatus))
 
   const updated = await query.update({
@@ -291,7 +225,6 @@ export async function updateWatchlistItem(
       ...otherUpdates
     } = updates
 
-    // Handle status updates with regression prevention and history tracking
     const statusResult = processStatusUpdate(
       item.status,
       otherUpdates.status,
@@ -302,7 +235,6 @@ export async function updateWatchlistItem(
     const effectiveStatus = statusResult.effectiveStatus
     let finalStatusUpdate = { ...otherUpdates }
 
-    // Remove status from update if it shouldn't be updated (no-op or regression)
     if (!statusResult.shouldUpdateStatus && 'status' in finalStatusUpdate) {
       const { status: _, ...updatesWithoutStatus } = finalStatusUpdate
       finalStatusUpdate = updatesWithoutStatus
@@ -324,7 +256,6 @@ export async function updateWatchlistItem(
       )
     }
 
-    // Record status history only if status actually changed and update succeeded
     if (statusResult.shouldWriteHistory && updatedRows > 0) {
       await recordStatusHistory(
         trx,
@@ -455,15 +386,6 @@ export async function updateWatchlistItem(
   return await this.knex.transaction(executeUpdate)
 }
 
-/**
- * Retrieves a single watchlist item for a user by its unique key.
- *
- * Parses the item's GUIDs and genres fields from JSON before returning. Returns undefined if no matching item is found.
- *
- * @param userId - The numeric ID of the user
- * @param key - The unique key identifying the watchlist item
- * @returns The watchlist item if found, or undefined otherwise
- */
 export async function getWatchlistItem(
   this: DatabaseService,
   userId: number,
@@ -489,12 +411,6 @@ export async function getWatchlistItem(
   }
 }
 
-/**
- * Retrieves a watchlist item by its numeric ID, returning the item with parsed `guids` and `genres` fields.
- *
- * @param id - The numeric ID of the watchlist item
- * @returns The watchlist item with parsed fields if found; otherwise, undefined
- */
 export async function getWatchlistItemById(
   this: DatabaseService,
   id: number,
@@ -511,15 +427,6 @@ export async function getWatchlistItemById(
   }
 }
 
-/**
- * Retrieves watchlist items for the specified users, optionally filtered by item keys.
- *
- * Parses the `guids` and `genres` fields for each item to ensure consistent data structure.
- *
- * @param userIds - Array of user IDs to retrieve watchlist items for
- * @param keys - Optional array of watchlist item keys to filter the results
- * @returns An array of matching watchlist items with parsed `guids` and `genres` fields
- */
 export async function getBulkWatchlistItems(
   this: DatabaseService,
   userIds: number[],
@@ -563,13 +470,6 @@ export async function getBulkWatchlistItems(
   }))
 }
 
-/**
- * Retrieves all watchlist items matching the given keys, returning each with its numeric ID and parsed `guids` and `genres` fields.
- *
- * Returns an empty array if no keys are provided. The `thumb` and `added` fields are set to `undefined` if falsy.
- *
- * @returns Array of watchlist items with numeric IDs and safely parsed JSON fields
- */
 export async function getWatchlistItemsByKeys(
   this: DatabaseService,
   keys: string[],
@@ -629,7 +529,6 @@ export async function bulkUpdateWatchlistItems(
 
         if (!currentItem) continue
 
-        // Process status update with regression prevention
         const statusResult = processStatusUpdate(
           currentItem.status,
           update.status,
@@ -671,7 +570,6 @@ export async function bulkUpdateWatchlistItems(
           }
         }
 
-        // Record status history only when the main row actually progressed
         if (statusResult.shouldWriteHistory && wroteMain) {
           await recordStatusHistory(
             trx,
@@ -689,11 +587,7 @@ export async function bulkUpdateWatchlistItems(
   return updatedCount
 }
 
-/**
- * Retrieves all unique GUIDs from watchlist items, returning them as lowercase strings.
- *
- * @returns An array of unique, lowercased GUIDs extracted from all watchlist items.
- */
+/** Returns distinct GUIDs, lowercased */
 export async function getAllGuidsMapped(
   this: DatabaseService,
 ): Promise<string[]> {
@@ -715,12 +609,6 @@ export async function getAllGuidsMapped(
   return Array.from(guids)
 }
 
-/**
- * Retrieves watchlist items with their GUIDs, optionally filtered by type.
- *
- * @param types - Optional array of types to filter items (e.g., ['movie', 'show'])
- * @returns Promise resolving to an array of objects containing item IDs and their parsed GUID arrays
- */
 export async function getAllGuidsFromWatchlist(
   this: DatabaseService,
   types?: string[],
@@ -742,13 +630,7 @@ export async function getAllGuidsFromWatchlist(
   }))
 }
 
-/**
- * Checks which of the specified titles have had 'watchlist_add' notifications sent for a user.
- *
- * @param userId - The user ID to check notifications for
- * @param titles - Array of titles to check for existing notifications
- * @returns A map where each title is mapped to true if a notification exists, or false otherwise
- */
+/** Maps each title to whether a watchlist_add notification was already sent to the user */
 export async function checkExistingWebhooks(
   this: DatabaseService,
   userId: number,
@@ -780,13 +662,7 @@ export async function checkExistingWebhooks(
   return result
 }
 
-/**
- * Retrieves all unique GUIDs from watchlist items in lowercase, using raw SQL compatible with both Postgres and other SQL databases.
- *
- * Falls back to a mapped extraction method if the raw query fails.
- *
- * @returns An array of unique, lowercased GUID strings.
- */
+/** Falls back to getAllGuidsMapped when the SQLite raw result is not an array */
 export async function getUniqueGuidsRaw(
   this: DatabaseService,
 ): Promise<string[]> {
@@ -842,9 +718,6 @@ export async function getUniqueGuidsRaw(
   return this.getAllGuidsMapped()
 }
 
-/**
- * Synchronizes all unique genres found in watchlist items into the genres table, inserting new genres as needed and updating timestamps for existing ones.
- */
 export async function syncGenresFromWatchlist(
   this: DatabaseService,
 ): Promise<void> {
@@ -885,14 +758,7 @@ export async function syncGenresFromWatchlist(
   }
 }
 
-/**
- * Adds a new custom genre by name to the genres table.
- *
- * Trims the provided name, inserts it as a custom genre, and returns the new genre's ID. Throws an error if the genre already exists.
- *
- * @param name - The name of the custom genre to add
- * @returns The ID of the newly created genre
- */
+/** Throws when the genre already exists */
 export async function addCustomGenre(
   this: DatabaseService,
   name: string,
@@ -915,11 +781,6 @@ export async function addCustomGenre(
   return this.extractId(result)
 }
 
-/**
- * Retrieves all genres from the database, ordered alphabetically by name.
- *
- * @returns An array of genre objects, each containing the genre's ID, name, and whether it is custom.
- */
 export async function getAllGenres(
   this: DatabaseService,
 ): Promise<Array<{ id: number; name: string; is_custom: boolean }>> {
@@ -928,12 +789,7 @@ export async function getAllGenres(
     .orderBy('name', 'asc')
 }
 
-/**
- * Deletes a custom genre by its ID.
- *
- * @param id - The ID of the custom genre to delete.
- * @returns True if the genre was deleted, false if no matching custom genre was found.
- */
+/** Only deletes custom genres, and returns false when none matched */
 export async function deleteCustomGenre(
   this: DatabaseService,
   id: number,
@@ -944,11 +800,6 @@ export async function deleteCustomGenre(
   return deleted > 0
 }
 
-/**
- * Retrieves all watchlist items of type 'show', parsing GUIDs and genres for each item.
- *
- * @returns An array of show watchlist items with normalized IDs, GUIDs, and genres.
- */
 export async function getAllShowWatchlistItems(
   this: DatabaseService,
 ): Promise<TokenWatchlistItem[]> {
@@ -971,11 +822,6 @@ export async function getAllShowWatchlistItems(
   }))
 }
 
-/**
- * Retrieves all watchlist items of type 'movie', returning each with normalized string IDs, parsed GUIDs, and genres.
- *
- * @returns An array of movie watchlist items with IDs as strings and parsed GUID and genre arrays.
- */
 export async function getAllMovieWatchlistItems(
   this: DatabaseService,
 ): Promise<TokenWatchlistItem[]> {
@@ -998,17 +844,7 @@ export async function getAllMovieWatchlistItems(
   }))
 }
 
-/**
- * Inserts multiple watchlist items in bulk and returns their database IDs, owners and keys.
- *
- * Supports conflict resolution: use 'ignore' (default) to skip duplicates or 'merge' to update existing entries.
- * When using 'merge', only metadata fields (title, type, thumb, guids, genres) are updated - status is never
- * overwritten to prevent accidental status regression. This is intentional for metadata refresh operations.
- *
- * @param items - The watchlist items to insert, excluding creation and update timestamps
- * @param options - Optional conflict resolution mode: 'ignore' (default) or 'merge'
- * @returns Array of objects with the IDs, user IDs and keys of inserted or merged items
- */
+/** Merge mode refreshes metadata only and never overwrites status */
 export async function createWatchlistItems(
   this: DatabaseService,
   items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
@@ -1041,8 +877,7 @@ export async function createWatchlistItems(
       const query = trx('watchlist_items').insert(itemsToInsert)
 
       if (options.onConflict === 'merge') {
-        // Only merge metadata fields - never overwrite status to prevent regression
-        // This is used by metadata refresh which should update posters/guids/genres/ratings only
+        // Metadata refresh must never overwrite status, since that would regress it
         const results = await query
           .onConflict(['user_id', 'key'])
           .merge([
@@ -1073,12 +908,7 @@ export async function createWatchlistItems(
   return insertedIds
 }
 
-/**
- * Deletes specified watchlist items for a user.
- *
- * Removes watchlist items matching the given keys for the provided user ID. If the keys array is empty, no action is taken.
- * Also deletes any associated `watchlist_add` notifications to allow re-notification when items are re-added.
- */
+/** Also deletes the items' watchlist_add notifications, and public notifications once no other user has the title, so re-adds notify again */
 export async function deleteWatchlistItems(
   this: DatabaseService,
   userId: number,
@@ -1089,22 +919,17 @@ export async function deleteWatchlistItems(
   const numericUserId =
     typeof userId === 'object' ? (userId as { id: number }).id : userId
 
-  // Wrap in transaction for atomicity
   await this.knex.transaction(async (trx) => {
-    // Fetch titles and types of items being deleted for notification cleanup
     const itemsToDelete = await trx('watchlist_items')
       .where('user_id', numericUserId)
       .whereIn('key', keys)
       .select('title', 'type')
 
-    // Delete watchlist_add notifications for these items to allow re-notification
-    // These are typically orphaned (NULL watchlist_item_id) and won't CASCADE delete
-    // Match by user_id + title + inferred type from message to avoid duplicate title conflicts
+    // watchlist_add notifications usually have a NULL watchlist_item_id, so the CASCADE below misses them
     if (itemsToDelete.length > 0) {
       let totalDeleted = 0
 
       for (const item of itemsToDelete) {
-        // Infer notification message pattern based on item type
         const messagePattern =
           item.type === 'movie'
             ? '%movie%'
@@ -1119,7 +944,6 @@ export async function deleteWatchlistItems(
           title: item.title,
         })
 
-        // Use database-specific case-insensitive matching
         if (this.isPostgres) {
           query.andWhere('message', 'ilike', messagePattern)
         } else {
@@ -1131,8 +955,6 @@ export async function deleteWatchlistItems(
 
         totalDeleted += deleteCount
 
-        // Check if any other users still have this content watchlisted (same type)
-        // If not, clean up public notifications to allow re-notification if re-added
         const remaining = await trx('watchlist_items')
           .where('title', item.title)
           .where('type', item.type)
@@ -1140,8 +962,6 @@ export async function deleteWatchlistItems(
           .first()
 
         if (!remaining) {
-          // No users have this content anymore - clean up public notifications
-          // Match notification type: movie -> 'movie', show -> 'episode'/'season'
           const notificationTypes =
             item.type === 'movie' ? ['movie'] : ['episode', 'season']
 
@@ -1178,14 +998,6 @@ export async function deleteWatchlistItems(
   })
 }
 
-/**
- * Retrieves all watchlist items belonging to the specified user.
- *
- * Parses the `guids` and `genres` fields from JSON for each item.
- *
- * @param userId - The user ID whose watchlist items are to be retrieved
- * @returns An array of all watchlist items for the user
- */
 export async function getAllWatchlistItemsForUser(
   this: DatabaseService,
   userId: number,
@@ -1240,21 +1052,13 @@ export async function getWatchlistItemsByGuid(
   }))
 }
 
-/**
- * Retrieves all unique GUIDs from watchlist items that include a TVDB GUID matching the specified TVDB ID.
- *
- * Searches for watchlist items whose `guids` array contains a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
- *
- * @param tvdbId - The TVDB ID to search for within GUIDs
- * @returns An array of unique GUID strings from matching watchlist items
- */
+/** Returns every distinct GUID from items that carry tvdb:{tvdbId} */
 export async function getAllGuidsByTvdbId(
   this: DatabaseService,
   tvdbId: number,
 ): Promise<string[]> {
   const tvdbGuid = `tvdb:${tvdbId}`
 
-  // Get all watchlist items that contain this TVDB ID
   const items = this.isPostgres
     ? await this.knex('watchlist_items')
         .whereRaw(
@@ -1269,7 +1073,6 @@ export async function getAllGuidsByTvdbId(
         )
         .select('guids')
 
-  // Collect all unique GUIDs from the found items
   const allGuids = new Set<string>()
 
   for (const item of items) {
@@ -1288,20 +1091,11 @@ export async function getAllGuidsByTvdbId(
   return Array.from(allGuids)
 }
 
-/**
- * Retrieves all watchlist items that contain any of the specified GUIDs, including associated user information.
- *
- * GUID matching is case-insensitive. Each result includes watchlist item fields and the corresponding user's username and watchlist ID for items whose GUIDs array contains at least one of the provided GUIDs.
- *
- * @param guids - List of GUIDs to search for in watchlist items
- * @returns Array of objects containing watchlist item data and associated user information
- */
 export async function getWatchlistItemsWithUsersByGuids(
   this: DatabaseService,
   guids: string[],
 ): Promise<
   Array<{
-    // Watchlist item fields
     id: number
     user_id: number
     key: string
@@ -1311,7 +1105,6 @@ export async function getWatchlistItemsWithUsersByGuids(
     guids: string[]
     genres: string[]
     status: string
-    // User fields
     username: string
   }>
 > {
@@ -1319,10 +1112,8 @@ export async function getWatchlistItemsWithUsersByGuids(
     return []
   }
 
-  // Normalize GUIDs for consistent matching (lowercase + provider:id format)
   const normalizedGuids = guids.map(normalizeGuid)
 
-  // Use database-specific JSON functions to efficiently find items containing any of the GUIDs
   const items = this.isPostgres
     ? await this.knex('watchlist_items as wi')
         .join('users as u', 'wi.user_id', 'u.id')
@@ -1345,7 +1136,6 @@ export async function getWatchlistItemsWithUsersByGuids(
     : await this.knex('watchlist_items as wi')
         .join('users as u', 'wi.user_id', 'u.id')
         .where((builder) => {
-          // For SQLite, we need to check each GUID individually
           for (const guid of normalizedGuids) {
             builder.orWhereRaw(
               "EXISTS (SELECT 1 FROM json_each(wi.guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",

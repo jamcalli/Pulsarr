@@ -9,14 +9,7 @@ import { chunkArray } from '@utils/chunk-array.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { Knex } from 'knex'
 
-/**
- * Retrieves all Radarr instance IDs linked to a specific watchlist item.
- *
- * Returns an array of Radarr instance IDs associated with the given watchlist item. If an error occurs, returns an empty array.
- *
- * @param watchlistId - The ID of the watchlist item to query
- * @returns An array of Radarr instance IDs associated with the watchlist item
- */
+/** Returns [] on error */
 export async function getWatchlistRadarrInstanceIds(
   this: DatabaseService,
   watchlistId: number,
@@ -38,15 +31,7 @@ export async function getWatchlistRadarrInstanceIds(
   }
 }
 
-/**
- * Retrieves the status details for a watchlist item on a specific Radarr instance.
- *
- * Returns the status, last notified timestamp, and primary flag for the given watchlist item and Radarr instance, or null if not found or on error.
- *
- * @param watchlistId - The ID of the watchlist item.
- * @param instanceId - The ID of the Radarr instance.
- * @returns The status information for the watchlist item on the specified Radarr instance, or null if not found.
- */
+/** Returns null when not found or on error */
 export async function getWatchlistRadarrInstanceStatus(
   this: DatabaseService,
   watchlistId: number,
@@ -71,17 +56,7 @@ export async function getWatchlistRadarrInstanceStatus(
   }
 }
 
-/**
- * Associates a watchlist item with a Radarr instance, creating or updating the junction record with status, primary flag, and syncing state.
- *
- * If the association already exists, updates the status, primary flag, syncing flag, and timestamp.
- *
- * @param watchlistId - The ID of the watchlist item to associate
- * @param instanceId - The ID of the Radarr instance
- * @param status - The initial status for the association (defaults to 'pending')
- * @param isPrimary - Whether this instance is set as primary for the item (defaults to false)
- * @param syncing - Whether the item is currently syncing with the instance (defaults to false)
- */
+/** Upserts, overwriting status, primary and syncing on an existing row */
 export async function addWatchlistToRadarrInstance(
   this: DatabaseService,
   watchlistId: number,
@@ -118,14 +93,6 @@ export async function addWatchlistToRadarrInstance(
   }
 }
 
-/**
- * Updates the status and optionally the last notified timestamp for a watchlist item on a specific Radarr instance.
- *
- * @param watchlistId - The ID of the watchlist item
- * @param instanceId - The ID of the Radarr instance
- * @param status - The new status to assign
- * @param lastNotifiedAt - Optional timestamp indicating when the item was last notified
- */
 export async function updateWatchlistRadarrInstanceStatus(
   this: DatabaseService,
   watchlistId: number,
@@ -162,11 +129,6 @@ export async function updateWatchlistRadarrInstanceStatus(
   }
 }
 
-/**
- * Deletes the association between a watchlist item and a Radarr instance.
- *
- * Removes the junction record linking the specified watchlist item to the given Radarr instance.
- */
 export async function removeWatchlistFromRadarrInstance(
   this: DatabaseService,
   watchlistId: number,
@@ -192,11 +154,6 @@ export async function removeWatchlistFromRadarrInstance(
   }
 }
 
-/**
- * Atomically sets the specified Radarr instance as the primary for a given watchlist item.
- *
- * Ensures only one Radarr instance is marked as primary for the watchlist item by updating all related records in a single transaction.
- */
 export async function setPrimaryRadarrInstance(
   this: DatabaseService,
   watchlistId: number,
@@ -205,7 +162,7 @@ export async function setPrimaryRadarrInstance(
 ): Promise<void> {
   try {
     const executeInTransaction = async (transactionQuery: Knex.Transaction) => {
-      // Atomic update using CASE WHEN to prevent race conditions
+      // One CASE WHEN update keeps exactly one primary without a read-then-write race
       await transactionQuery('watchlist_radarr_instances')
         .where({ watchlist_id: watchlistId })
         .update({
@@ -235,12 +192,6 @@ export async function setPrimaryRadarrInstance(
   }
 }
 
-/**
- * Retrieves all Radarr instance junction records for the specified watchlist item IDs.
- *
- * @param watchlistIds - The IDs of the watchlist items to query.
- * @returns An array of junction records containing Radarr instance associations and their statuses for each watchlist item.
- */
 export async function getAllWatchlistRadarrInstanceJunctions(
   this: DatabaseService,
   watchlistIds: number[],
@@ -259,11 +210,7 @@ export async function getAllWatchlistRadarrInstanceJunctions(
     .select('*')
 }
 
-/**
- * Bulk inserts or updates multiple watchlist-to-Radarr-instance associations.
- *
- * For each provided junction, creates or updates the record with the specified status, primary flag, syncing flag, and last notified timestamp. Existing records are merged on conflict.
- */
+/** Upserts, overwriting status, primary, syncing and last_notified_at on existing rows */
 export async function bulkAddWatchlistToRadarrInstances(
   this: DatabaseService,
   junctions: Array<{
@@ -288,12 +235,10 @@ export async function bulkAddWatchlistToRadarrInstances(
     updated_at: timestamp,
   }))
 
-  // Process in chunks within a transaction
   await this.knex.transaction(async (trx) => {
     const chunks = chunkArray(records, 100)
 
     for (const chunk of chunks) {
-      // Instead of ignoring conflicts, merge the updates
       await trx('watchlist_radarr_instances')
         .insert(chunk)
         .onConflict(['watchlist_id', 'radarr_instance_id'])
@@ -308,11 +253,7 @@ export async function bulkAddWatchlistToRadarrInstances(
   })
 }
 
-/**
- * Bulk updates the status and related fields for multiple watchlist items associated with Radarr instances.
- *
- * Each update can modify the status, primary flag, and last notified timestamp for a specific watchlist-to-Radarr-instance association. All updates are performed atomically within a transaction. Throws an error if an invalid status value is provided.
- */
+/** Throws on an invalid status, and undefined fields are left unchanged */
 export async function bulkUpdateWatchlistRadarrInstanceStatuses(
   this: DatabaseService,
   updates: Array<{
@@ -325,7 +266,6 @@ export async function bulkUpdateWatchlistRadarrInstanceStatuses(
 ): Promise<void> {
   const timestamp = this.timestamp
 
-  // Use transaction to ensure all updates are atomic
   await this.knex.transaction(async (trx) => {
     for (const update of updates) {
       if (
@@ -337,7 +277,6 @@ export async function bulkUpdateWatchlistRadarrInstanceStatuses(
 
       const { watchlist_id, radarr_instance_id, ...fields } = update
 
-      // Filter out undefined values to prevent setting fields to NULL
       const updateFields = Object.entries(fields).reduce(
         (acc, [key, value]) => {
           if (value !== undefined) {
@@ -361,11 +300,6 @@ export async function bulkUpdateWatchlistRadarrInstanceStatuses(
   })
 }
 
-/**
- * Removes multiple watchlist-to-Radarr-instance associations in bulk.
- *
- * Processes the removals in chunks for efficiency and deletes each specified junction record from the database.
- */
 export async function bulkRemoveWatchlistFromRadarrInstances(
   this: DatabaseService,
   removals: Array<{
@@ -373,9 +307,7 @@ export async function bulkRemoveWatchlistFromRadarrInstances(
     radarr_instance_id: number
   }>,
 ): Promise<void> {
-  // Use a single query with multiple OR conditions
   await this.knex.transaction(async (trx) => {
-    // Process in reasonable chunks
     const chunks = chunkArray(removals, 50)
 
     for (const chunk of chunks) {
@@ -393,14 +325,7 @@ export async function bulkRemoveWatchlistFromRadarrInstances(
   })
 }
 
-/**
- * Retrieves all Sonarr instance IDs linked to a specific watchlist item.
- *
- * Returns an array of Sonarr instance IDs associated with the given watchlist item. If an error occurs, an empty array is returned.
- *
- * @param watchlistId - The ID of the watchlist item to query.
- * @returns A promise that resolves to an array of Sonarr instance IDs.
- */
+/** Returns [] on error */
 export async function getWatchlistSonarrInstanceIds(
   this: DatabaseService,
   watchlistId: number,
@@ -422,15 +347,7 @@ export async function getWatchlistSonarrInstanceIds(
   }
 }
 
-/**
- * Retrieves the status details for a watchlist item on a specific Sonarr instance.
- *
- * Returns the status, last notified timestamp, and primary flag for the given watchlist item and Sonarr instance, or null if not found or on error.
- *
- * @param watchlistId - The ID of the watchlist item.
- * @param instanceId - The ID of the Sonarr instance.
- * @returns The status information for the watchlist item on the specified Sonarr instance, or null if not found.
- */
+/** Returns null when not found or on error */
 export async function getWatchlistSonarrInstanceStatus(
   this: DatabaseService,
   watchlistId: number,
@@ -455,11 +372,7 @@ export async function getWatchlistSonarrInstanceStatus(
   }
 }
 
-/**
- * Associates a watchlist item with a Sonarr instance, creating or updating the junction record with status, primary flag, and syncing state.
- *
- * If the association already exists, the status, primary flag, syncing flag, and updated timestamp are merged.
- */
+/** Upserts, overwriting status, primary, syncing and a given sonarrSeriesId on an existing row */
 export async function addWatchlistToSonarrInstance(
   this: DatabaseService,
   watchlistId: number,
@@ -508,14 +421,6 @@ export async function addWatchlistToSonarrInstance(
   }
 }
 
-/**
- * Updates the status and optionally the last notified timestamp for a watchlist item on a specific Sonarr instance.
- *
- * @param watchlistId - The ID of the watchlist item.
- * @param instanceId - The ID of the Sonarr instance.
- * @param status - The new status to assign to the watchlist item.
- * @param lastNotifiedAt - Optional timestamp indicating when the item was last notified.
- */
 export async function updateWatchlistSonarrInstanceStatus(
   this: DatabaseService,
   watchlistId: number,
@@ -552,11 +457,6 @@ export async function updateWatchlistSonarrInstanceStatus(
   }
 }
 
-/**
- * Deletes the association between a watchlist item and a Sonarr instance.
- *
- * Removes the junction record linking the specified watchlist item to the given Sonarr instance.
- */
 export async function removeWatchlistFromSonarrInstance(
   this: DatabaseService,
   watchlistId: number,
@@ -582,11 +482,6 @@ export async function removeWatchlistFromSonarrInstance(
   }
 }
 
-/**
- * Sets the specified Sonarr instance as the primary for a given watchlist item, ensuring only one primary per item.
- *
- * If a transaction is provided, the update occurs within that transaction; otherwise, a new transaction is used.
- */
 export async function setPrimarySonarrInstance(
   this: DatabaseService,
   watchlistId: number,
@@ -595,7 +490,7 @@ export async function setPrimarySonarrInstance(
 ): Promise<void> {
   try {
     const executeInTransaction = async (transactionQuery: Knex.Transaction) => {
-      // Atomic update using CASE WHEN to prevent race conditions
+      // One CASE WHEN update keeps exactly one primary without a read-then-write race
       await transactionQuery('watchlist_sonarr_instances')
         .where({ watchlist_id: watchlistId })
         .update({
@@ -625,12 +520,6 @@ export async function setPrimarySonarrInstance(
   }
 }
 
-/**
- * Retrieves all Sonarr instance junction records for the specified watchlist item IDs.
- *
- * @param watchlistIds - The IDs of the watchlist items to query.
- * @returns An array of junction records containing Sonarr instance associations and status details for each watchlist item.
- */
 export async function getAllWatchlistSonarrInstanceJunctions(
   this: DatabaseService,
   watchlistIds: number[],
@@ -649,11 +538,7 @@ export async function getAllWatchlistSonarrInstanceJunctions(
     .select('*')
 }
 
-/**
- * Bulk inserts or updates multiple watchlist-to-Sonarr-instance associations.
- *
- * Each entry in the input array specifies a watchlist item, Sonarr instance, status, primary flag, and optional syncing and notification timestamp. Existing records are updated on conflict.
- */
+/** Upserts, overwriting status, primary, syncing and last_notified_at on existing rows */
 export async function bulkAddWatchlistToSonarrInstances(
   this: DatabaseService,
   junctions: Array<{
@@ -680,12 +565,10 @@ export async function bulkAddWatchlistToSonarrInstances(
     updated_at: timestamp,
   }))
 
-  // Process in chunks within a transaction
   await this.knex.transaction(async (trx) => {
     const chunks = chunkArray(records, 100)
 
     for (const chunk of chunks) {
-      // Instead of ignoring conflicts, merge the updates
       await trx('watchlist_sonarr_instances')
         .insert(chunk)
         .onConflict(['watchlist_id', 'sonarr_instance_id'])
@@ -700,11 +583,7 @@ export async function bulkAddWatchlistToSonarrInstances(
   })
 }
 
-/**
- * Bulk updates the status and related fields for multiple watchlist items associated with Sonarr instances.
- *
- * Each update can modify the status, primary flag, and last notified timestamp for a specific watchlist-to-Sonarr-instance association. All updates are performed atomically within a transaction. Throws an error if an invalid status is provided.
- */
+/** Throws on an invalid status, and undefined fields are left unchanged */
 export async function bulkUpdateWatchlistSonarrInstanceStatuses(
   this: DatabaseService,
   updates: Array<{
@@ -718,12 +597,10 @@ export async function bulkUpdateWatchlistSonarrInstanceStatuses(
 ): Promise<void> {
   const timestamp = this.timestamp
 
-  // Use transaction to ensure all updates are atomic
   await this.knex.transaction(async (trx) => {
     for (const update of updates) {
       const { watchlist_id, sonarr_instance_id, ...fields } = update
 
-      // Validate status field if provided
       if (
         fields.status &&
         !['pending', 'requested', 'grabbed', 'notified'].includes(fields.status)
@@ -731,7 +608,6 @@ export async function bulkUpdateWatchlistSonarrInstanceStatuses(
         throw new Error(`Invalid status '${fields.status}'`)
       }
 
-      // Filter out undefined values to prevent setting fields to NULL
       const updateFields = Object.entries(fields).reduce(
         (acc, [key, value]) => {
           if (value !== undefined) {
@@ -755,11 +631,6 @@ export async function bulkUpdateWatchlistSonarrInstanceStatuses(
   })
 }
 
-/**
- * Bulk removes associations between watchlist items and Sonarr instances.
- *
- * Removes multiple records from the `watchlist_sonarr_instances` junction table based on the provided watchlist and instance ID pairs.
- */
 export async function bulkRemoveWatchlistFromSonarrInstances(
   this: DatabaseService,
   removals: Array<{
@@ -767,9 +638,7 @@ export async function bulkRemoveWatchlistFromSonarrInstances(
     sonarr_instance_id: number
   }>,
 ): Promise<void> {
-  // Use a single query with multiple OR conditions
   await this.knex.transaction(async (trx) => {
-    // Process in reasonable chunks
     const chunks = chunkArray(removals, 50)
 
     for (const chunk of chunks) {
@@ -787,13 +656,7 @@ export async function bulkRemoveWatchlistFromSonarrInstances(
   })
 }
 
-/**
- * Retrieves content distribution statistics for all enabled Radarr and Sonarr instances.
- *
- * For each instance, returns the total number of associated watchlist items, the number of items where the instance is primary, and breakdowns by status and content type.
- *
- * @returns Promise resolving to an object containing a success flag and an array of instance content breakdowns
- */
+/** Covers enabled instances only, and days > 0 counts only junction rows created in that window */
 export async function getInstanceContentBreakdown(
   this: DatabaseService,
   options: { days?: number } = {},
@@ -823,28 +686,23 @@ export async function getInstanceContentBreakdown(
     }
 
   try {
-    // Get all Radarr instances
     const radarrInstances = await this.knex('radarr_instances')
       .select('id', 'name')
       .where('is_enabled', true)
 
-    // Get all Sonarr instances
     const sonarrInstances = await this.knex('sonarr_instances')
       .select('id', 'name')
       .where('is_enabled', true)
 
     const instances = []
 
-    // Process Radarr instances
     for (const instance of radarrInstances) {
-      // Get total count
       const totalCount = await this.knex('watchlist_radarr_instances')
         .where(routedInRange('watchlist_radarr_instances'))
         .where('radarr_instance_id', instance.id)
         .count('* as count')
         .first()
 
-      // Get count of primary items
       const primaryCount = await this.knex('watchlist_radarr_instances')
         .where(routedInRange('watchlist_radarr_instances'))
         .where({
@@ -854,7 +712,6 @@ export async function getInstanceContentBreakdown(
         .count('* as count')
         .first()
 
-      // Get breakdown by status
       const statusBreakdown = await this.knex('watchlist_radarr_instances')
         .where(routedInRange('watchlist_radarr_instances'))
         .select('status')
@@ -862,7 +719,6 @@ export async function getInstanceContentBreakdown(
         .where('radarr_instance_id', instance.id)
         .groupBy('status')
 
-      // Get breakdown by content type (join with watchlist_items)
       const contentTypeBreakdown = await this.knex('watchlist_radarr_instances')
         .where(routedInRange('watchlist_radarr_instances'))
         .join(
@@ -892,16 +748,13 @@ export async function getInstanceContentBreakdown(
       })
     }
 
-    // Process Sonarr instances
     for (const instance of sonarrInstances) {
-      // Get total count
       const totalCount = await this.knex('watchlist_sonarr_instances')
         .where(routedInRange('watchlist_sonarr_instances'))
         .where('sonarr_instance_id', instance.id)
         .count('* as count')
         .first()
 
-      // Get count of primary items
       const primaryCount = await this.knex('watchlist_sonarr_instances')
         .where(routedInRange('watchlist_sonarr_instances'))
         .where({
@@ -911,7 +764,6 @@ export async function getInstanceContentBreakdown(
         .count('* as count')
         .first()
 
-      // Get breakdown by status
       const statusBreakdown = await this.knex('watchlist_sonarr_instances')
         .where(routedInRange('watchlist_sonarr_instances'))
         .select('status')
@@ -919,7 +771,6 @@ export async function getInstanceContentBreakdown(
         .where('sonarr_instance_id', instance.id)
         .groupBy('status')
 
-      // Get breakdown by content type (join with watchlist_items)
       const contentTypeBreakdown = await this.knex('watchlist_sonarr_instances')
         .where(routedInRange('watchlist_sonarr_instances'))
         .join(
@@ -959,11 +810,6 @@ export async function getInstanceContentBreakdown(
   }
 }
 
-/**
- * Updates the syncing flag for a watchlist item on a Radarr instance.
- *
- * Marks whether the specified watchlist item is currently being synchronized with the given Radarr instance to coordinate concurrent operations.
- */
 export async function updateRadarrSyncingStatus(
   this: DatabaseService,
   watchlistId: number,
@@ -983,15 +829,6 @@ export async function updateRadarrSyncingStatus(
     })
 }
 
-/**
- * Updates the syncing flag for a watchlist item on a Sonarr instance.
- *
- * Marks whether the specified watchlist item is currently being synchronized with the given Sonarr instance.
- *
- * @param watchlistId - The ID of the watchlist item.
- * @param instanceId - The ID of the Sonarr instance.
- * @param syncing - True if the item is currently syncing; false otherwise.
- */
 export async function updateSonarrSyncingStatus(
   this: DatabaseService,
   watchlistId: number,
@@ -1011,13 +848,6 @@ export async function updateSonarrSyncingStatus(
     })
 }
 
-/**
- * Returns whether a watchlist item is currently syncing with a Radarr instance.
- *
- * @param watchlistId - The ID of the watchlist item.
- * @param instanceId - The ID of the Radarr instance.
- * @returns True if the item is syncing with the instance; otherwise, false.
- */
 export async function isRadarrItemSyncing(
   this: DatabaseService,
   watchlistId: number,
@@ -1033,11 +863,6 @@ export async function isRadarrItemSyncing(
   return item ? Boolean(item.syncing) : false
 }
 
-/**
- * Returns whether a watchlist item is currently syncing with a Sonarr instance.
- *
- * @returns Promise resolving to true if the item is syncing, or false if not syncing or not found.
- */
 export async function isSonarrItemSyncing(
   this: DatabaseService,
   watchlistId: number,
@@ -1053,15 +878,7 @@ export async function isSonarrItemSyncing(
   return item ? Boolean(item.syncing) : false
 }
 
-/**
- * Gets sync-enabled users with watchlist items on a specific Radarr instance.
- * Combines two conditions to prevent tag churn:
- * 1. User has can_sync=true (required for tag-based deletion semantics)
- * 2. User has items on this specific instance (prevents creating tags for empty watchlists)
- *
- * @param instanceId - The ID of the Radarr instance
- * @returns Array of User objects for users who can sync and have items on this instance
- */
+/** Returns can_sync users with items on this instance, so tags are never created for empty watchlists */
 export async function getUsersWithRadarrItems(
   this: DatabaseService,
   instanceId: number,
@@ -1085,15 +902,7 @@ export async function getUsersWithRadarrItems(
   }
 }
 
-/**
- * Gets sync-enabled users with watchlist items on a specific Sonarr instance.
- * Combines two conditions to prevent tag churn:
- * 1. User has can_sync=true (required for tag-based deletion semantics)
- * 2. User has items on this specific instance (prevents creating tags for empty watchlists)
- *
- * @param instanceId - The ID of the Sonarr instance
- * @returns Array of User objects for users who can sync and have items on this instance
- */
+/** Returns can_sync users with items on this instance, so tags are never created for empty watchlists */
 export async function getUsersWithSonarrItems(
   this: DatabaseService,
   instanceId: number,
@@ -1117,16 +926,7 @@ export async function getUsersWithSonarrItems(
   }
 }
 
-/**
- * Returns all Pulsarr-tracked Sonarr shows with their rolling enrollment status.
- *
- * Joins the junction table with watchlist_items for metadata and left joins
- * rolling_monitored_shows (master records only) to indicate enrollment.
- * Only returns rows where sonarr_series_id is populated.
- *
- * @param instanceId - Optional filter by Sonarr instance
- * @returns Array of shows with enrollment status
- */
+/** Returns one row per tracked series and instance, with rolling fields from the master record or null, and [] on error */
 export async function getSonarrShowsWithEnrollmentStatus(
   this: DatabaseService,
   instanceId?: number,
@@ -1141,8 +941,7 @@ export async function getSonarrShowsWithEnrollmentStatus(
       })
       .whereNotNull('wsi.sonarr_series_id')
       .andWhere('wi.type', 'show')
-      // Multiple users can watchlist the same show, producing duplicate
-      // junction rows for the same series+instance. Group to deduplicate.
+      // Several users can watchlist one show, so group to one row per series and instance
       .groupBy('wsi.sonarr_instance_id', 'wsi.sonarr_series_id')
       .min({
         watchlist_id: 'wsi.watchlist_id',

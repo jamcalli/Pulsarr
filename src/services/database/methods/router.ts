@@ -64,11 +64,6 @@ function formatRouterRule(
   }
 }
 
-/**
- * Retrieves all router rules from the database, ordered by priority and ID.
- *
- * @returns A promise that resolves to an array of formatted router rules.
- */
 export async function getAllRouterRules(
   this: DatabaseService,
 ): Promise<RouterRule[]> {
@@ -80,12 +75,6 @@ export async function getAllRouterRules(
   return rules.map((rule) => formatRouterRule(this, rule))
 }
 
-/**
- * Retrieves a router rule by its unique ID.
- *
- * @param id - The unique identifier of the router rule.
- * @returns The router rule if found, or null if no rule exists with the given ID.
- */
 export async function getRouterRuleById(
   this: DatabaseService,
   id: number,
@@ -97,13 +86,6 @@ export async function getRouterRuleById(
   return formatRouterRule(this, rule)
 }
 
-/**
- * Retrieves router rules of a specified type, optionally filtering for only enabled rules.
- *
- * @param type - The router rule type to filter by.
- * @param enabledOnly - Whether to include only enabled rules (default: true).
- * @returns A promise resolving to an array of formatted router rules matching the criteria.
- */
 export async function getRouterRulesByType(
   this: DatabaseService,
   type: string,
@@ -120,15 +102,7 @@ export async function getRouterRulesByType(
   return rules.map((rule) => formatRouterRule(this, rule))
 }
 
-/**
- * Retrieves router rules that match a specific action, such as requiring approval or bypassing quotas.
- *
- * For the 'require_approval' action, returns rules with `always_require_approval` set to true. For 'bypass_quotas', returns rules with `bypass_user_quotas` set to true. For other actions, filters by the rule's `type` field. Optionally restricts results to enabled rules.
- *
- * @param action - The action to filter rules by (e.g., 'require_approval', 'bypass_quotas', or a rule type)
- * @param enabledOnly - Whether to return only enabled rules (default: true)
- * @returns A promise that resolves to an array of router rules matching the specified action
- */
+/** require_approval and bypass_quotas match their flag columns, and any other action matches the rule type */
 export async function getRouterRulesByAction(
   this: DatabaseService,
   action: string,
@@ -136,13 +110,11 @@ export async function getRouterRulesByAction(
 ): Promise<RouterRule[]> {
   let query = this.knex('router_rules').select('*')
 
-  // Filter by approval actions
   if (action === 'require_approval') {
     query = query.where('always_require_approval', true)
   } else if (action === 'bypass_quotas') {
     query = query.where('bypass_user_quotas', true)
   } else {
-    // For other actions, filter by type as fallback
     query = query.where('type', action)
   }
 
@@ -155,14 +127,6 @@ export async function getRouterRulesByAction(
   return rules.map((rule) => formatRouterRule(this, rule))
 }
 
-/**
- * Creates a new router rule in the database.
- *
- * Serializes complex fields and sets creation and update timestamps. Throws an error if creation fails.
- *
- * @param rule - The router rule data to insert, excluding ID and timestamps
- * @returns The newly created router rule
- */
 export async function createRouterRule(
   this: DatabaseService,
   rule: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
@@ -185,15 +149,7 @@ export async function createRouterRule(
   return formatRouterRule(this, createdRule)
 }
 
-/**
- * Updates an existing router rule with the specified fields.
- *
- * Only the fields provided in `updates` are modified. Throws an error if the router rule does not exist or the update fails.
- *
- * @param id - The unique identifier of the router rule to update
- * @param updates - Partial set of fields to update on the router rule
- * @returns The updated router rule
- */
+/** Throws when the rule does not exist, and writes only whitelisted columns */
 export async function updateRouterRule(
   this: DatabaseService,
   id: number,
@@ -266,7 +222,6 @@ export async function updateRouterRule(
     updateData.monitor = updates.monitor
   }
 
-  // Action fields for approval system
   if (updates.always_require_approval !== undefined) {
     updateData.always_require_approval = updates.always_require_approval
   }
@@ -297,12 +252,6 @@ export async function updateRouterRule(
   return formatRouterRule(this, updatedRule)
 }
 
-/**
- * Deletes a router rule by its ID.
- *
- * @param id - The unique identifier of the router rule to delete.
- * @returns True if a rule was deleted; false if no matching rule was found.
- */
 export async function deleteRouterRule(
   this: DatabaseService,
   id: number,
@@ -311,13 +260,6 @@ export async function deleteRouterRule(
   return deleted > 0
 }
 
-/**
- * Retrieves all enabled router rules for a specific target type and instance.
- *
- * @param targetType - The type of target ('sonarr' or 'radarr')
- * @param instanceId - The unique identifier of the target instance
- * @returns An array of enabled router rules matching the specified target type and instance
- */
 export async function getRouterRulesByTarget(
   this: DatabaseService,
   targetType: 'sonarr' | 'radarr',
@@ -336,12 +278,6 @@ export async function getRouterRulesByTarget(
   return rules.map((rule) => formatRouterRule(this, rule))
 }
 
-/**
- * Retrieves all router rules with the specified target type.
- *
- * @param targetType - The target type to filter by ('sonarr' or 'radarr')
- * @returns A promise that resolves to an array of router rules matching the target type
- */
 export async function getRouterRulesByTargetType(
   this: DatabaseService,
   targetType: 'sonarr' | 'radarr',
@@ -367,14 +303,7 @@ export async function getRouterRulesByTargetType(
   }
 }
 
-/**
- * Updates the enabled state of a router rule by its ID.
- *
- * @param id - The ID of the router rule to update
- * @param enabled - Whether the rule should be enabled or disabled
- * @returns The updated router rule
- * @throws If the router rule is not found or cannot be updated
- */
+/** Throws when the rule does not exist */
 export async function toggleRouterRule(
   this: DatabaseService,
   id: number,
@@ -431,30 +360,20 @@ export async function nextRouterRuleOrder(
   return Math.max(ROUTER_RULE_PRIORITY.min, Number(row.lowest) - 1)
 }
 
-/**
- * Checks if any enabled router rules exist in the database.
- *
- * Returns `true` if at least one enabled router rule is found, or if an error occurs during the check; otherwise, returns `false`.
- *
- * @returns Promise resolving to `true` if any enabled router rules exist or if an error occurs, otherwise `false`
- */
+/** Returns true on error, so a failed check never skips rule evaluation */
 export async function hasAnyRouterRules(
   this: DatabaseService,
 ): Promise<boolean> {
   try {
-    // Perform a fast count query to check if any enabled rules exist
     const result = await this.knex('router_rules')
       .where('enabled', true)
       .count('* as count')
       .first()
 
-    // Check if count is greater than 0
     return Number(result?.count || 0) > 0
   } catch (error) {
     this.log.error({ error }, 'Error checking for router rules:')
 
-    // In case of error, assume rules might exist to be safe
-    // This is more conservative than skipping evaluation on error
     return true
   }
 }

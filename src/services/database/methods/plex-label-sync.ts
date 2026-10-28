@@ -1,8 +1,5 @@
 import type { DatabaseService } from '@services/database.service.js'
 
-/**
- * Database row representation for pending_label_syncs table
- */
 interface PendingLabelSyncRow {
   id: number
   watchlist_item_id: number
@@ -14,9 +11,6 @@ interface PendingLabelSyncRow {
   expires_at: string
 }
 
-/**
- * Pending label sync record
- */
 export interface PendingLabelSync {
   id: number
   watchlist_item_id: number
@@ -28,9 +22,6 @@ export interface PendingLabelSync {
   expires_at: string
 }
 
-/**
- * Pending label sync record with additional watchlist item data for processing
- */
 export interface PendingLabelSyncWithPlexKeys {
   id: number
   watchlist_item_id: number
@@ -46,17 +37,7 @@ export interface PendingLabelSyncWithPlexKeys {
   type: string
 }
 
-/**
- * Creates or upserts a pending label sync record for a specified watchlist item, setting its content title, webhook tags, and expiration.
- *
- * If a record for the given watchlist item already exists, it is updated with the new details and expiration, keeping its retry count and created_at. This is used to track items that cannot be labeled immediately, such as when Plex indexing is delayed.
- *
- * @param watchlistItemId - The ID of the watchlist item to synchronize
- * @param contentTitle - The title of the content associated with the watchlist item
- * @param expiresInMinutes - The number of minutes until the sync attempt expires (default: 10)
- * @param webhookTags - Tags to associate with the sync event
- * @returns The ID of the created or updated pending label sync record
- */
+/** Upserts by watchlist item, keeping retry_count and created_at on an existing row. */
 export async function createPendingLabelSync(
   this: DatabaseService,
   watchlistItemId: number,
@@ -89,13 +70,7 @@ export async function createPendingLabelSync(
   return this.extractId(result)
 }
 
-/**
- * Retrieves all pending label sync records that have not expired, ordered by creation time.
- *
- * Only records with an expiration timestamp later than the current time are returned. The `webhook_tags` field is parsed from JSON into a string array for each record.
- *
- * @returns An array of pending label sync records that are still active
- */
+/** Non-expired rows only, oldest first. */
 export async function getPendingLabelSyncs(
   this: DatabaseService,
 ): Promise<PendingLabelSync[]> {
@@ -122,12 +97,7 @@ export async function getPendingLabelSyncs(
   }))
 }
 
-/**
- * Updates a pending label sync record by incrementing its retry count and setting the last retry timestamp, only if the record is not expired.
- *
- * @param id - The ID of the pending label sync record to update
- * @returns True if the record was updated; false if not found or expired
- */
+/** Returns false when the row is missing or already expired. */
 export async function updatePendingLabelSyncRetry(
   this: DatabaseService,
   id: number,
@@ -136,7 +106,7 @@ export async function updatePendingLabelSyncRetry(
 
   const updated = await this.knex('pending_label_syncs')
     .where('id', id)
-    .where('expires_at', '>', now) // Only update if not expired
+    .where('expires_at', '>', now)
     .update({
       retry_count: this.knex.raw('retry_count + 1'),
       last_retry_at: this.timestamp,
@@ -145,12 +115,6 @@ export async function updatePendingLabelSyncRetry(
   return updated > 0
 }
 
-/**
- * Removes a pending label sync record from the database by its ID.
- *
- * @param id - The unique identifier of the pending label sync record to delete
- * @returns True if the record was successfully deleted; false if no record matched the given ID
- */
 export async function deletePendingLabelSync(
   this: DatabaseService,
   id: number,
@@ -162,13 +126,6 @@ export async function deletePendingLabelSync(
   return deleted > 0
 }
 
-/**
- * Deletes all pending label sync records that have expired.
- *
- * Removes entries from the `pending_label_syncs` table where the expiration timestamp is less than or equal to the current time.
- *
- * @returns The number of expired records that were deleted
- */
 export async function expirePendingLabelSyncs(
   this: DatabaseService,
 ): Promise<number> {
@@ -185,14 +142,6 @@ export async function expirePendingLabelSyncs(
   return deleted
 }
 
-/**
- * Retrieves a watchlist item by its ID, including Plex key and GUIDs.
- *
- * Returns an object with the item's ID, user ID, title, Plex key (if present), and an array of GUIDs, or null if the item does not exist.
- *
- * @param watchlistItemId - The unique identifier of the watchlist item to fetch
- * @returns The watchlist item's metadata and Plex key, or null if not found
- */
 export async function getWatchlistItemWithPlexKey(
   this: DatabaseService,
   watchlistItemId: number,
@@ -221,13 +170,7 @@ export async function getWatchlistItemWithPlexKey(
   }
 }
 
-/**
- * Retrieves all non-expired pending label sync records joined with their associated watchlist items.
- *
- * Each result includes pending sync details along with the Plex key, user ID, GUIDs, and content type from the related watchlist item. Useful for constructing and resolving GUIDs for label synchronization.
- *
- * @returns An array of pending label syncs enriched with watchlist item metadata.
- */
+/** Non-expired rows only, oldest first. */
 export async function getPendingLabelSyncsWithPlexKeys(
   this: DatabaseService,
 ): Promise<PendingLabelSyncWithPlexKeys[]> {

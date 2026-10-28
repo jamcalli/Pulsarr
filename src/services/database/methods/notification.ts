@@ -2,15 +2,7 @@ import type { NotificationType } from '@root/types/notification.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
-/**
- * Inserts a notification record into the database, preventing duplicates based on unique constraints.
- *
- * If a notification with the same user, watchlist item, type, season, episode, and status already exists, the insertion is ignored.
- *
- * @param notification - The notification details to insert
- * @param trx - Optional database transaction to use for the operation
- * @returns The ID of the created notification, or null if a duplicate prevented insertion
- */
+/** Returns null when an identical row already exists and the insert was ignored. */
 export async function createNotificationRecord(
   this: DatabaseService,
   notification: {
@@ -58,7 +50,6 @@ export async function createNotificationRecord(
       .ignore()
       .returning('id')
 
-    // If no rows returned, the insert was ignored due to conflict
     if (!result || result.length === 0) {
       return null
     }
@@ -90,16 +81,7 @@ export async function deleteNotificationRecord(
   await this.knex('notifications').where({ id }).delete()
 }
 
-/**
- * Checks whether an active notification already exists for the given criteria.
- *
- * Used to prevent duplicate notifications before creating new records.
- * Supports both per-user checks (with userId/watchlistItemId) and public
- * notification checks (with title, where userId and watchlistItemId are null).
- *
- * @param options - Criteria to match against existing notifications
- * @returns True if a matching active notification exists
- */
+/** An option left undefined is not filtered, and null matches a null column. */
 export async function hasActiveNotification(
   this: DatabaseService,
   options: {
@@ -144,14 +126,7 @@ export async function hasActiveNotification(
   return row !== undefined
 }
 
-/**
- * Resets the status of active notifications to "reset" based on specified filtering criteria.
- *
- * Updates notifications matching the provided options, such as creation date, watchlist item, user, content type, season, or episode.
- *
- * @param options - Criteria for selecting which notifications to reset
- * @returns The number of notifications that were updated
- */
+/** Resets active rows matching every given filter, so no filters resets them all. */
 export async function resetContentNotifications(
   this: DatabaseService,
   options: {
@@ -199,14 +174,6 @@ export async function resetContentNotifications(
   return count
 }
 
-/**
- * Gathers notification statistics for the past specified number of days.
- *
- * Returns totals for notifications, counts grouped by notification type, notification channel, and user.
- *
- * @param days - Number of days to include in the statistics (default: 30)
- * @returns An object containing total notification count, counts by type, by channel, and by user
- */
 export async function getNotificationStats(
   this: DatabaseService,
   days = 30,

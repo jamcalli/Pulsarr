@@ -6,14 +6,7 @@ function cutoffISO(days: number): string {
   return date.toISOString()
 }
 
-/**
- * Return the most frequent genres across all watchlist items.
- *
- * Counts normalized genres (trimmed, lowercased) across the watchlist and returns the top results sorted by frequency.
- *
- * @param limit - Maximum number of genres to return (default: 10)
- * @returns Array of objects with `genre` and its occurrence `count`, ordered by `count` descending
- */
+/** Counts genres trimmed and lowercased, most frequent first, over all time when `days` is 0 */
 export async function getTopGenres(
   this: DatabaseService,
   limit = 10,
@@ -24,14 +17,13 @@ export async function getTopGenres(
 
     const cutoff = days > 0 ? cutoffISO(days) : null
 
-    // Use streaming to process genres in batches to reduce memory usage
+    // Reads in id-ordered batches to bound memory on large watchlists
     const genreCounts: Record<string, number> = {}
     const batchSize = 1000
     let lastId = 0
     let processedCount = 0
     let parseErrors = 0
 
-    // Process in batches using cursor-based pagination
     while (true) {
       let batchQuery = this.knex('watchlist_items')
         .whereNotNull('genres')
@@ -49,7 +41,6 @@ export async function getTopGenres(
 
       if (batch.length === 0) break
 
-      // Process current batch with optimized JSON parsing
       for (const item of batch) {
         let parsed: string[]
         try {
@@ -77,7 +68,6 @@ export async function getTopGenres(
       processedCount += batch.length
       lastId = batch[batch.length - 1].id
 
-      // Break if we got less than a full batch (reached the end)
       if (batch.length < batchSize) break
     }
 
@@ -85,7 +75,6 @@ export async function getTopGenres(
       `Processed genres from ${processedCount} watchlist items in batches (${parseErrors} parse errors)`,
     )
 
-    // Sort genres by count and limit the results
     const sortedGenres = Object.entries(genreCounts)
       .map(([genre, count]) => ({ genre, count }))
       .sort((a, b) => b.count - a.count)
@@ -101,15 +90,6 @@ export async function getTopGenres(
   }
 }
 
-/**
- * Retrieves the most frequently watchlisted shows, returning their titles, watchlist counts, thumbnails, GUIDs, and users.
- *
- * @param options - Query options
- * @param options.limit - Maximum number of shows to return (default: 10)
- * @param options.offset - Number of results to skip for pagination (default: 0)
- * @param options.days - Filter to shows added within this many days (0 = all time, default: 0)
- * @returns An array of objects containing the show title, count, thumbnail, GUIDs, content type, and user names
- */
 type WatchlistAggregateRow = {
   title: string
   guids: string
@@ -118,6 +98,7 @@ type WatchlistAggregateRow = {
   count: number | string
 }
 
+/** Counts items created in the last `days` days, or all time when `days` is 0 */
 export async function getMostWatchlistedShows(
   this: DatabaseService,
   options: { limit?: number; offset?: number; days?: number } = {},
@@ -140,7 +121,6 @@ export async function getMostWatchlistedShows(
     query = query.where('watchlist_items.created_at', '>=', cutoffISO(days))
   }
 
-  // Use JSON aggregation to collect unique user names as a proper array
   const userAggregation = this.isPostgres
     ? this.knex.raw('JSON_AGG(DISTINCT u.name) as user_names')
     : this.knex.raw('JSON_GROUP_ARRAY(DISTINCT u.name) as user_names')
@@ -174,15 +154,7 @@ export async function getMostWatchlistedShows(
   }))
 }
 
-/**
- * Retrieves the most frequently watchlisted movies, returning their titles, watchlist counts, thumbnails, GUIDs, and users.
- *
- * @param options - Query options
- * @param options.limit - Maximum number of movies to return (default: 10)
- * @param options.offset - Number of results to skip for pagination (default: 0)
- * @param options.days - Filter to movies added within this many days (0 = all time, default: 0)
- * @returns Array of objects containing movie title, count, thumbnail, GUIDs, content type, and user names
- */
+/** Counts items created in the last `days` days, or all time when `days` is 0 */
 export async function getMostWatchlistedMovies(
   this: DatabaseService,
   options: { limit?: number; offset?: number; days?: number } = {},
@@ -205,7 +177,6 @@ export async function getMostWatchlistedMovies(
     query = query.where('watchlist_items.created_at', '>=', cutoffISO(days))
   }
 
-  // Use JSON aggregation to collect unique user names as a proper array
   const userAggregation = this.isPostgres
     ? this.knex.raw('JSON_AGG(DISTINCT u.name) as user_names')
     : this.knex.raw('JSON_GROUP_ARRAY(DISTINCT u.name) as user_names')
@@ -239,12 +210,6 @@ export async function getMostWatchlistedMovies(
   }))
 }
 
-/**
- * Returns the users with the highest number of watchlist items.
- *
- * @param limit - Maximum number of users to include in the result (default: 10)
- * @returns An array of user names and their corresponding watchlist item counts, sorted by count descending
- */
 export async function getUsersWithMostWatchlistItems(
   this: DatabaseService,
   options: { limit?: number; days?: number } = {},
@@ -321,11 +286,7 @@ export async function getWatchlistStatusDistribution(
   }))
 }
 
-/**
- * Returns the distribution of watchlist items grouped by normalized content type.
- *
- * @returns An array of objects, each containing a content type and its corresponding item count.
- */
+/** Merges types that differ only by case */
 export async function getContentTypeDistribution(
   this: DatabaseService,
 ): Promise<{ type: string; count: number }[]> {
@@ -350,12 +311,7 @@ export async function getContentTypeDistribution(
   }))
 }
 
-/**
- * Retrieves counts of new watchlist items, status changes, and notifications sent within the past specified number of days.
- *
- * @param days - Number of days to look back for activity statistics (default: 30, 0 = all time)
- * @returns An object containing counts for new watchlist items, status changes, and notifications sent
- */
+/** Counts activity in the last `days` days, or all time when `days` is 0 */
 export async function getRecentActivityStats(
   this: DatabaseService,
   days = 30,
@@ -500,14 +456,7 @@ export async function getRequestToReadyTimes(
   }
 }
 
-/**
- * Calculates average, minimum, and maximum days between all direct status transitions for watchlist items, grouped by transition type and content type.
- *
- * For each unique (from_status, to_status, content_type) combination, applies robust outlier filtering and includes only transitions with at least two valid samples. Results are sorted by sample count in descending order.
- *
- * @param days - Number of days to look back for transitions (default: 30)
- * @returns An array of objects with transition details and time statistics.
- */
+/** Filters outliers per transition and content type, and drops groups left with fewer than two samples */
 export async function getDetailedStatusTransitionMetrics(
   this: DatabaseService,
   days = 30,
@@ -531,7 +480,6 @@ export async function getDetailedStatusTransitionMetrics(
 
     const cutoff = isAllTime ? undefined : cutoffISO(days)
 
-    // Step 1: Get all direct status transitions using Knex
     let transitionsQuery = this.knex('watchlist_status_history as h1')
       .select(
         'h1.status as from_status',
@@ -568,7 +516,6 @@ export async function getDetailedStatusTransitionMetrics(
 
     const transitions = await transitionsQuery
 
-    // Step 2: Group transitions by transition type and apply outlier filtering
     const transitionGroups = new Map<string, number[]>()
 
     for (const row of transitions) {
@@ -586,7 +533,6 @@ export async function getDetailedStatusTransitionMetrics(
       }
     }
 
-    // Step 3: Apply outlier filtering and calculate statistics
     const results: Array<{
       from_status: string
       to_status: string
@@ -602,26 +548,19 @@ export async function getDetailedStatusTransitionMetrics(
 
       const [fromStatus, toStatus, contentType] = key.split('|')
 
-      // Sort for percentile calculations
       times.sort((a, b) => a - b)
 
-      // Calculate percentiles for outlier detection
       const q1Index = Math.floor(times.length * 0.25)
       const q3Index = Math.floor(times.length * 0.75)
 
       const q1 = times[q1Index] || times[0]
       const q3 = times[q3Index] || times[times.length - 1]
 
-      // Apply multi-method outlier filtering for time data
-      // Use multiple methods to catch extreme outliers
-
-      // Method 1: Stricter percentile bounds (2nd-98th percentile for initial filtering)
       const p2Index = Math.floor(times.length * 0.02)
       const p98Index = Math.floor(times.length * 0.98)
       const p2 = times[p2Index] || times[0]
       const p98 = times[p98Index] || times[times.length - 1]
 
-      // Method 2: Modified Z-score approach using median for robustness
       const median = times[Math.floor(times.length / 2)]
       const medianAbsoluteDeviations = times.map((time) =>
         Math.abs(time - median),
@@ -632,15 +571,12 @@ export async function getDetailedStatusTransitionMetrics(
           Math.floor(medianAbsoluteDeviations.length / 2)
         ]
 
-      // Method 3: Conservative IQR bounds (1.0x multiplier for time data)
       const iqr = q3 - q1
 
-      // Method 4: Transition-specific reasonable bounds
       const maxReasonableDays =
         fromStatus === 'grabbed' && toStatus === 'notified' ? 90 : 180
 
       const filteredTimes = times.filter((time) => {
-        // Apply all methods - a value must pass all checks
         const passesPercentile = time >= p2 && time <= p98
         const passesMAD = mad === 0 || Math.abs(time - median) <= 3 * mad // Modified Z-score < 3
         const passesIQR = time >= q1 - 1.0 * iqr && time <= q3 + 1.0 * iqr
@@ -653,7 +589,6 @@ export async function getDetailedStatusTransitionMetrics(
 
       if (filteredTimes.length === 0) continue
 
-      // Log outlier filtering results for debugging
       if (times.length !== filteredTimes.length) {
         const removedCount = times.length - filteredTimes.length
         const percentRemoved = ((removedCount / times.length) * 100).toFixed(1)
@@ -669,10 +604,9 @@ export async function getDetailedStatusTransitionMetrics(
         )
       }
 
-      // Calculate statistics
       const sum = filteredTimes.reduce((acc, time) => acc + time, 0)
       const avgDays = sum / filteredTimes.length
-      // arrays are already sorted -> first / last are cheap & safe
+      // filteredTimes stays sorted, so its ends are the min and max
       const minDays = filteredTimes[0]
       const maxDays = filteredTimes[filteredTimes.length - 1]
 
@@ -687,7 +621,6 @@ export async function getDetailedStatusTransitionMetrics(
       })
     }
 
-    // Sort by count descending
     results.sort((a, b) => b.count - a.count)
 
     this.log.debug(

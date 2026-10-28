@@ -26,12 +26,6 @@ function normaliseMinimumAvailability(
   return match
 }
 
-/**
- * Converts a RadarrInstanceRow from the database into a RadarrInstance object, normalizing and parsing fields as needed.
- *
- * @param row - The database row representing a Radarr instance
- * @returns The corresponding RadarrInstance object
- */
 function mapRowToRadarrInstance(
   this: DatabaseService,
   row: RadarrInstanceRow,
@@ -60,11 +54,7 @@ function mapRowToRadarrInstance(
   }
 }
 
-/**
- * Retrieves all enabled Radarr instances from the database, ordered by name.
- *
- * @returns A promise that resolves to an array of enabled RadarrInstance objects.
- */
+/** Enabled instances only. */
 export async function getAllRadarrInstances(
   this: DatabaseService,
 ): Promise<RadarrInstance[]> {
@@ -78,11 +68,6 @@ export async function getAllRadarrInstances(
   )
 }
 
-/**
- * Retrieves the enabled Radarr instance marked as default.
- *
- * @returns The default Radarr instance if found, or null if none is set as default and enabled.
- */
 export async function getDefaultRadarrInstance(
   this: DatabaseService,
 ): Promise<RadarrInstance | null> {
@@ -95,12 +80,6 @@ export async function getDefaultRadarrInstance(
   return mapRowToRadarrInstance.call(this, instance)
 }
 
-/**
- * Retrieves a Radarr instance by its unique ID.
- *
- * @param id - The unique identifier of the Radarr instance.
- * @returns The corresponding Radarr instance if found, or null if no instance exists with the given ID.
- */
 export async function getRadarrInstance(
   this: DatabaseService,
   id: number,
@@ -156,14 +135,7 @@ async function insertRadarrInstanceRow(
   return id
 }
 
-/**
- * Creates a new Radarr instance in the database and returns its ID.
- *
- * If the new instance is set as default, any existing default instance is unset. The instance is inserted with provided or default values, and relevant fields are normalized or serialized as needed.
- *
- * @param instance - The Radarr instance data to create, excluding the ID
- * @returns The ID of the newly created Radarr instance
- */
+/** Unsets any existing default when the new instance is default. */
 export async function createRadarrInstance(
   this: DatabaseService,
   instance: Omit<RadarrInstance, 'id'>,
@@ -173,14 +145,7 @@ export async function createRadarrInstance(
   )
 }
 
-/**
- * Updates the specified Radarr instance with provided fields.
- *
- * If the API key is set to 'placeholder' and `isDefault` is not explicitly true, the instance is forced to remain the default. Only fields present in the `updates` object are modified.
- *
- * @param id - The ID of the Radarr instance to update
- * @param updates - Fields to update for the Radarr instance
- */
+/** A placeholder API key forces the instance to stay default unless isDefault is explicitly true. */
 export async function updateRadarrInstance(
   this: DatabaseService,
   id: number,
@@ -255,29 +220,19 @@ export async function updateRadarrInstance(
   this.log.debug(`Radarr instance ${id} updated`)
 }
 
-/**
- * Removes all references to a deleted Radarr instance from related database tables and synced instance lists.
- *
- * Deletes entries in the `watchlist_radarr_instances` junction table and removes the deleted instance ID from the `synced_instances` arrays of all other Radarr instances.
- *
- * @param deletedId - The ID of the Radarr instance that was deleted
- * @param trx - Optional transaction to use for database operations
- */
+/** Removes junction rows and drops the id from every other instance's synced_instances list. */
 export async function cleanupDeletedRadarrInstanceReferences(
   this: DatabaseService,
   deletedId: number,
   trx?: Knex.Transaction,
 ): Promise<void> {
   try {
-    // Use the provided transaction or the regular knex instance
     const queryBuilder = trx || this.knex
 
-    // Clean up junction table references
     await queryBuilder('watchlist_radarr_instances')
       .where('radarr_instance_id', deletedId)
       .del()
 
-    // Clean up synced_instances references in other instances
     const instances = await queryBuilder('radarr_instances').select(
       'id',
       'synced_instances',
@@ -330,17 +285,12 @@ export async function cleanupDeletedRadarrInstanceReferences(
   }
 }
 
-/**
- * Deletes a Radarr instance by ID and removes all related references from the database.
- *
- * If the deleted instance was the default, another enabled instance is promoted to default if available.
- */
+/** Promotes the lowest-id enabled instance when the deleted one was default, and rethrows errors. */
 export async function deleteRadarrInstance(
   this: DatabaseService,
   id: number,
 ): Promise<void> {
   try {
-    // Check if this is a default instance before deleting
     const instanceToDelete = await this.knex('radarr_instances')
       .where('id', id)
       .first()
@@ -354,15 +304,11 @@ export async function deleteRadarrInstance(
       instanceToDelete?.is_default === 1 ||
       instanceToDelete?.is_default === true
 
-    // Use a transaction to ensure atomicity across all operations
     await this.knex.transaction(async (trx) => {
-      // First clean up references to this instance with transaction
       await this.cleanupDeletedRadarrInstanceReferences(id, trx)
 
-      // Delete the instance
       await trx('radarr_instances').where('id', id).delete()
 
-      // If this was a default instance, set a new default if any instances remain
       if (isDefault) {
         const remainingInstances = await trx('radarr_instances')
           .where('is_enabled', true)
@@ -410,14 +356,7 @@ export async function replaceRadarrInstance(
   return newId
 }
 
-/**
- * Retrieves a Radarr instance matching a transformed base URL identifier.
- *
- * Used for webhook routing, this function compares the provided identifier to a normalized version of each instance's base URL. Returns the matching Radarr instance or null if none is found.
- *
- * @param instanceId - The normalized base URL identifier to match against Radarr instances
- * @returns A promise resolving to the matching Radarr instance, or null if not found
- */
+/** instanceId is the base URL lowercased with the protocol and every non-alphanumeric character stripped. */
 export async function getRadarrInstanceByIdentifier(
   this: DatabaseService,
   instanceId: string,

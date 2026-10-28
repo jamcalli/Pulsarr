@@ -5,13 +5,6 @@ import type { AdminUser } from '@schemas/auth/auth.js'
 import { mapRowToUser } from '@services/database/user-rows.js'
 import type { DatabaseService } from '@services/database.service.js'
 
-/**
- * Inserts a new user into the database and returns the created user with assigned ID and timestamps.
- *
- * @param userData - User information to be stored, excluding ID and timestamp fields.
- * @returns The newly created user object, including its database ID and creation/update timestamps.
- * @throws If the user ID cannot be extracted after insertion.
- */
 export async function createUser(
   this: DatabaseService,
   userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
@@ -24,7 +17,6 @@ export async function createUser(
     })
     .returning('id')
 
-  // Handle different return formats
   const id = this.extractId(result)
 
   if (id === undefined || id === null) {
@@ -41,15 +33,7 @@ export async function createUser(
   return user
 }
 
-/**
- * Fetches the user with the given name, inserting it first if it does not exist.
- *
- * Concurrency-safe: the insert ignores conflicts on the unique name constraint,
- * so parallel callers converge on the same row instead of creating duplicates.
- *
- * @param userData - User information to store if no user with this name exists.
- * @returns The existing or newly created user, and whether this call created it.
- */
+/** Safe under concurrent callers, which converge on the same row instead of inserting duplicates. */
 export async function getOrCreateUser(
   this: DatabaseService,
   userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
@@ -72,14 +56,7 @@ export async function getOrCreateUser(
   return { user, created: inserted.length > 0 }
 }
 
-/**
- * Retrieve a user by numeric ID or by username.
- *
- * Looks up a non-system user (id > 0) and returns the mapped User object if found.
- *
- * @param identifier - A numeric user ID or a username string to search for.
- * @returns The matched User, or `undefined` if no non-system user matches.
- */
+/** Never returns the system user (id <= 0). */
 export async function getUser(
   this: DatabaseService,
   identifier: number | string,
@@ -92,7 +69,7 @@ export async function getUser(
         qb.where({ name: identifier })
       }
     })
-    .andWhere('id', '>', 0) // Exclude system user (ID: 0) from normal API access
+    .andWhere('id', '>', 0)
     .first()
 
   if (!row) return undefined
@@ -100,12 +77,6 @@ export async function getUser(
   return mapRowToUser(row)
 }
 
-/**
- * Retrieve a user by their Discord ID.
- *
- * @param discordId - The Discord user ID to search for
- * @returns The matched User, or `undefined` if no user has this Discord ID linked
- */
 export async function getUserByDiscordId(
   this: DatabaseService,
   discordId: string,
@@ -120,16 +91,7 @@ export async function getUserByDiscordId(
   return mapRowToUser(row)
 }
 
-/**
- * Update a user's record with the given partial user fields.
- *
- * This will set the `updated_at` timestamp on success. The function refuses to
- * mutate the system user (id <= 0) and will return false in that case.
- *
- * @param id - Target user ID (must be > 0; system user IDs are not allowed)
- * @param data - Partial user fields to update (excluding `id`, `created_at`, and `updated_at`)
- * @returns True if at least one row was updated; otherwise false
- */
+/** Refuses the system user (id <= 0) and returns false. */
 export async function updateUser(
   this: DatabaseService,
   id: number,
@@ -148,20 +110,7 @@ export async function updateUser(
   return updated > 0
 }
 
-/**
- * Update multiple user rows in batches within a single transaction.
- *
- * Applies the same partial update to each user ID in `userIds`, processing IDs in batches (50 per batch) to limit statement size.
- * The operation is atomic: on any error the entire transaction is rolled back and the function returns `{ updatedCount: 0, failedIds: userIds }`.
- *
- * Notes:
- * - On PostgreSQL, the implementation uses `RETURNING` to determine exactly which IDs were updated and returns any missing IDs in `failedIds`.
- * - On SQLite (or databases without `RETURNING`), only the affected-rows count is available; the function may log discrepancies but cannot reliably report which specific IDs failed.
- *
- * @param userIds - Array of user IDs to update
- * @param data - Partial user fields to set on each user (excluding `id`, `created_at`, and `updated_at`)
- * @returns An object with `updatedCount` (number of rows updated) and `failedIds` (IDs that were not updated; exact IDs only guaranteed on PostgreSQL)
- */
+/** Rolls back and reports every id as failed on any error, and only Postgres can name the ids that matched no row. */
 export async function bulkUpdateUsers(
   this: DatabaseService,
   userIds: number[],
@@ -171,24 +120,19 @@ export async function bulkUpdateUsers(
   let updatedCount = 0
 
   try {
-    // Start a transaction to ensure all updates are atomic
     await this.knex.transaction(async (trx) => {
-      // Prepare the update data with timestamp
       const updateData = {
         ...data,
         updated_at: this.timestamp,
       }
 
-      // For efficiency with large arrays, do batches
       const BATCH_SIZE = 50
       for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
         const batchIds = userIds.slice(i, i + BATCH_SIZE).filter((id) => id > 0)
         if (batchIds.length === 0) continue
 
         try {
-          // Use RETURNING if PostgreSQL, otherwise rely on affected rows count
           if (this.isPostgres) {
-            // PostgreSQL: Use RETURNING to get exact IDs updated in single statement
             const updatedUsers = await trx('users')
               .whereIn('id', batchIds)
               .update(updateData)
@@ -197,28 +141,21 @@ export async function bulkUpdateUsers(
             const updatedIds = updatedUsers.map((user) => user.id)
             updatedCount += updatedIds.length
 
-            // Find failed IDs by comparing input vs returned IDs
             const missingIds = batchIds.filter((id) => !updatedIds.includes(id))
             failedIds.push(...missingIds)
           } else {
-            // SQLite: Use affected rows count (safer within transaction)
             const result = await trx('users')
               .whereIn('id', batchIds)
               .update(updateData)
 
             updatedCount += result
 
-            // For SQLite, if fewer rows affected than expected,
-            // assume the difference represents non-existent IDs
+            // SQLite has no RETURNING here, so missing ids are counted but never named
             if (result < batchIds.length) {
-              // Rather than re-querying (race condition), we'll log the discrepancy
-              // In practice, this usually means some IDs don't exist in the table
               const missingCount = batchIds.length - result
               this.log.warn(
                 `Bulk update: ${missingCount} IDs not found in batch`,
               )
-              // Note: We can't easily determine which specific IDs failed in SQLite
-              // without the race-condition-prone re-query, so we accept this limitation
             }
           }
         } catch (batchError) {
@@ -238,14 +175,7 @@ export async function bulkUpdateUsers(
   return { updatedCount, failedIds }
 }
 
-/**
- * Retrieve multiple non-system users by their IDs.
- *
- * Fetches all users whose IDs are in the provided array, excluding system users (id <= 0).
- *
- * @param userIds - Array of user IDs to look up
- * @returns An array of matched User objects
- */
+/** Never returns the system user (id <= 0). */
 export async function getUsersByIds(
   this: DatabaseService,
   userIds: number[],
@@ -259,30 +189,17 @@ export async function getUsersByIds(
   return rows.map((row) => mapRowToUser(row))
 }
 
-/**
- * Retrieve all non-system users, ordered by name (ascending).
- *
- * Returns every user row with id > 0 mapped to the public User shape.
- *
- * @returns An array of User objects ordered by `name` (ascending).
- */
+/** Excludes the system user (id <= 0). */
 export async function getAllUsers(this: DatabaseService): Promise<User[]> {
   const rows = await this.knex('users')
     .select('*')
-    .where('id', '>', 0) // Exclude system user (ID: 0)
+    .where('id', '>', 0)
     .orderBy('name', 'asc')
 
   return rows.map((row) => mapRowToUser(row))
 }
 
-/**
- * Retrieve all non-system users with a count of their watchlist items.
- *
- * Returns each user (excluding the system user with id 0) augmented with
- * `watchlist_count`, the number of watchlist items associated with that user.
- *
- * @returns An array of users where each entry includes `watchlist_count` as a number.
- */
+/** Excludes the system user (id <= 0). */
 export async function getUsersWithWatchlistCount(
   this: DatabaseService,
 ): Promise<(User & { watchlist_count: number })[]> {
@@ -292,7 +209,7 @@ export async function getUsersWithWatchlistCount(
       this.knex.raw('COUNT(watchlist_items.id) as watchlist_count'),
     ])
     .leftJoin('watchlist_items', 'users.id', 'watchlist_items.user_id')
-    .where('users.id', '>', 0) // Exclude system user (ID: 0)
+    .where('users.id', '>', 0)
     .groupBy('users.id')
     .orderBy('users.name', 'asc')
 
@@ -302,13 +219,7 @@ export async function getUsersWithWatchlistCount(
   })) satisfies (User & { watchlist_count: number })[]
 }
 
-/**
- * Retrieve the user marked as the primary token user.
- *
- * Excludes the system user (id <= 0). Returns the mapped User when a primary
- * user row exists; returns `undefined` if no primary user is found or if an
- * error occurs during the database query.
- */
+/** Excludes the system user and returns undefined on query error. */
 export async function getPrimaryUser(
   this: DatabaseService,
 ): Promise<User | undefined> {
@@ -332,12 +243,7 @@ export async function getPrimaryUser(
   }
 }
 
-/**
- * Inserts a new admin user into the database.
- *
- * @param userData - Object containing the email, username, password, and role for the new admin user.
- * @returns True if the admin user was created successfully; otherwise, false.
- */
+/** Swallows errors and returns false. */
 export async function createAdminUser(
   this: DatabaseService,
   userData: {
@@ -360,12 +266,6 @@ export async function createAdminUser(
   }
 }
 
-/**
- * Retrieves an admin user by ID.
- *
- * @param id - The admin user ID to search for.
- * @returns The matching admin user if found; otherwise, undefined.
- */
 export async function getAdminUserById(
   this: DatabaseService,
   id: number,
@@ -376,12 +276,7 @@ export async function getAdminUserById(
     .first()
 }
 
-/**
- * Retrieves an admin user by email address using a case-insensitive match.
- *
- * @param email - The email address to search for.
- * @returns The matching admin user if found; otherwise, undefined.
- */
+/** Matches the email case-insensitively. */
 export async function getAdminUserByEmail(
   this: DatabaseService,
   email: string,
@@ -392,12 +287,7 @@ export async function getAdminUserByEmail(
     .first()
 }
 
-/**
- * Retrieves an admin user by their username.
- *
- * @param username - The username to search for.
- * @returns The admin user if found, otherwise undefined.
- */
+/** Matches the username case-insensitively. */
 export async function getAdminUserByUsername(
   this: DatabaseService,
   username: string,
@@ -408,23 +298,13 @@ export async function getAdminUserByUsername(
     .first()
 }
 
-/**
- * Determines whether any admin users are present in the database.
- *
- * @returns True if at least one admin user exists; otherwise, false.
- */
 export async function hasAdminUsers(this: DatabaseService): Promise<boolean> {
   const count = await this.knex('admin_users').count('* as count').first()
   const numCount = Number(count?.count || 0)
   return !Number.isNaN(numCount) && numCount > 0
 }
 
-/**
- * Retrieves the sole admin user. The app enforces a single admin account,
- * so at most one row exists.
- *
- * @returns The admin user if one exists; otherwise, undefined.
- */
+/** The app enforces a single admin account, so this is the only row. */
 export async function getAdminUser(
   this: DatabaseService,
 ): Promise<AdminUser | undefined> {
@@ -433,13 +313,7 @@ export async function getAdminUser(
     .first()
 }
 
-/**
- * Updates the password for an admin user by ID.
- *
- * @param id - The ID of the admin user to update
- * @param hashedPassword - The new hashed password to set
- * @returns True if the password was updated; false if no matching user was found or an error occurred
- */
+/** Returns false when no row matched or the query failed. */
 export async function updateAdminPassword(
   this: DatabaseService,
   id: number,
@@ -457,13 +331,7 @@ export async function updateAdminPassword(
   }
 }
 
-/**
- * Updates the email for an admin user by ID.
- *
- * @param id - The ID of the admin user to update
- * @param newEmail - The new email address to set
- * @returns True if the email was updated; false if no matching user was found or an error occurred
- */
+/** Returns false when no row matched or the query failed. */
 export async function updateAdminEmail(
   this: DatabaseService,
   id: number,
@@ -481,13 +349,7 @@ export async function updateAdminEmail(
   }
 }
 
-/**
- * Updates the username for an admin user by ID.
- *
- * @param id - The ID of the admin user to update
- * @param newUsername - The new username to set
- * @returns True if the username was updated; false if no matching user was found or an error occurred
- */
+/** Returns false when no row matched or the query failed. */
 export async function updateAdminUsername(
   this: DatabaseService,
   id: number,
@@ -505,20 +367,14 @@ export async function updateAdminUsername(
   }
 }
 
-/**
- * Returns whether any non-system user has synchronization disabled.
- *
- * Counts users with `can_sync === false` while excluding the system user (id 0). If at least one matching user exists the function returns `true`. On error the function logs the failure and conservatively returns `true`.
- *
- * @returns `true` if any non-system user has syncing disabled or if an error occurs; otherwise `false`.
- */
+/** Returns true on error as the conservative default. */
 export async function hasUsersWithSyncDisabled(
   this: DatabaseService,
 ): Promise<boolean> {
   try {
     const count = await this.knex('users')
       .where({ can_sync: false })
-      .where('id', '>', 0) // Exclude system user (ID: 0)
+      .where('id', '>', 0)
       .count('* as count')
       .first()
 
@@ -529,18 +385,11 @@ export async function hasUsersWithSyncDisabled(
   }
 }
 
-/**
- * Determines whether any users or system configurations require approval or quota processing.
- *
- * Returns `true` if at least one user has `requires_approval` enabled, if any user quotas exist, or if any router rules are configured to require approval or bypass user quotas. Returns `true` on error as a conservative default.
- *
- * @returns `true` if approval or quota configuration is present; otherwise, `false`.
- */
+/** True when any user requires approval, any quota exists, or any router rule requires approval or bypasses quotas, and also true on error. */
 export async function hasUsersWithApprovalConfig(
   this: DatabaseService,
 ): Promise<boolean> {
   try {
-    // Check if any users have requires_approval = true
     const usersRequiringApproval = await this.knex('users')
       .where({ requires_approval: true })
       .andWhere('id', '>', 0)
@@ -551,7 +400,6 @@ export async function hasUsersWithApprovalConfig(
       return true
     }
 
-    // Check if any user quotas exist
     const quotaCount = await this.knex('user_quotas')
       .count('* as count')
       .first()
@@ -560,7 +408,6 @@ export async function hasUsersWithApprovalConfig(
       return true
     }
 
-    // Check if any router rules have approval actions enabled
     const approvalRulesCount = await this.knex('router_rules')
       .where({ always_require_approval: true })
       .orWhere({ bypass_user_quotas: true })
@@ -573,18 +420,11 @@ export async function hasUsersWithApprovalConfig(
       { error },
       'Error checking for users with approval configuration',
     )
-    return true // Conservative: assume we have approval config on error
+    return true
   }
 }
 
-/**
- * Sets the specified user as the primary token user, ensuring only one user has this status.
- *
- * Clears the primary flag from all users before assigning it to the given user to maintain consistency.
- *
- * @param userId - The ID of the user to designate as primary
- * @returns True if the operation succeeds, false otherwise
- */
+/** Refuses the system user, clears every other primary flag in one transaction, and returns false on refusal or error. */
 export async function setPrimaryUser(
   this: DatabaseService,
   userId: number,
@@ -595,13 +435,11 @@ export async function setPrimaryUser(
   }
   try {
     await this.knex.transaction(async (trx) => {
-      // Clear existing primary flags
       await trx('users').where({ is_primary_token: true }).update({
         is_primary_token: false,
         updated_at: this.timestamp,
       })
 
-      // Set the new primary user
       await trx('users').where({ id: userId }).update({
         is_primary_token: true,
         updated_at: this.timestamp,
@@ -616,22 +454,12 @@ export async function setPrimaryUser(
   }
 }
 
-/**
- * Delete a user by ID with safety checks.
- *
- * Refuses to remove the system user (ID <= 0) and the current primary-token user; if deletion succeeds returns true, otherwise false.
- *
- * @param userId - The numeric ID of the user to delete
- * @returns True if a row was deleted, false if no row matched or an error occurred
- *
- * @remarks Associated records (e.g., watchlist items) are removed by database CASCADE foreign keys when present.
- */
+/** Refuses the system user and the primary token user, and returns false on refusal, miss or error. */
 export async function deleteUser(
   this: DatabaseService,
   userId: number,
 ): Promise<boolean> {
   try {
-    // Defensive: avoid accidental deletion of primary token user
     const primary = await this.getPrimaryUser()
     if (primary?.id === userId) {
       this.log.warn(`Refusing to delete primary token user ${userId}`)
@@ -657,14 +485,7 @@ export async function deleteUser(
   }
 }
 
-/**
- * Delete multiple users by ID and report which deletions succeeded.
- *
- * Deletes all users whose IDs are provided (system user IDs <= 0 are never deleted). For databases that support RETURNING (PostgreSQL) the function will return the exact IDs that were deleted; for SQLite it returns only the number deleted and cannot enumerate which IDs failed. Associated rows that depend on users (for example watchlist items) are removed via cascading foreign-key constraints.
- *
- * @param userIds - Array of user IDs to delete
- * @returns An object containing `deletedCount` (number of rows deleted) and `failedIds` (IDs that were not deleted; may be empty for SQLite where specific failures cannot be determined)
- */
+/** Skips the system user, and on SQLite failedIds stays empty because the misses cannot be named. */
 export async function deleteUsers(
   this: DatabaseService,
   userIds: number[],
@@ -675,7 +496,6 @@ export async function deleteUsers(
 
   try {
     if (this.isPostgres) {
-      // PostgreSQL: DELETE + RETURNING returns actual rows with IDs
       const deletedUsers = await this.knex('users')
         .whereIn('id', userIds)
         .andWhere('id', '>', 0)
@@ -701,8 +521,7 @@ export async function deleteUsers(
       )
       return result
     } else {
-      // BetterSQLite3: DELETE + RETURNING returns count, not actual IDs
-      // We cannot reliably determine which specific IDs failed without race conditions
+      // SQLite returns only a count here, so failed ids cannot be named
       const deletedCount = await this.knex('users')
         .whereIn('id', userIds)
         .andWhere('id', '>', 0)
@@ -712,8 +531,6 @@ export async function deleteUsers(
         `Deleted ${deletedCount} users out of ${userIds.length} requested`,
       )
 
-      // For SQLite, we can't determine specific failed IDs without additional queries
-      // that would introduce race conditions, so we return empty failedIds
       const failedCount = userIds.length - deletedCount
       if (failedCount > 0) {
         this.log.debug(
