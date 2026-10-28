@@ -29,7 +29,6 @@ import {
 } from '../types.js'
 import { cleanupOrphanedUserTags } from './cleanup-orphans.js'
 import { ensureUserTags } from './create-tags.js'
-import { ensureMigrationComplete } from './migration-gate.js'
 import { withProgress } from './progress.js'
 
 const emptyResults = (): TaggingResults => ({
@@ -255,7 +254,7 @@ export async function syncTags(
     return emptyResults()
   }
 
-  const results = await withProgress<TaggingResults>(
+  return withProgress<TaggingResults>(
     {
       type: `${type}-tagging`,
       start: `Starting ${displayName} tag synchronization...`,
@@ -265,9 +264,6 @@ export async function syncTags(
       deps,
     },
     async (phase) => {
-      // The migration rewrites tag ids on arr items, so the library must be read after it.
-      await ensureMigrationComplete(type, deps)
-
       const library = await fetchLibrary(type, deps)
       const watchlistItems = await watchlistItemsForType(type, deps)
 
@@ -288,9 +284,6 @@ export async function syncTags(
       return results
     },
   )
-
-  await deps.migration.cleanupMigrationFileIfComplete()
-  return results
 }
 
 export async function syncAllTags(deps: UserTagDeps): Promise<SyncAllResults> {

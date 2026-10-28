@@ -2,7 +2,6 @@ import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { TagMigrationService } from './tag-migration.service.js'
 import {
   radarrLibraryItems,
   sonarrLibraryItems,
@@ -37,14 +36,11 @@ import type {
 export class UserTagService {
   private readonly log: FastifyBaseLogger
 
-  private readonly migrationService: TagMigrationService
-
   constructor(
     readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'USER_TAG')
-    this.migrationService = new TagMigrationService(baseLog, fastify)
   }
 
   // config is a getter because updateConfig reassigns fastify.config and deps outlive a single call
@@ -59,7 +55,6 @@ export class UserTagService {
       progress: fastify.progress,
       sonarrManager: fastify.sonarrManager,
       radarrManager: fastify.radarrManager,
-      migration: this.migrationService,
     }
   }
 
@@ -132,9 +127,5 @@ export class UserTagService {
   /** Throws TagNamingBlockedError when the update changes the prefix or naming source while user tags remain or an instance cannot be read. */
   async assertPrefixChangeAllowed(update: TagNamingUpdate): Promise<void> {
     return assertPrefixChangeAllowed(update, this.deps)
-  }
-
-  async cleanupOrphanedTagReferences() {
-    return this.migrationService.cleanupOrphanedTagReferences()
   }
 }

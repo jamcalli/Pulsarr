@@ -14,16 +14,12 @@ vi.mock('@services/user-tags/arr-adapter.js', () => ({
   fetchLibrary: vi.fn(async () => []),
   watchlistItemsForType: vi.fn(async () => []),
 }))
-vi.mock('@services/user-tags/orchestration/migration-gate.js', () => ({
-  ensureMigrationComplete: vi.fn(async () => undefined),
-}))
 
 import {
   fetchLibrary,
   getAdapters,
   listInstances,
 } from '@services/user-tags/arr-adapter.js'
-import { ensureMigrationComplete } from '@services/user-tags/orchestration/migration-gate.js'
 import {
   syncTags,
   tagContentWithData,
@@ -219,21 +215,6 @@ describe('syncTags', () => {
     vi.mocked(getAdapters).mockReset()
     vi.mocked(listInstances).mockReset()
     vi.mocked(fetchLibrary).mockClear()
-    vi.mocked(ensureMigrationComplete).mockClear()
-  })
-
-  it('runs the migration gate before touching any instance', async () => {
-    const adapter = adapterWithTags()
-    useAdapters({ sonarr: [adapter] })
-
-    await syncTags('sonarr', createUserTagDeps())
-
-    const gateOrder = vi.mocked(ensureMigrationComplete).mock
-      .invocationCallOrder[0]
-    const libraryOrder = vi.mocked(fetchLibrary).mock.invocationCallOrder[0]
-    const tagsOrder = vi.mocked(adapter.getTags).mock.invocationCallOrder[0]
-    expect(gateOrder).toBeLessThan(libraryOrder)
-    expect(gateOrder).toBeLessThan(tagsOrder)
   })
 
   it('skips everything when tagging is disabled for the type', async () => {
@@ -245,7 +226,6 @@ describe('syncTags', () => {
     )
 
     expect(fetchLibrary).not.toHaveBeenCalled()
-    expect(ensureMigrationComplete).not.toHaveBeenCalled()
     expect(results).toEqual({ tagged: 0, skipped: 0, failed: 0 })
   })
 })

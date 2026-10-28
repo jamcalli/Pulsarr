@@ -10,7 +10,6 @@ import {
   type RemoveResults,
   type UserTagDeps,
 } from '../types.js'
-import { ensureMigrationComplete } from './migration-gate.js'
 import { withProgress } from './progress.js'
 
 const emptyResults = (): RemoveResults => ({
@@ -36,8 +35,6 @@ export async function removeUserTags(
   const results = emptyResults()
 
   // Removal runs even when tagging is off, since leftover tags block prefix changes.
-  await ensureMigrationComplete(type, deps)
-
   const settings = getTagSettings(deps.config)
 
   return withProgress(

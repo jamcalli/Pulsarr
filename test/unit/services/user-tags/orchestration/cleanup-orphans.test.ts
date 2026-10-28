@@ -85,7 +85,6 @@ describe('cleanupOrphanedUserTags', () => {
     const results = await cleanupOrphanedUserTags(deps)
 
     expect(adapter.getTagDetails).not.toHaveBeenCalled()
-    expect(deps.migration.checkAllInstancesMigrated).not.toHaveBeenCalled()
     expect(results.sonarr.instances).toBe(0)
   })
 })

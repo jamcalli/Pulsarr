@@ -426,9 +426,6 @@ const schema = {
       enum: DELETION_MODES,
       default: 'watchlist',
     },
-    tagMigration: {
-      type: 'string',
-    },
     plexSessionMonitoring: {
       type: 'string',
       default: JSON.stringify(PLEX_SESSION_MONITORING_DEFAULTS),
@@ -611,14 +608,6 @@ export default fp(
           },
         }
       })(),
-      tagMigration: rawConfig.tagMigration
-        ? parseJsonOr(
-            rawConfig.tagMigration as string,
-            { radarr: {}, sonarr: {} },
-            fastify.log,
-            'tagMigration',
-          )
-        : undefined,
       _isReady: false,
     }
 

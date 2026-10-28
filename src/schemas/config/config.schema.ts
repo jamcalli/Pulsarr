@@ -185,29 +185,6 @@ const DeleteSyncTagRegexSchema = z
       'Invalid or unsafe regex pattern. Pattern must be valid regex syntax and not contain catastrophic backtracking patterns.',
   })
 
-const TagMigrationEntrySchema = z
-  .object({
-    completed: z.boolean(),
-    migratedAt: z.string(),
-    tagsMigrated: z.number(),
-    contentUpdated: z.number(),
-  })
-  .meta({
-    id: 'TagMigrationEntry',
-    description: 'Migration result for a single instance',
-  })
-
-const TagMigrationSchema = z
-  .object({
-    radarr: z.object({}).catchall(TagMigrationEntrySchema),
-    sonarr: z.object({}).catchall(TagMigrationEntrySchema),
-  })
-  .meta({
-    id: 'TagMigration',
-    description: 'Tag format migration status per Radarr/Sonarr instance',
-  })
-  .optional()
-
 const PlexTokensSchema = z
   .array(z.string())
   .meta({ description: 'Plex authentication tokens' })
@@ -461,8 +438,6 @@ export const ConfigFullSchema = z
     tagNamingSource: UserNamingSourceSchema,
     removedTagMode: RemovedTagModeSchema,
     removedTagPrefix: z.string(),
-    // Tag Migration Configuration
-    tagMigration: TagMigrationSchema,
     // Plex Session Monitoring
     plexSessionMonitoring: PlexSessionMonitoringConfigSchema.optional(),
     // New User Defaults - getConfig() applies defaults with Boolean() and || operators
@@ -632,8 +607,6 @@ export const ConfigUpdateSchema = z
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
     tagNamingSource: UserNamingSourceSchema.optional(),
-    // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
-    tagMigration: TagMigrationSchema,
   })
   .strict()
   .meta({
