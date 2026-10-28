@@ -12,7 +12,12 @@ import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
 import type { ContentRouterService } from '@services/content-router.service.js'
 import type { DatabaseService } from '@services/database.service.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import {
+  buildGuidIndex,
+  findGuidMatches,
+  type GuidIndex,
+  parseGuids,
+} from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import type { BatchCopyItem } from './batch-processor.js'
 import { processBatchCopy } from './batch-processor.js'
@@ -103,12 +108,6 @@ export interface InstanceSyncConfig<
     status: string,
     isPrimary: boolean,
   ) => Promise<void>
-
-  // Content matching
-  findMatch: (
-    allContent: TContent[],
-    guids: string[] | string | null | undefined,
-  ) => TContent | null
 }
 
 /**
@@ -136,7 +135,6 @@ export async function syncInstance<
     getContentInstanceId,
     getAllJunctions,
     addToInstance,
-    findMatch,
   } = config
 
   const operationId = `${contentType}-instance-sync-${instanceId}-${Date.now()}`
@@ -236,8 +234,7 @@ export async function syncInstance<
       syncedInstances,
       instanceIdsByWatchlist,
       existingGuidMap,
-      allExistingContent,
-      findMatch,
+      contentIndex: buildGuidIndex(allExistingContent),
       addToInstance,
       logger,
       contentLabel,
@@ -364,11 +361,7 @@ async function buildItemsToCopy<
   syncedInstances: number[]
   instanceIdsByWatchlist: Map<number, number[]>
   existingGuidMap: Set<string>
-  allExistingContent: TContent[]
-  findMatch: (
-    allContent: TContent[],
-    guids: string[] | string | null | undefined,
-  ) => TContent | null
+  contentIndex: GuidIndex<TContent>
   addToInstance: (
     watchlistId: number,
     instanceId: number,
@@ -386,8 +379,7 @@ async function buildItemsToCopy<
     syncedInstances,
     instanceIdsByWatchlist,
     existingGuidMap,
-    allExistingContent,
-    findMatch,
+    contentIndex,
     addToInstance,
     logger,
     contentLabel,
@@ -461,7 +453,8 @@ async function buildItemsToCopy<
         }
 
         // Find matching content in other instances
-        const matchingContent = findMatch(allExistingContent, item.guids)
+        const matchingContent = findGuidMatches(contentIndex, itemGuids)[0]
+          ?.item
         if (matchingContent) {
           // Convert to DatabaseWatchlistItem format
           const dbItem: DatabaseWatchlistItem = {
@@ -506,10 +499,6 @@ async function buildItemsToCopy<
 export function createRadarrSyncConfig(
   db: DatabaseService,
   radarrManager: { fetchAllMovies: () => Promise<RadarrItem[]> },
-  findMatch: (
-    allContent: RadarrItem[],
-    guids: string[] | string | null | undefined,
-  ) => RadarrItem | null,
 ): InstanceSyncConfig<RadarrItem, SyncableInstance> {
   return {
     contentType: 'movie',
@@ -545,7 +534,6 @@ export function createRadarrSyncConfig(
         status as 'pending' | 'requested' | 'grabbed' | 'notified',
         isPrimary,
       ),
-    findMatch,
   }
 }
 
@@ -555,10 +543,6 @@ export function createRadarrSyncConfig(
 export function createSonarrSyncConfig(
   db: DatabaseService,
   sonarrManager: { fetchAllSeries: () => Promise<SonarrItem[]> },
-  findMatch: (
-    allContent: SonarrItem[],
-    guids: string[] | string | null | undefined,
-  ) => SonarrItem | null,
 ): InstanceSyncConfig<SonarrItem, SyncableInstance> {
   return {
     contentType: 'show',
@@ -594,6 +578,5 @@ export function createSonarrSyncConfig(
         status as 'pending' | 'requested' | 'grabbed' | 'notified',
         isPrimary,
       ),
-    findMatch,
   }
 }

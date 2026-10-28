@@ -13,6 +13,7 @@ import {
   routeShow,
 } from '@services/watchlist-workflow/routing/content-router.js'
 import type { ContentRoutingDeps } from '@services/watchlist-workflow/types.js'
+import { buildGuidIndex } from '@utils/guid-handler.js'
 import type { FastifyInstance } from 'fastify'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -94,7 +95,7 @@ function buildDeps(
     },
     db: {
       getApprovalRequestByContent: vi.fn().mockResolvedValue(record),
-      updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
+      updateWatchlistItem: vi.fn().mockResolvedValue(true),
     },
     contentRouter: {
       log: createMockLogger(),
@@ -280,7 +281,6 @@ const ROUTERS = [
   {
     contentType: 'show',
     itemKey: 'show-key',
-    instanceField: 'sonarr_instance_id',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.sonarrManager.routeItemToSonarr).mock.calls,
     route: (
@@ -299,17 +299,19 @@ const ROUTERS = [
           userId: 1,
           userName: undefined,
           sonarrItem: SONARR_ITEM,
-          existingSeries: presentIn && [
-            ...presentIn.map((sonarr_instance_id) => ({
-              ...SONARR_ITEM,
-              sonarr_instance_id,
-            })),
-            ...excludedIn.map((sonarr_instance_id) => ({
-              ...SONARR_ITEM,
-              sonarr_instance_id,
-              isExclusion: true,
-            })),
-          ],
+          seriesIndex:
+            presentIn &&
+            buildGuidIndex([
+              ...presentIn.map((sonarr_instance_id) => ({
+                ...SONARR_ITEM,
+                sonarr_instance_id,
+              })),
+              ...excludedIn.map((sonarr_instance_id) => ({
+                ...SONARR_ITEM,
+                sonarr_instance_id,
+                isExclusion: true,
+              })),
+            ]),
           primaryUser: null,
         },
         deps,
@@ -318,7 +320,6 @@ const ROUTERS = [
   {
     contentType: 'movie',
     itemKey: 'movie-key',
-    instanceField: 'radarr_instance_id',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.radarrManager.routeItemToRadarr).mock.calls,
     route: (
@@ -337,17 +338,19 @@ const ROUTERS = [
           userId: 1,
           userName: undefined,
           radarrItem: RADARR_ITEM,
-          existingMovies: presentIn && [
-            ...presentIn.map((radarr_instance_id) => ({
-              ...RADARR_ITEM,
-              radarr_instance_id,
-            })),
-            ...excludedIn.map((radarr_instance_id) => ({
-              ...RADARR_ITEM,
-              radarr_instance_id,
-              isExclusion: true,
-            })),
-          ],
+          movieIndex:
+            presentIn &&
+            buildGuidIndex([
+              ...presentIn.map((radarr_instance_id) => ({
+                ...RADARR_ITEM,
+                radarr_instance_id,
+              })),
+              ...excludedIn.map((radarr_instance_id) => ({
+                ...RADARR_ITEM,
+                radarr_instance_id,
+                isExclusion: true,
+              })),
+            ]),
           primaryUser: null,
         },
         deps,
@@ -487,7 +490,7 @@ describe.each(ROUTERS)('$contentType partial presence', ({ route, added }) => {
 })
 
 describe.each(ROUTERS)('$contentType existing copy status', (router) => {
-  it('marks the item requested on the instance that has it', async () => {
+  it('marks the item requested without touching its instance links', async () => {
     const deps = buildDeps([MISSING, FOUND])
 
     await router.route(deps)
@@ -495,10 +498,7 @@ describe.each(ROUTERS)('$contentType existing copy status', (router) => {
     expect(deps.db.updateWatchlistItem).toHaveBeenCalledWith(
       1,
       router.itemKey,
-      {
-        status: 'requested',
-        [router.instanceField]: 2,
-      },
+      { status: 'requested' },
     )
     expect(deps.fastify.progress.emit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -506,6 +506,31 @@ describe.each(ROUTERS)('$contentType existing copy status', (router) => {
         metadata: { action: 'status', userIds: [1] },
       }),
     )
+  })
+
+  it('emits no change when the item was already requested', async () => {
+    const deps = buildDeps([MISSING, FOUND])
+    vi.mocked(deps.db.updateWatchlistItem).mockResolvedValueOnce(false)
+
+    expect(await router.route(deps)).toEqual({
+      routed: false,
+      skippedReason: 'exists-in-target',
+    })
+    expect(deps.db.updateWatchlistItem).toHaveBeenCalledTimes(1)
+    expect(deps.fastify.progress.emit).not.toHaveBeenCalled()
+  })
+
+  it('marks the item requested from the bulk data and emits the change', async () => {
+    const deps = buildDeps([MISSING, MISSING])
+
+    await router.route(deps, [2])
+
+    expect(deps.db.updateWatchlistItem).toHaveBeenCalledWith(
+      1,
+      router.itemKey,
+      { status: 'requested' },
+    )
+    expect(deps.fastify.progress.emit).toHaveBeenCalledTimes(1)
   })
 
   it('leaves an import list exclusion alone', async () => {

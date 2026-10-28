@@ -6,6 +6,7 @@ import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { SyncResult } from '@services/watchlist-workflow/orchestration/sync-engine.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
+import { buildGuidIndex } from '@utils/guid-handler.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockUser } from '../../../../mocks/user.js'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
@@ -269,7 +270,7 @@ describe('syncWatchlistItems', () => {
     expect(vi.mocked(routeShow).mock.calls[0][0]).toMatchObject({
       userId: PRIMARY_USER.id,
       userName: PRIMARY_USER.name,
-      existingSeries,
+      seriesIndex: buildGuidIndex(existingSeries),
       approvedRecords,
       arrInstanceIds: new Set([1]),
       primaryUser: PRIMARY_USER,
@@ -277,7 +278,7 @@ describe('syncWatchlistItems', () => {
     expect(vi.mocked(routeMovie).mock.calls[0][0]).toMatchObject({
       userId: PRIMARY_USER.id,
       userName: PRIMARY_USER.name,
-      existingMovies,
+      movieIndex: buildGuidIndex(existingMovies),
       approvedRecords,
       arrInstanceIds: new Set([1]),
       primaryUser: PRIMARY_USER,

@@ -23,23 +23,13 @@ export interface RouteSingleItemParams {
   userName: string
   userAlias?: string | null
   primaryUser: { id: number } | null
-  existingShows?: SonarrItem[]
-  existingMovies?: RadarrItem[]
 }
 
 export async function routeSingleItem(
   params: RouteSingleItemParams,
   deps: ContentRoutingDeps,
 ): Promise<boolean> {
-  const {
-    item,
-    userId,
-    userName,
-    userAlias,
-    primaryUser,
-    existingShows,
-    existingMovies,
-  } = params
+  const { item, userId, userName, userAlias, primaryUser } = params
 
   const parsedGuids = parseGuids(item.guids)
   const parsedGenres = parseGenres(item.genres)
@@ -94,7 +84,6 @@ export async function routeSingleItem(
         userName,
         userAlias,
         sonarrItem,
-        existingSeries: existingShows,
         primaryUser,
       },
       deps,
@@ -131,7 +120,6 @@ export async function routeSingleItem(
         userName,
         userAlias,
         radarrItem,
-        existingMovies,
         primaryUser,
       },
       deps,

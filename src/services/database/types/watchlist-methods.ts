@@ -11,21 +11,14 @@ import type { Knex } from 'knex'
 declare module '@services/database.service.js' {
   interface DatabaseService {
     // WATCHLIST MANAGEMENT
-    /**
-     * Updates a watchlist item with new data for a specific user
-     * @param userId - ID of the user who owns the watchlist item
-     * @param key - Unique key of the watchlist item
-     * @param updates - Fields to update on the watchlist item
-     * @param trx - Optional transaction to use for the update
-     * @returns Promise resolving to void when complete
-     */
+    /** Returns true only when the watchlist_items row itself was written. */
     updateWatchlistItem(
       this: DatabaseService,
       userId: number,
       key: string,
       updates: WatchlistItemUpdate,
       trx?: Knex.Transaction,
-    ): Promise<void>
+    ): Promise<boolean>
 
     /**
      * Retrieves a specific watchlist item for a user

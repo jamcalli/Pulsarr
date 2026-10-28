@@ -7,7 +7,6 @@ import type {
   RoutingDetails,
 } from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import {
   approvedDestinations,
   routeUsingApprovedDecision,
@@ -22,7 +21,8 @@ import type { RoutingOutcome } from '@services/content-router/types.js'
 import {
   extractTmdbId,
   extractTvdbId,
-  hasMatchingParsedGuids,
+  findGuidMatches,
+  type GuidIndex,
   parseGuids,
 } from '@utils/guid-handler.js'
 import { emitWatchlistChange } from '@utils/watchlist-events.js'
@@ -48,7 +48,7 @@ export interface RouteShowParams {
   userName: string | undefined
   userAlias?: string | null
   sonarrItem: SonarrItem
-  existingSeries?: SonarrItem[]
+  seriesIndex?: GuidIndex<SonarrItem>
   approvedRecords?: ApprovedRecords
   arrInstanceIds?: ReadonlySet<number>
   arrInstances?: ReadonlyArray<{ id: number; name: string }>
@@ -63,7 +63,7 @@ export interface RouteMovieParams {
   userName: string | undefined
   userAlias?: string | null
   radarrItem: RadarrItem
-  existingMovies?: RadarrItem[]
+  movieIndex?: GuidIndex<RadarrItem>
   approvedRecords?: ApprovedRecords
   arrInstanceIds?: ReadonlySet<number>
   arrInstances?: ReadonlyArray<{ id: number; name: string }>
@@ -193,16 +193,16 @@ interface ApiPresence extends Presence {
 
 function findShowInBulkData(
   tempItem: TemptRssWatchlistItem,
-  existingSeries: SonarrItem[],
+  seriesIndex: GuidIndex<SonarrItem>,
   instanceIds: number[],
 ): Presence {
-  const tempGuids = parseGuids(tempItem.guids)
-  const matches = existingSeries.filter(
-    (series) =>
+  const matches = findGuidMatches(seriesIndex, parseGuids(tempItem.guids))
+    .map(({ item }) => item)
+    .filter((series) =>
       instanceIds.some(
         (instanceId) => instanceId === series.sonarr_instance_id,
-      ) && hasMatchingParsedGuids(parseGuids(series.guids), tempGuids),
-  )
+      ),
+    )
   return {
     presentInstanceIds: instanceIds.filter((instanceId) =>
       matches.some((series) => series.sonarr_instance_id === instanceId),
@@ -213,16 +213,14 @@ function findShowInBulkData(
 
 function findMovieInBulkData(
   tempItem: TemptRssWatchlistItem,
-  existingMovies: RadarrItem[],
+  movieIndex: GuidIndex<RadarrItem>,
   instanceIds: number[],
 ): Presence {
-  const tempGuids = parseGuids(tempItem.guids)
-  const matches = existingMovies.filter(
-    (movie) =>
-      instanceIds.some(
-        (instanceId) => instanceId === movie.radarr_instance_id,
-      ) && hasMatchingParsedGuids(parseGuids(movie.guids), tempGuids),
-  )
+  const matches = findGuidMatches(movieIndex, parseGuids(tempItem.guids))
+    .map(({ item }) => item)
+    .filter((movie) =>
+      instanceIds.some((instanceId) => instanceId === movie.radarr_instance_id),
+    )
   return {
     presentInstanceIds: instanceIds.filter((instanceId) =>
       matches.some((movie) => movie.radarr_instance_id === instanceId),
@@ -355,15 +353,11 @@ async function markRequested(
   deps: ContentRoutingDeps,
   userId: number,
   key: string,
-  instanceUpdate: Pick<
-    WatchlistItemUpdate,
-    'radarr_instance_id' | 'sonarr_instance_id'
-  >,
 ): Promise<void> {
+  let written: boolean
   try {
-    await deps.db.updateWatchlistItem(userId, key, {
+    written = await deps.db.updateWatchlistItem(userId, key, {
       status: 'requested',
-      ...instanceUpdate,
     })
   } catch (error) {
     deps.logger.error(
@@ -372,7 +366,9 @@ async function markRequested(
     )
     return
   }
-  emitWatchlistChange(deps.fastify.progress, 'status', [userId])
+  if (written) {
+    emitWatchlistChange(deps.fastify.progress, 'status', [userId])
+  }
 }
 
 async function reportRouted(
@@ -400,14 +396,8 @@ export async function routeShow(
   params: RouteShowParams,
   deps: ContentRoutingDeps,
 ): Promise<RouteContentResult> {
-  const {
-    tempItem,
-    userId,
-    userName,
-    sonarrItem,
-    existingSeries,
-    primaryUser,
-  } = params
+  const { tempItem, userId, userName, sonarrItem, seriesIndex, primaryUser } =
+    params
 
   const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
   if (tvdbId <= 0) {
@@ -448,12 +438,8 @@ export async function routeShow(
   )
 
   let presence: Presence
-  if (existingSeries) {
-    presence = findShowInBulkData(
-      tempItem,
-      existingSeries,
-      destinations.checkIds,
-    )
+  if (seriesIndex) {
+    presence = findShowInBulkData(tempItem, seriesIndex, destinations.checkIds)
   } else {
     const apiPresence = await findShowViaApi(
       tempItem,
@@ -515,9 +501,7 @@ export async function routeShow(
         { reason: 'present', instanceIds: presentInstanceIds },
         deps,
       )
-      await markRequested(deps, userId, tempItem.key, {
-        sonarr_instance_id: presentInstanceIds[0],
-      })
+      await markRequested(deps, userId, tempItem.key)
       return { routed: false, skippedReason: 'exists-in-target' }
     }
     return await reportRouted(
@@ -549,14 +533,8 @@ export async function routeMovie(
   params: RouteMovieParams,
   deps: ContentRoutingDeps,
 ): Promise<RouteContentResult> {
-  const {
-    tempItem,
-    userId,
-    userName,
-    radarrItem,
-    existingMovies,
-    primaryUser,
-  } = params
+  const { tempItem, userId, userName, radarrItem, movieIndex, primaryUser } =
+    params
 
   const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
   if (tmdbId <= 0) {
@@ -597,12 +575,8 @@ export async function routeMovie(
   )
 
   let presence: Presence
-  if (existingMovies) {
-    presence = findMovieInBulkData(
-      tempItem,
-      existingMovies,
-      destinations.checkIds,
-    )
+  if (movieIndex) {
+    presence = findMovieInBulkData(tempItem, movieIndex, destinations.checkIds)
   } else {
     const apiPresence = await findMovieViaApi(
       tempItem,
@@ -664,9 +638,7 @@ export async function routeMovie(
         { reason: 'present', instanceIds: presentInstanceIds },
         deps,
       )
-      await markRequested(deps, userId, tempItem.key, {
-        radarr_instance_id: presentInstanceIds[0],
-      })
+      await markRequested(deps, userId, tempItem.key)
       return { routed: false, skippedReason: 'exists-in-target' }
     }
     return await reportRouted(
