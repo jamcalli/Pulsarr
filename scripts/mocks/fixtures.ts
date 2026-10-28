@@ -2,19 +2,18 @@
  * Shared fixture data for local Radarr / Sonarr mock servers.
  */
 
+import type { PagedResult } from '../../src/types/arr-connection.types.js'
 import type {
   RadarrMovieLookupResponse,
   SonarrSeason,
   SonarrSeriesLookupResponse,
 } from '../../src/types/content-lookup.types.js'
 import type {
-  PagedResult as RadarrPagedResult,
   QualityProfile as RadarrQualityProfile,
   RootFolder as RadarrRootFolder,
 } from '../../src/types/radarr.types.js'
 import type {
   SonarrEpisode,
-  PagedResult as SonarrPagedResult,
   QualityProfile as SonarrQualityProfile,
   RootFolder as SonarrRootFolder,
   SonarrSeries,
@@ -102,8 +101,7 @@ expectAssignable<RadarrQualityProfile[]>(qualityProfiles)
 expectAssignable<SonarrQualityProfile[]>(qualityProfiles)
 expectAssignable<RadarrRootFolder[]>(rootFolders)
 expectAssignable<SonarrRootFolder[]>(rootFolders)
-expectAssignable<RadarrPagedResult<never>>(emptyPagedResult())
-expectAssignable<SonarrPagedResult<never>>(emptyPagedResult())
+expectAssignable<PagedResult<never>>(emptyPagedResult())
 
 export type ApplyTagsMode = 'add' | 'remove' | 'replace'
 

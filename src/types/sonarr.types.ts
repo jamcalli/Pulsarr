@@ -44,15 +44,6 @@ export type RootFolder = {
   id: number
 }
 
-export interface PagedResult<T> {
-  page: number
-  pageSize: number
-  sortKey: string
-  sortDirection: 'default' | 'ascending' | 'descending'
-  totalRecords: number
-  records: T[]
-}
-
 export interface SonarrPost {
   title: string
   tvdbId: number

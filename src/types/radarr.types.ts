@@ -183,15 +183,6 @@ export type QualityProfile = {
   id: number
 }
 
-export interface PagedResult<T> {
-  page: number
-  pageSize: number
-  sortKey: string
-  sortDirection: string
-  totalRecords: number
-  records: T[]
-}
-
 export interface RadarrExclusion {
   id: number
   tmdbId: number

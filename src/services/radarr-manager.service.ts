@@ -23,6 +23,7 @@ import type {
 } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { PlaceholderResetError } from '@utils/arr-default-instance.js'
+import { errorMessage } from '@utils/error-message.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -396,7 +397,7 @@ export class RadarrManagerService {
             checked: false,
             serviceName: 'Radarr',
             instanceId,
-            error: err instanceof Error ? err.message : String(err),
+            error: errorMessage(err),
           }
         }
       }
@@ -683,10 +684,7 @@ export class RadarrManagerService {
       return {
         success: false,
         code: 'unreachable',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Unknown error testing connection',
+        message: errorMessage(error),
       }
     }
   }
@@ -737,10 +735,7 @@ export class RadarrManagerService {
                   error instanceof WebhookCallbackError
                     ? 'callback_failed'
                     : 'unreachable',
-                message:
-                  error instanceof Error
-                    ? error.message
-                    : 'Webhook check failed',
+                message: errorMessage(error),
               }
             }
           }),

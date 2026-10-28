@@ -124,7 +124,7 @@ export async function fetchRadarrTagsForItem(
       }
 
       // Use the targeted lookup to find the movie
-      const movies = await radarrService.getFromRadarr<
+      const movies = await radarrService.client.get<
         Array<{ id: number; title: string; tags?: number[] }>
       >(`movie/lookup?term=tmdb:${tmdbId}`)
 

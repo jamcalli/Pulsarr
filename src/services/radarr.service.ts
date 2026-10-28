@@ -3,17 +3,14 @@ import type {
   MinimumAvailability,
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
-import {
-  HttpError,
-  WebhookCallbackError,
-} from '@root/types/arr-connection.types.js'
+import { HttpError } from '@root/types/arr-connection.types.js'
 import type {
   ConnectionTestResult,
   Item,
-  PagedResult,
   QualityProfile,
   RadarrAddOptions,
   RadarrConfiguration,
+  RadarrExclusion,
   RadarrInstance,
   RadarrMovie,
   RadarrPost,
@@ -30,7 +27,24 @@ import {
   isRadarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
-import { arrResponseError, isWebhookCallbackFailure } from '@utils/arr-error.js'
+import {
+  ARR_API_TIMEOUT_MS,
+  ARR_CONNECTION_TEST_TIMEOUT_MS,
+  ArrClient,
+} from '@services/arr/arr-client.js'
+import {
+  type ArrNotification,
+  type ArrWebhookProduct,
+  type ArrWebhookTarget,
+  findPulsarrWebhooks,
+  removeWebhooks,
+  sendWebhookTest,
+  setupWebhook,
+  testWebhookCallback,
+  webhookName,
+} from '@services/arr/arr-webhook.js'
+import { isWebhookCallbackFailure } from '@utils/arr-error.js'
+import { errorMessage } from '@utils/error-message.js'
 import {
   extractRadarrId,
   extractTmdbId,
@@ -38,20 +52,107 @@ import {
   normalizeGuid,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { findQualityProfileName } from '@utils/quality-profile.js'
-import { normalizeBasePath } from '@utils/url.js'
+import {
+  findQualityProfileName,
+  parseQualityProfileId,
+} from '@utils/quality-profile.js'
+import { ensureHttpScheme } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
-
-// HTTP timeout constants
-const RADARR_API_TIMEOUT = 300000 // 300 seconds for API operations
-const RADARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
 // Bulk tag update concurrency limit
 const BULK_TAG_CONCURRENCY = 4
 
+export const RADARR_WEBHOOK: ArrWebhookProduct = {
+  appName: 'Radarr',
+  flags: {
+    onGrab: false,
+    onDownload: true,
+    onUpgrade: false,
+    onRename: false,
+    onMovieAdded: false,
+    onMovieDelete: false,
+    onMovieFileDelete: false,
+    onMovieFileDeleteForUpgrade: false,
+    onHealthIssue: false,
+    includeHealthWarnings: false,
+    onHealthRestored: false,
+    onApplicationUpdate: false,
+    onManualInteractionRequired: false,
+    supportsOnGrab: true,
+    supportsOnDownload: true,
+    supportsOnUpgrade: true,
+    supportsOnRename: true,
+    supportsOnMovieAdded: true,
+    supportsOnMovieDelete: true,
+    supportsOnMovieFileDelete: true,
+    supportsOnMovieFileDeleteForUpgrade: true,
+    supportsOnHealthIssue: true,
+    supportsOnHealthRestored: true,
+    supportsOnApplicationUpdate: true,
+    supportsOnManualInteractionRequired: true,
+  },
+  fields: (url, secret) => [
+    {
+      order: 0,
+      name: 'url',
+      label: 'Webhook URL',
+      value: url,
+      type: 'url',
+      advanced: false,
+      privacy: 'normal',
+      isFloat: false,
+    },
+    {
+      order: 1,
+      name: 'method',
+      label: 'Method',
+      helpText: 'Which HTTP method to use submit to the Webservice',
+      value: 1,
+      type: 'select',
+      advanced: false,
+      selectOptions: [
+        { value: 1, name: 'POST', order: 1, dividerAfter: false },
+        { value: 2, name: 'PUT', order: 2, dividerAfter: false },
+      ],
+      privacy: 'normal',
+      isFloat: false,
+    },
+    {
+      order: 2,
+      name: 'username',
+      label: 'Username',
+      type: 'textbox',
+      advanced: false,
+      privacy: 'userName',
+      isFloat: false,
+    },
+    {
+      order: 3,
+      name: 'password',
+      label: 'Password',
+      type: 'password',
+      advanced: false,
+      privacy: 'password',
+      isFloat: false,
+    },
+    {
+      order: 4,
+      name: 'headers',
+      label: 'Headers',
+      value: [{ key: 'X-Pulsarr-Secret', value: secret }],
+      type: 'keyValueList',
+      advanced: true,
+      privacy: 'normal',
+      isFloat: false,
+    },
+  ],
+  infoLink: 'https://wiki.servarr.com/radarr/supported#webhook',
+}
+
 export class RadarrService {
   private config: RadarrConfiguration | null = null
+  private arrClient: ArrClient | null = null
   private webhookInitialized = false
   private tagsCache: Map<number, Array<{ id: number; label: string }>> =
     new Map()
@@ -72,10 +173,6 @@ export class RadarrService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'RADARR')
-  }
-
-  private ensureUrlHasProtocol(url: string): string {
-    return url.match(/^https?:\/\//) ? url : `http://${url}`
   }
 
   private mapConnectionErrorToMessage(error: Error): string {
@@ -111,184 +208,38 @@ export class RadarrService {
     return this.config
   }
 
-  /**
-   * Generates a unique webhook name for this Pulsarr instance.
-   * Format: "Pulsarr (hostname:port)" for HTTP, "Pulsarr (hostname)" for HTTPS
-   * This allows multiple Pulsarr instances to create webhooks on the same Radarr.
-   */
+  /** Throws until initialize or testWebhookCallback has set the instance credentials. */
+  get client(): ArrClient {
+    if (!this.arrClient) {
+      throw new Error('Radarr service not initialized')
+    }
+    return this.arrClient
+  }
+
+  private credentialClient(baseUrl: string, apiKey: string): ArrClient {
+    return new ArrClient({
+      appName: 'Radarr',
+      baseUrl,
+      apiKey,
+      timeoutMs: ARR_CONNECTION_TEST_TIMEOUT_MS,
+    })
+  }
+
+  private webhookTarget(client: ArrClient): ArrWebhookTarget {
+    return {
+      product: RADARR_WEBHOOK,
+      address: {
+        appBaseUrl: this.appBaseUrl,
+        port: this.port,
+        basePath: this.fastify.config.basePath,
+        webhookSecret: this.fastify.config.webhookSecret,
+      },
+      client,
+    }
+  }
+
   getWebhookName(): string {
-    try {
-      const url = new URL(this.appBaseUrl)
-      const isHttps = url.protocol === 'https:'
-      // For HTTPS, just hostname (port 443 implied). For HTTP, include port.
-      const identifier = isHttps ? url.hostname : `${url.hostname}:${this.port}`
-      return `Pulsarr (${identifier})`
-    } catch {
-      // Fallback if URL parsing fails
-      return `Pulsarr (unknown:${this.port})`
-    }
-  }
-
-  private constructWebhookUrl(arrBaseUrl: string): string {
-    let url: URL
-
-    try {
-      // Try to parse as a complete URL
-      url = new URL(this.appBaseUrl)
-    } catch (_error) {
-      // If parsing fails, assume it's a hostname without protocol
-      url = new URL(`http://${this.appBaseUrl}`)
-    }
-
-    // If there's no explicit port in the URL already
-    if (!url.port) {
-      // For HTTPS protocol, don't add a port (use default 443)
-      if (url.protocol === 'https:') {
-        // Leave port empty
-      } else {
-        // For all other protocols (including HTTP), add the configured port
-        url.port = this.port.toString()
-      }
-    }
-
-    // Set the webhook path with basePath
-    const basePath = normalizeBasePath(this.fastify.config.basePath)
-    url.pathname =
-      basePath === '/'
-        ? '/v1/notifications/webhook'
-        : `${basePath}/v1/notifications/webhook`
-
-    // Add instance identifier for tracking
-    const urlIdentifier = arrBaseUrl
-      .replace(/https?:\/\//, '')
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toLowerCase()
-
-    url.searchParams.append('instanceId', urlIdentifier)
-
-    return url.toString()
-  }
-
-  // Legacy hooks also match on URL so another Pulsarr instance's "Pulsarr" hook is never touched
-  private findPulsarrWebhooks(
-    hooks: WebhookNotification[],
-    webhookName: string,
-    expectedUrl: string,
-  ): { current?: WebhookNotification; legacy?: WebhookNotification } {
-    return {
-      current: hooks.find((hook) => hook.name === webhookName),
-      legacy: hooks.find(
-        (hook) =>
-          hook.name === 'Pulsarr' &&
-          hook.fields?.some((f) => f.name === 'url' && f.value === expectedUrl),
-      ),
-    }
-  }
-
-  private buildWebhookDefinition(name: string, url: string) {
-    return {
-      onGrab: false,
-      onDownload: true,
-      onUpgrade: false,
-      onRename: false,
-      onMovieAdded: false,
-      onMovieDelete: false,
-      onMovieFileDelete: false,
-      onMovieFileDeleteForUpgrade: false,
-      onHealthIssue: false,
-      includeHealthWarnings: false,
-      onHealthRestored: false,
-      onApplicationUpdate: false,
-      onManualInteractionRequired: false,
-      supportsOnGrab: true,
-      supportsOnDownload: true,
-      supportsOnUpgrade: true,
-      supportsOnRename: true,
-      supportsOnMovieAdded: true,
-      supportsOnMovieDelete: true,
-      supportsOnMovieFileDelete: true,
-      supportsOnMovieFileDeleteForUpgrade: true,
-      supportsOnHealthIssue: true,
-      supportsOnHealthRestored: true,
-      supportsOnApplicationUpdate: true,
-      supportsOnManualInteractionRequired: true,
-      name,
-      fields: [
-        {
-          order: 0,
-          name: 'url',
-          label: 'Webhook URL',
-          value: url,
-          type: 'url',
-          advanced: false,
-          privacy: 'normal',
-          isFloat: false,
-        },
-        {
-          order: 1,
-          name: 'method',
-          label: 'Method',
-          helpText: 'Which HTTP method to use submit to the Webservice',
-          value: 1,
-          type: 'select',
-          advanced: false,
-          selectOptions: [
-            {
-              value: 1,
-              name: 'POST',
-              order: 1,
-              dividerAfter: false,
-            },
-            {
-              value: 2,
-              name: 'PUT',
-              order: 2,
-              dividerAfter: false,
-            },
-          ],
-          privacy: 'normal',
-          isFloat: false,
-        },
-        {
-          order: 2,
-          name: 'username',
-          label: 'Username',
-          type: 'textbox',
-          advanced: false,
-          privacy: 'userName',
-          isFloat: false,
-        },
-        {
-          order: 3,
-          name: 'password',
-          label: 'Password',
-          type: 'password',
-          advanced: false,
-          privacy: 'password',
-          isFloat: false,
-        },
-        {
-          order: 4,
-          name: 'headers',
-          label: 'Headers',
-          value: [
-            {
-              key: 'X-Pulsarr-Secret',
-              value: this.fastify.config.webhookSecret,
-            },
-          ],
-          type: 'keyValueList',
-          advanced: true,
-          privacy: 'normal',
-          isFloat: false,
-        },
-      ],
-      implementationName: 'Webhook',
-      implementation: 'Webhook',
-      configContract: 'WebhookSettings',
-      infoLink: 'https://wiki.servarr.com/radarr/supported#webhook',
-      tags: [],
-    }
+    return webhookName(this.appBaseUrl, this.port)
   }
 
   private async setupWebhook(instanceName: string): Promise<void> {
@@ -298,141 +249,17 @@ export class RadarrService {
 
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    try {
-      const expectedWebhookUrl = this.constructWebhookUrl(
-        this.radarrConfig.radarrBaseUrl,
-      )
-      const webhookName = this.getWebhookName()
-      this.log.debug(
-        `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Radarr: ${expectedWebhookUrl}`,
-      )
-
-      const { current, legacy } = this.findPulsarrWebhooks(
-        await this.getFromRadarr<WebhookNotification[]>('notification'),
-        webhookName,
-        expectedWebhookUrl,
-      )
-
-      const webhookConfig = this.buildWebhookDefinition(
-        webhookName,
-        expectedWebhookUrl,
-      )
-
-      try {
-        const existing = current ?? legacy
-        if (existing) {
-          await this.putToRadarr(`notification/${existing.id}`, {
-            ...webhookConfig,
-            id: existing.id,
-          })
-          if (current && legacy) {
-            try {
-              await this.deleteNotification(legacy.id)
-            } catch (error) {
-              this.log.warn(
-                { error, webhookId: legacy.id },
-                'Failed to remove the legacy Pulsarr webhook',
-              )
-            }
-          }
-          this.log.info(
-            { webhookId: existing.id, url: expectedWebhookUrl },
-            `${instanceName} webhook verified`,
-          )
-        } else {
-          await this.postToRadarr('notification', webhookConfig)
-          this.log.info(
-            { url: expectedWebhookUrl },
-            `${instanceName} webhook created`,
-          )
-        }
-      } catch (createError) {
-        let errorMessage = 'Failed to create webhook'
-        if (
-          createError instanceof HttpError &&
-          isWebhookCallbackFailure(createError)
-        ) {
-          throw new WebhookCallbackError(
-            `Failed to create webhook: ${createError.message}`,
-            { cause: createError },
-          )
-        }
-        if (createError instanceof HttpError) {
-          errorMessage = `Failed to create webhook: ${createError.message}`
-          throw new HttpError(errorMessage, createError.status)
-        }
-        if (createError instanceof Error) {
-          errorMessage = `Failed to create webhook: ${createError.message}`
-        }
-        throw new Error(errorMessage, { cause: createError })
-      }
-
-      this.webhookInitialized = true
-    } catch (error) {
-      // Preserve HttpError instances to maintain status - don't log, let caller handle
-      if (error instanceof HttpError || error instanceof WebhookCallbackError) {
-        throw error
-      }
-
-      let errorMessage = 'Failed to setup webhook'
-      if (error instanceof Error) {
-        errorMessage = error.message
-      }
-
-      throw new Error(errorMessage, { cause: error })
-    }
+    await setupWebhook(this.webhookTarget(this.client), instanceName, this.log)
+    this.webhookInitialized = true
   }
 
   async removeWebhook(): Promise<void> {
-    try {
-      const webhookName = this.getWebhookName()
-      const expectedWebhookUrl = this.constructWebhookUrl(
-        this.radarrConfig.radarrBaseUrl,
-      )
-      const { current, legacy } = this.findPulsarrWebhooks(
-        await this.getFromRadarr<WebhookNotification[]>('notification'),
-        webhookName,
-        expectedWebhookUrl,
-      )
-
-      const pulsarrWebhooks = [current, legacy].filter(
-        (hook) => hook !== undefined,
-      )
-      for (const webhook of pulsarrWebhooks) {
-        await this.deleteNotification(webhook.id)
-        this.log.info(
-          `Successfully removed Pulsarr webhook "${webhook.name}" for Radarr`,
-        )
-      }
-    } catch (error) {
-      this.log.error({ error }, 'Failed to remove webhook for Radarr')
-      throw error
-    }
+    await removeWebhooks(this.webhookTarget(this.client), this.log)
   }
 
-  private async deleteNotification(notificationId: number): Promise<void> {
-    const config = this.radarrConfig
-    const url = new URL(
-      `${config.radarrBaseUrl}/api/v3/notification/${notificationId}`,
-    )
-    const response = await fetch(url.toString(), {
-      method: 'DELETE',
-      headers: {
-        'X-Api-Key': config.radarrApiKey,
-      },
-      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
-    })
-    if (!response.ok) {
-      throw await arrResponseError(
-        response,
-        `Notification not found: ${notificationId}`,
-      )
-    }
-  }
-
-  private configFromInstance(instance: RadarrInstance): RadarrConfiguration {
-    return {
-      radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
+  private configure(instance: RadarrInstance): void {
+    this.config = {
+      radarrBaseUrl: ensureHttpScheme(instance.baseUrl),
       radarrApiKey: instance.apiKey,
       radarrQualityProfileId: instance.qualityProfile || null,
       radarrRootFolder: instance.rootFolder || null,
@@ -442,33 +269,18 @@ export class RadarrService {
       minimumAvailability: instance.minimumAvailability || 'released',
       monitor: instance.monitor || 'movieOnly',
     }
+    this.arrClient = new ArrClient({
+      appName: 'Radarr',
+      baseUrl: instance.baseUrl,
+      apiKey: instance.apiKey,
+      timeoutMs: ARR_API_TIMEOUT_MS,
+    })
   }
 
   /** Expects the service to be built with the candidate Pulsarr address and throws WebhookCallbackError when the arr cannot call it back. */
   async testWebhookCallback(instance: RadarrInstance): Promise<void> {
-    this.config = this.configFromInstance(instance)
-    const webhookName = this.getWebhookName()
-    const expectedWebhookUrl = this.constructWebhookUrl(
-      this.radarrConfig.radarrBaseUrl,
-    )
-    const { current, legacy } = this.findPulsarrWebhooks(
-      await this.getFromRadarr<WebhookNotification[]>('notification'),
-      webhookName,
-      expectedWebhookUrl,
-    )
-    const existingId = (current ?? legacy)?.id
-    try {
-      // The arr's unique-name check skips only the posted id, so the stored hook's id must ride along
-      await this.postToRadarr('notification/test', {
-        ...this.buildWebhookDefinition(webhookName, expectedWebhookUrl),
-        ...(existingId === undefined ? {} : { id: existingId }),
-      })
-    } catch (error) {
-      if (error instanceof HttpError && isWebhookCallbackFailure(error)) {
-        throw new WebhookCallbackError(error.message, { cause: error })
-      }
-      throw error
-    }
+    this.configure(instance)
+    await testWebhookCallback(this.webhookTarget(this.client))
   }
 
   async initialize(instance: RadarrInstance): Promise<void> {
@@ -486,11 +298,11 @@ export class RadarrService {
       this.log.debug(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
-      this.config = this.configFromInstance(instance)
+      this.configure(instance)
       return
     }
 
-    this.config = this.configFromInstance(instance)
+    this.configure(instance)
 
     this.log.debug(
       `Successfully initialized base Radarr service for ${instance.name}`,
@@ -592,8 +404,7 @@ export class RadarrService {
 
   async fetchQualityProfiles(): Promise<QualityProfile[]> {
     try {
-      const profiles =
-        await this.getFromRadarr<QualityProfile[]>('qualityprofile')
+      const profiles = await this.client.get<QualityProfile[]>('qualityprofile')
       return profiles
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching quality profiles')
@@ -603,7 +414,7 @@ export class RadarrService {
 
   async fetchRootFolders(): Promise<RootFolder[]> {
     try {
-      const rootFolders = await this.getFromRadarr<RootFolder[]>('rootfolder')
+      const rootFolders = await this.client.get<RootFolder[]>('rootfolder')
       return rootFolders
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching root folders')
@@ -613,7 +424,7 @@ export class RadarrService {
 
   async getAllMovies(): Promise<RadarrMovie[]> {
     try {
-      return await this.getFromRadarr<RadarrMovie[]>('movie')
+      return await this.client.get<RadarrMovie[]>('movie')
     } catch (error) {
       this.log.error({ error }, 'Error fetching all movies:')
       throw error
@@ -622,7 +433,7 @@ export class RadarrService {
 
   async fetchMovies(bypass = false): Promise<Set<Item>> {
     try {
-      const movies = await this.getFromRadarr<RadarrMovie[]>('movie')
+      const movies = await this.client.get<RadarrMovie[]>('movie')
 
       let exclusions: Set<Item> = new Set()
       if (!bypass) {
@@ -653,7 +464,7 @@ export class RadarrService {
    */
   async movieExistsByTmdbId(tmdbId: number): Promise<ExistenceCheckResult> {
     try {
-      const movies = await this.getFromRadarr<RadarrMovie[]>(
+      const movies = await this.client.get<RadarrMovie[]>(
         `movie/lookup?term=tmdb:${tmdbId}`,
       )
 
@@ -674,7 +485,7 @@ export class RadarrService {
         found: false,
         checked: false,
         serviceName: 'Radarr',
-        error: err instanceof Error ? err.message : String(err),
+        error: errorMessage(err),
       }
     }
   }
@@ -708,70 +519,27 @@ export class RadarrService {
     return ids
   }
 
-  async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {
-    const config = this.radarrConfig
+  async fetchExclusions(): Promise<Set<Item>> {
     try {
-      let currentPage = 1
-      let totalRecords = 0
-      const allExclusions: RadarrMovie[] = []
-
-      do {
-        const url = new URL(`${config.radarrBaseUrl}/api/v3/exclusions/paged`)
-        url.searchParams.append('page', currentPage.toString())
-        url.searchParams.append('pageSize', pageSize.toString())
-        url.searchParams.append('sortDirection', 'ascending')
-        url.searchParams.append('sortKey', 'movieTitle')
-
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            'X-Api-Key': config.radarrApiKey,
-            Accept: 'application/json',
-          },
-          signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
-        })
-
-        if (!response.ok) {
-          throw new Error(response.statusText)
-        }
-
-        const pagedResult = (await response.json()) as PagedResult<{
-          id: number
-          tmdbId: number
-          movieTitle: string
-          movieYear: number
-        }>
-        totalRecords = pagedResult.totalRecords
-
-        const exclusionMovies = pagedResult.records.map((record) => ({
-          title: record.movieTitle,
-          imdbId: undefined,
-          tmdbId: record.tmdbId,
-          id: record.id,
-        }))
-
-        allExclusions.push(...exclusionMovies)
-
-        this.log.debug(
-          `Fetched page ${currentPage} of exclusions (${pagedResult.records.length} records)`,
-        )
-        currentPage++
-      } while (allExclusions.length < totalRecords)
-
-      this.log.debug(`Fetched all movie exclusions (${allExclusions.length})`)
-      return new Set(allExclusions.map((movie) => this.toItem(movie)))
+      const exclusions = await this.client.getAllPages<RadarrExclusion>(
+        'exclusions/paged',
+        'movieTitle',
+      )
+      this.log.debug(`Fetched all movie exclusions (${exclusions.length})`)
+      return new Set(
+        exclusions.map((record) =>
+          this.toItem({
+            title: record.movieTitle,
+            imdbId: undefined,
+            tmdbId: record.tmdbId,
+            id: record.id,
+          }),
+        ),
+      )
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')
       throw err
     }
-  }
-
-  private isNumericQualityProfile(
-    value: string | number | null,
-  ): value is number {
-    if (value === null) return false
-    if (typeof value === 'number') return true
-    return /^\d+$/.test(value)
   }
 
   private async resolveRootFolder(
@@ -808,8 +576,9 @@ export class RadarrService {
       return defaultId
     }
 
-    if (this.isNumericQualityProfile(configProfile)) {
-      return Number(configProfile)
+    const configProfileId = parseQualityProfileId(configProfile)
+    if (configProfileId !== undefined) {
+      return configProfileId
     }
 
     const matchingProfile = profiles.find(
@@ -956,10 +725,7 @@ export class RadarrService {
         monitored: shouldMonitor,
       }
 
-      const created = await this.postToRadarr<RadarrMovie | undefined>(
-        'movie',
-        movie,
-      )
+      const created = await this.client.post<RadarrMovie>('movie', movie)
       this.log.debug(
         {
           title: item.title,
@@ -1036,134 +802,13 @@ export class RadarrService {
     }
   }
 
-  async getFromRadarr<T>(endpoint: string): Promise<T> {
-    const config = this.radarrConfig
-    const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'X-Api-Key': config.radarrApiKey,
-        Accept: 'application/json',
-      },
-      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
-    })
-
-    if (!response.ok) {
-      throw await arrResponseError(
-        response,
-        `API endpoint not found: ${endpoint}`,
-      )
-    }
-
-    return response.json() as Promise<T>
-  }
-
-  private async postToRadarr<T>(
-    endpoint: string,
-    payload: unknown,
-  ): Promise<T> {
-    const config = this.radarrConfig
-    try {
-      const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          'X-Api-Key': config.radarrApiKey,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
-      })
-
-      // Handle 204 No Content responses
-      if (response.status === 204) {
-        return undefined as unknown as T
-      }
-
-      if (!response.ok) {
-        throw await arrResponseError(
-          response,
-          `API endpoint not found: ${endpoint}`,
-        )
-      }
-
-      // Some endpoints return 201 with empty body
-      const contentType = response.headers.get('content-type')
-      if (contentType?.includes('application/json')) {
-        return response.json() as Promise<T>
-      }
-
-      return undefined as unknown as T
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes('Invalid URL')) {
-        throw new Error(
-          'Invalid base URL format. Please check your Radarr URL configuration.',
-        )
-      }
-      throw error
-    }
-  }
-
   private async deleteFromRadarrById(
     id: number,
     deleteFiles: boolean,
   ): Promise<void> {
-    const config = this.radarrConfig
-    const url = new URL(`${config.radarrBaseUrl}/api/v3/movie/${id}`)
-    url.searchParams.append('deleteFiles', deleteFiles.toString())
-    url.searchParams.append('addImportExclusion', 'false')
-
-    const response = await fetch(url.toString(), {
-      method: 'DELETE',
-      headers: {
-        'X-Api-Key': config.radarrApiKey,
-      },
-      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
-    })
-
-    if (!response.ok) {
-      throw await arrResponseError(response, `Resource not found: movie/${id}`)
-    }
-  }
-
-  private async requestWithCredentials<T>(
-    baseUrl: string,
-    apiKey: string,
-    endpoint: string,
-  ): Promise<T> {
-    const response = await this.fetchWithCredentials(baseUrl, apiKey, endpoint)
-    return response.json() as Promise<T>
-  }
-
-  private async fetchWithCredentials(
-    baseUrl: string,
-    apiKey: string,
-    endpoint: string,
-    init?: { method: 'POST'; body: object },
-  ): Promise<Response> {
-    const url = new URL(
-      `${this.ensureUrlHasProtocol(baseUrl)}/api/v3/${endpoint}`,
+    await this.client.delete(
+      `movie/${id}?deleteFiles=${deleteFiles}&addImportExclusion=false`,
     )
-    const response = await fetch(url.toString(), {
-      method: init?.method ?? 'GET',
-      headers: {
-        'X-Api-Key': apiKey,
-        Accept: 'application/json',
-        ...(init && { 'Content-Type': 'application/json' }),
-      },
-      body: init && JSON.stringify(init.body),
-      signal: AbortSignal.timeout(RADARR_CONNECTION_TEST_TIMEOUT),
-    })
-
-    if (!response.ok) {
-      throw await arrResponseError(
-        response,
-        `API endpoint not found: ${endpoint}`,
-      )
-    }
-
-    return response
   }
 
   /** Reads routing options with unsaved credentials and never touches this service's config or webhook. */
@@ -1175,18 +820,11 @@ export class RadarrService {
     rootFolders: RootFolder[]
     tags: Array<{ id: number; label: string }>
   }> {
+    const client = this.credentialClient(baseUrl, apiKey)
     const [qualityProfiles, rootFolders, tags] = await Promise.all([
-      this.requestWithCredentials<QualityProfile[]>(
-        baseUrl,
-        apiKey,
-        'qualityprofile',
-      ),
-      this.requestWithCredentials<RootFolder[]>(baseUrl, apiKey, 'rootfolder'),
-      this.requestWithCredentials<Array<{ id: number; label: string }>>(
-        baseUrl,
-        apiKey,
-        'tag',
-      ),
+      client.get<QualityProfile[]>('qualityprofile'),
+      client.get<RootFolder[]>('rootfolder'),
+      client.get<Array<{ id: number; label: string }>>('tag'),
     ])
     return { qualityProfiles, rootFolders, tags }
   }
@@ -1206,7 +844,7 @@ export class RadarrService {
 
       let safeBaseUrl: string
       try {
-        safeBaseUrl = this.ensureUrlHasProtocol(baseUrl)
+        safeBaseUrl = ensureHttpScheme(baseUrl)
         new URL(safeBaseUrl)
       } catch (_urlError) {
         return {
@@ -1226,7 +864,7 @@ export class RadarrService {
             'X-Api-Key': apiKey,
             Accept: 'application/json',
           },
-          signal: AbortSignal.timeout(RADARR_CONNECTION_TEST_TIMEOUT),
+          signal: AbortSignal.timeout(ARR_CONNECTION_TEST_TIMEOUT_MS),
         })
       } catch (fetchError) {
         return {
@@ -1288,19 +926,12 @@ export class RadarrService {
         }
       }
 
-      const webhookName = this.getWebhookName()
-      const webhookUrl = this.constructWebhookUrl(safeBaseUrl)
-      let existingWebhook: WebhookNotification | undefined
+      const target = this.webhookTarget(
+        this.credentialClient(safeBaseUrl, apiKey),
+      )
+      let existingWebhook: ArrNotification | undefined
       try {
-        const { current, legacy } = this.findPulsarrWebhooks(
-          await this.requestWithCredentials<WebhookNotification[]>(
-            safeBaseUrl,
-            apiKey,
-            'notification',
-          ),
-          webhookName,
-          webhookUrl,
-        )
+        const { current, legacy } = await findPulsarrWebhooks(target)
         existingWebhook = current ?? legacy
       } catch (notificationError) {
         if (notificationError instanceof HttpError) {
@@ -1332,18 +963,7 @@ export class RadarrService {
       }
 
       try {
-        await this.fetchWithCredentials(
-          safeBaseUrl,
-          apiKey,
-          'notification/test',
-          {
-            method: 'POST',
-            body: {
-              ...this.buildWebhookDefinition(webhookName, webhookUrl),
-              ...(existingWebhook && { id: existingWebhook.id }),
-            },
-          },
-        )
+        await sendWebhookTest(target, existingWebhook?.id)
       } catch (callbackError) {
         if (
           callbackError instanceof Error &&
@@ -1422,7 +1042,7 @@ export class RadarrService {
           'X-Api-Key': this.config.radarrApiKey,
           Accept: 'application/json',
         },
-        signal: AbortSignal.timeout(RADARR_CONNECTION_TEST_TIMEOUT),
+        signal: AbortSignal.timeout(ARR_CONNECTION_TEST_TIMEOUT_MS),
       })
 
       if (!response.ok) {
@@ -1436,10 +1056,7 @@ export class RadarrService {
     } catch (error) {
       return {
         healthy: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Unknown error checking Radarr health',
+        error: errorMessage(error),
       }
     }
   }
@@ -1456,7 +1073,7 @@ export class RadarrService {
 
       if (existingPlexNotification) {
         // Update existing notification
-        await this.deleteNotification(existingPlexNotification.id)
+        await this.client.delete(`notification/${existingPlexNotification.id}`)
       }
 
       // Create notification configuration
@@ -1511,7 +1128,7 @@ export class RadarrService {
       }
 
       // Add the notification to Radarr
-      await this.postToRadarr('notification', plexConfig)
+      await this.client.post('notification', plexConfig)
       this.log.info('Successfully configured Plex notification')
     } catch (error) {
       this.log.error({ error }, 'Error configuring Plex notification:')
@@ -1523,7 +1140,7 @@ export class RadarrService {
     WebhookNotification | undefined
   > {
     const notifications =
-      await this.getFromRadarr<WebhookNotification[]>('notification')
+      await this.client.get<WebhookNotification[]>('notification')
     return notifications.find((n) => n.implementation === 'PlexServer')
   }
 
@@ -1538,7 +1155,7 @@ export class RadarrService {
 
       if (existingPlexNotification) {
         // Delete the notification
-        await this.deleteNotification(existingPlexNotification.id)
+        await this.client.delete(`notification/${existingPlexNotification.id}`)
         this.log.info('Successfully removed Plex notification from Radarr')
       } else {
         this.log.debug('No Plex notification found to remove from Radarr')
@@ -1585,7 +1202,7 @@ export class RadarrService {
   }
 
   async getTagDetails(): Promise<RadarrTagDetail[]> {
-    return await this.getFromRadarr<RadarrTagDetail[]>('tag/detail')
+    return await this.client.get<RadarrTagDetail[]>('tag/detail')
   }
 
   /**
@@ -1597,7 +1214,7 @@ export class RadarrService {
   private async getTagsWithoutCache(): Promise<
     Array<{ id: number; label: string }>
   > {
-    return await this.getFromRadarr<Array<{ id: number; label: string }>>('tag')
+    return await this.client.get<Array<{ id: number; label: string }>>('tag')
   }
 
   /**
@@ -1659,16 +1276,15 @@ export class RadarrService {
    */
   async createTag(label: string): Promise<{ id: number; label: string }> {
     try {
-      const result = await this.postToRadarr<{ id: number; label: string }>(
+      const result = await this.client.post<{ id: number; label: string }>(
         'tag',
-        {
-          label,
-        },
+        { label },
       )
 
       // Invalidate the tags cache since we've added a new tag
       this.invalidateTagsCache()
 
+      if (!result) throw new Error(`Radarr returned no tag for "${label}"`)
       return result
     } catch (err) {
       // Radarr returns 409 Conflict if the tag already exists
@@ -1729,7 +1345,7 @@ export class RadarrService {
               applyTags,
             }
 
-            await this.putToRadarr('movie/editor', payload)
+            await this.client.put('movie/editor', payload)
 
             this.log.debug(
               `Bulk updated ${movieIds.length} movies with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
@@ -1749,65 +1365,13 @@ export class RadarrService {
   }
 
   /**
-   * Update a resource in Radarr using PUT
-   *
-   * @param endpoint API endpoint
-   * @param payload The data to send
-   * @returns Promise resolving to the response or void for 204 responses
-   */
-  async putToRadarr<T>(
-    endpoint: string,
-    payload: unknown,
-  ): Promise<T | undefined> {
-    const config = this.radarrConfig
-    const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
-    const response = await fetch(url.toString(), {
-      method: 'PUT',
-      headers: {
-        'X-Api-Key': config.radarrApiKey,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
-    })
-
-    if (!response.ok) {
-      throw await arrResponseError(
-        response,
-        `API endpoint not found: ${endpoint}`,
-      )
-    }
-
-    // Some endpoints return 204 No Content
-    if (response.status === 204) {
-      return undefined
-    }
-
-    return response.json() as Promise<T>
-  }
-
-  /**
    * Delete a tag from Radarr
    *
    * @param tagId The ID of the tag to delete
    * @returns Promise resolving when the delete operation is complete
    */
   async deleteTag(tagId: number): Promise<void> {
-    const config = this.radarrConfig
-    const url = new URL(`${config.radarrBaseUrl}/api/v3/tag/${tagId}`)
-
-    const response = await fetch(url.toString(), {
-      method: 'DELETE',
-      headers: {
-        'X-Api-Key': config.radarrApiKey,
-      },
-      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
-    })
-
-    if (!response.ok) {
-      throw await arrResponseError(response, `Tag not found: ${tagId}`)
-    }
+    await this.client.delete(`tag/${tagId}`)
 
     // Invalidate the tags cache since we've deleted a tag
     this.invalidateTagsCache()

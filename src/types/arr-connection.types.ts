@@ -4,6 +4,15 @@ export type ConnectionTestResult =
   | { success: true; code: null; message: string }
   | { success: false; code: ArrConnectionFailureCode; message: string }
 
+export interface PagedResult<T> {
+  page: number
+  pageSize: number
+  sortKey: string
+  sortDirection: string
+  totalRecords: number
+  records: T[]
+}
+
 /** Validation failure item from an arr API error body, camelCased by System.Text.Json. */
 export interface ArrValidationFailure {
   propertyName?: string

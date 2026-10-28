@@ -28,7 +28,7 @@ export async function fetchRadarrLookup(
       return null
     }
 
-    const lookupResponse = await radarrService.getFromRadarr<
+    const lookupResponse = await radarrService.client.get<
       RadarrMovieLookupResponse | RadarrMovieLookupResponse[]
     >(`movie/lookup/tmdb?tmdbId=${tmdbId}`)
 
