@@ -164,6 +164,42 @@ describe('Webhook Routes', () => {
           await knex('notifications').where({ watchlist_item_id: show.id }),
         ).toEqual([])
       })
+
+      it('queues the movie as pending when only a show shares the tmdb id', async () => {
+        const knex = getTestDatabase()
+        await knex('watchlist_items').where({ type: 'movie' }).delete()
+        await knex('watchlist_items').insert({
+          user_id: 2,
+          title: 'Same Id Show',
+          key: 'shared-tmdb-show',
+          type: 'show',
+          guids: JSON.stringify(['tmdb:10331']),
+          genres: JSON.stringify([]),
+          status: 'requested',
+        })
+
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/notifications/webhook',
+          headers: {
+            'x-pulsarr-secret': app.config.webhookSecret,
+          },
+          payload: {
+            instanceName: 'Radarr',
+            movie: { title: 'Night of the Living Dead', tmdbId: 10331 },
+          },
+        })
+
+        expect(res.statusCode).toBe(200)
+        await vi.waitFor(async () =>
+          expect(
+            await knex('pending_webhooks').where({
+              guid: 'tmdb:10331',
+              media_type: 'movie',
+            }),
+          ).toHaveLength(1),
+        )
+      })
     })
 
     describe('with a Sonarr episode that has no air date', () => {
