@@ -2,43 +2,11 @@ import {
   HttpError,
   WebhookCallbackError,
 } from '@root/types/arr-connection.types.js'
+import type { ArrProduct } from '@services/arr/arr-product.js'
 import { isWebhookCallbackFailure } from '@utils/arr-error.js'
 import { errorMessage } from '@utils/error-message.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyBaseLogger } from 'fastify'
-
-export type ArrWebhookFlags = Readonly<
-  Record<
-    `on${string}` | `supportsOn${string}` | 'includeHealthWarnings',
-    boolean
-  >
->
-
-export interface ArrWebhookField {
-  order: number
-  name: string
-  label: string
-  value?: string | number | Array<{ key: string; value: string }>
-  type: string
-  advanced: boolean
-  helpText?: string
-  selectOptions?: Array<{
-    value: number
-    name: string
-    order: number
-    dividerAfter: boolean
-  }>
-  privacy?: string
-  isFloat?: boolean
-}
-
-/** One complete object per product, since each arr accepts only its own event flags and field set. */
-export interface ArrWebhookProduct {
-  appName: string
-  flags: ArrWebhookFlags
-  fields: (url: string, secret: string) => ArrWebhookField[]
-  infoLink: string
-}
 
 export interface PulsarrAddress {
   appBaseUrl: string
@@ -56,7 +24,7 @@ export interface ArrWebhookClient {
 }
 
 export interface ArrWebhookTarget {
-  product: ArrWebhookProduct
+  product: ArrProduct
   address: PulsarrAddress
   client: ArrWebhookClient
 }
@@ -117,13 +85,13 @@ function webhookDefinition(target: ArrWebhookTarget) {
   const { product, address, client } = target
   const url = webhookUrl(address, client.baseUrl)
   return {
-    ...product.flags,
+    ...product.webhook.flags,
     name: webhookName(address.appBaseUrl, address.port),
-    fields: product.fields(url, address.webhookSecret),
+    fields: product.webhook.fields(url, address.webhookSecret),
     implementationName: 'Webhook',
     implementation: 'Webhook',
     configContract: 'WebhookSettings',
-    infoLink: product.infoLink,
+    infoLink: product.webhook.infoLink,
     tags: [],
   }
 }
@@ -251,6 +219,15 @@ export async function testWebhookCallback(
     if (error instanceof HttpError && isWebhookCallbackFailure(error)) {
       throw new WebhookCallbackError(error.message, { cause: error })
     }
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      throw new WebhookCallbackError(callbackTimeoutMessage(target.product), {
+        cause: error,
+      })
+    }
     throw error
   }
+}
+
+export function callbackTimeoutMessage(product: ArrProduct): string {
+  return `${product.appName} did not finish calling Pulsarr back in time. Check the webhook address.`
 }

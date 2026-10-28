@@ -5,10 +5,13 @@ import { ensureHttpScheme } from '@utils/url.js'
 export const ARR_API_TIMEOUT_MS = 300_000
 export const ARR_CONNECTION_TEST_TIMEOUT_MS = 10_000
 
-export interface ArrClientOptions {
-  appName: string
+export interface ArrCredentials {
   baseUrl: string
   apiKey: string
+}
+
+export interface ArrClientOptions extends ArrCredentials {
+  appName: string
   timeoutMs: number
 }
 
