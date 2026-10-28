@@ -2081,7 +2081,7 @@
           "removedTagPrefix": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+            "pattern": "^[a-zA-Z0-9-]+$"
           },
           "deleteSyncRequiredTagRegex": {
             "type": "string",
@@ -2253,7 +2253,7 @@
           "tagPrefix": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+            "pattern": "^[a-zA-Z0-9-]+$"
           },
           "tagNamingSource": {
             "$ref": "#/components/schemas/UserNamingSource"
