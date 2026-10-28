@@ -1,9 +1,13 @@
 import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
-import {
-  RemovedTagPrefixSchema,
-  TagPrefixSchema,
-} from '@root/schemas/shared/prefix-validation.schema.js'
 import { z } from 'zod'
+
+const LabelPrefixSchema = z
+  .string()
+  .trim()
+  .min(1, { error: 'Enter a prefix.' })
+  .regex(/^[a-zA-Z0-9_\-:.]+$/, {
+    error: 'Use only letters, numbers, underscores, hyphens, colons and dots.',
+  })
 
 const RemovedLabelModeSchema = z
   .enum(['remove', 'keep', 'special-label'])
@@ -39,11 +43,11 @@ export const PlexLabelSyncConfigSchema = z
 export const PlexLabelSyncConfigPayloadSchema = z
   .object({
     enabled: z.boolean(),
-    labelPrefix: TagPrefixSchema,
+    labelPrefix: LabelPrefixSchema,
     labelNamingSource: UserNamingSourceSchema,
     cleanupOrphanedLabels: z.boolean(),
     removedLabelMode: RemovedLabelModeSchema,
-    removedLabelPrefix: RemovedTagPrefixSchema,
+    removedLabelPrefix: LabelPrefixSchema,
     autoResetOnScheduledSync: z.boolean(),
     tagSync: PlexLabelTagSyncSchema,
   })
