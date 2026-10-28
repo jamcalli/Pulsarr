@@ -1,8 +1,30 @@
-import type { RadarrMonitorType } from '@root/schemas/radarr/add-options.schema.js'
+import {
+  type MinimumAvailability,
+  RADARR_MINIMUM_AVAILABILITY_OPTIONS,
+  type RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
 import type { RadarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
+
+/** Null or undefined becomes 'released', and an unknown value throws. */
+function normaliseMinimumAvailability(
+  value?: string | null,
+): MinimumAvailability {
+  if (value === undefined || value === null) {
+    return 'released'
+  }
+  const v = value.toString().trim()
+  const canonical = v.toLowerCase()
+  const match = RADARR_MINIMUM_AVAILABILITY_OPTIONS.find(
+    (allowedValue) => allowedValue.toLowerCase() === canonical,
+  )
+  if (!match) {
+    throw new Error(`Invalid minimumAvailability value: ${v}`)
+  }
+  return match
+}
 
 /**
  * Converts a RadarrInstanceRow from the database into a RadarrInstance object, normalizing and parsing fields as needed.
@@ -23,9 +45,7 @@ function mapRowToRadarrInstance(
     rootFolder: row.root_folder,
     bypassIgnored: Boolean(row.bypass_ignored),
     searchOnAdd: row.search_on_add === null ? true : Boolean(row.search_on_add),
-    minimumAvailability: this.normaliseMinimumAvailability(
-      row.minimum_availability,
-    ),
+    minimumAvailability: normaliseMinimumAvailability(row.minimum_availability),
     monitor: row.monitor as RadarrMonitorType,
     tags: this.safeJsonParse(row.tags, [], 'radarr.tags'),
     isDefault: Boolean(row.is_default),
@@ -112,7 +132,7 @@ async function insertRadarrInstanceRow(
       root_folder: instance.rootFolder,
       bypass_ignored: instance.bypassIgnored,
       search_on_add: instance.searchOnAdd ?? true,
-      minimum_availability: this.normaliseMinimumAvailability(
+      minimum_availability: normaliseMinimumAvailability(
         instance.minimumAvailability,
       ),
       monitor: instance.monitor ?? 'movieOnly',
@@ -204,7 +224,7 @@ export async function updateRadarrInstance(
           search_on_add: sanitized.searchOnAdd,
         }),
         ...(typeof sanitized.minimumAvailability !== 'undefined' && {
-          minimum_availability: this.normaliseMinimumAvailability(
+          minimum_availability: normaliseMinimumAvailability(
             sanitized.minimumAvailability,
           ),
         }),

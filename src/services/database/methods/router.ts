@@ -1,9 +1,68 @@
-import type { RouterRule } from '@root/types/router.types.js'
+import type {
+  Condition,
+  ConditionGroup,
+  RouterRule,
+} from '@root/types/router.types.js'
 import {
   DEFAULT_ROUTE_PRIORITY,
   ROUTER_RULE_PRIORITY,
 } from '@schemas/content-router/content-router.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
+
+function formatRouterRule(
+  db: DatabaseService,
+  rule: {
+    id: number
+    name: string
+    type: string
+    criteria: string | Record<string, unknown>
+    target_type: 'sonarr' | 'radarr'
+    target_instance_id: number | null
+    root_folder?: string | null
+    quality_profile?: number | null
+    tags?: string | string[]
+    order: number
+    enabled: number | boolean
+    metadata?: string | null
+    search_on_add?: number | boolean | null
+    season_monitoring?: string | null
+    always_require_approval?: number | boolean
+    bypass_user_quotas?: number | boolean
+    approval_reason?: string | null
+    exclude_from_routing?: number | boolean
+    created_at: string
+    updated_at: string
+    [key: string]: unknown
+  },
+): RouterRule {
+  return {
+    ...rule,
+    enabled: Boolean(rule.enabled),
+    search_on_add:
+      rule.search_on_add == null ? null : Boolean(rule.search_on_add),
+    always_require_approval: Boolean(rule.always_require_approval ?? false),
+    bypass_user_quotas: Boolean(rule.bypass_user_quotas ?? false),
+    approval_reason: rule.approval_reason ?? null,
+    exclude_from_routing: Boolean(rule.exclude_from_routing ?? false),
+    criteria:
+      typeof rule.criteria === 'string'
+        ? db.safeJsonParse(
+            rule.criteria,
+            { condition: { operator: 'AND' as const, conditions: [] } },
+            'router_rule.criteria',
+          )
+        : (rule.criteria as { condition: Condition | ConditionGroup }),
+    tags:
+      typeof rule.tags === 'string'
+        ? db.safeJsonParse(rule.tags, [], 'router_rule.tags')
+        : rule.tags || [],
+    metadata: rule.metadata
+      ? typeof rule.metadata === 'string'
+        ? db.safeJsonParse(rule.metadata, null, 'router_rule.metadata')
+        : rule.metadata
+      : null,
+  }
+}
 
 /**
  * Retrieves all router rules from the database, ordered by priority and ID.
@@ -18,7 +77,7 @@ export async function getAllRouterRules(
     .orderBy('order', 'desc')
     .orderBy('id', 'asc')
 
-  return rules.map((rule) => this.formatRouterRule(rule))
+  return rules.map((rule) => formatRouterRule(this, rule))
 }
 
 /**
@@ -35,7 +94,7 @@ export async function getRouterRuleById(
 
   if (!rule) return null
 
-  return this.formatRouterRule(rule)
+  return formatRouterRule(this, rule)
 }
 
 /**
@@ -58,7 +117,7 @@ export async function getRouterRulesByType(
 
   const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
 
-  return rules.map((rule) => this.formatRouterRule(rule))
+  return rules.map((rule) => formatRouterRule(this, rule))
 }
 
 /**
@@ -93,7 +152,7 @@ export async function getRouterRulesByAction(
 
   const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
 
-  return rules.map((rule) => this.formatRouterRule(rule))
+  return rules.map((rule) => formatRouterRule(this, rule))
 }
 
 /**
@@ -123,7 +182,7 @@ export async function createRouterRule(
 
   if (!createdRule) throw new Error('Failed to create router rule')
 
-  return this.formatRouterRule(createdRule)
+  return formatRouterRule(this, createdRule)
 }
 
 /**
@@ -235,7 +294,7 @@ export async function updateRouterRule(
     )
   }
 
-  return this.formatRouterRule(updatedRule)
+  return formatRouterRule(this, updatedRule)
 }
 
 /**
@@ -274,7 +333,7 @@ export async function getRouterRulesByTarget(
     .orderBy('order', 'desc')
     .orderBy('id', 'asc')
 
-  return rules.map((rule) => this.formatRouterRule(rule))
+  return rules.map((rule) => formatRouterRule(this, rule))
 }
 
 /**
@@ -298,7 +357,7 @@ export async function getRouterRulesByTargetType(
       `Found ${rules.length} router rules for target type: ${targetType}`,
     )
 
-    return rules.map((rule) => this.formatRouterRule(rule))
+    return rules.map((rule) => formatRouterRule(this, rule))
   } catch (error) {
     this.log.error(
       { error },
@@ -335,9 +394,10 @@ export async function toggleRouterRule(
     )
   }
 
-  return this.formatRouterRule(updatedRule)
+  return formatRouterRule(this, updatedRule)
 }
 
+/** Stores every priority in one transaction, so a failure leaves all rules unchanged. */
 export async function setRouterRuleOrders(
   this: DatabaseService,
   orders: ReadonlyArray<{ id: number; order: number }>,
@@ -351,6 +411,7 @@ export async function setRouterRuleOrders(
   })
 }
 
+/** The priority that puts a new rule after every rule of its type. */
 export async function nextRouterRuleOrder(
   this: DatabaseService,
   targetType: 'radarr' | 'sonarr',

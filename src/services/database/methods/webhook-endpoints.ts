@@ -5,6 +5,7 @@ import type {
   WebhookEventType,
 } from '@root/types/webhook-endpoint.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { toBoolean } from '@utils/to-boolean.js'
 
 /**
  * Database row representation for webhook_endpoints table
@@ -39,7 +40,7 @@ function rowToEndpoint(
       [],
       'webhook_endpoint.event_types',
     ),
-    enabled: this.toBoolean(row.enabled, true),
+    enabled: toBoolean(row.enabled, true),
     created_at: row.created_at,
     updated_at: row.updated_at,
   }

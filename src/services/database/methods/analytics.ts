@@ -298,6 +298,7 @@ export async function getUsersWithMostWatchlistItems(
   }))
 }
 
+/** Status counts over items created in the last `days` days, or all time when `days` is 0. */
 export async function getWatchlistStatusDistribution(
   this: DatabaseService,
   days = 0,
@@ -397,9 +398,7 @@ export async function getRecentActivityStats(
   return stats
 }
 
-/**
- * Days from an item's requested history row to its earliest later grabbed or notified row, per content type, over items requested within the window.
- */
+/** Days from an item's requested row to its earliest later grabbed or notified row per content type, with median and p90, over items requested in the window. */
 export async function getRequestToReadyTimes(
   this: DatabaseService,
   days = 30,

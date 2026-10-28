@@ -292,7 +292,7 @@ export async function recordQuotaUsage(
   contentType: 'movie' | 'show',
   requestDate: Date = new Date(),
 ): Promise<QuotaUsage> {
-  const dateString = this.getLocalDateString(requestDate) // YYYY-MM-DD in local timezone
+  const dateString = toLocalDateString(requestDate)
 
   await this.knex('quota_usage').insert({
     user_id: userId,
@@ -689,15 +689,11 @@ export async function getQuotaUsageHistory(
   let query = this.knex('quota_usage').where('user_id', userId)
 
   if (startDate) {
-    query = query.where(
-      'request_date',
-      '>=',
-      this.getLocalDateString(startDate),
-    )
+    query = query.where('request_date', '>=', toLocalDateString(startDate))
   }
 
   if (endDate) {
-    query = query.where('request_date', '<=', this.getLocalDateString(endDate))
+    query = query.where('request_date', '<=', toLocalDateString(endDate))
   }
 
   if (contentType) {
@@ -730,15 +726,11 @@ export async function getQuotaUsageHistoryCount(
   let query = this.knex('quota_usage').where('user_id', userId)
 
   if (startDate) {
-    query = query.where(
-      'request_date',
-      '>=',
-      this.getLocalDateString(startDate),
-    )
+    query = query.where('request_date', '>=', toLocalDateString(startDate))
   }
 
   if (endDate) {
-    query = query.where('request_date', '<=', this.getLocalDateString(endDate))
+    query = query.where('request_date', '<=', toLocalDateString(endDate))
   }
 
   if (contentType) {
@@ -767,8 +759,8 @@ export async function getDailyUsageStats(
   const startDate = new Date()
   startDate.setDate(endDate.getDate() - days)
 
-  const startDateString = this.getLocalDateString(startDate)
-  const endDateString = this.getLocalDateString(endDate)
+  const startDateString = toLocalDateString(startDate)
+  const endDateString = toLocalDateString(endDate)
 
   const usage = await this.knex('quota_usage')
     .select('request_date', 'content_type')
@@ -788,7 +780,7 @@ export async function getDailyUsageStats(
   for (let i = 0; i < days; i++) {
     const date = new Date(endDate)
     date.setDate(date.getDate() - i)
-    const dateString = this.getLocalDateString(date)
+    const dateString = toLocalDateString(date)
     statsMap.set(dateString, {
       date: dateString,
       movies: 0,
@@ -830,7 +822,7 @@ export async function cleanupOldQuotaUsage(
 ): Promise<number> {
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
-  const cutoffString = this.getLocalDateString(cutoffDate)
+  const cutoffString = toLocalDateString(cutoffDate)
 
   const deletedCount = await this.knex('quota_usage')
     .where('request_date', '<', cutoffString)
@@ -1013,7 +1005,7 @@ export async function tryConsumeQuota(
   consumed: boolean
   currentUsage: number
 }> {
-  const dateString = this.getLocalDateString(requestDate)
+  const dateString = toLocalDateString(requestDate)
   const dateRange = getDateRange(quotaType, settings)
 
   return await this.knex.transaction(async (trx) => {

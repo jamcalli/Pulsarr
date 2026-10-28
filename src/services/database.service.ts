@@ -1,86 +1,8 @@
-import {
-  type MinimumAvailability,
-  RADARR_MINIMUM_AVAILABILITY_OPTIONS,
-} from '@root/schemas/radarr/add-options.schema.js'
-/**
- * Database Service
- *
- * Provides the primary interface for interacting with the application's SQLite/PostgreSQL database.
- * This service is exposed to the application via the 'database' Fastify plugin
- * and can be accessed through the fastify.db decorator.
- *
- * ARCHITECTURE:
- * This service follows a modular architecture where database methods are organized into
- * separate modules by domain (users, watchlist, instances, etc.) and then dynamically
- * bound to this service class at runtime. This provides:
- * - Better code organization and maintainability
- * - Clear separation of concerns by domain
- * - Type safety through TypeScript method signature declarations
- * - Easy testing and mocking of individual method groups
- *
- * METHOD BINDING:
- * All database methods are defined in separate files under ./database/methods/ and
- * their TypeScript signatures are declared in ./database/types/. The bindMethods()
- * function dynamically attaches these methods to the DatabaseService instance,
- * allowing them to be called as if they were native class methods.
- *
- * RESPONSIBILITIES:
- * - User management (creation, retrieval, updating)
- * - Admin user management (authentication, password handling)
- * - Application configuration storage and retrieval
- * - Sonarr/Radarr instance configuration and management
- * - Content routing rules for automated distribution
- * - Watchlist item tracking and status management
- * - Many-to-many relationship management via junction tables
- * - Notification creation, delivery, and history
- * - RSS feed processing and temporary storage
- * - Analytics and statistics generation
- * - Genre and media metadata management
- * - Instance content synchronization tracking
- * - Webhook management for external integrations
- * - Plex session monitoring for rolling content management
- *
- * Uses Knex.js query builder to interact with SQLite or PostgreSQL databases,
- * providing a clean, consistent interface for all database operations.
- *
- * @example
- * // Accessing the service in route handlers:
- * fastify.get('/api/users', async (request, reply) => {
- *   const users = await fastify.db.getAllUsers();
- *   return users;
- * });
- */
-
 import { DefaultInstanceError } from '@root/types/errors.js'
-import type {
-  Condition,
-  ConditionGroup,
-  RouterRule,
-} from '@root/types/router.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { configurePgTypes } from '@utils/postgres-config.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
-import './database/types/analytics-methods.js'
-import './database/types/anime-methods.js'
-import './database/types/approval-methods.js'
-import './database/types/config-methods.js'
-import './database/types/instance-methods.js'
-import './database/types/junction-methods.js'
-import './database/types/notification-methods.js'
-import './database/types/plex-label-sync-methods.js'
-import './database/types/plex-label-tracking-methods.js'
-import './database/types/quota-methods.js'
-import './database/types/router-methods.js'
-import './database/types/scheduler-methods.js'
-import './database/types/session-methods.js'
-import './database/types/user-methods.js'
-import './database/types/watchlist-methods.js'
-import './database/types/webhook-methods.js'
-import './database/types/webhook-endpoint-methods.js'
-import './database/types/api-key-methods.js'
-import './database/types/dashboard-methods.js'
-import './database/types/watchlist-exclusion-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
 import * as animeMethods from './database/methods/anime.js'
 import * as apiKeyMethods from './database/methods/api-keys.js'
@@ -102,6 +24,36 @@ import * as watchlistMethods from './database/methods/watchlist.js'
 import * as watchlistExclusionMethods from './database/methods/watchlist-exclusion.js'
 import * as webhookMethods from './database/methods/webhook.js'
 import * as webhookEndpointMethods from './database/methods/webhook-endpoints.js'
+
+type Methods<M> = {
+  [K in keyof M as ThisParameterType<M[K]> extends object
+    ? K
+    : never]: OmitThisParameter<M[K]>
+}
+
+// Every exported function taking `this: DatabaseService` in a module bound by bindMethods becomes a method.
+export interface DatabaseService
+  extends Methods<typeof analyticsMethods>,
+    Methods<typeof animeMethods>,
+    Methods<typeof apiKeyMethods>,
+    Methods<typeof approvalMethods>,
+    Methods<typeof configMethods>,
+    Methods<typeof dashboardMethods>,
+    Methods<typeof junctionMethods>,
+    Methods<typeof notificationMethods>,
+    Methods<typeof plexLabelSyncMethods>,
+    Methods<typeof plexLabelTrackingMethods>,
+    Methods<typeof quotaMethods>,
+    Methods<typeof radarrInstanceMethods>,
+    Methods<typeof routerMethods>,
+    Methods<typeof schedulerMethods>,
+    Methods<typeof sessionMethods>,
+    Methods<typeof sonarrInstanceMethods>,
+    Methods<typeof userMethods>,
+    Methods<typeof watchlistMethods>,
+    Methods<typeof watchlistExclusionMethods>,
+    Methods<typeof webhookMethods>,
+    Methods<typeof webhookEndpointMethods> {}
 
 export class DatabaseService {
   public readonly knex: Knex
@@ -190,13 +142,6 @@ export class DatabaseService {
    */
   async close(): Promise<void> {
     await this.knex.destroy()
-  }
-
-  /**
-   * Helper method to check if we're using PostgreSQL
-   */
-  public isPostgreSQL(): boolean {
-    return this.isPostgres
   }
 
   //=============================================================================
@@ -389,32 +334,6 @@ export class DatabaseService {
   }
 
   /**
-   * Converts a nullable value to boolean with default fallback
-   *
-   * @param value - The value to convert (can be null or undefined)
-   * @param defaultValue - The default boolean value to return if value is null/undefined
-   * @returns The converted boolean value or the default
-   */
-  public toBoolean(value: unknown, defaultValue: boolean): boolean {
-    return value == null ? defaultValue : Boolean(value)
-  }
-
-  /**
-   * Helper method to split arrays into smaller chunks for processing
-   *
-   * @param array - Array to split into chunks
-   * @param size - Maximum size of each chunk
-   * @returns Array of arrays containing the chunked data
-   */
-  public chunkArray<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = []
-    for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size))
-    }
-    return chunks
-  }
-
-  /**
    * Runs a callback inside a database transaction.
    *
    * Provides a transaction object that can be passed to db methods accepting
@@ -435,14 +354,6 @@ export class DatabaseService {
    */
   public get timestamp() {
     return new Date().toISOString()
-  }
-
-  /**
-   * Returns a date in YYYY-MM-DD format using server's local timezone
-   * Respects the TZ environment variable set in Docker
-   */
-  public getLocalDateString(date: Date = new Date()): string {
-    return date.toLocaleDateString('sv-SE') // 'sv-SE' gives YYYY-MM-DD format in local timezone
   }
 
   /**
@@ -482,56 +393,6 @@ export class DatabaseService {
   //=============================================================================
   // BUSINESS LOGIC HELPERS
   //=============================================================================
-
-  /**
-   * Normalises/validates minimumAvailability values for Radarr
-   * Validates against allowed values: 'announced', 'inCinemas', 'released'
-   * Throws error for invalid values, returns default 'released' for null/undefined
-   */
-  public normaliseMinimumAvailability(
-    value?: string | null,
-  ): MinimumAvailability {
-    const defaultValue: MinimumAvailability = 'released'
-
-    // Return default for null/undefined
-    if (value === undefined || value === null) {
-      return defaultValue
-    }
-
-    // Normalize the input value by trimming whitespace and converting to lowercase
-    const v = value.toString().trim()
-    const canonical = v.toLowerCase()
-
-    // Find the matching allowed value (case-insensitive)
-    const match = RADARR_MINIMUM_AVAILABILITY_OPTIONS.find(
-      (allowedValue) => allowedValue.toLowerCase() === canonical,
-    )
-
-    // If no match is found, throw an error
-    if (!match) {
-      throw new Error(`Invalid minimumAvailability value: ${v}`)
-    }
-
-    // Return the properly cased value from the allowed list
-    return match
-  }
-
-  /**
-   * Normalises/validates monitorNewItems, throws on bad input
-   */
-  public normaliseMonitorNewItems(
-    value: string | undefined | null,
-  ): 'all' | 'none' {
-    if (value === undefined || value === null) {
-      throw new Error('monitorNewItems must be provided (all|none)')
-    }
-
-    const normalized = value.toLowerCase()
-    if (!['all', 'none'].includes(normalized)) {
-      throw new Error(`Invalid monitorNewItems value: ${value}`)
-    }
-    return normalized as 'all' | 'none'
-  }
 
   /**
    * Validates whether an instance can have its default status changed
@@ -689,77 +550,4 @@ export class DatabaseService {
       }
     }
   }
-
-  //=============================================================================
-  // CONTENT ROUTER HELPERS
-  //=============================================================================
-
-  /**
-   * Helper method to format a router rule from the database
-   * Ensures proper type conversions for boolean fields and JSON parsing
-   */
-  public formatRouterRule(rule: {
-    id: number
-    name: string
-    type: string
-    criteria: string | Record<string, unknown>
-    target_type: 'sonarr' | 'radarr'
-    target_instance_id: number | null
-    root_folder?: string | null
-    quality_profile?: number | null
-    tags?: string | string[]
-    order: number
-    enabled: number | boolean
-    metadata?: string | null
-    search_on_add?: number | boolean | null
-    season_monitoring?: string | null
-    // Action fields
-    always_require_approval?: number | boolean
-    bypass_user_quotas?: number | boolean
-    approval_reason?: string | null
-    exclude_from_routing?: number | boolean
-    created_at: string
-    updated_at: string
-    [key: string]: unknown
-  }): RouterRule {
-    return {
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      search_on_add:
-        rule.search_on_add == null ? null : Boolean(rule.search_on_add),
-      // Action fields
-      always_require_approval: Boolean(rule.always_require_approval ?? false),
-      bypass_user_quotas: Boolean(rule.bypass_user_quotas ?? false),
-      approval_reason: rule.approval_reason ?? null,
-      exclude_from_routing: Boolean(rule.exclude_from_routing ?? false),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? this.safeJsonParse(
-              rule.criteria,
-              { condition: { operator: 'AND' as const, conditions: [] } },
-              'router_rule.criteria',
-            )
-          : (rule.criteria as { condition: Condition | ConditionGroup }),
-      tags:
-        typeof rule.tags === 'string'
-          ? this.safeJsonParse(rule.tags, [], 'router_rule.tags')
-          : rule.tags || [],
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? this.safeJsonParse(rule.metadata, null, 'router_rule.metadata')
-          : rule.metadata
-        : null,
-    }
-  }
-
-  /*
-   * Note: All database methods for specific domains (users, watchlist, instances, etc.)
-   * are implemented in separate module files under ./database/methods/ and bound to
-   * this service instance via the bindMethods() function above.
-   *
-   * Type definitions for these methods can be found in ./database/types/
-   *
-   * This modular approach provides better code organization while maintaining
-   * the convenience of calling methods directly on the database service instance.
-   */
 }

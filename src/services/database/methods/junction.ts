@@ -3,10 +3,11 @@ import type {
   SonarrShowWithEnrollmentStatus,
   WatchlistInstanceStatus,
 } from '@root/types/watchlist-status.types.js'
+import { mapRowToUser } from '@services/database/user-rows.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { chunkArray } from '@utils/chunk-array.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { Knex } from 'knex'
-import { mapRowToUser } from './users.js'
 
 /**
  * Retrieves all Radarr instance IDs linked to a specific watchlist item.
@@ -289,7 +290,7 @@ export async function bulkAddWatchlistToRadarrInstances(
 
   // Process in chunks within a transaction
   await this.knex.transaction(async (trx) => {
-    const chunks = this.chunkArray(records, 100)
+    const chunks = chunkArray(records, 100)
 
     for (const chunk of chunks) {
       // Instead of ignoring conflicts, merge the updates
@@ -375,7 +376,7 @@ export async function bulkRemoveWatchlistFromRadarrInstances(
   // Use a single query with multiple OR conditions
   await this.knex.transaction(async (trx) => {
     // Process in reasonable chunks
-    const chunks = this.chunkArray(removals, 50)
+    const chunks = chunkArray(removals, 50)
 
     for (const chunk of chunks) {
       await trx('watchlist_radarr_instances')
@@ -681,7 +682,7 @@ export async function bulkAddWatchlistToSonarrInstances(
 
   // Process in chunks within a transaction
   await this.knex.transaction(async (trx) => {
-    const chunks = this.chunkArray(records, 100)
+    const chunks = chunkArray(records, 100)
 
     for (const chunk of chunks) {
       // Instead of ignoring conflicts, merge the updates
@@ -769,7 +770,7 @@ export async function bulkRemoveWatchlistFromSonarrInstances(
   // Use a single query with multiple OR conditions
   await this.knex.transaction(async (trx) => {
     // Process in reasonable chunks
-    const chunks = this.chunkArray(removals, 50)
+    const chunks = chunkArray(removals, 50)
 
     for (const chunk of chunks) {
       await trx('watchlist_sonarr_instances')

@@ -1,5 +1,6 @@
 import type { AnimeIdRow, InsertAnimeId } from '@root/types/anime.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { chunkArray } from '@utils/chunk-array.js'
 import type { Knex } from 'knex'
 
 /**
@@ -64,7 +65,7 @@ export async function insertAnimeIds(
     // Reduce chunk size for SQLite to avoid "too many terms in compound SELECT" error
     const chunkSize = this.isPostgres ? 1000 : 100
 
-    for (const chunk of this.chunkArray(animeIds, chunkSize)) {
+    for (const chunk of chunkArray(animeIds, chunkSize)) {
       await transaction('anime_ids')
         .insert(chunk)
         .onConflict(['external_id', 'source'])
@@ -106,7 +107,7 @@ export async function bulkReplaceAnimeIds(
     // SQLite has strict limits on compound SELECT terms, use very small chunks
     const chunkSize = this.isPostgres ? 5000 : 100
 
-    for (const chunk of this.chunkArray(animeIds, chunkSize)) {
+    for (const chunk of chunkArray(animeIds, chunkSize)) {
       await transaction('anime_ids').insert(chunk)
     }
   }

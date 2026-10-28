@@ -2,7 +2,21 @@ import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.j
 import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { toBoolean } from '@utils/to-boolean.js'
 import type { Knex } from 'knex'
+
+function normaliseMonitorNewItems(
+  value: string | undefined | null,
+): 'all' | 'none' {
+  if (value === undefined || value === null) {
+    throw new Error('monitorNewItems must be provided (all|none)')
+  }
+  const normalized = value.toLowerCase()
+  if (!['all', 'none'].includes(normalized)) {
+    throw new Error(`Invalid monitorNewItems value: ${value}`)
+  }
+  return normalized as 'all' | 'none'
+}
 
 /**
  * Converts a SonarrInstanceRow from the database into a SonarrInstance object, applying type conversions, default values, and JSON parsing for relevant fields.
@@ -24,8 +38,8 @@ function mapRowToSonarrInstance(
     bypassIgnored: Boolean(row.bypass_ignored),
     seasonMonitoring: row.season_monitoring || 'all',
     monitorNewItems: (row.monitor_new_items as 'all' | 'none') || 'all',
-    searchOnAdd: this.toBoolean(row.search_on_add, true),
-    createSeasonFolders: this.toBoolean(row.create_season_folders, false),
+    searchOnAdd: toBoolean(row.search_on_add, true),
+    createSeasonFolders: toBoolean(row.create_season_folders, false),
     tags: this.safeJsonParse(row.tags, [], 'sonarr.tags'),
     isDefault: Boolean(row.is_default),
     syncedInstances: this.safeJsonParse(
@@ -114,7 +128,7 @@ async function insertSonarrInstanceRow(
       root_folder: instance.rootFolder,
       bypass_ignored: instance.bypassIgnored,
       season_monitoring: instance.seasonMonitoring,
-      monitor_new_items: this.normaliseMonitorNewItems(
+      monitor_new_items: normaliseMonitorNewItems(
         instance.monitorNewItems || 'all',
       ),
       search_on_add: instance.searchOnAdd ?? true,
@@ -212,7 +226,7 @@ export async function updateSonarrInstance(
           season_monitoring: sanitized.seasonMonitoring,
         }),
         ...(typeof sanitized.monitorNewItems !== 'undefined' && {
-          monitor_new_items: this.normaliseMonitorNewItems(
+          monitor_new_items: normaliseMonitorNewItems(
             sanitized.monitorNewItems,
           ),
         }),

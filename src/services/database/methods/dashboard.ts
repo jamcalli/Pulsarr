@@ -27,6 +27,7 @@ function getBestStatus(statuses: WatchlistStatus[]): WatchlistStatus {
   )
 }
 
+/** An undefined limit returns every match, userId scopes approvals and watchlist rows, and includeUnrouted adds unrouted items as pending with no instances, deduped against pending approvals. */
 export async function getRecentRequests(
   this: DatabaseService,
   options: {

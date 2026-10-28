@@ -1,4 +1,5 @@
 import type { DatabaseService } from '@services/database.service.js'
+import { chunkArray } from '@utils/chunk-array.js'
 
 /**
  * Batch chunk size for processing operations in chunks to avoid overwhelming the database
@@ -87,7 +88,7 @@ export async function trackPlexLabelsBulk(
   try {
     if (this.isPostgres) {
       // PostgreSQL: Process operations in chunks with efficient CTEs
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -204,7 +205,7 @@ export async function trackPlexLabelsBulk(
       }
     } else {
       // SQLite: Use chunked operations with individual upserts
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -420,7 +421,7 @@ export async function untrackPlexLabelBulk(
   try {
     if (this.isPostgres) {
       // PostgreSQL: Process operations in chunks with efficient CTEs
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -547,7 +548,7 @@ export async function untrackPlexLabelBulk(
       }
     } else {
       // SQLite: Use chunked operations with individual label processing
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1170,7 +1171,7 @@ export async function removeTrackedLabels(
   try {
     if (this.isPostgres) {
       // PostgreSQL: Process operations individually with efficient queries
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1281,7 +1282,7 @@ export async function removeTrackedLabels(
       }
     } else {
       // SQLite: Use chunked operations with serial processing for transaction consistency
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1526,7 +1527,7 @@ export async function removeOrphanedTrackingBulk(
   try {
     if (this.isPostgres) {
       // PostgreSQL: Process operations in chunks with efficient queries
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1645,7 +1646,7 @@ export async function removeOrphanedTrackingBulk(
       }
     } else {
       // SQLite: Use chunked operations with serial processing for transaction consistency
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {

@@ -8,6 +8,7 @@ import type {
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { chunkArray } from '@utils/chunk-array.js'
 import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
 import {
   allowedStatusesUpTo,
@@ -614,7 +615,7 @@ export async function bulkUpdateWatchlistItems(
   let updatedCount = 0
 
   await this.knex.transaction(async (trx) => {
-    const chunks = this.chunkArray(updates, 100)
+    const chunks = chunkArray(updates, 100)
 
     for (const chunk of chunks) {
       for (const update of chunk) {
@@ -1016,7 +1017,7 @@ export async function createWatchlistItems(
   const insertedIds: { id: number; user_id: number; key: string }[] = []
 
   await this.knex.transaction(async (trx) => {
-    const chunks = this.chunkArray(items, 250)
+    const chunks = chunkArray(items, 250)
 
     for (const chunk of chunks) {
       const itemsToInsert = chunk.map((item) => ({
