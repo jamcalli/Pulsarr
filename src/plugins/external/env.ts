@@ -29,6 +29,7 @@ import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
 import { resolveDataDir } from '@utils/data-dir.js'
+import { parseJsonOr } from '@utils/json.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -517,53 +518,57 @@ export default fp(
 
     const rawConfig = fastify.config as unknown as RawConfig
 
-    // Helper function to safely parse JSON with error handling
-    const safeJsonParse = <T>(
-      value: string | undefined,
-      defaultValue: T,
-      fieldName: string,
-    ): T => {
-      if (!value) return defaultValue
-      try {
-        return JSON.parse(value)
-      } catch (error) {
-        fastify.log.warn(
-          { error },
-          `Failed to parse ${fieldName} config, using default`,
-        )
-        return defaultValue
-      }
-    }
-
     const parsedConfig = {
       ...rawConfig,
-      sonarrTags: safeJsonParse(rawConfig.sonarrTags, [], 'sonarrTags'),
-      radarrTags: safeJsonParse(rawConfig.radarrTags, [], 'radarrTags'),
-      plexTokens: safeJsonParse(rawConfig.plexTokens, [], 'plexTokens'),
+      sonarrTags: parseJsonOr(
+        rawConfig.sonarrTags,
+        [],
+        fastify.log,
+        'sonarrTags',
+      ),
+      radarrTags: parseJsonOr(
+        rawConfig.radarrTags,
+        [],
+        fastify.log,
+        'radarrTags',
+      ),
+      plexTokens: parseJsonOr(
+        rawConfig.plexTokens,
+        [],
+        fastify.log,
+        'plexTokens',
+      ),
       plexSessionMonitoring: rawConfig.plexSessionMonitoring
-        ? safeJsonParse(
+        ? parseJsonOr(
             rawConfig.plexSessionMonitoring as string,
             PLEX_SESSION_MONITORING_DEFAULTS,
+            fastify.log,
             'plexSessionMonitoring',
           )
         : undefined,
       publicContentNotifications: rawConfig.publicContentNotifications
-        ? safeJsonParse(
+        ? parseJsonOr(
             rawConfig.publicContentNotifications as string,
             DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
+            fastify.log,
             'publicContentNotifications',
           )
         : DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
       quotaSettings: (() => {
         const parsed = rawConfig.quotaSettings
-          ? safeJsonParse<{
+          ? parseJsonOr<{
               cleanup?: { enabled?: boolean; retentionDays?: number }
               weeklyRolling?: { resetDays?: number }
               monthly?: {
                 resetDay?: number
                 handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
               }
-            }>(rawConfig.quotaSettings as string, {}, 'quotaSettings')
+            }>(
+              rawConfig.quotaSettings as string,
+              {},
+              fastify.log,
+              'quotaSettings',
+            )
           : {}
         return {
           cleanup: {
@@ -581,17 +586,19 @@ export default fp(
         }
       })(),
       approvalExpiration: rawConfig.approvalExpiration
-        ? safeJsonParse(
+        ? parseJsonOr(
             rawConfig.approvalExpiration as string,
             DEFAULT_APPROVAL_EXPIRATION,
+            fastify.log,
             'approvalExpiration',
           )
         : DEFAULT_APPROVAL_EXPIRATION,
       plexLabelSync: (() => {
         const parsed = rawConfig.plexLabelSync
-          ? safeJsonParse<Partial<PlexLabelSyncConfig>>(
+          ? parseJsonOr<Partial<PlexLabelSyncConfig>>(
               rawConfig.plexLabelSync as string,
               {},
+              fastify.log,
               'plexLabelSync',
             )
           : {}
@@ -605,9 +612,10 @@ export default fp(
         }
       })(),
       tagMigration: rawConfig.tagMigration
-        ? safeJsonParse(
+        ? parseJsonOr(
             rawConfig.tagMigration as string,
             { radarr: {}, sonarr: {} },
+            fastify.log,
             'tagMigration',
           )
         : undefined,

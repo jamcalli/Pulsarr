@@ -1,86 +1,8 @@
-import {
-  type MinimumAvailability,
-  RADARR_MINIMUM_AVAILABILITY_OPTIONS,
-} from '@root/schemas/radarr/add-options.schema.js'
-/**
- * Database Service
- *
- * Provides the primary interface for interacting with the application's SQLite/PostgreSQL database.
- * This service is exposed to the application via the 'database' Fastify plugin
- * and can be accessed through the fastify.db decorator.
- *
- * ARCHITECTURE:
- * This service follows a modular architecture where database methods are organized into
- * separate modules by domain (users, watchlist, instances, etc.) and then dynamically
- * bound to this service class at runtime. This provides:
- * - Better code organization and maintainability
- * - Clear separation of concerns by domain
- * - Type safety through TypeScript method signature declarations
- * - Easy testing and mocking of individual method groups
- *
- * METHOD BINDING:
- * All database methods are defined in separate files under ./database/methods/ and
- * their TypeScript signatures are declared in ./database/types/. The bindMethods()
- * function dynamically attaches these methods to the DatabaseService instance,
- * allowing them to be called as if they were native class methods.
- *
- * RESPONSIBILITIES:
- * - User management (creation, retrieval, updating)
- * - Admin user management (authentication, password handling)
- * - Application configuration storage and retrieval
- * - Sonarr/Radarr instance configuration and management
- * - Content routing rules for automated distribution
- * - Watchlist item tracking and status management
- * - Many-to-many relationship management via junction tables
- * - Notification creation, delivery, and history
- * - RSS feed processing and temporary storage
- * - Analytics and statistics generation
- * - Genre and media metadata management
- * - Instance content synchronization tracking
- * - Webhook management for external integrations
- * - Plex session monitoring for rolling content management
- *
- * Uses Knex.js query builder to interact with SQLite or PostgreSQL databases,
- * providing a clean, consistent interface for all database operations.
- *
- * @example
- * // Accessing the service in route handlers:
- * fastify.get('/api/users', async (request, reply) => {
- *   const users = await fastify.db.getAllUsers();
- *   return users;
- * });
- */
-
 import { DefaultInstanceError } from '@root/types/errors.js'
-import type {
-  Condition,
-  ConditionGroup,
-  RouterRule,
-} from '@root/types/router.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { configurePgTypes } from '@utils/postgres-config.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
-import './database/types/analytics-methods.js'
-import './database/types/anime-methods.js'
-import './database/types/approval-methods.js'
-import './database/types/config-methods.js'
-import './database/types/instance-methods.js'
-import './database/types/junction-methods.js'
-import './database/types/notification-methods.js'
-import './database/types/plex-label-sync-methods.js'
-import './database/types/plex-label-tracking-methods.js'
-import './database/types/quota-methods.js'
-import './database/types/router-methods.js'
-import './database/types/scheduler-methods.js'
-import './database/types/session-methods.js'
-import './database/types/user-methods.js'
-import './database/types/watchlist-methods.js'
-import './database/types/webhook-methods.js'
-import './database/types/webhook-endpoint-methods.js'
-import './database/types/api-key-methods.js'
-import './database/types/dashboard-methods.js'
-import './database/types/watchlist-exclusion-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
 import * as animeMethods from './database/methods/anime.js'
 import * as apiKeyMethods from './database/methods/api-keys.js'
@@ -103,25 +25,44 @@ import * as watchlistExclusionMethods from './database/methods/watchlist-exclusi
 import * as webhookMethods from './database/methods/webhook.js'
 import * as webhookEndpointMethods from './database/methods/webhook-endpoints.js'
 
+type Methods<M> = {
+  [K in keyof M as ThisParameterType<M[K]> extends object
+    ? K
+    : never]: OmitThisParameter<M[K]>
+}
+
+// Every exported function taking `this: DatabaseService` in a module bound by bindMethods becomes a method.
+export interface DatabaseService
+  extends Methods<typeof analyticsMethods>,
+    Methods<typeof animeMethods>,
+    Methods<typeof apiKeyMethods>,
+    Methods<typeof approvalMethods>,
+    Methods<typeof configMethods>,
+    Methods<typeof dashboardMethods>,
+    Methods<typeof junctionMethods>,
+    Methods<typeof notificationMethods>,
+    Methods<typeof plexLabelSyncMethods>,
+    Methods<typeof plexLabelTrackingMethods>,
+    Methods<typeof quotaMethods>,
+    Methods<typeof radarrInstanceMethods>,
+    Methods<typeof routerMethods>,
+    Methods<typeof schedulerMethods>,
+    Methods<typeof sessionMethods>,
+    Methods<typeof sonarrInstanceMethods>,
+    Methods<typeof userMethods>,
+    Methods<typeof watchlistMethods>,
+    Methods<typeof watchlistExclusionMethods>,
+    Methods<typeof webhookMethods>,
+    Methods<typeof webhookEndpointMethods> {}
+
 export class DatabaseService {
   public readonly knex: Knex
 
-  /**
-   * Flag indicating whether we're using PostgreSQL (true) or SQLite (false)
-   */
   public readonly isPostgres: boolean
 
-  /**
-   * Service logger that inherits parent log level changes
-   */
+  /** Inherits parent log level changes */
   public readonly log: FastifyBaseLogger
 
-  /**
-   * Creates a new DatabaseService instance
-   *
-   * @param log - Fastify logger instance for recording database operations
-   * @param fastify - Fastify instance containing configuration and context
-   */
   constructor(
     public readonly baseLog: FastifyBaseLogger,
     public readonly fastify: FastifyInstance,
@@ -133,27 +74,14 @@ export class DatabaseService {
       testKnex ??
       knex(DatabaseService.createKnexConfig(fastify.config, this.log))
 
-    // Bind all modular database methods to this instance
     this.bindMethods()
   }
 
-  /**
-   * Provides access to the Fastify configuration
-   */
   public get config() {
     return this.fastify.config
   }
 
-  //=============================================================================
-  // DATABASE CONNECTION AND LIFECYCLE
-  //=============================================================================
-
-  /**
-   * Factory method to create a properly initialized DatabaseService
-   *
-   * This method handles database-specific setup like PostgreSQL type configuration
-   * that needs to happen after construction but before the service is used.
-   */
+  /** Use instead of the constructor so Postgres type parsers are configured before use */
   static async create(
     log: FastifyBaseLogger,
     fastify: FastifyInstance,
@@ -161,7 +89,6 @@ export class DatabaseService {
   ): Promise<DatabaseService> {
     const service = new DatabaseService(log, fastify, testKnex)
 
-    // Configure PostgreSQL type parsers if needed
     if (fastify.config.dbType === 'postgres') {
       await service.configurePostgresTypes()
     }
@@ -169,48 +96,20 @@ export class DatabaseService {
     return service
   }
 
-  /**
-   * Configures PostgreSQL type parsers asynchronously
-   */
+  /** Logs and swallows parser setup failures */
   public async configurePostgresTypes(): Promise<void> {
     try {
       await configurePgTypes(this.log)
       this.log.debug('PostgreSQL type parsers configured successfully')
     } catch (error) {
       this.log.error({ error }, 'Failed to configure PostgreSQL type parsers:')
-      // Consider if this should be fatal or if the app can continue
-      // with default type parsing
     }
   }
 
-  /**
-   * Closes the database connection
-   *
-   * Should be called during application shutdown to properly clean up resources.
-   */
   async close(): Promise<void> {
     await this.knex.destroy()
   }
 
-  /**
-   * Helper method to check if we're using PostgreSQL
-   */
-  public isPostgreSQL(): boolean {
-    return this.isPostgres
-  }
-
-  //=============================================================================
-  // DATABASE UTILITY HELPERS
-  //=============================================================================
-
-  /**
-   * Binds all modular database methods to this service instance
-   *
-   * This method dynamically attaches methods from separate module files to this
-   * DatabaseService instance, allowing them to be called as native class methods.
-   * Each method is bound with the correct 'this' context so they can access
-   * the service's knex instance, logger, and other properties.
-   */
   private bindMethods(): void {
     const methodModules = [
       analyticsMethods,
@@ -247,7 +146,6 @@ export class DatabaseService {
             `Overwriting database method '${methodName}' from a later module`,
           )
         }
-        // Bind each method to this DatabaseService instance
         ;(this as Record<string, unknown>)[methodName] =
           methodFunction.bind(this)
         bound.add(methodName)
@@ -255,10 +153,7 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * Helper method to extract rows from raw query results
-   * PostgreSQL returns {rows: T[]} while SQLite returns T[] directly
-   */
+  /** Accepts raw() output from either dialect, since Postgres wraps rows in { rows } and SQLite does not */
   public extractRawQueryRows<T>(result: T[] | { rows: T[] }): T[] {
     if (Array.isArray(result)) {
       return result
@@ -283,22 +178,12 @@ export class DatabaseService {
     throw new Error('Invalid database query result format')
   }
 
-  /**
-   * Creates Knex configuration for SQLite or PostgreSQL
-   *
-   * Sets up connection pooling, logging, and other database-specific configurations.
-   *
-   * @param config - Application configuration containing database settings
-   * @param log - Logger to use for database operations
-   * @returns Knex configuration object
-   */
   public static createKnexConfig(
     config: FastifyInstance['config'],
     log: FastifyBaseLogger,
   ): Knex.Config {
     const isPostgres = config.dbType === 'postgres'
 
-    // Build PostgreSQL connection
     const getPostgresConnection = () => {
       if (config.dbConnectionString) {
         return config.dbConnectionString
@@ -333,7 +218,6 @@ export class DatabaseService {
               conn: { exec: (sql: string) => void },
               done: (err: Error | null, conn: unknown) => void,
             ) => {
-              // SQLite-specific optimizations
               conn.exec('PRAGMA journal_mode = WAL;')
               conn.exec('PRAGMA foreign_keys = ON;')
               done(null, conn)
@@ -350,36 +234,7 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * Safely parse JSON strings with error logging
-   *
-   * @param value - JSON string to parse
-   * @param defaultValue - Default value to return on parse failure
-   * @param context - Context string for logging (e.g., 'watchlist_item.guids')
-   * @returns Parsed value or default value
-   */
-  public safeJsonParse<T>(
-    value: string | null | undefined,
-    defaultValue: T,
-    context?: string,
-  ): T {
-    if (!value) return defaultValue
-    try {
-      return JSON.parse(value)
-    } catch (error) {
-      this.log.warn({ value, context, error }, 'JSON parse error')
-      return defaultValue
-    }
-  }
-
-  /**
-   * Generate database-specific date difference calculation SQL
-   *
-   * @param date1 - First date expression (minuend)
-   * @param date2 - Second date expression (subtrahend)
-   * @param alias - Optional alias for the result
-   * @returns SQL expression for date difference in days
-   */
+  /** Returns SQL for date1 minus date2 in days */
   public getDateDiffSQL(date1: string, date2: string, alias?: string): string {
     const diff = this.isPostgres
       ? `EXTRACT(EPOCH FROM (${date1} - ${date2})) / 86400`
@@ -388,73 +243,16 @@ export class DatabaseService {
     return alias ? `${diff} AS ${alias}` : diff
   }
 
-  /**
-   * Converts a nullable value to boolean with default fallback
-   *
-   * @param value - The value to convert (can be null or undefined)
-   * @param defaultValue - The default boolean value to return if value is null/undefined
-   * @returns The converted boolean value or the default
-   */
-  public toBoolean(value: unknown, defaultValue: boolean): boolean {
-    return value == null ? defaultValue : Boolean(value)
-  }
-
-  /**
-   * Helper method to split arrays into smaller chunks for processing
-   *
-   * @param array - Array to split into chunks
-   * @param size - Maximum size of each chunk
-   * @returns Array of arrays containing the chunked data
-   */
-  public chunkArray<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = []
-    for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size))
-    }
-    return chunks
-  }
-
-  /**
-   * Runs a callback inside a database transaction.
-   *
-   * Provides a transaction object that can be passed to db methods accepting
-   * an optional `trx` parameter. If the callback throws, the transaction is
-   * rolled back automatically.
-   *
-   * @param fn - Callback receiving the Knex transaction
-   * @returns The value returned by the callback
-   */
   public async transaction<T>(
     fn: (trx: Knex.Transaction) => Promise<T>,
   ): Promise<T> {
     return this.knex.transaction(fn)
   }
 
-  /**
-   * Returns the current timestamp in ISO format
-   */
   public get timestamp() {
     return new Date().toISOString()
   }
 
-  /**
-   * Returns a date in YYYY-MM-DD format using server's local timezone
-   * Respects the TZ environment variable set in Docker
-   */
-  public getLocalDateString(date: Date = new Date()): string {
-    return date.toLocaleDateString('sv-SE') // 'sv-SE' gives YYYY-MM-DD format in local timezone
-  }
-
-  /**
-   * Extracts ID from Knex returning() result, handling cross-dialect differences
-   *
-   * Knex returning() returns different formats depending on the database:
-   * - PostgreSQL: [{ id: 123 }] (array of objects)
-   * - SQLite: [123] (array of values)
-   *
-   * @param result - Result from knex insert(...).returning('id')
-   * @returns The extracted ID value
-   */
   public extractId(result: unknown[]): number {
     if (!result || !Array.isArray(result) || result.length === 0) {
       throw new Error('No ID returned from database')
@@ -479,71 +277,7 @@ export class DatabaseService {
     throw new Error('Invalid ID format returned from database')
   }
 
-  //=============================================================================
-  // BUSINESS LOGIC HELPERS
-  //=============================================================================
-
-  /**
-   * Normalises/validates minimumAvailability values for Radarr
-   * Validates against allowed values: 'announced', 'inCinemas', 'released'
-   * Throws error for invalid values, returns default 'released' for null/undefined
-   */
-  public normaliseMinimumAvailability(
-    value?: string | null,
-  ): MinimumAvailability {
-    const defaultValue: MinimumAvailability = 'released'
-
-    // Return default for null/undefined
-    if (value === undefined || value === null) {
-      return defaultValue
-    }
-
-    // Normalize the input value by trimming whitespace and converting to lowercase
-    const v = value.toString().trim()
-    const canonical = v.toLowerCase()
-
-    // Find the matching allowed value (case-insensitive)
-    const match = RADARR_MINIMUM_AVAILABILITY_OPTIONS.find(
-      (allowedValue) => allowedValue.toLowerCase() === canonical,
-    )
-
-    // If no match is found, throw an error
-    if (!match) {
-      throw new Error(`Invalid minimumAvailability value: ${v}`)
-    }
-
-    // Return the properly cased value from the allowed list
-    return match
-  }
-
-  /**
-   * Normalises/validates monitorNewItems, throws on bad input
-   */
-  public normaliseMonitorNewItems(
-    value: string | undefined | null,
-  ): 'all' | 'none' {
-    if (value === undefined || value === null) {
-      throw new Error('monitorNewItems must be provided (all|none)')
-    }
-
-    const normalized = value.toLowerCase()
-    if (!['all', 'none'].includes(normalized)) {
-      throw new Error(`Invalid monitorNewItems value: ${value}`)
-    }
-    return normalized as 'all' | 'none'
-  }
-
-  /**
-   * Validates whether an instance can have its default status changed
-   * Shared helper for both Radarr and Sonarr instances to eliminate duplicated logic
-   *
-   * @param trx - Knex transaction object
-   * @param tableName - Table name (radarr_instances or sonarr_instances)
-   * @param instanceId - ID of the instance being updated
-   * @param newDefaultStatus - New default status value (true/false)
-   * @param serviceName - Service name for error messages (Radarr/Sonarr)
-   * @throws Error if default status cannot be changed
-   */
+  /** Throws when the change would leave no default, and promoting clears every other instance's default flag and synced instances */
   public async validateInstanceDefaultStatus(
     trx: Knex.Transaction,
     tableName: 'radarr_instances' | 'sonarr_instances',
@@ -551,21 +285,16 @@ export class DatabaseService {
     newDefaultStatus: boolean | undefined,
     serviceName: 'Radarr' | 'Sonarr',
   ): Promise<void> {
-    // Determine what the desired default instance will be after this operation
     let desiredDefaultId: number | null = null
 
     if (newDefaultStatus === true) {
-      // This instance will be the default after the operation
       desiredDefaultId = instanceId
     } else if (newDefaultStatus === false) {
-      // Get the current instance to see if it's default now
       const currentInstance = await trx(tableName)
         .where('id', instanceId)
         .first()
 
-      // Only check further if this instance is currently default and being unset
       if (currentInstance?.is_default) {
-        // Look for any other enabled instance that could become default
         const otherInstance = await trx(tableName)
           .where('is_enabled', true)
           .whereNot('id', instanceId)
@@ -575,9 +304,7 @@ export class DatabaseService {
         if (otherInstance) {
           desiredDefaultId = otherInstance.id
         }
-        // Else no default will exist after this operation
       } else {
-        // This instance isn't currently default, so find current default
         const currentDefault = await trx(tableName)
           .where('is_default', true)
           .first('id')
@@ -587,29 +314,23 @@ export class DatabaseService {
         }
       }
     } else {
-      // No change to default status requested, find current default
       const currentDefault = await trx(tableName)
         .where('is_default', true)
         .first('id')
 
       if (currentDefault?.id === instanceId) {
-        // This instance is already default
         desiredDefaultId = instanceId
       } else if (currentDefault) {
-        // Another instance is default
         desiredDefaultId = currentDefault.id
       }
     }
 
-    // If trying to set instance as non-default, we need to check if it's allowed
     if (newDefaultStatus === false) {
       const currentInstance = await trx(tableName)
         .where('id', instanceId)
         .first()
 
-      // Only need additional checks if this instance is currently default
       if (currentInstance?.is_default) {
-        // Check if this is the only instance
         const totalInstancesCount = await trx(tableName)
           .count({ count: '*' })
           .first()
@@ -618,7 +339,6 @@ export class DatabaseService {
           ? Number(totalInstancesCount.count)
           : 0
 
-        // If there's only one instance total, it must be default
         if (totalCount <= 1) {
           this.log.warn(
             `Cannot remove default status from the only ${serviceName} instance`,
@@ -628,7 +348,7 @@ export class DatabaseService {
           )
         }
 
-        // If this is the only real instance (not placeholder), it must be default
+        // Placeholder rows (api_key 'placeholder') do not count as real instances
         const realInstancesCount = await trx(tableName)
           .where('is_enabled', true)
           .whereNot('api_key', 'placeholder')
@@ -648,7 +368,6 @@ export class DatabaseService {
           )
         }
 
-        // If we're removing default status but no new default is identified, that's an error
         if (desiredDefaultId === null) {
           this.log.warn(
             `Cannot remove default status without another ${serviceName} instance to make default`,
@@ -660,8 +379,7 @@ export class DatabaseService {
       }
     }
 
-    // If setting as default, make all other instances non-default. Synced
-    // instances only apply to the default, so clear them on demotion
+    // Synced instances only apply to the default, so clear them on demotion
     if (newDefaultStatus === true) {
       await trx(tableName)
         .whereNot('id', instanceId)
@@ -672,9 +390,7 @@ export class DatabaseService {
         })
     }
 
-    // Final safety check - at least one instance must be default at the end
     if (desiredDefaultId === null) {
-      // Get the current default
       const currentDefault = await trx(tableName)
         .where('is_default', true)
         .first('id')
@@ -689,77 +405,4 @@ export class DatabaseService {
       }
     }
   }
-
-  //=============================================================================
-  // CONTENT ROUTER HELPERS
-  //=============================================================================
-
-  /**
-   * Helper method to format a router rule from the database
-   * Ensures proper type conversions for boolean fields and JSON parsing
-   */
-  public formatRouterRule(rule: {
-    id: number
-    name: string
-    type: string
-    criteria: string | Record<string, unknown>
-    target_type: 'sonarr' | 'radarr'
-    target_instance_id: number | null
-    root_folder?: string | null
-    quality_profile?: number | null
-    tags?: string | string[]
-    order: number
-    enabled: number | boolean
-    metadata?: string | null
-    search_on_add?: number | boolean | null
-    season_monitoring?: string | null
-    // Action fields
-    always_require_approval?: number | boolean
-    bypass_user_quotas?: number | boolean
-    approval_reason?: string | null
-    exclude_from_routing?: number | boolean
-    created_at: string
-    updated_at: string
-    [key: string]: unknown
-  }): RouterRule {
-    return {
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      search_on_add:
-        rule.search_on_add == null ? null : Boolean(rule.search_on_add),
-      // Action fields
-      always_require_approval: Boolean(rule.always_require_approval ?? false),
-      bypass_user_quotas: Boolean(rule.bypass_user_quotas ?? false),
-      approval_reason: rule.approval_reason ?? null,
-      exclude_from_routing: Boolean(rule.exclude_from_routing ?? false),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? this.safeJsonParse(
-              rule.criteria,
-              { condition: { operator: 'AND' as const, conditions: [] } },
-              'router_rule.criteria',
-            )
-          : (rule.criteria as { condition: Condition | ConditionGroup }),
-      tags:
-        typeof rule.tags === 'string'
-          ? this.safeJsonParse(rule.tags, [], 'router_rule.tags')
-          : rule.tags || [],
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? this.safeJsonParse(rule.metadata, null, 'router_rule.metadata')
-          : rule.metadata
-        : null,
-    }
-  }
-
-  /*
-   * Note: All database methods for specific domains (users, watchlist, instances, etc.)
-   * are implemented in separate module files under ./database/methods/ and bound to
-   * this service instance via the bindMethods() function above.
-   *
-   * Type definitions for these methods can be found in ./database/types/
-   *
-   * This modular approach provides better code organization while maintaining
-   * the convenience of calling methods directly on the database service instance.
-   */
 }

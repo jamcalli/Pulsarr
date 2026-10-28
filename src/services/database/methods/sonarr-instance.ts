@@ -2,14 +2,23 @@ import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.j
 import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
+import { toBoolean } from '@utils/to-boolean.js'
 import type { Knex } from 'knex'
 
-/**
- * Converts a SonarrInstanceRow from the database into a SonarrInstance object, applying type conversions, default values, and JSON parsing for relevant fields.
- *
- * @param row - The database row representing a Sonarr instance
- * @returns The corresponding SonarrInstance object
- */
+function normaliseMonitorNewItems(
+  value: string | undefined | null,
+): 'all' | 'none' {
+  if (value === undefined || value === null) {
+    throw new Error('monitorNewItems must be provided (all|none)')
+  }
+  const normalized = value.toLowerCase()
+  if (!['all', 'none'].includes(normalized)) {
+    throw new Error(`Invalid monitorNewItems value: ${value}`)
+  }
+  return normalized as 'all' | 'none'
+}
+
 function mapRowToSonarrInstance(
   this: DatabaseService,
   row: SonarrInstanceRow,
@@ -24,13 +33,14 @@ function mapRowToSonarrInstance(
     bypassIgnored: Boolean(row.bypass_ignored),
     seasonMonitoring: row.season_monitoring || 'all',
     monitorNewItems: (row.monitor_new_items as 'all' | 'none') || 'all',
-    searchOnAdd: this.toBoolean(row.search_on_add, true),
-    createSeasonFolders: this.toBoolean(row.create_season_folders, false),
-    tags: this.safeJsonParse(row.tags, [], 'sonarr.tags'),
+    searchOnAdd: toBoolean(row.search_on_add, true),
+    createSeasonFolders: toBoolean(row.create_season_folders, false),
+    tags: parseJsonOr(row.tags, [], this.log, 'sonarr.tags'),
     isDefault: Boolean(row.is_default),
-    syncedInstances: this.safeJsonParse(
+    syncedInstances: parseJsonOr(
       row.synced_instances,
       [],
+      this.log,
       'sonarr.synced_instances',
     ),
     seriesType: (row.series_type as SonarrSeriesType) || 'standard',
@@ -40,11 +50,7 @@ function mapRowToSonarrInstance(
   }
 }
 
-/**
- * Retrieves all enabled Sonarr instances from the database.
- *
- * @returns A promise that resolves to an array of enabled SonarrInstance objects.
- */
+/** Enabled instances only. */
 export async function getAllSonarrInstances(
   this: DatabaseService,
 ): Promise<SonarrInstance[]> {
@@ -57,11 +63,6 @@ export async function getAllSonarrInstances(
   )
 }
 
-/**
- * Retrieves the enabled Sonarr instance marked as default.
- *
- * @returns The default enabled Sonarr instance, or null if none exists.
- */
 export async function getDefaultSonarrInstance(
   this: DatabaseService,
 ): Promise<SonarrInstance | null> {
@@ -77,12 +78,6 @@ export async function getDefaultSonarrInstance(
   return mapRowToSonarrInstance.call(this, instance)
 }
 
-/**
- * Retrieves a Sonarr instance by its unique ID.
- *
- * @param id - The unique identifier of the Sonarr instance.
- * @returns The Sonarr instance if found, or null if no instance exists with the given ID.
- */
 export async function getSonarrInstance(
   this: DatabaseService,
   id: number,
@@ -114,7 +109,7 @@ async function insertSonarrInstanceRow(
       root_folder: instance.rootFolder,
       bypass_ignored: instance.bypassIgnored,
       season_monitoring: instance.seasonMonitoring,
-      monitor_new_items: this.normaliseMonitorNewItems(
+      monitor_new_items: normaliseMonitorNewItems(
         instance.monitorNewItems || 'all',
       ),
       search_on_add: instance.searchOnAdd ?? true,
@@ -140,14 +135,7 @@ async function insertSonarrInstanceRow(
   return id
 }
 
-/**
- * Creates a new Sonarr instance in the database and returns its ID.
- *
- * If the new instance is marked as default, any existing default instance is unset before insertion.
- *
- * @param instance - The Sonarr instance data to create, excluding the ID
- * @returns The ID of the newly created Sonarr instance
- */
+/** Unsets any existing default when the new instance is default. */
 export async function createSonarrInstance(
   this: DatabaseService,
   instance: Omit<SonarrInstance, 'id'>,
@@ -157,29 +145,19 @@ export async function createSonarrInstance(
   )
 }
 
-/**
- * Updates the specified Sonarr instance with the provided fields.
- *
- * If the API key is set to "placeholder", the instance is forced to remain the default. Ensures only one default instance exists and applies partial updates to the instance's properties.
- *
- * @param id - The ID of the Sonarr instance to update
- * @param updates - Fields to update on the Sonarr instance
- */
+/** A placeholder API key forces the instance to stay default unless isDefault is explicitly true. */
 export async function updateSonarrInstance(
   this: DatabaseService,
   id: number,
   updates: Partial<SonarrInstance>,
 ): Promise<void> {
-  // Force placeholder instances to be default (regardless of whether isDefault is false or undefined)
   const sanitized = { ...updates }
   if (sanitized.apiKey === 'placeholder' && sanitized.isDefault !== true) {
     sanitized.isDefault = true
     this.log.warn('Forced placeholder instance to remain default')
   }
 
-  // Use a transaction to ensure all operations are atomic
   await this.knex.transaction(async (trx) => {
-    // Validate instance default status using the shared helper
     await this.validateInstanceDefaultStatus(
       trx,
       'sonarr_instances',
@@ -188,7 +166,6 @@ export async function updateSonarrInstance(
       'Sonarr',
     )
 
-    // Finally, update the instance with all changes
     await trx('sonarr_instances')
       .where('id', id)
       .update({
@@ -212,7 +189,7 @@ export async function updateSonarrInstance(
           season_monitoring: sanitized.seasonMonitoring,
         }),
         ...(typeof sanitized.monitorNewItems !== 'undefined' && {
-          monitor_new_items: this.normaliseMonitorNewItems(
+          monitor_new_items: normaliseMonitorNewItems(
             sanitized.monitorNewItems,
           ),
         }),
@@ -249,27 +226,19 @@ export async function updateSonarrInstance(
   this.log.debug(`Sonarr instance ${id} updated`)
 }
 
-/**
- * Removes all database references to a deleted Sonarr instance, including entries in related junction tables and synced instance arrays of other Sonarr instances.
- *
- * @param deletedId - The ID of the deleted Sonarr instance to remove references for
- * @param trx - Optional transaction to use for database operations
- */
+/** Removes junction rows and drops the id from every other instance's synced_instances list. */
 export async function cleanupDeletedSonarrInstanceReferences(
   this: DatabaseService,
   deletedId: number,
   trx?: Knex.Transaction,
 ): Promise<void> {
   try {
-    // Use the provided transaction or the regular knex instance
     const queryBuilder = trx || this.knex
 
-    // Clean up junction table references
     await queryBuilder('watchlist_sonarr_instances')
       .where('sonarr_instance_id', deletedId)
       .del()
 
-    // Clean up synced_instances references in other instances
     const instances = await queryBuilder('sonarr_instances').select(
       'id',
       'synced_instances',
@@ -277,9 +246,10 @@ export async function cleanupDeletedSonarrInstanceReferences(
 
     for (const instance of instances) {
       try {
-        const syncedInstances = this.safeJsonParse<number[]>(
+        const syncedInstances = parseJsonOr<number[]>(
           instance.synced_instances,
           [],
+          this.log,
           'synced_instances',
         )
 
@@ -322,19 +292,12 @@ export async function cleanupDeletedSonarrInstanceReferences(
   }
 }
 
-/**
- * Deletes a Sonarr instance by ID and removes all references to it from related tables.
- *
- * If the deleted instance was the default, promotes the next available enabled instance to default.
- *
- * @param id - The ID of the Sonarr instance to delete
- */
+/** Promotes the lowest-id enabled instance when the deleted one was default, and rethrows errors. */
 export async function deleteSonarrInstance(
   this: DatabaseService,
   id: number,
 ): Promise<void> {
   try {
-    // Check if this is a default instance before deleting
     const instanceToDelete = await this.knex('sonarr_instances')
       .where('id', id)
       .first()
@@ -348,15 +311,11 @@ export async function deleteSonarrInstance(
       instanceToDelete?.is_default === 1 ||
       instanceToDelete?.is_default === true
 
-    // Use a transaction to ensure atomicity across all operations
     await this.knex.transaction(async (trx) => {
-      // First clean up references to this instance with transaction
       await this.cleanupDeletedSonarrInstanceReferences(id, trx)
 
-      // Delete the instance
       await trx('sonarr_instances').where('id', id).delete()
 
-      // If this was a default instance, set a new default if any instances remain
       if (isDefault) {
         const remainingInstances = await trx('sonarr_instances')
           .where('is_enabled', true)
@@ -404,14 +363,7 @@ export async function replaceSonarrInstance(
   return newId
 }
 
-/**
- * Retrieves a Sonarr instance matching a normalized base URL identifier.
- *
- * The identifier is compared against all stored Sonarr instances after removing protocol, non-alphanumeric characters, and lowercasing the base URL. Used primarily for webhook routing.
- *
- * @param instanceId - The normalized base URL identifier to match
- * @returns A promise resolving to the matching Sonarr instance, or null if none is found
- */
+/** instanceId is the base URL lowercased with the protocol and every non-alphanumeric character stripped. */
 export async function getSonarrInstanceByIdentifier(
   this: DatabaseService,
   instanceId: string,

@@ -141,4 +141,27 @@ describe('quota database methods', () => {
       expect(status?.resetDate).toBe(nextReset.toISOString())
     })
   })
+
+  describe('bulkDeleteQuotas', () => {
+    it('counts a user with movie and show quotas once', async () => {
+      const knex = getTestDatabase()
+      await seedUserQuota(knex, {
+        user_id: 1,
+        content_type: 'movie',
+        quota_type: 'monthly',
+        quota_limit: 5,
+      })
+      await seedUserQuota(knex, {
+        user_id: 1,
+        content_type: 'show',
+        quota_type: 'monthly',
+        quota_limit: 5,
+      })
+
+      const result = await fastify.db.bulkDeleteQuotas([1])
+
+      expect(result).toEqual({ processedCount: 1, failedIds: [] })
+      expect(await knex('user_quotas').where('user_id', 1)).toHaveLength(0)
+    })
+  })
 })

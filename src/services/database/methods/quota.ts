@@ -1,7 +1,6 @@
 import type {
   CreateUserQuotaData,
   EnabledQuotaData,
-  QuotaExceeded,
   QuotaStatus,
   QuotaType,
   QuotaUsage,
@@ -21,11 +20,7 @@ import {
 } from '@utils/quota-window.js'
 import type { Knex } from 'knex'
 
-/**
- * Inserts, updates, or deletes a user's quota configuration for a specific content type within a transaction.
- *
- * If the provided quota configuration is enabled and valid, upserts the quota record; if disabled, deletes the quota record.
- */
+/** Upserts an enabled config, deletes a disabled one, and does nothing when the config is undefined */
 async function upsertOrDeleteQuota(
   this: DatabaseService,
   trx: Knex.Transaction,
@@ -68,12 +63,6 @@ async function upsertOrDeleteQuota(
   }
 }
 
-/**
- * Converts a user quota database row into a UserQuotaConfig object.
- *
- * @param row - The database row representing a user quota configuration
- * @returns The corresponding UserQuotaConfig object
- */
 function mapRowToUserQuotaConfig(row: UserQuotaRow): UserQuotaConfig {
   return {
     userId: row.user_id,
@@ -85,12 +74,6 @@ function mapRowToUserQuotaConfig(row: UserQuotaRow): UserQuotaConfig {
   }
 }
 
-/**
- * Converts a quota usage database row into a QuotaUsage object.
- *
- * @param row - The database row representing a quota usage entry
- * @returns The corresponding QuotaUsage object
- */
 function mapRowToQuotaUsage(row: QuotaUsageRow): QuotaUsage {
   return {
     userId: row.user_id,
@@ -110,12 +93,6 @@ function getDateRange(
   }
 }
 
-/**
- * Creates a new user quota configuration for a specific content type.
- *
- * @param data - The details for the new quota configuration, including user ID, content type, quota type, limit, and optional bypass approval flag.
- * @returns The newly created user quota configuration.
- */
 export async function createUserQuota(
   this: DatabaseService,
   data: CreateUserQuotaData,
@@ -136,12 +113,6 @@ export async function createUserQuota(
   return mapRowToUserQuotaConfig(row)
 }
 
-/**
- * Creates multiple user quota configurations atomically.
- *
- * @param quotas - The quota configurations to insert
- * @returns The newly created user quota configurations
- */
 export async function createUserQuotas(
   this: DatabaseService,
   quotas: CreateUserQuotaData[],
@@ -167,11 +138,6 @@ export async function createUserQuotas(
   })
 }
 
-/**
- * Returns the quota configuration for a user and content type, or null if not found.
- *
- * @returns The quota configuration for the specified user and content type, or null if none exists.
- */
 export async function getUserQuota(
   this: DatabaseService,
   userId: number,
@@ -184,12 +150,6 @@ export async function getUserQuota(
   return row ? mapRowToUserQuotaConfig(row) : null
 }
 
-/**
- * Retrieves all quota configurations for a user, including separate configurations for movies and shows if present.
- *
- * @param userId - The user ID to fetch quota configurations for
- * @returns An object containing the user ID and the user's movie and show quota configurations, if available
- */
 export async function getUserQuotas(
   this: DatabaseService,
   userId: number,
@@ -208,14 +168,6 @@ export async function getUserQuotas(
   }
 }
 
-/**
- * Updates a user's quota configuration for a specific content type with new values.
- *
- * @param userId - The user whose quota configuration will be updated
- * @param contentType - The content type ('movie' or 'show') for which the quota applies
- * @param data - The fields to update in the quota configuration
- * @returns The updated quota configuration, or null if no matching record exists
- */
 export async function updateUserQuota(
   this: DatabaseService,
   userId: number,
@@ -243,13 +195,7 @@ export async function updateUserQuota(
   return row ? mapRowToUserQuotaConfig(row) : null
 }
 
-/**
- * Removes the quota configuration for a user and specified content type.
- *
- * @param userId - The user ID whose quota configuration should be removed
- * @param contentType - The content type ('movie' or 'show') associated with the quota configuration
- * @returns True if a quota configuration was removed; false if none existed
- */
+/** Returns false when no quota existed */
 export async function deleteUserQuota(
   this: DatabaseService,
   userId: number,
@@ -262,12 +208,7 @@ export async function deleteUserQuota(
   return deletedCount > 0
 }
 
-/**
- * Deletes all quota configurations for the specified user.
- *
- * @param userId - The ID of the user whose quota configurations are to be removed
- * @returns True if one or more quota configurations were deleted; otherwise, false
- */
+/** Returns false when the user had no quotas */
 export async function deleteAllUserQuotas(
   this: DatabaseService,
   userId: number,
@@ -278,21 +219,13 @@ export async function deleteAllUserQuotas(
   return deletedCount > 0
 }
 
-/**
- * Records a quota usage entry for a user and content type on a specified or current date.
- *
- * @param userId - The user ID for whom the usage is recorded
- * @param contentType - The content type ('movie' or 'show') associated with the usage
- * @param requestDate - The date of usage; uses the current date if not provided
- * @returns The created quota usage record
- */
 export async function recordQuotaUsage(
   this: DatabaseService,
   userId: number,
   contentType: 'movie' | 'show',
   requestDate: Date = new Date(),
 ): Promise<QuotaUsage> {
-  const dateString = this.getLocalDateString(requestDate) // YYYY-MM-DD in local timezone
+  const dateString = toLocalDateString(requestDate)
 
   await this.knex('quota_usage').insert({
     user_id: userId,
@@ -308,13 +241,7 @@ export async function recordQuotaUsage(
   }
 }
 
-/**
- * Counts the number of quota usage records for a user within the current quota period.
- *
- * Calculates usage for the specified user and quota type, optionally filtered by content type, based on the relevant date range for the quota period.
- *
- * @returns The usage count and the earliest counted request date (local YYYY-MM-DD, null when nothing counts)
- */
+/** earliest is the first counted request date as local YYYY-MM-DD, or null when nothing counts */
 export async function getCurrentQuotaUsage(
   this: DatabaseService,
   userId: number,
@@ -342,16 +269,7 @@ export async function getCurrentQuotaUsage(
   }
 }
 
-/**
- * Returns the total watchlist item count for a user and content type.
- *
- * Counts all watchlist_items (pending + routed) — used for watchlist cap display
- * and enforcement. This is the single source of truth for watchlist cap checks.
- *
- * @param userId - The user ID to check watchlist count for
- * @param contentType - The content type ('movie' or 'show')
- * @returns The count of watchlist items for the user and content type
- */
+/** Counts every watchlist item of the type, pending and routed, and is the single source for watchlist cap checks */
 export async function getWatchlistUsage(
   this: DatabaseService,
   userId: number,
@@ -365,15 +283,6 @@ export async function getWatchlistUsage(
   return Number.parseInt(result?.count as string, 10) || 0
 }
 
-/**
- * Retrieves the current quota status for a user and content type.
- *
- * Returns an object containing the quota type, usage limit, current usage count, whether the quota is exceeded, the next reset date (if available), and the bypass approval flag. Returns null if no quota configuration exists for the user and content type.
- *
- * @param userId - The user ID to check quota status for
- * @param contentType - The content type ('movie' or 'show') to check
- * @returns The quota status object, or null if no quota configuration is found
- */
 export async function getQuotaStatus(
   this: DatabaseService,
   userId: number,
@@ -401,7 +310,6 @@ export async function getQuotaStatus(
     settings,
   )
 
-  // Watchlist cap usage: total watchlist items for the user and content type
   let watchlistUsage: number | null = null
   let watchlistCapExceeded = false
   if (quota.watchlistCap != null) {
@@ -422,15 +330,6 @@ export async function getQuotaStatus(
   }
 }
 
-/**
- * Retrieves quota status for multiple users in a single batch operation.
- *
- * For each user ID, returns the user's quota status for the specified content type, including current usage, limit, exceeded flag, next reset date, and bypass approval flag. If a user has no quota configuration, their quota status is `null`.
- *
- * @param userIds - List of user IDs to retrieve quota status for
- * @param contentType - Optional content type to filter by ('movie' or 'show')
- * @returns An array of objects with each user ID and their corresponding quota status or null if not configured
- */
 export async function getBulkQuotaStatus(
   this: DatabaseService,
   userIds: number[],
@@ -441,7 +340,6 @@ export async function getBulkQuotaStatus(
     return []
   }
 
-  // Get quota configurations for the requested users, filtered by content type if specified
   const quotaQuery = this.knex('user_quotas')
     .whereIn('user_id', userIds)
     .select('*')
@@ -454,19 +352,16 @@ export async function getBulkQuotaStatus(
 
   const quotaMap = new Map<number, UserQuotaConfig>()
   for (const row of quotaRows) {
-    // If contentType is specified, only map matching quotas
     if (!contentType || row.content_type === contentType) {
       quotaMap.set(row.user_id, mapRowToUserQuotaConfig(row))
     }
   }
 
-  // Build usage queries for each quota type to minimize database hits
   const quotasByType = new Map<
     QuotaType,
     Array<{ userId: number; quota: UserQuotaConfig }>
   >()
 
-  // Group quotas by type for efficient batch processing
   for (const userId of userIds) {
     const quota = quotaMap.get(userId)
     if (quota) {
@@ -477,7 +372,6 @@ export async function getBulkQuotaStatus(
     }
   }
 
-  // Create optimized queries for each quota type
   const usageResults = new Map<number, number>()
   const earliestUsage = new Map<number, string>()
   const windows = new Map<QuotaType, QuotaWindow>()
@@ -503,7 +397,6 @@ export async function getBulkQuotaStatus(
 
     const usageRows = await query
 
-    // Map results
     for (const row of usageRows) {
       usageResults.set(
         Number(row.user_id),
@@ -514,7 +407,6 @@ export async function getBulkQuotaStatus(
       }
     }
 
-    // Set zero usage for users with no records
     for (const { userId } of quotasOfType) {
       if (!usageResults.has(userId)) {
         usageResults.set(userId, 0)
@@ -522,7 +414,6 @@ export async function getBulkQuotaStatus(
     }
   }
 
-  // Batch watchlist usage for users who have a watchlist_cap configured
   const watchlistUsageResults = new Map<number, number>()
   const usersWithCap = Array.from(quotaMap.entries())
     .filter(([, q]) => q.watchlistCap != null)
@@ -549,7 +440,6 @@ export async function getBulkQuotaStatus(
     }
   }
 
-  // Build final results
   const results: Array<{ userId: number; quotaStatus: QuotaStatus | null }> = []
 
   for (const userId of userIds) {
@@ -598,41 +488,6 @@ export async function getBulkQuotaStatus(
   return results
 }
 
-/**
- * Checks whether a user's quota has been exceeded for the specified content type.
- *
- * Returns a `QuotaExceeded` object with quota type, limit, usage, and exceeded flag if the quota is exceeded; otherwise returns `null`. If no content type is provided, always returns `null`.
- *
- * @returns A `QuotaExceeded` object if the user's quota is exceeded for the given content type, or `null` if not exceeded or if content type is not specified.
- */
-export async function checkQuotaExceeded(
-  this: DatabaseService,
-  userId: number,
-  settings: QuotaWindowSettings,
-  contentType?: 'movie' | 'show',
-): Promise<QuotaExceeded | null> {
-  if (!contentType) {
-    return null
-  }
-
-  const status = await this.getQuotaStatus(userId, contentType, settings)
-  if (!status?.exceeded) {
-    return null
-  }
-
-  return {
-    type: status.quotaType,
-    limit: status.quotaLimit,
-    usage: status.currentUsage,
-    exceeded: true,
-  }
-}
-
-/**
- * Retrieves all user quota configurations.
- *
- * @returns An array of all user quota configuration objects in the system.
- */
 export async function getUsersWithQuotas(
   this: DatabaseService,
 ): Promise<UserQuotaConfig[]> {
@@ -640,14 +495,7 @@ export async function getUsersWithQuotas(
   return rows.map(mapRowToUserQuotaConfig)
 }
 
-/**
- * Retrieves active watchlist caps for non-bypass users.
- *
- * Returns rows where watchlist_cap is set, positive, and the user does not have bypass_approval enabled.
- * Used by the sync engine's cap gate to determine which users have active caps.
- *
- * @returns Array of objects with userId, contentType, and watchlistCap
- */
+/** Skips bypass_approval users and caps that are null or zero */
 export async function getActiveWatchlistCaps(
   this: DatabaseService,
 ): Promise<
@@ -666,17 +514,6 @@ export async function getActiveWatchlistCaps(
   }))
 }
 
-/**
- * Retrieves quota usage records for a user, optionally filtered by date range, content type, and paginated.
- *
- * @param userId - The user ID to retrieve usage history for
- * @param startDate - If provided, only records on or after this date are included
- * @param endDate - If provided, only records on or before this date are included
- * @param contentType - If provided, filters records by content type ('movie' or 'show')
- * @param limit - Maximum number of records to return (default: 50)
- * @param offset - Number of records to skip for pagination (default: 0)
- * @returns An array of quota usage records matching the filters
- */
 export async function getQuotaUsageHistory(
   this: DatabaseService,
   userId: number,
@@ -689,15 +526,11 @@ export async function getQuotaUsageHistory(
   let query = this.knex('quota_usage').where('user_id', userId)
 
   if (startDate) {
-    query = query.where(
-      'request_date',
-      '>=',
-      this.getLocalDateString(startDate),
-    )
+    query = query.where('request_date', '>=', toLocalDateString(startDate))
   }
 
   if (endDate) {
-    query = query.where('request_date', '<=', this.getLocalDateString(endDate))
+    query = query.where('request_date', '<=', toLocalDateString(endDate))
   }
 
   if (contentType) {
@@ -711,15 +544,6 @@ export async function getQuotaUsageHistory(
   return rows.map(mapRowToQuotaUsage)
 }
 
-/**
- * Counts the number of quota usage records for a user, with optional filtering by date range and content type.
- *
- * @param userId - The user ID to count usage records for
- * @param startDate - If provided, only records on or after this date are counted
- * @param endDate - If provided, only records on or before this date are counted
- * @param contentType - If provided, only records matching this content type ('movie' or 'show') are counted
- * @returns The total count of matching quota usage records
- */
 export async function getQuotaUsageHistoryCount(
   this: DatabaseService,
   userId: number,
@@ -730,15 +554,11 @@ export async function getQuotaUsageHistoryCount(
   let query = this.knex('quota_usage').where('user_id', userId)
 
   if (startDate) {
-    query = query.where(
-      'request_date',
-      '>=',
-      this.getLocalDateString(startDate),
-    )
+    query = query.where('request_date', '>=', toLocalDateString(startDate))
   }
 
   if (endDate) {
-    query = query.where('request_date', '<=', this.getLocalDateString(endDate))
+    query = query.where('request_date', '<=', toLocalDateString(endDate))
   }
 
   if (contentType) {
@@ -749,15 +569,7 @@ export async function getQuotaUsageHistoryCount(
   return Number.parseInt(result?.count as string, 10) || 0
 }
 
-/**
- * Retrieves daily aggregated quota usage statistics for a user over a specified number of days.
- *
- * Each result includes the date, the number of movies and shows used, and the total usage for that day. Days with no usage are included with zero counts. Results are sorted by date in descending order.
- *
- * @param userId - The user ID for which to retrieve usage statistics
- * @param days - The number of days to include in the statistics window (default is 30)
- * @returns An array of objects with date, movies count, shows count, and total usage per day
- */
+/** Returns one zero-filled row per day for the last `days` days, newest first */
 export async function getDailyUsageStats(
   this: DatabaseService,
   userId: number,
@@ -767,8 +579,8 @@ export async function getDailyUsageStats(
   const startDate = new Date()
   startDate.setDate(endDate.getDate() - days)
 
-  const startDateString = this.getLocalDateString(startDate)
-  const endDateString = this.getLocalDateString(endDate)
+  const startDateString = toLocalDateString(startDate)
+  const endDateString = toLocalDateString(endDate)
 
   const usage = await this.knex('quota_usage')
     .select('request_date', 'content_type')
@@ -784,11 +596,10 @@ export async function getDailyUsageStats(
     { date: string; movies: number; shows: number; total: number }
   >()
 
-  // Initialize all dates with zero counts
   for (let i = 0; i < days; i++) {
     const date = new Date(endDate)
     date.setDate(date.getDate() - i)
-    const dateString = this.getLocalDateString(date)
+    const dateString = toLocalDateString(date)
     statsMap.set(dateString, {
       date: dateString,
       movies: 0,
@@ -797,7 +608,6 @@ export async function getDailyUsageStats(
     })
   }
 
-  // Fill in actual usage data
   for (const row of usage) {
     const date = String(row.request_date)
     const count = Number(row.count)
@@ -818,19 +628,13 @@ export async function getDailyUsageStats(
   )
 }
 
-/**
- * Removes quota usage records that are older than the specified number of days.
- *
- * @param olderThanDays - The minimum age in days for records to be deleted; defaults to 90 if not specified.
- * @returns The count of quota usage records removed.
- */
 export async function cleanupOldQuotaUsage(
   this: DatabaseService,
   olderThanDays = 90,
 ): Promise<number> {
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
-  const cutoffString = this.getLocalDateString(cutoffDate)
+  const cutoffString = toLocalDateString(cutoffDate)
 
   const deletedCount = await this.knex('quota_usage')
     .where('request_date', '<', cutoffString)
@@ -839,12 +643,6 @@ export async function cleanupOldQuotaUsage(
   return deletedCount
 }
 
-/**
- * Retrieves all user quota configurations for users with the specified quota type.
- *
- * @param quotaType - The type of quota to filter by
- * @returns An array of user quota configurations matching the quota type
- */
 export async function getUsersWithQuotaType(
   this: DatabaseService,
   quotaType: QuotaType,
@@ -855,32 +653,6 @@ export async function getUsersWithQuotaType(
   return rows.map(mapRowToUserQuotaConfig)
 }
 
-/**
- * Retrieves the most recent quota usage record for a user.
- *
- * @param userId - The ID of the user whose latest quota usage is requested
- * @returns The latest quota usage record for the user, or null if none exist
- */
-export async function getLatestQuotaUsage(
-  this: DatabaseService,
-  userId: number,
-): Promise<QuotaUsage | null> {
-  const row = await this.knex('quota_usage')
-    .where('user_id', userId)
-    .orderBy('request_date', 'desc')
-    .first()
-
-  return row ? mapRowToQuotaUsage(row) : null
-}
-
-/**
- * Deletes quota configurations and associated usage records for multiple users in batches within a single transaction.
- *
- * Processes user IDs in batches of 50 for efficiency. Returns the number of users whose quotas were successfully deleted and an array of user IDs for which deletion failed.
- *
- * @param userIds - Array of user IDs whose quotas and usage records should be deleted
- * @returns An object with the count of successfully processed users and an array of failed user IDs
- */
 export async function bulkDeleteQuotas(
   this: DatabaseService,
   userIds: number[],
@@ -889,24 +661,17 @@ export async function bulkDeleteQuotas(
   let processedCount = 0
 
   try {
-    // Start a transaction to ensure all deletions are atomic
     await this.knex.transaction(async (trx) => {
-      // For efficiency with large arrays, do batches
       const BATCH_SIZE = 50
       for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
         const batchIds = userIds.slice(i, i + BATCH_SIZE)
 
         try {
-          // Delete user quotas and related usage records
-          const deletedQuotas = await trx('user_quotas')
-            .whereIn('user_id', batchIds)
-            .del()
+          await trx('user_quotas').whereIn('user_id', batchIds).del()
 
-          // Delete related quota usage records
           await trx('quota_usage').whereIn('user_id', batchIds).del()
 
-          // Track actual processed count based on actual deletions
-          processedCount += deletedQuotas
+          processedCount += batchIds.length
         } catch (batchError) {
           this.log.error(`Error deleting quota batch: ${batchError}`)
           failedIds.push(...batchIds)
@@ -924,16 +689,7 @@ export async function bulkDeleteQuotas(
   return { processedCount, failedIds }
 }
 
-/**
- * Updates or creates quota configurations for multiple users in batches within a single transaction.
- *
- * For each user, applies the provided movie and show quota configurations. Processes users in batches of 50 for efficiency. If any batch fails, all user IDs in that batch are marked as failed, but processing continues for other batches. Returns the total number of successfully processed users and an array of user IDs for which the update failed.
- *
- * @param userIds - List of user IDs to update quotas for
- * @param movieQuota - Quota configuration to apply for movies, or undefined to skip
- * @param showQuota - Quota configuration to apply for shows, or undefined to skip
- * @returns An object with the count of processed users and an array of failed user IDs
- */
+/** An undefined movieQuota or showQuota leaves that content type untouched */
 export async function bulkUpdateQuotas(
   this: DatabaseService,
   userIds: number[],
@@ -944,9 +700,7 @@ export async function bulkUpdateQuotas(
   let processedCount = 0
 
   try {
-    // Start a transaction to ensure all updates are atomic
     await this.knex.transaction(async (trx) => {
-      // For efficiency with large arrays, do batches
       const BATCH_SIZE = 50
       for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
         const batchIds = userIds.slice(i, i + BATCH_SIZE)
@@ -981,26 +735,7 @@ export async function bulkUpdateQuotas(
   return { processedCount, failedIds }
 }
 
-/**
- * Atomically attempts to consume one quota unit for a user.
- *
- * Uses database-level locking to prevent race conditions when multiple items
- * are processed concurrently. The check and insert happen within a single
- * transaction, ensuring that concurrent requests cannot both pass the quota
- * check before either records usage.
- *
- * For PostgreSQL: Uses SELECT ... FOR UPDATE on user_quotas row to serialize
- * access per user/content-type combination.
- *
- * For SQLite: Relies on database-level write serialization within the transaction.
- *
- * @param userId - User ID
- * @param contentType - Content type (movie or show)
- * @param quotaType - Type of quota (daily, weekly_rolling, monthly)
- * @param quotaLimit - Maximum allowed usage for the period
- * @param requestDate - Date to record usage for (default: current date)
- * @returns Object with consumed flag and current usage count (after consumption if successful)
- */
+/** Checks the period limit and records usage in one transaction, so concurrent callers cannot both pass */
 export async function tryConsumeQuota(
   this: DatabaseService,
   userId: number,
@@ -1013,13 +748,11 @@ export async function tryConsumeQuota(
   consumed: boolean
   currentUsage: number
 }> {
-  const dateString = this.getLocalDateString(requestDate)
+  const dateString = toLocalDateString(requestDate)
   const dateRange = getDateRange(quotaType, settings)
 
   return await this.knex.transaction(async (trx) => {
-    // For PostgreSQL, lock the user_quotas row to serialize quota operations
-    // This prevents race conditions where multiple concurrent requests
-    // could all read the same usage count and all proceed
+    // Postgres needs the row lock to serialize concurrent consumers, SQLite already serializes writes
     if (this.isPostgres) {
       await trx('user_quotas')
         .where('user_id', userId)
@@ -1028,7 +761,6 @@ export async function tryConsumeQuota(
         .first()
     }
 
-    // Count current period usage within the transaction
     const result = await trx('quota_usage')
       .where('user_id', userId)
       .where('content_type', contentType)
@@ -1039,13 +771,10 @@ export async function tryConsumeQuota(
 
     const currentUsage = Number.parseInt(result?.count as string, 10) || 0
 
-    // Check if already at or over period limit
     if (currentUsage >= quotaLimit) {
-      // Cannot consume - at or over quota
       return { consumed: false, currentUsage }
     }
 
-    // Under limit - insert usage record atomically
     await trx('quota_usage').insert({
       user_id: userId,
       content_type: contentType,
@@ -1053,7 +782,6 @@ export async function tryConsumeQuota(
       created_at: this.timestamp,
     })
 
-    // Return success with updated usage count
     return { consumed: true, currentUsage: currentUsage + 1 }
   })
 }

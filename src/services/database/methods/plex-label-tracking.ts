@@ -1,13 +1,9 @@
 import type { DatabaseService } from '@services/database.service.js'
+import { chunkArray } from '@utils/chunk-array.js'
+import { parseJsonOr } from '@utils/json.js'
 
-/**
- * Batch chunk size for processing operations in chunks to avoid overwhelming the database
- */
 const BATCH_CHUNK_SIZE = 50
 
-/**
- * Database row representation for plex_label_tracking table
- */
 interface PlexLabelTrackingRow {
   id: number
   content_guids: string // JSON string that gets parsed to string[]
@@ -18,22 +14,16 @@ interface PlexLabelTrackingRow {
   synced_at: string
 }
 
-/**
- * Plex label tracking record
- */
 export interface PlexLabelTracking {
   id: number
-  content_guids: string[] // Parsed JSON array of GUIDs
+  content_guids: string[]
   content_type: 'movie' | 'show'
   user_id: number | null
   plex_rating_key: string
-  labels_applied: string[] // Parsed JSON array of labels
+  labels_applied: string[]
   synced_at: string
 }
 
-/**
- * Bulk operation for tracking Plex labels
- */
 export interface TrackPlexLabelsOperation {
   contentGuids: string[]
   contentType: 'movie' | 'show'
@@ -42,9 +32,6 @@ export interface TrackPlexLabelsOperation {
   labelsApplied: string[]
 }
 
-/**
- * Bulk operation for untracking Plex labels
- */
 export interface UntrackPlexLabelOperation {
   contentGuids: string[]
   userId: number | null
@@ -52,22 +39,12 @@ export interface UntrackPlexLabelOperation {
   labelApplied: string
 }
 
-/**
- * Result of bulk operations
- */
 export interface BulkOperationResult {
   processedCount: number
   failedIds: string[]
 }
 
-/**
- * Bulk creates or updates Plex label tracking records for multiple operations.
- *
- * Processes an array of label tracking operations, ensuring each operation either inserts a new record or updates an existing one with the provided labels and content GUIDs. Supports both PostgreSQL and SQLite backends with optimized, chunked transactions. Returns the number of successfully processed operations and a list of Plex rating keys that failed to process.
- *
- * @param operations - The label tracking operations to process in bulk
- * @returns An object with the count of successfully processed operations and an array of failed Plex rating keys
- */
+/** Replaces the full label set per operation, and a transaction error reports every rating key as failed. */
 export async function trackPlexLabelsBulk(
   this: DatabaseService,
   operations: TrackPlexLabelsOperation[],
@@ -86,8 +63,7 @@ export async function trackPlexLabelsBulk(
 
   try {
     if (this.isPostgres) {
-      // PostgreSQL: Process operations in chunks with efficient CTEs
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -102,7 +78,6 @@ export async function trackPlexLabelsBulk(
                 labelsApplied,
               } = operation
 
-              // Handle empty arrays
               if (contentGuids.length === 0) {
                 throw new Error('Content GUIDs array cannot be empty')
               }
@@ -203,8 +178,7 @@ export async function trackPlexLabelsBulk(
         })
       }
     } else {
-      // SQLite: Use chunked operations with individual upserts
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -219,7 +193,6 @@ export async function trackPlexLabelsBulk(
                 labelsApplied,
               } = operation
 
-              // Handle empty arrays
               if (contentGuids.length === 0) {
                 throw new Error('Content GUIDs array cannot be empty')
               }
@@ -233,7 +206,6 @@ export async function trackPlexLabelsBulk(
               )
               const labelsJson = JSON.stringify(normalizedLabels.sort())
 
-              // Find existing record with overlapping GUIDs
               const existing = await trx('plex_label_tracking')
                 .where('user_id', userId)
                 .where('plex_rating_key', plexRatingKey)
@@ -250,7 +222,6 @@ export async function trackPlexLabelsBulk(
               let recordId: number
 
               if (existing) {
-                // Update existing record with new complete label set
                 await trx('plex_label_tracking')
                   .where('id', existing.id)
                   .update({
@@ -261,7 +232,6 @@ export async function trackPlexLabelsBulk(
                   })
                 recordId = existing.id
               } else {
-                // Insert new record with complete label set
                 const result = await trx('plex_label_tracking')
                   .insert({
                     content_guids: guidsJson,
@@ -321,18 +291,7 @@ export async function trackPlexLabelsBulk(
   return { processedCount, failedIds }
 }
 
-/**
- * Create or update a Plex label tracking record and return its database ID.
- *
- * Replaces any existing labels for the given content (by GUIDs), content type, user (nullable), and Plex rating key.
- * Internally delegates to the bulk tracking helper and then queries the database for the created/updated record ID.
- *
- * @param contentGuids - One or more content GUIDs that identify the content item (must be non-empty)
- * @param userId - The user ID to associate with the tracking record; may be null for system-level operations (e.g., removed labels)
- * @param labelsApplied - The full set of labels to associate with this content for the user
- * @returns The numeric ID of the created or updated tracking record
- * @throws Error if the bulk operation fails or the record cannot be retrieved after creation
- */
+/** Replaces the labels for this content and user, returns the row id, and throws when tracking fails. */
 export async function trackPlexLabels(
   this: DatabaseService,
   contentGuids: string[],
@@ -355,9 +314,6 @@ export async function trackPlexLabels(
     throw new Error(`Failed to track labels for rating key ${plexRatingKey}`)
   }
 
-  // For backward compatibility, we need to return the record ID
-  // Since we can't get that from the bulk operation result in a clean way,
-  // we'll query for it
   const normalizedGuids = Array.from(
     new Set(contentGuids.map((g) => g.toLowerCase())),
   )
@@ -393,14 +349,7 @@ export async function trackPlexLabels(
   return record.id
 }
 
-/**
- * Removes a specified label from multiple Plex label tracking records in bulk.
- *
- * For each operation, removes the given label from matching records identified by user, rating key, and overlapping content GUIDs. If a record has no labels remaining after removal, it is deleted. Supports both PostgreSQL and SQLite backends with chunked transactions for efficiency.
- *
- * @param operations - The list of untracking operations to process
- * @returns An object containing the number of successfully processed operations and an array of rating keys for which untracking failed
- */
+/** Deletes a record once its last label is removed. */
 export async function untrackPlexLabelBulk(
   this: DatabaseService,
   operations: UntrackPlexLabelOperation[],
@@ -419,8 +368,7 @@ export async function untrackPlexLabelBulk(
 
   try {
     if (this.isPostgres) {
-      // PostgreSQL: Process operations in chunks with efficient CTEs
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -431,14 +379,12 @@ export async function untrackPlexLabelBulk(
                 operation
               const labelLower = labelApplied.toLowerCase()
 
-              // Handle empty arrays
               if (contentGuids.length === 0) {
                 throw new Error('Content GUIDs array cannot be empty')
               }
 
               const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
 
-              // Use PostgreSQL CTE to handle label removal with JSON operations
               const result = await trx.raw(
                 `
                   WITH updated_records AS (
@@ -546,8 +492,7 @@ export async function untrackPlexLabelBulk(
         })
       }
     } else {
-      // SQLite: Use chunked operations with individual label processing
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -558,14 +503,12 @@ export async function untrackPlexLabelBulk(
                 operation
               const labelLower = labelApplied.toLowerCase()
 
-              // Handle empty arrays
               if (contentGuids.length === 0) {
                 throw new Error('Content GUIDs array cannot be empty')
               }
 
               const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
 
-              // Find existing record with overlapping GUIDs
               const existing = await trx('plex_label_tracking')
                 .where('user_id', userId)
                 .where('plex_rating_key', plexRatingKey)
@@ -588,17 +531,16 @@ export async function untrackPlexLabelBulk(
                 continue
               }
 
-              // Parse existing labels and remove the specified one
-              const currentLabels = this.safeJsonParse<string[]>(
+              const currentLabels = parseJsonOr<string[]>(
                 existing.labels_applied,
                 [],
+                this.log,
                 'plex_label_tracking.labels_applied',
               )
               const updatedLabels = currentLabels.filter(
                 (label) => label.toLowerCase() !== labelLower,
               )
 
-              // If no labels remain, delete the record
               if (updatedLabels.length === 0) {
                 const deleted = await trx('plex_label_tracking')
                   .where('id', existing.id)
@@ -611,7 +553,6 @@ export async function untrackPlexLabelBulk(
                 continue
               }
 
-              // Otherwise, update with remaining labels
               await trx('plex_label_tracking')
                 .where('id', existing.id)
                 .update({
@@ -665,86 +606,12 @@ export async function untrackPlexLabelBulk(
   return { processedCount, failedIds }
 }
 
-/**
- * Removes a specific label from a user's tracking record for the given content GUIDs and Plex rating key.
- *
- * Deletes the tracking record if no labels remain after removal.
- *
- * @param contentGuids - The content GUIDs to remove the label from
- * @param userId - The user whose label tracking is being modified
- * @param plexRatingKey - The Plex rating key associated with the content
- * @param labelApplied - The label to remove
- * @returns True if a tracking record was updated or deleted; false if no matching record was found
- */
-export async function untrackPlexLabel(
-  this: DatabaseService,
-  contentGuids: string[],
-  userId: number | null,
-  plexRatingKey: string,
-  labelApplied: string,
-): Promise<boolean> {
-  const result = await this.untrackPlexLabelBulk([
-    {
-      contentGuids,
-      userId,
-      plexRatingKey,
-      labelApplied,
-    },
-  ])
-
-  // Return true if the operation succeeded (record was found and modified)
-  return result.processedCount > 0
-}
-
-/**
- * Retrieves all label tracking records for a given user, ordered by synchronization time.
- *
- * @param userId - The ID of the user whose label tracking records are to be fetched
- * @returns An array of PlexLabelTracking objects representing the user's tracked labels
- */
-export async function getTrackedLabelsForUser(
-  this: DatabaseService,
-  userId: number,
-): Promise<PlexLabelTracking[]> {
-  const rows = (await this.knex('plex_label_tracking')
-    .where('user_id', userId)
-    .orderBy('synced_at', 'asc')
-    .select('*')) as PlexLabelTrackingRow[]
-
-  return rows.map((row) => ({
-    id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
-      row.content_guids,
-      [],
-      'plex_label_tracking.content_guids',
-    ),
-    content_type: row.content_type,
-    user_id: row.user_id,
-    plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
-      row.labels_applied,
-      [],
-      'plex_label_tracking.labels_applied',
-    ),
-    synced_at: row.synced_at,
-  }))
-}
-
-/**
- * Retrieves all Plex label tracking records for content matching any of the provided GUIDs and content type.
- *
- * Returns an array of tracking records across all users where the content GUIDs overlap with the specified list and match the given content type. If the GUID array is empty, returns an empty array.
- *
- * @param contentGuids - List of content GUIDs to match against tracked records
- * @param contentType - The type of content ('movie' or 'show')
- * @returns Array of Plex label tracking records for the specified content
- */
+/** Spans all users, matching records that share any of the GUIDs. */
 export async function getTrackedLabelsForContent(
   this: DatabaseService,
   contentGuids: string[],
   contentType: 'movie' | 'show',
 ): Promise<PlexLabelTracking[]> {
-  // Handle empty arrays
   if (contentGuids.length === 0) {
     this.log.warn(
       'getTrackedLabelsForContent: Empty content GUIDs array provided',
@@ -762,7 +629,6 @@ export async function getTrackedLabelsForContent(
     'getTrackedLabelsForContent: Searching for records',
   )
 
-  // Use SQL to find records with overlapping GUIDs
   const rows = this.isPostgres
     ? await this.knex('plex_label_tracking')
         .where('content_type', contentType)
@@ -787,40 +653,32 @@ export async function getTrackedLabelsForContent(
 
   return rows.map((row) => ({
     id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
+    content_guids: parseJsonOr<string[]>(
       row.content_guids,
       [],
+      this.log,
       'plex_label_tracking.content_guids',
     ),
     content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
+    labels_applied: parseJsonOr<string[]>(
       row.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     ),
     synced_at: row.synced_at,
   }))
 }
 
-/**
- * Delete Plex label tracking records for a specific user that overlap any of the provided content GUIDs and match the given content type.
- *
- * If `contentGuids` is empty the function returns 0 immediately. GUID matching is performed case-insensitively against the stored JSON array of content GUIDs. The `userId` parameter may be `null` to target records whose `user_id` is null.
- *
- * @param contentGuids - Array of content GUIDs to match (case-insensitive)
- * @param contentType - The content type ('movie' or 'show') to filter records
- * @param userId - The user ID (or `null`) whose tracking records should be deleted
- * @returns The number of tracking records deleted
- */
+/** Matches GUIDs case-insensitively, and a null userId targets rows with no user. */
 export async function cleanupUserContentTracking(
   this: DatabaseService,
   contentGuids: string[],
   contentType: 'movie' | 'show',
   userId: number | null,
 ): Promise<number> {
-  // Handle empty arrays
   if (contentGuids.length === 0) {
     this.log.warn(
       'cleanupUserContentTracking: Empty content GUIDs array provided',
@@ -839,7 +697,6 @@ export async function cleanupUserContentTracking(
     'cleanupUserContentTracking: Deleting records',
   )
 
-  // Use SQL to delete records with overlapping GUIDs directly
   const deleted = this.isPostgres
     ? await this.knex('plex_label_tracking')
         .where('user_id', userId)
@@ -871,36 +728,6 @@ export async function cleanupUserContentTracking(
   return deleted
 }
 
-/**
- * Removes all Plex label tracking records associated with a given user.
- *
- * @param userId - The ID of the user whose label tracking records should be deleted
- * @returns The count of records removed from the database
- */
-export async function cleanupUserTracking(
-  this: DatabaseService,
-  userId: number,
-): Promise<number> {
-  const deleted = await this.knex('plex_label_tracking')
-    .where('user_id', userId)
-    .delete()
-
-  if (deleted > 0) {
-    this.log.debug(
-      `Cleaned up ${deleted} Plex label tracking records for user ${userId}`,
-    )
-  }
-
-  return deleted
-}
-
-/**
- * Retrieves all Plex label tracking records from the database, ordered by user ID and synchronization time.
- *
- * Parses JSON fields into arrays for each record.
- *
- * @returns An array of all Plex label tracking records
- */
 export async function getAllTrackedLabels(
   this: DatabaseService,
 ): Promise<PlexLabelTracking[]> {
@@ -910,29 +737,25 @@ export async function getAllTrackedLabels(
 
   return rows.map((row) => ({
     id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
+    content_guids: parseJsonOr<string[]>(
       row.content_guids,
       [],
+      this.log,
       'plex_label_tracking.content_guids',
     ),
     content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
+    labels_applied: parseJsonOr<string[]>(
       row.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     ),
     synced_at: row.synced_at,
   }))
 }
 
-/**
- * Retrieves all Plex label tracking records associated with the specified rating key.
- *
- * @param plexRatingKey - The Plex rating key to filter tracking records by
- * @returns An array of parsed Plex label tracking records for the given rating key
- */
 export async function getTrackedLabelsForRatingKey(
   this: DatabaseService,
   plexRatingKey: string,
@@ -944,31 +767,25 @@ export async function getTrackedLabelsForRatingKey(
 
   return rows.map((row) => ({
     id: row.id,
-    content_guids: this.safeJsonParse<string[]>(
+    content_guids: parseJsonOr<string[]>(
       row.content_guids,
       [],
+      this.log,
       'plex_label_tracking.content_guids',
     ),
     content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: this.safeJsonParse<string[]>(
+    labels_applied: parseJsonOr<string[]>(
       row.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     ),
     synced_at: row.synced_at,
   }))
 }
 
-/**
- * Deletes all label tracking records associated with a specific Plex rating key.
- *
- * Typically used to remove tracking data when content is deleted or during maintenance operations.
- *
- * @param plexRatingKey - The Plex rating key whose tracking records should be deleted
- * @returns The number of tracking records removed
- */
 export async function cleanupRatingKeyTracking(
   this: DatabaseService,
   plexRatingKey: string,
@@ -1003,9 +820,10 @@ export async function updateTrackingRatingKey(
     const identity = (row: PlexLabelTrackingRow) =>
       `${row.content_guids}|${row.user_id ?? -1}|${row.content_type}`
     const parseLabels = (row: PlexLabelTrackingRow) =>
-      this.safeJsonParse<string[]>(
+      parseJsonOr<string[]>(
         row.labels_applied,
         [],
+        this.log,
         'plex_label_tracking.labels_applied',
       )
     const counterparts = new Map(
@@ -1044,16 +862,7 @@ export async function updateTrackingRatingKey(
   })
 }
 
-/**
- * Determine whether a specific label is currently tracked for the given user, content GUIDs, content type, and Plex rating key.
- *
- * Returns true if a tracking record exists that matches the provided user (nullable), content type, plexRatingKey, contains any of the provided content GUIDs, and includes the specified label (case-insensitive). If `contentGuids` is empty the function returns false immediately.
- *
- * @param contentGuids - Array of content GUIDs to check (comparison is case-insensitive)
- * @param userId - User ID to scope the check; may be null to represent no user
- * @param labelApplied - Label to look for (comparison is case-insensitive)
- * @returns True when a matching tracking record containing the label exists; otherwise false
- */
+/** Matches GUIDs and the label case-insensitively, and a null userId targets rows with no user. */
 export async function isLabelTracked(
   this: DatabaseService,
   contentGuids: string[],
@@ -1062,7 +871,6 @@ export async function isLabelTracked(
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {
-  // Handle empty arrays
   if (contentGuids.length === 0) {
     this.log.warn('isLabelTracked: Empty content GUIDs array provided')
     return false
@@ -1081,7 +889,6 @@ export async function isLabelTracked(
     'isLabelTracked: Checking label tracking',
   )
 
-  // Use SQL to find record with overlapping GUIDs and check if it contains the label
   const record = this.isPostgres
     ? await this.knex('plex_label_tracking')
         .where('user_id', userId)
@@ -1117,13 +924,6 @@ export async function isLabelTracked(
   return !!record
 }
 
-/**
- * Removes all Plex label tracking records from the database.
- *
- * This operation erases all label tracking information for every user and all content.
- *
- * @returns The total number of records deleted
- */
 export async function clearAllLabelTracking(
   this: DatabaseService,
 ): Promise<number> {
@@ -1138,14 +938,7 @@ export async function clearAllLabelTracking(
   return deleted
 }
 
-/**
- * Removes specified labels from tracking records for multiple Plex rating keys in bulk.
- *
- * For each operation, removes one or more labels from the tracked labels of the given rating key. If all labels are removed from a record, the record is deleted. Supports efficient batch processing for both PostgreSQL and SQLite databases.
- *
- * @param operations - List of operations, each specifying a Plex rating key and the labels to remove from its tracking record.
- * @returns An object containing the number of successfully processed operations, a list of rating keys for which removal failed, and the total number of records updated or deleted.
- */
+/** Deletes a record once its last label is removed. */
 export async function removeTrackedLabels(
   this: DatabaseService,
   operations: Array<{ plexRatingKey: string; labelsToRemove: string[] }>,
@@ -1169,15 +962,13 @@ export async function removeTrackedLabels(
 
   try {
     if (this.isPostgres) {
-      // PostgreSQL: Process operations individually with efficient queries
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
           const chunkResults = []
           for (const { plexRatingKey, labelsToRemove } of chunk) {
             try {
-              // Convert labels to remove to JSON for bulk processing
               const labelsJson = JSON.stringify(
                 labelsToRemove.map((l) => l.toLowerCase()),
               )
@@ -1280,8 +1071,7 @@ export async function removeTrackedLabels(
         })
       }
     } else {
-      // SQLite: Use chunked operations with serial processing for transaction consistency
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1299,9 +1089,10 @@ export async function removeTrackedLabels(
               const toDelete: number[] = []
 
               for (const record of records) {
-                const labels = this.safeJsonParse<string[]>(
+                const labels = parseJsonOr<string[]>(
                   record.labels_applied,
                   [],
+                  this.log,
                   'plex_label_tracking.labels_applied',
                 )
                 const updatedLabels = labels.filter(
@@ -1319,7 +1110,6 @@ export async function removeTrackedLabels(
 
               let totalUpdated = 0
 
-              // Process updates serially
               if (toUpdate.length > 0) {
                 for (const item of toUpdate) {
                   await trx('plex_label_tracking')
@@ -1385,56 +1175,12 @@ export async function removeTrackedLabels(
   return { processedCount, failedIds, totalUpdatedCount }
 }
 
-/**
- * Removes a specific label from all tracking records associated with a given Plex rating key.
- *
- * Invokes the bulk label removal operation for the specified label and rating key, and returns the number of records that were updated or deleted as a result.
- *
- * @param plexRatingKey - The Plex rating key from which to remove the label
- * @param labelApplied - The label to remove from tracking records
- * @returns The number of tracking records updated or deleted
- */
-export async function removeTrackedLabel(
-  this: DatabaseService,
-  plexRatingKey: string,
-  labelApplied: string,
-): Promise<number> {
-  const result = await this.removeTrackedLabels([
-    { plexRatingKey, labelsToRemove: [labelApplied] },
-  ])
-
-  if (result.failedIds.length > 0) {
-    this.log.warn(
-      `Failed to remove label "${labelApplied}" for rating key ${plexRatingKey}`,
-    )
-    return 0
-  }
-
-  // Use the count information from the bulk operation result
-  if (result.totalUpdatedCount > 0) {
-    this.log.debug(
-      `Updated ${result.totalUpdatedCount} tracking record(s) to remove label "${labelApplied}" on rating key ${plexRatingKey}`,
-    )
-  }
-
-  return result.totalUpdatedCount
-}
-
-/**
- * Finds Plex label tracking records that contain labels with a specified prefix which are not present in the current set of valid labels.
- *
- * For each record, identifies labels starting with the given prefix that are considered "orphaned" (i.e., not in the provided set of valid labels), and groups them by Plex rating key.
- *
- * @param validLabels - Set of valid labels (lowercase) to compare against
- * @param labelPrefix - Prefix identifying app-managed labels (e.g., "pulsarr")
- * @returns An array of objects, each containing a Plex rating key and its orphaned labels
- */
+/** validLabels must be lowercase, and only labels under `labelPrefix:` can be orphaned. */
 export async function getOrphanedLabelTracking(
   this: DatabaseService,
   validLabels: Set<string>,
   labelPrefix: string,
 ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>> {
-  // Pre-filter records to only those that have labels with our prefix
   const prefix = `${labelPrefix.toLowerCase()}:%`
 
   const filteredRecords = this.isPostgres
@@ -1457,13 +1203,13 @@ export async function getOrphanedLabelTracking(
     return []
   }
 
-  // Group by rating key and filter for orphaned labels
   const orphanedByRatingKey = new Map<string, string[]>()
 
   for (const record of filteredRecords) {
-    const labels = this.safeJsonParse<string[]>(
+    const labels = parseJsonOr<string[]>(
       record.labels_applied,
       [],
+      this.log,
       'plex_label_tracking.labels_applied',
     )
     const orphanedLabels: string[] = []
@@ -1471,7 +1217,6 @@ export async function getOrphanedLabelTracking(
     for (const label of labels) {
       const labelLower = label.toLowerCase()
 
-      // Check if it's an app-managed label that's now orphaned
       if (
         labelLower.startsWith(`${labelPrefix.toLowerCase()}:`) &&
         !validLabels.has(labelLower)
@@ -1485,7 +1230,6 @@ export async function getOrphanedLabelTracking(
     }
   }
 
-  // Convert map to array format
   return Array.from(orphanedByRatingKey.entries()).map(
     ([plex_rating_key, orphaned_labels]) => ({
       plex_rating_key,
@@ -1494,14 +1238,7 @@ export async function getOrphanedLabelTracking(
   )
 }
 
-/**
- * Removes orphaned labels from multiple Plex label tracking records in bulk.
- *
- * For each operation, removes the specified orphaned labels from all tracking records associated with the given Plex rating key. If a record has no labels remaining after removal, it is deleted. Supports both PostgreSQL and SQLite backends with optimized, chunked processing.
- *
- * @param operations - Array of operations, each containing a Plex rating key and a list of orphaned labels to remove
- * @returns An object containing the number of successfully processed operations, an array of rating keys for which removal failed, and the total number of records updated or deleted
- */
+/** Deletes a record once its last label is removed. */
 export async function removeOrphanedTrackingBulk(
   this: DatabaseService,
   operations: Array<{ plexRatingKey: string; orphanedLabels: string[] }>,
@@ -1525,8 +1262,7 @@ export async function removeOrphanedTrackingBulk(
 
   try {
     if (this.isPostgres) {
-      // PostgreSQL: Process operations in chunks with efficient queries
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1644,8 +1380,7 @@ export async function removeOrphanedTrackingBulk(
         })
       }
     } else {
-      // SQLite: Use chunked operations with serial processing for transaction consistency
-      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
+      const chunks = chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1672,9 +1407,10 @@ export async function removeOrphanedTrackingBulk(
               const toDelete: number[] = []
 
               for (const record of records) {
-                const labels = this.safeJsonParse<string[]>(
+                const labels = parseJsonOr<string[]>(
                   record.labels_applied,
                   [],
+                  this.log,
                   'plex_label_tracking.labels_applied',
                 )
                 const updatedLabels = labels.filter(
@@ -1692,7 +1428,6 @@ export async function removeOrphanedTrackingBulk(
 
               let totalUpdated = 0
 
-              // Process updates serially
               if (toUpdate.length > 0) {
                 for (const item of toUpdate) {
                   await trx('plex_label_tracking')
@@ -1761,45 +1496,4 @@ export async function removeOrphanedTrackingBulk(
   }
 
   return { processedCount, failedIds, totalUpdatedCount }
-}
-
-/**
- * Removes specified orphaned labels from a tracking record for a given Plex rating key.
- *
- * Returns the number of tracking records updated or deleted. If no orphaned labels are provided or the operation fails, returns 0.
- *
- * @param plexRatingKey - The Plex rating key whose tracking record will be updated
- * @param orphanedLabels - The orphaned label names to remove from the tracking record
- * @returns The number of tracking records updated or deleted
- */
-export async function removeOrphanedTracking(
-  this: DatabaseService,
-  plexRatingKey: string,
-  orphanedLabels: string[],
-): Promise<number> {
-  if (orphanedLabels.length === 0) {
-    return 0
-  }
-
-  const result = await this.removeOrphanedTrackingBulk([
-    { plexRatingKey, orphanedLabels },
-  ])
-
-  if (result.failedIds.length > 0) {
-    this.log.warn(
-      { orphanedLabels },
-      `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
-    )
-    return 0
-  }
-
-  // Use the count information from the bulk operation result
-  if (result.totalUpdatedCount > 0) {
-    this.log.debug(
-      { orphanedLabels },
-      `Updated ${result.totalUpdatedCount} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
-    )
-  }
-
-  return result.totalUpdatedCount
 }

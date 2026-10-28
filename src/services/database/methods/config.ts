@@ -18,14 +18,9 @@ import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.sche
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
 
-/**
- * Retrieves the application configuration from the database, normalizing all fields and applying defaults as needed.
- *
- * Fetches the configuration record with `id: 1` from the `configs` table. All JSON fields are safely parsed with fallback defaults, and optional or boolean fields are normalized to ensure a complete and consistent configuration object. The returned configuration includes all expected properties, such as nested objects like `plexLabelSync`, with defaults applied for any missing or malformed fields.
- *
- * @returns The fully normalized application configuration object if found, otherwise `undefined`.
- */
+/** Parses the JSON columns and fills defaults for missing or malformed fields. */
 export async function getConfig(
   this: DatabaseService,
 ): Promise<ConfigFull | undefined> {
@@ -34,16 +29,17 @@ export async function getConfig(
 
   return {
     ...config,
-    // Parse JSON fields with error handling
-    plexTokens: this.safeJsonParse<string[]>(
+    plexTokens: parseJsonOr<string[]>(
       config.plexTokens,
       [],
+      this.log,
       'config.plexTokens',
     ),
     plexSessionMonitoring: config.plexSessionMonitoring
-      ? this.safeJsonParse(
+      ? parseJsonOr(
           config.plexSessionMonitoring,
           PLEX_SESSION_MONITORING_DEFAULTS,
+          this.log,
           'config.plexSessionMonitoring',
         )
       : undefined,
@@ -56,23 +52,24 @@ export async function getConfig(
       appriseUrlsMovies: '',
       appriseUrlsShows: '',
       ...(config.publicContentNotifications
-        ? this.safeJsonParse(
+        ? parseJsonOr(
             config.publicContentNotifications,
             {},
+            this.log,
             'config.publicContentNotifications',
           )
         : {}),
     },
     quotaSettings: (() => {
       const parsed = config.quotaSettings
-        ? this.safeJsonParse<{
+        ? parseJsonOr<{
             cleanup?: { enabled?: boolean; retentionDays?: number }
             weeklyRolling?: { resetDays?: number }
             monthly?: {
               resetDay?: number
               handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
             }
-          }>(config.quotaSettings, {}, 'config.quotaSettings')
+          }>(config.quotaSettings, {}, this.log, 'config.quotaSettings')
         : {}
       return {
         cleanup: {
@@ -98,9 +95,10 @@ export async function getConfig(
       autoApproveOnQuotaAvailable: false,
       cleanupExpiredDays: 30,
       ...(config.approvalExpiration
-        ? this.safeJsonParse(
+        ? parseJsonOr(
             config.approvalExpiration,
             {},
+            this.log,
             'config.approvalExpiration',
           )
         : {}),
@@ -133,38 +131,28 @@ export async function getConfig(
     ),
     newUserDefaultShowWatchlistCap:
       config.newUserDefaultShowWatchlistCap ?? null,
-    // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
     friendsRss: config.friendsRss || undefined,
-    // Handle optional Discord fields
     discordWebhookUrl: config.discordWebhookUrl || undefined,
     discordBotToken: config.discordBotToken || undefined,
     discordClientId: config.discordClientId || undefined,
-    // Handle app configuration
     baseUrl: config.baseUrl || undefined,
-    // Handle timing defaults
     queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
-    // Handle notification timing defaults
     queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
     newEpisodeThreshold:
       config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
-    // Out-of-app update notifications
     notifyOnUpdate: config.notifyOnUpdate || NOTIFY_DEFAULTS.notifyOnUpdate,
     notifyOnAvailability: Boolean(
       config.notifyOnAvailability ?? NOTIFY_DEFAULTS.notifyOnAvailability,
     ),
-    // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
     pendingWebhookCleanupInterval: config.pendingWebhookCleanupInterval ?? 60,
-    // Handle Apprise configuration
     enableApprise: Boolean(config.enableApprise),
     appriseUrl: config.appriseUrl || '',
     systemAppriseUrl: config.systemAppriseUrl || undefined,
     appriseEmailSender: config.appriseEmailSender || undefined,
-    // Handle Plex Mobile configuration
     plexMobileEnabled: Boolean(config.plexMobileEnabled),
-    // Convert boolean fields
     cookieSecured: Boolean(config.cookieSecured),
     skipFriendSync: Boolean(config.skipFriendSync),
     deleteMovie: Boolean(config.deleteMovie),
@@ -190,7 +178,6 @@ export async function getConfig(
     ),
     watchlistAddNotify:
       config.watchlistAddNotify || NOTIFY_DEFAULTS.watchlistAddNotify,
-    // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
       config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
@@ -198,9 +185,10 @@ export async function getConfig(
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
     plexLabelSync: (() => {
       const parsed = config.plexLabelSync
-        ? this.safeJsonParse<Partial<PlexLabelSyncConfig>>(
+        ? parseJsonOr<Partial<PlexLabelSyncConfig>>(
             config.plexLabelSync,
             {},
+            this.log,
             'config.plexLabelSync',
           )
         : {}
@@ -213,32 +201,28 @@ export async function getConfig(
         },
       }
     })(),
-    // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
     cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
-    // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
-    // persistHistoricalTags: Boolean(config.persistHistoricalTags),
+    // TODO: drop the dormant persistHistoricalTags column, replaced by removedTagMode
     tagPrefix: config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
     tagNamingSource: config.tagNamingSource || 'username',
     removedTagMode: config.removedTagMode || 'remove',
     removedTagPrefix:
       config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
     deletionMode: config.deletionMode || 'watchlist',
-    // Tag Migration Configuration
     tagMigration: config.tagMigration
-      ? this.safeJsonParse(
+      ? parseJsonOr(
           config.tagMigration,
           {
             radarr: {},
             sonarr: {},
           },
+          this.log,
           'config.tagMigration',
         )
       : undefined,
-    // TMDB configuration
     tmdbRegion: config.tmdbRegion || 'US',
-    // Maintainerr configuration
     maintainerrEnabled: Boolean(config.maintainerrEnabled),
     maintainerrUrl: config.maintainerrUrl || '',
     maintainerrExclusionMode:
@@ -247,14 +231,7 @@ export async function getConfig(
   }
 }
 
-/**
- * Creates a new configuration record in the database, enforcing that only one configuration entry exists.
- *
- * Throws an error if a configuration already exists. Serializes all JSON fields, including `plexLabelSync`, and applies default values for optional properties such as TMDB region, new user defaults, and notification settings. Returns the ID of the newly created configuration.
- *
- * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
- * @returns The ID of the newly created configuration
- */
+/** Throws when a config row already exists, since only row id 1 may exist. */
 export async function createConfig(
   this: DatabaseService,
   config: Omit<Config, 'id' | 'created_at' | 'updated_at'>,
@@ -266,9 +243,7 @@ export async function createConfig(
 
   const result = await this.knex('configs')
     .insert({
-      // Enforce single config row with id: 1
       id: 1,
-      // Basic fields
       port: config.port,
       dbPath: config.dbPath,
       baseUrl: config.baseUrl,
@@ -280,36 +255,27 @@ export async function createConfig(
       logLevel: config.logLevel,
       closeGraceDelay: config.closeGraceDelay,
       rateLimitMax: config.rateLimitMax,
-      // Timing fields
       queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
-      // Notification timing fields
       queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
       newEpisodeThreshold:
         config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
-      // Maintainerr fields
       maintainerrEnabled: config.maintainerrEnabled ?? false,
       maintainerrUrl: config.maintainerrUrl ?? '',
       maintainerrExclusionMode:
         config.maintainerrExclusionMode ?? MAINTAINERR_EXCLUSION_MODE_DEFAULT,
-      // Out-of-app update notifications
       notifyOnUpdate: config.notifyOnUpdate ?? NOTIFY_DEFAULTS.notifyOnUpdate,
       notifyOnAvailability:
         config.notifyOnAvailability ?? NOTIFY_DEFAULTS.notifyOnAvailability,
-      // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
       pendingWebhookCleanupInterval: config.pendingWebhookCleanupInterval ?? 60,
-      // Apprise fields
       enableApprise: config.enableApprise || false,
       appriseUrl: config.appriseUrl || '',
       systemAppriseUrl: config.systemAppriseUrl || undefined,
       appriseEmailSender: config.appriseEmailSender || undefined,
-      // Plex Mobile fields
       plexMobileEnabled: config.plexMobileEnabled || false,
-      // Plex fields
       plexTokens: JSON.stringify(config.plexTokens || []),
       skipFriendSync: config.skipFriendSync,
-      // Delete fields
       deleteMovie: config.deleteMovie,
       deleteEndedShow: config.deleteEndedShow,
       deleteContinuingShow: config.deleteContinuingShow,
@@ -330,21 +296,17 @@ export async function createConfig(
         config.watchlistAddNotify || NOTIFY_DEFAULTS.watchlistAddNotify,
       maxDeletionPrevention:
         config.maxDeletionPrevention ?? MAX_DELETION_PREVENTION.default,
-      // Plex playlist protection
       enablePlexPlaylistProtection:
         config.enablePlexPlaylistProtection || false,
       plexProtectionPlaylistName:
         config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
       plexServerUrl: config.plexServerUrl,
       skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
-      // RSS fields
       selfRss: config.selfRss,
       friendsRss: config.friendsRss,
-      // Discord fields
       discordWebhookUrl: config.discordWebhookUrl,
       discordBotToken: config.discordBotToken,
       discordClientId: config.discordClientId,
-      // User Tagging fields
       tagUsersInSonarr: config.tagUsersInSonarr ?? false,
       tagUsersInRadarr: config.tagUsersInRadarr ?? false,
       cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
@@ -354,7 +316,6 @@ export async function createConfig(
       removedTagPrefix:
         config.removedTagPrefix || TAG_PREFIX_DEFAULTS.removedTagPrefix,
       deletionMode: config.deletionMode || 'watchlist',
-      // Tag Migration Configuration
       tagMigration: config.tagMigration
         ? JSON.stringify(config.tagMigration)
         : null,
@@ -371,23 +332,18 @@ export async function createConfig(
             tagSync: config.plexLabelSync.tagSync,
           })
         : null,
-      // Plex Session Monitoring
       plexSessionMonitoring: config.plexSessionMonitoring
         ? JSON.stringify(config.plexSessionMonitoring)
         : null,
-      // Public Content Notifications
       publicContentNotifications: config.publicContentNotifications
         ? JSON.stringify(config.publicContentNotifications)
         : null,
-      // Quota Settings
       quotaSettings: config.quotaSettings
         ? JSON.stringify(config.quotaSettings)
         : null,
-      // Approval Expiration
       approvalExpiration: config.approvalExpiration
         ? JSON.stringify(config.approvalExpiration)
         : null,
-      // New User Defaults
       newUserDefaultCanSync: config.newUserDefaultCanSync ?? true,
       newUserDefaultRequiresApproval:
         config.newUserDefaultRequiresApproval ?? false,
@@ -411,11 +367,8 @@ export async function createConfig(
         config.newUserDefaultShowBypassApproval ?? false,
       newUserDefaultShowWatchlistCap:
         config.newUserDefaultShowWatchlistCap ?? null,
-      // TMDB configuration
       tmdbRegion: config.tmdbRegion || 'US',
-      // Ready state
       _isReady: config._isReady || false,
-      // Timestamps
       created_at: this.timestamp,
       updated_at: this.timestamp,
     })
@@ -426,14 +379,12 @@ export async function createConfig(
   return id
 }
 
-// Define allowed mutable columns to prevent accidental database corruption
+// Secrets and lastNotifiedVersion are left out on purpose so the public config API can never write them
 const ALLOWED_COLUMNS = new Set([
-  // Core system configuration
   'baseUrl',
   'port',
   '_isReady',
 
-  // Database configuration
   'dbType',
   'dbPath',
   'dbHost',
@@ -443,56 +394,41 @@ const ALLOWED_COLUMNS = new Set([
   'dbPassword',
   'dbConnectionString',
 
-  // Security & authentication
-  // NOTE: cookieSecret, webhookSecret, maintainerrWebhookSecret, and
-  // cookieName are intentionally omitted
   'cookieSecured',
   'authenticationMethod',
   'allowIframes',
 
-  // Maintainerr integration
   'maintainerrEnabled',
   'maintainerrUrl',
   'maintainerrExclusionMode',
 
-  // Logging & performance
   'logLevel',
   'closeGraceDelay',
   'rateLimitMax',
   'queueProcessDelaySeconds',
 
-  // Discord integration
   'discordWebhookUrl',
   'discordBotToken',
   'discordClientId',
 
-  // Apprise notifications
   'enableApprise',
   'appriseUrl',
   'systemAppriseUrl',
   'appriseEmailSender',
 
-  // Public content notifications (JSON column)
   'publicContentNotifications',
 
-  // Plex Mobile integration
   'plexMobileEnabled',
 
-  // Notification timing
   'queueWaitTime',
   'newEpisodeThreshold',
-  // Out-of-app update notifications
-  // NOTE: lastNotifiedVersion is intentionally omitted - it is internal
-  // bookkeeping written exclusively via setLastNotifiedVersion().
   'notifyOnUpdate',
   'notifyOnAvailability',
 
-  // Pending webhooks
   'pendingWebhookRetryInterval',
   'pendingWebhookMaxAge',
   'pendingWebhookCleanupInterval',
 
-  // Sonarr configuration
   'sonarrBaseUrl',
   'sonarrApiKey',
   'sonarrQualityProfile',
@@ -503,7 +439,6 @@ const ALLOWED_COLUMNS = new Set([
   'sonarrTags',
   'sonarrCreateSeasonFolders',
 
-  // Radarr configuration
   'radarrBaseUrl',
   'radarrApiKey',
   'radarrQualityProfile',
@@ -511,15 +446,13 @@ const ALLOWED_COLUMNS = new Set([
   'radarrBypassIgnored',
   'radarrTags',
 
-  // Plex configuration
-  'plexTokens', // JSON column
+  'plexTokens',
   'skipFriendSync',
   'plexServerUrl',
   'skipIfExistsOnPlex',
   'selfRss',
   'friendsRss',
 
-  // Content deletion settings
   'deletionMode',
   'deleteMovie',
   'deleteEndedShow',
@@ -539,7 +472,6 @@ const ALLOWED_COLUMNS = new Set([
   'enablePlexPlaylistProtection',
   'plexProtectionPlaylistName',
 
-  // Tagging configuration
   'tagUsersInSonarr',
   'tagUsersInRadarr',
   'cleanupOrphanedTags',
@@ -549,19 +481,14 @@ const ALLOWED_COLUMNS = new Set([
   'removedTagPrefix',
   'tagMigration',
 
-  // Plex label sync configuration (JSON column)
   'plexLabelSync',
 
-  // Plex session monitoring (JSON column)
   'plexSessionMonitoring',
 
-  // Quota settings (JSON column)
   'quotaSettings',
 
-  // Approval expiration (JSON column)
   'approvalExpiration',
 
-  // New user defaults
   'newUserDefaultCanSync',
   'newUserDefaultRequiresApproval',
   'newUserDefaultMovieQuotaEnabled',
@@ -575,11 +502,9 @@ const ALLOWED_COLUMNS = new Set([
   'newUserDefaultShowBypassApproval',
   'newUserDefaultShowWatchlistCap',
 
-  // TMDB configuration
   'tmdbRegion',
 ])
 
-// JSON columns that need special serialization handling
 const JSON_COLUMNS = new Set([
   'publicContentNotifications',
   'plexTokens',
@@ -590,14 +515,7 @@ const JSON_COLUMNS = new Set([
   'tagMigration',
 ])
 
-/**
- * Updates the application configuration with the provided partial data.
- *
- * Only fields included in the allowed columns set are updated. JSON fields are automatically serialized. Returns `true` if the configuration was successfully updated, or `false` if no changes were made or an error occurred.
- *
- * @param config - Partial configuration data to update
- * @returns `true` if the configuration was updated, `false` otherwise
- */
+/** Silently drops keys outside ALLOWED_COLUMNS, and returns false only when the row is missing or the query fails. */
 export async function updateConfig(
   this: DatabaseService,
   config: Partial<Config>,
@@ -627,14 +545,7 @@ export async function updateConfig(
   }
 }
 
-/**
- * Reads the last Pulsarr release version that produced an out-of-app update
- * notification, used by the update-check plugin to dedupe notifications.
- *
- * Returns null when no notification has ever been sent (or when the configs
- * row does not yet exist). This column is intentionally not exposed via
- * the public config API.
- */
+/** Returns null when no update notification was ever sent, the row is missing, or the read fails. */
 export async function getLastNotifiedVersion(
   this: DatabaseService,
 ): Promise<string | null> {
@@ -649,11 +560,7 @@ export async function getLastNotifiedVersion(
   }
 }
 
-/**
- * Persists the version that produced the last out-of-app update notification.
- * Bypasses ALLOWED_COLUMNS so this internal field cannot be set through the
- * public config update API.
- */
+/** Bypasses ALLOWED_COLUMNS on purpose so the public config API cannot set this field. */
 export async function setLastNotifiedVersion(
   this: DatabaseService,
   version: string,
@@ -670,10 +577,7 @@ export async function setLastNotifiedVersion(
   }
 }
 
-/**
- * Reads the persisted secrets, null when the row predates the columns.
- * Errors propagate so boot aborts instead of overwriting a stored secret.
- */
+/** Throws so boot aborts instead of overwriting a stored secret, and each field is null when unset. */
 export async function getSecrets(
   this: DatabaseService,
 ): Promise<Record<SecretColumn, string | null>> {
@@ -688,10 +592,7 @@ export async function getSecrets(
   }
 }
 
-/**
- * Persists a secret. Bypasses ALLOWED_COLUMNS so these internal fields
- * cannot be set through the public config update API.
- */
+/** Bypasses ALLOWED_COLUMNS on purpose and throws when the config row is missing. */
 export async function setSecret(
   this: DatabaseService,
   key: SecretColumn,
