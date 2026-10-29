@@ -13,6 +13,19 @@ const PUBLIC_ROUTES = [
   'POST /v1/users/login',
 ]
 
+const FOREIGN_ORIGIN = 'https://other.example.com'
+const LAN_HOST = '192.168.1.10:3003'
+const LAN_CLIENT = '192.168.1.20'
+const TRUSTED_PROXY = '10.0.0.2'
+const ADMIN_LOGIN = {
+  login: 'testadmin@example.com',
+  password: 'auth-hook-password',
+}
+const AUTH_MODES = ['required', 'requiredExceptLocal', 'disabled'] as const
+
+const corsHeaders = (headers: Record<string, unknown>) =>
+  Object.keys(headers).filter((name) => name.startsWith('access-control-'))
+
 const routeKey = (method: string, url: string) => `${method} ${url}`
 
 // The limiter keys on req.ip, so every request gets its own address to stay under the global max
@@ -34,6 +47,27 @@ describe('auth hook', () => {
   afterAll(async () => {
     await app.close()
   })
+
+  const login = async (remoteAddress: string) => {
+    await getTestDatabase()('admin_users')
+      .where({ email: ADMIN_LOGIN.login })
+      .update({ password: await app.hash(ADMIN_LOGIN.password) })
+    return app.inject({
+      method: 'POST',
+      url: '/v1/users/login',
+      remoteAddress,
+      payload: ADMIN_LOGIN,
+    })
+  }
+
+  const signIn = async (remoteAddress: string) => {
+    const res = await login(remoteAddress)
+    const cookie = res.cookies[0]
+    if (!cookie) {
+      throw new Error(`login failed: ${res.statusCode} ${res.body}`)
+    }
+    return `${cookie.name}=${cookie.value}`
+  }
 
   beforeEach(async () => {
     await resetDatabase()
@@ -140,5 +174,282 @@ describe('auth hook', () => {
     })
 
     expect(res.statusCode).toBe(404)
+  })
+
+  describe('request origin', () => {
+    it.each(AUTH_MODES)(
+      'rejects a POST from an unlisted origin under %s',
+      async (mode) => {
+        app.config.authenticationMethod = mode
+
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/api-keys/',
+          remoteAddress: '127.0.0.1',
+          headers: { host: LAN_HOST, origin: FOREIGN_ORIGIN },
+          payload: { name: 'origin-check' },
+        })
+
+        expect(res.statusCode).toBe(403)
+        expect(res.headers['x-ratelimit-limit']).toBeDefined()
+      },
+    )
+
+    it('rejects a signed-in POST from an unlisted origin', async () => {
+      const cookie = await signIn('8.8.6.1')
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.1',
+        headers: { cookie, host: LAN_HOST, origin: FOREIGN_ORIGIN },
+        payload: { name: 'origin-check' },
+      })
+
+      expect(res.statusCode).toBe(403)
+    })
+
+    it('rejects a POST to a public route from an unlisted origin', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/users/login',
+        remoteAddress: '8.8.6.2',
+        headers: { host: LAN_HOST, origin: FOREIGN_ORIGIN },
+        payload: ADMIN_LOGIN,
+      })
+
+      expect(res.statusCode).toBe(403)
+    })
+
+    it.each([
+      ['a same-host origin', { origin: `http://${LAN_HOST}` }],
+      ['no origin', {}],
+      [
+        'sec-fetch-site same-origin with a different host',
+        {
+          origin: 'https://pulsarr.example.com',
+          'sec-fetch-site': 'same-origin',
+        },
+      ],
+    ])('lets a signed-in POST with %s through', async (_label, headers) => {
+      const cookie = await signIn('8.8.6.3')
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.3',
+        headers: { cookie, host: LAN_HOST, ...headers },
+        payload: { name: 'origin-check' },
+      })
+
+      expect(res.statusCode).toBe(201)
+    })
+
+    it('answers a GET from an unlisted origin without CORS headers', async () => {
+      app.config.authenticationMethod = 'requiredExceptLocal'
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/api-keys/',
+        remoteAddress: '127.0.0.1',
+        headers: { host: LAN_HOST, origin: FOREIGN_ORIGIN },
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(corsHeaders(res.headers)).toEqual([])
+    })
+
+    it('answers a preflight without CORS headers when no origins are listed', async () => {
+      const res = await app.inject({
+        method: 'OPTIONS',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.4',
+        headers: {
+          origin: FOREIGN_ORIGIN,
+          'access-control-request-method': 'POST',
+        },
+      })
+
+      expect(corsHeaders(res.headers)).toEqual([])
+    })
+  })
+
+  describe('local access modes', () => {
+    const cases = (['requiredExceptLocal', 'disabled'] as const).flatMap(
+      (mode) =>
+        ['127.0.0.1', LAN_CLIENT].flatMap((address) =>
+          [undefined, `http://${LAN_HOST}`].flatMap((origin) =>
+            (['GET', 'POST'] as const).map((method) => ({
+              mode,
+              address,
+              origin,
+              method,
+            })),
+          ),
+        ),
+    )
+
+    it.each(cases)(
+      '$mode lets $method from $address with origin $origin through',
+      async ({ mode, address, origin, method }) => {
+        app.config.authenticationMethod = mode
+
+        const res = await app.inject({
+          method,
+          url: '/v1/api-keys/',
+          remoteAddress: address,
+          headers: origin ? { host: LAN_HOST, origin } : { host: LAN_HOST },
+          ...(method === 'POST' ? { payload: { name: 'local-access' } } : {}),
+        })
+
+        expect(res.statusCode).toBe(method === 'POST' ? 201 : 200)
+      },
+    )
+
+    it('opens the progress stream for a LAN client', async () => {
+      app.config.authenticationMethod = 'requiredExceptLocal'
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/progress',
+        remoteAddress: LAN_CLIENT,
+        payloadAsStream: true,
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(res.headers['content-type']).toContain('text/event-stream')
+      res.stream().destroy()
+    })
+
+    it('keeps the local rule for a LAN client behind a trusted proxy', async () => {
+      app.config.authenticationMethod = 'requiredExceptLocal'
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/api-keys/',
+        remoteAddress: TRUSTED_PROXY,
+        headers: { 'x-forwarded-for': LAN_CLIENT },
+        payload: { name: 'proxied' },
+      })
+
+      expect(res.statusCode).toBe(201)
+    })
+
+    it('rejects a public client behind a trusted proxy', async () => {
+      app.config.authenticationMethod = 'requiredExceptLocal'
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/api-keys/',
+        remoteAddress: TRUSTED_PROXY,
+        headers: { 'x-forwarded-for': '8.8.6.5' },
+      })
+
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('rejects x-forwarded-for from an untrusted peer', async () => {
+      app.config.authenticationMethod = 'requiredExceptLocal'
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.6',
+        headers: { 'x-forwarded-for': LAN_CLIENT },
+      })
+
+      expect(res.statusCode).toBe(401)
+    })
+  })
+
+  describe('api keys', () => {
+    it('decides a foreign-origin request with a valid key by the key', async () => {
+      const { key } = await app.apiKeys.createApiKey({ name: 'foreign' })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.7',
+        headers: { 'x-api-key': key, origin: FOREIGN_ORIGIN },
+        payload: { name: 'created-by-key' },
+      })
+
+      expect(res.statusCode).toBe(201)
+    })
+
+    it('rejects a foreign-origin request with an invalid key', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.8',
+        headers: { 'x-api-key': 'not-a-key', origin: FOREIGN_ORIGIN },
+        payload: { name: 'created-by-key' },
+      })
+
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('rejects an invalid key on a public route', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/users/login',
+        remoteAddress: '8.8.6.10',
+        headers: { 'x-api-key': 'not-a-key', origin: FOREIGN_ORIGIN },
+        payload: ADMIN_LOGIN,
+      })
+
+      expect(res.statusCode).toBe(401)
+      expect(res.json()).toMatchObject({ message: 'Invalid API key' })
+    })
+
+    it('rejects an invalid key from a local address under requiredExceptLocal', async () => {
+      app.config.authenticationMethod = 'requiredExceptLocal'
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/api-keys/',
+        remoteAddress: '127.0.0.1',
+        headers: { 'x-api-key': 'not-a-key' },
+      })
+
+      expect(res.statusCode).toBe(401)
+      expect(res.json()).toMatchObject({ message: 'Invalid API key' })
+    })
+  })
+
+  describe('login session', () => {
+    const listKeys = (cookie: string) =>
+      app.inject({
+        method: 'GET',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.11',
+        headers: { cookie },
+      })
+
+    it('issues a new session id on login and ends the one it replaces', async () => {
+      const before = await signIn('8.8.6.11')
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/users/login',
+        remoteAddress: '8.8.6.11',
+        headers: { cookie: before },
+        payload: ADMIN_LOGIN,
+      })
+      const cookie = res.cookies.at(-1)
+      const after = cookie ? `${cookie.name}=${cookie.value}` : ''
+
+      expect(res.statusCode).toBe(200)
+      expect(after).not.toBe('')
+      expect(after).not.toBe(before)
+      expect((await listKeys(before)).statusCode).toBe(401)
+      expect((await listKeys(after)).statusCode).toBe(200)
+    })
+  })
+
+  it('sets the session cookie with SameSite=Lax', async () => {
+    const res = await login('8.8.6.9')
+
+    expect(res.statusCode).toBe(200)
+    expect(String(res.headers['set-cookie'])).toContain('SameSite=Lax')
   })
 })

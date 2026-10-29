@@ -38,6 +38,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('Invalid credentials.')
         }
 
+        await request.session.regenerate()
         request.session.user = {
           id: user.id,
           username: user.username,

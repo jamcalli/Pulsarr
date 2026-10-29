@@ -863,13 +863,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
          * Generate RSS feeds
          * @description Generate RSS feed URLs for Plex watchlists
          */
-        get: operations["generateRssFeeds"];
-        put?: never;
-        post?: never;
+        post: operations["generateRssFeeds"];
         delete?: never;
         options?: never;
         head?: never;
@@ -923,14 +923,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
-         * Get others watchlist tokens
+         * Sync other users' watchlists
          * @deprecated
          * @description Retrieve watchlist items from other Plex users. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/others-watchlist/start and its status route instead.
          */
-        get: operations["getOthersWatchlistTokens"];
-        put?: never;
-        post?: never;
+        post: operations["getOthersWatchlistTokens"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1044,13 +1044,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
          * Parse RSS watchlists
          * @description Parse and process RSS feed watchlist items
          */
-        get: operations["parseRssWatchlists"];
-        put?: never;
-        post?: never;
+        post: operations["parseRssWatchlists"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1064,14 +1064,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
-         * Get self watchlist items
+         * Sync your own watchlist
          * @deprecated
          * @description Retrieve the current user watchlist items from Plex. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/self-watchlist/start and its status route instead.
          */
-        get: operations["getSelfWatchlistItems"];
-        put?: never;
-        post?: never;
+        post: operations["getSelfWatchlistItems"];
         delete?: never;
         options?: never;
         head?: never;

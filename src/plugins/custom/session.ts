@@ -1,6 +1,7 @@
 import fastifyCookie from '@fastify/cookie'
 import fastifySession from '@fastify/session'
 import type { Auth } from '@schemas/auth/auth.js'
+import type { FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
 declare module 'fastify' {
@@ -10,7 +11,13 @@ declare module 'fastify' {
   interface FastifyRequest {
     user: Auth | null
   }
+  interface FastifyInstance {
+    verifySession: (request: FastifyRequest) => Promise<void>
+  }
 }
+
+export const UNAUTHENTICATED_MESSAGE =
+  'You must be authenticated to access this route.'
 
 /**
  * This plugins enables the use of session.
@@ -27,11 +34,18 @@ export default fp(
       cookie: {
         secure: fastify.config.cookieSecured,
         httpOnly: true,
+        sameSite: 'lax',
         maxAge: 604800000,
       },
     })
 
     fastify.decorateRequest('user', null)
+
+    fastify.decorate('verifySession', async (request: FastifyRequest) => {
+      if (!request.session.user) {
+        throw fastify.httpErrors.unauthorized(UNAUTHENTICATED_MESSAGE)
+      }
+    })
 
     // Must register after the session plugin so request.session exists when it runs
     fastify.addHook('onRequest', async (request) => {

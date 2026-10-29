@@ -4,7 +4,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
   fastify.route({
-    method: 'GET',
+    method: 'POST',
     url: '/generate-rss-feeds',
     schema: rssFeedsSchema,
     handler: async (request, reply) => {
