@@ -64,13 +64,6 @@ export class RadarrManagerService extends ArrManager<
     return [...movies].map((m) => ({ ...m, radarr_instance_id: instanceId }))
   }
 
-  protected itemExists(
-    service: RadarrService,
-    tmdbId: number,
-  ): Promise<ExistenceCheckResult> {
-    return service.movieExistsByTmdbId(tmdbId)
-  }
-
   protected isItemExcluded(
     service: RadarrService,
     tmdbId: number,

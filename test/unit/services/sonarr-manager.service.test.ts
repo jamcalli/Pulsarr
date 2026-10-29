@@ -61,7 +61,7 @@ describe('SonarrManagerService.seriesExistsByTvdbId', () => {
   })
 
   function lookupReturns(found: boolean, checked = true) {
-    vi.spyOn(service, 'seriesExistsByTvdbId').mockResolvedValue({
+    vi.spyOn(service, 'existsInLibrary').mockResolvedValue({
       found,
       checked,
       serviceName: 'Sonarr',

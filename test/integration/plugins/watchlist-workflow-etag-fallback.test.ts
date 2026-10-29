@@ -147,7 +147,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
             },
           }),
       ),
-      http.get('http://test-radarr:7878/api/v3/movie/lookup', () =>
+      http.get('http://test-radarr:7878/api/v3/movie', () =>
         HttpResponse.json([]),
       ),
     )
@@ -221,7 +221,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
             },
           }),
       ),
-      http.get('http://test-radarr:7878/api/v3/movie/lookup', () =>
+      http.get('http://test-radarr:7878/api/v3/movie', () =>
         HttpResponse.json([]),
       ),
     )

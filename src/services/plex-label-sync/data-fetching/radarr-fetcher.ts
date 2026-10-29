@@ -123,44 +123,33 @@ export async function fetchRadarrTagsForItem(
         continue
       }
 
-      // Use the targeted lookup to find the movie
-      const movies = await radarrService.client.get<
-        Array<{ id: number; title: string; tags?: number[] }>
-      >(`movie/lookup?term=tmdb:${tmdbId}`)
+      const movie = await radarrService.findInLibrary(tmdbId)
 
-      if (movies.length > 0 && movies[0].id > 0) {
-        const movie = movies[0]
+      if (movie?.tags && movie.tags.length > 0) {
+        const tagDefinitions = await radarrService.getTags()
+        const tagMap = new Map(tagDefinitions.map((tag) => [tag.id, tag.label]))
 
-        if (movie.tags && movie.tags.length > 0) {
-          // Fetch tag definitions to convert IDs to names
-          const tagDefinitions = await radarrService.getTags()
-          const tagMap = new Map(
-            tagDefinitions.map((tag) => [tag.id, tag.label]),
-          )
+        const tagNames = movie.tags
+          .map((tagId) => tagMap.get(tagId))
+          .filter((tag): tag is string => tag !== undefined)
 
-          const tagNames = movie.tags
-            .map((tagId: number) => tagMap.get(tagId))
-            .filter((tag: string | undefined) => Boolean(tag)) as string[]
+        const filteredTags = tagNames.filter(
+          (tag) => !isUserTaggingSystemTag(tag),
+        )
 
-          // Filter out user tagging system tags
-          const filteredTags = tagNames.filter(
-            (tag) => !isUserTaggingSystemTag(tag),
-          )
+        logger.debug(
+          {
+            instanceId,
+            tmdbId,
+            title,
+            movieTitle: movie.title,
+            tagIds: movie.tags,
+            tagNames: filteredTags,
+          },
+          'Found Radarr tags for movie using targeted lookup',
+        )
 
-          logger.debug(
-            {
-              instanceId,
-              tmdbId,
-              title,
-              movieTitle: movie.title,
-              tagIds: movie.tags,
-              tagNames: filteredTags,
-            },
-            'Found Radarr tags for movie using targeted lookup',
-          )
-
-          return filteredTags
-        }
+        return filteredTags
       }
     } catch (error) {
       logger.warn(

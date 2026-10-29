@@ -13,28 +13,30 @@ import type {
   RadarrTagDetail,
 } from '@root/types/radarr.types.js'
 import type { ArrAddedSettings } from '@root/types/router.types.js'
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
-import { ArrExclusionIds } from '@services/arr/arr-exclusion-ids.js'
+import {
+  ArrExclusionIds,
+  type ArrExclusions,
+} from '@services/arr/arr-exclusion-ids.js'
 import { RADARR } from '@services/arr/arr-product.js'
 import {
   resolveQualityProfileId,
   resolveRootFolder,
 } from '@services/arr/arr-profiles.js'
 import { ArrService } from '@services/arr/arr-service.js'
-import { errorMessage } from '@utils/error-message.js'
 import {
   extractRadarrId,
   extractTmdbId,
-  hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
 import { findQualityProfileName } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
-export class RadarrService extends ArrService<RadarrInstance> {
+const MOVIE_LIBRARY_ENDPOINT = 'movie?excludeLocalCovers=true'
+
+export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
   private config: RadarrConfiguration | null = null
-  private readonly exclusionTmdbIds = new ArrExclusionIds(() =>
-    this.fetchExclusionTmdbIds(),
+  private readonly exclusions = new ArrExclusionIds(() =>
+    this.fetchExclusions(),
   )
 
   constructor(
@@ -84,7 +86,7 @@ export class RadarrService extends ArrService<RadarrInstance> {
 
   async getAllMovies(): Promise<RadarrMovie[]> {
     try {
-      return await this.client.get<RadarrMovie[]>('movie')
+      return await this.client.get<RadarrMovie[]>(MOVIE_LIBRARY_ENDPOINT)
     } catch (error) {
       this.log.error({ error }, 'Error fetching all movies:')
       throw error
@@ -93,85 +95,33 @@ export class RadarrService extends ArrService<RadarrInstance> {
 
   async fetchMovies(bypass = false): Promise<Set<Item>> {
     try {
-      const movies = await this.client.get<RadarrMovie[]>('movie')
-
-      let exclusions: Set<Item> = new Set()
-      if (!bypass) {
-        exclusions = await this.fetchExclusions()
-      }
-
-      const movieItems = movies.map((movie) => this.toItem(movie))
-
-      // Mark exclusions so they can be filtered out from tagging
-      const exclusionItems = Array.from(exclusions).map((item) => ({
-        ...item,
-        isExclusion: true,
-      }))
-
-      const allItems = [...movieItems, ...exclusionItems]
-
-      return new Set(allItems)
+      const movies = await this.client.get<RadarrMovie[]>(
+        MOVIE_LIBRARY_ENDPOINT,
+      )
+      const exclusions = bypass ? [] : await this.exclusions.items()
+      return new Set([
+        ...movies.map((movie) => this.toItem(movie)),
+        ...exclusions.map((item) => ({ ...item, isExclusion: true })),
+      ])
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching movies')
       throw err
     }
   }
 
-  /**
-   * Check if a movie exists in Radarr using efficient lookup
-   * @param tmdbId - The TMDB ID to check
-   * @returns Promise resolving to ExistenceCheckResult with availability info
-   */
-  async movieExistsByTmdbId(tmdbId: number): Promise<ExistenceCheckResult> {
-    try {
-      const movies = await this.client.get<RadarrMovie[]>(
-        `movie/lookup?term=tmdb:${tmdbId}`,
-      )
-
-      // Movie exists if it has a valid internal ID (> 0)
-      const found = movies.length > 0 && movies[0].id > 0
-
-      return {
-        found,
-        checked: true,
-        serviceName: 'Radarr',
-      }
-    } catch (err) {
-      this.log.error(
-        { error: err, tmdbId },
-        'Error checking movie existence for TMDB',
-      )
-      return {
-        found: false,
-        checked: false,
-        serviceName: 'Radarr',
-        error: errorMessage(err),
-      }
-    }
-  }
-
   isTmdbIdExcluded(tmdbId: number): Promise<boolean> {
-    return this.exclusionTmdbIds.has(tmdbId)
+    return this.exclusions.has(tmdbId)
   }
 
-  private async fetchExclusionTmdbIds(): Promise<Set<number>> {
-    const ids = new Set<number>()
-    for (const item of await this.fetchExclusions()) {
-      const id = extractTmdbId(item.guids)
-      if (id) ids.add(id)
-    }
-    return ids
-  }
-
-  async fetchExclusions(): Promise<Set<Item>> {
+  private async fetchExclusions(): Promise<ArrExclusions<Item>> {
     try {
       const exclusions = await this.client.getAllPages<RadarrExclusion>(
         'exclusions/paged',
         'movieTitle',
       )
       this.log.debug(`Fetched all movie exclusions (${exclusions.length})`)
-      return new Set(
-        exclusions.map((record) =>
+      return {
+        items: exclusions.map((record) =>
           this.toItem({
             title: record.movieTitle,
             imdbId: undefined,
@@ -179,7 +129,10 @@ export class RadarrService extends ArrService<RadarrInstance> {
             id: record.id,
           }),
         ),
-      )
+        ids: new Set(
+          exclusions.map((record) => record.tmdbId).filter((id) => id > 0),
+        ),
+      }
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')
       throw err
@@ -294,7 +247,6 @@ export class RadarrService extends ArrService<RadarrInstance> {
         return
       }
 
-      // Fallback: try to find by TMDB ID
       const tmdbId = extractTmdbId(item.guids)
       if (tmdbId === 0) {
         this.log.warn(
@@ -303,21 +255,12 @@ export class RadarrService extends ArrService<RadarrInstance> {
         return
       }
 
-      const allMovies = await this.fetchMovies(true)
-      const matchingMovie = [...allMovies].find((movie) =>
-        hasMatchingGuids(movie.guids, [`tmdb:${tmdbId}`]),
-      )
-
-      if (!matchingMovie) {
+      const movie = await this.findInLibrary(tmdbId)
+      if (!movie) {
         throw new Error(`Could not find movie with TMDB ID: ${tmdbId}`)
       }
 
-      const matchingRadarrId = extractRadarrId(matchingMovie.guids)
-      if (matchingRadarrId === 0) {
-        throw new Error('Could not find Radarr ID for movie')
-      }
-
-      await this.deleteFromRadarrById(matchingRadarrId, deleteFiles)
+      await this.deleteFromRadarrById(movie.id, deleteFiles)
       this.log.debug(`Deleted ${item.title} from Radarr`)
     } catch (err) {
       this.log.error({ error: err }, 'Error deleting from Radarr')

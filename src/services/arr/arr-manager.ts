@@ -12,7 +12,11 @@ import type {
 import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import type { ArrProbeResult } from '@services/arr/arr-connection.js'
 import type { ArrProduct } from '@services/arr/arr-product.js'
-import type { ArrInstanceRow, ArrService } from '@services/arr/arr-service.js'
+import type {
+  ArrInstanceRow,
+  ArrLibraryResource,
+  ArrService,
+} from '@services/arr/arr-service.js'
 import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { errorMessage } from '@utils/error-message.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -95,7 +99,7 @@ export interface ArrAppliedRouting {
 
 export abstract class ArrManager<
   TInstance extends ArrManagedInstance,
-  TService extends ArrService<TInstance>,
+  TService extends ArrService<TInstance, ArrLibraryResource>,
   TItem extends ContentItem,
   TSettings extends ArrRouteSettings,
   TApplied,
@@ -127,11 +131,6 @@ export abstract class ArrManager<
     instanceId: number,
     bypassExclusions: boolean,
   ): Promise<TItem[]>
-
-  protected abstract itemExists(
-    service: TService,
-    id: number,
-  ): Promise<ExistenceCheckResult>
 
   protected abstract isItemExcluded(
     service: TService,
@@ -422,7 +421,7 @@ export abstract class ArrManager<
       }
     }
 
-    const result = await this.itemExists(service, id)
+    const result = await service.existsInLibrary(id)
     if (result.checked && !result.found) {
       const instance = await this.store.get(instanceId)
       if (instance && !instance.bypassIgnored) {
