@@ -55,6 +55,7 @@ interface RowOverrides {
 interface Store {
   create: Mock<(instance: object) => Promise<number>>
   delete: Mock<(id: number) => Promise<void>>
+  update: Mock<(id: number, updates: object) => Promise<void>>
 }
 
 interface Harness {
@@ -91,6 +92,7 @@ function sonarrHarness(store: Store) {
     getSonarrInstance: async (id) => rows.find((row) => row.id === id) ?? null,
     createSonarrInstance: store.create,
     deleteSonarrInstance: store.delete,
+    updateSonarrInstance: store.update,
   })
   const manager = new SonarrManagerService(createMockLogger(), fastify)
   const harness: Harness = {
@@ -119,6 +121,7 @@ function radarrHarness(store: Store) {
     getRadarrInstance: async (id) => rows.find((row) => row.id === id) ?? null,
     createRadarrInstance: store.create,
     deleteRadarrInstance: store.delete,
+    updateRadarrInstance: store.update,
   })
   const manager = new RadarrManagerService(createMockLogger(), fastify)
   const harness: Harness = {
@@ -154,6 +157,7 @@ describe.each([
     store = {
       create: vi.fn(async () => 7),
       delete: vi.fn(async () => {}),
+      update: vi.fn(async () => {}),
     }
     ;({ harness, clearRouterRulesCache } = build(store))
     initialize = vi
@@ -268,6 +272,28 @@ describe.each([
 
       expect(removeWebhook).not.toHaveBeenCalled()
       expect(store.delete).toHaveBeenCalledWith(9)
+    })
+  })
+
+  describe('updateInstance', () => {
+    it('keeps the live webhook when saving a new API key on the same server fails', async () => {
+      harness.seed({ id: 1 })
+      store.update.mockRejectedValue(new Error('db down'))
+
+      await expect(
+        harness.manager.updateInstance(1, { apiKey: 'rotated' }),
+      ).rejects.toThrow(`Failed to persist ${appName} instance update`)
+      expect(removeWebhook).not.toHaveBeenCalled()
+    })
+
+    it('removes the new webhook when saving a move to another server fails', async () => {
+      harness.seed({ id: 1 })
+      store.update.mockRejectedValue(new Error('db down'))
+
+      await expect(
+        harness.manager.updateInstance(1, { baseUrl: 'http://other.test' }),
+      ).rejects.toThrow(`Failed to persist ${appName} instance update`)
+      expect(removeWebhook).toHaveBeenCalledOnce()
     })
   })
 

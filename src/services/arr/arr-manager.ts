@@ -627,13 +627,16 @@ export abstract class ArrManager<
         { error: dbErr, instanceId: id },
         `Failed to persist ${appName} instance update`,
       )
-      try {
-        await service.removeWebhook()
-      } catch (cleanupErr) {
-        this.log.warn(
-          { error: cleanupErr },
-          `Failed to cleanup webhook after a failed update of instance ${id}`,
-        )
+      // On the same server the new service updated the live hook in place, so removing it would orphan the old service
+      if (serverChanged || current.apiKey === ARR_API_KEY_PLACEHOLDER) {
+        try {
+          await service.removeWebhook()
+        } catch (cleanupErr) {
+          this.log.warn(
+            { error: cleanupErr },
+            `Failed to cleanup webhook after a failed update of instance ${id}`,
+          )
+        }
       }
       throw new Error(`Failed to persist ${appName} instance update`, {
         cause: dbErr,
