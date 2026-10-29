@@ -32,8 +32,10 @@ import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.sche
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
+import { parseAllowedHosts } from '@utils/allowed-hosts.js'
 import { resolveDataDir } from '@utils/data-dir.js'
 import { parseJsonOr } from '@utils/json.js'
+import { parseAllowedOrigins } from '@utils/request-origin.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -184,6 +186,14 @@ const schema = {
       type: 'string',
       enum: ['required', 'requiredExceptLocal', 'disabled'],
       default: 'required',
+    },
+    allowedOrigins: {
+      type: 'string',
+      default: '',
+    },
+    allowedHosts: {
+      type: 'string',
+      default: '',
     },
     queueProcessDelaySeconds: {
       type: 'number',
@@ -526,6 +536,8 @@ export default fp(
 
     const parsedConfig = {
       ...rawConfig,
+      allowedOrigins: parseAllowedOrigins(rawConfig.allowedOrigins),
+      allowedHosts: parseAllowedHosts(rawConfig.allowedHosts),
       sonarrTags: parseJsonOr(
         rawConfig.sonarrTags,
         [],
