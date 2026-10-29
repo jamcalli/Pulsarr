@@ -637,6 +637,16 @@ export abstract class ArrManager<
             `Failed to cleanup webhook after a failed update of instance ${id}`,
           )
         }
+      } else if (baseUrlChanged) {
+        // The hook's instanceId comes from the URL path, so it must match the base URL still stored
+        try {
+          await this.newService().initialize(current)
+        } catch (restoreErr) {
+          this.log.warn(
+            { error: restoreErr },
+            `Failed to restore the webhook after a failed update of instance ${id}`,
+          )
+        }
       }
       throw new Error(`Failed to persist ${appName} instance update`, {
         cause: dbErr,

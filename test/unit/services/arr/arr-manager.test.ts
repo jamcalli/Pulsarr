@@ -286,6 +286,20 @@ describe.each([
       expect(removeWebhook).not.toHaveBeenCalled()
     })
 
+    it('points the live webhook back at the saved path when a path-only change fails to save', async () => {
+      harness.seed({ id: 1 })
+      store.update.mockRejectedValue(new Error('db down'))
+
+      await expect(
+        harness.manager.updateInstance(1, { baseUrl: 'http://arr.test/arr2' }),
+      ).rejects.toThrow(`Failed to persist ${appName} instance update`)
+      expect(removeWebhook).not.toHaveBeenCalled()
+      expect(initialize.mock.calls.map(([row]) => row.baseUrl)).toEqual([
+        'http://arr.test/arr2',
+        'http://arr.test',
+      ])
+    })
+
     it('removes the new webhook when saving a move to another server fails', async () => {
       harness.seed({ id: 1 })
       store.update.mockRejectedValue(new Error('db down'))
