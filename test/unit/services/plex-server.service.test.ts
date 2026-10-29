@@ -1,8 +1,8 @@
 import { CacheRegistry } from '@services/cache-registry.service.js'
 import {
   CONNECTION_LIST_TTL_MS,
-  NEGOTIATION_RETRY_GAP_MS,
   PLEX_SHARED_SERVERS_CACHE_TTL_MS,
+  PLEX_TV_RETRY_GAP_MS,
   PLEX_USERS_CACHE_TTL_MS,
   PlexServerService,
 } from '@services/plex-server.service.js'
@@ -129,23 +129,29 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(2)
   })
 
-  it('reads the server list again after plex.tv failed during an existence check', async () => {
-    const service = createService()
+  it('reuses a failed server list read for the retry gap, then reads again', async () => {
+    let now = 1
+    const service = createService('', new CacheRegistry({ now: () => now }))
     server.use(
       http.get(`${LOCAL_HTTPS}/library/all`, () =>
         HttpResponse.json({ MediaContainer: { size: 0 } }),
       ),
     )
+    const check = () =>
+      service.checkExistenceAcrossServers('abc123', 'movie', true)
     await service.getPlexServerUrl()
 
     state.plexTv = 'down'
-    await service.checkExistenceAcrossServers('abc123', 'movie', true)
+    await check()
     const afterFailure = state.resourceCalls
-
     state.plexTv = 'up'
-    await service.checkExistenceAcrossServers('abc123', 'movie', true)
-    await service.checkExistenceAcrossServers('abc123', 'movie', true)
+    now += PLEX_TV_RETRY_GAP_MS
+    await check()
+    expect(state.resourceCalls).toBe(afterFailure)
 
+    now += 1
+    await check()
+    await check()
     expect(state.resourceCalls).toBe(afterFailure + 1)
   })
 
@@ -158,7 +164,7 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(1)
 
     state.plexTv = 'up'
-    vi.advanceTimersByTime(NEGOTIATION_RETRY_GAP_MS)
+    vi.advanceTimersByTime(PLEX_TV_RETRY_GAP_MS)
 
     expect(await service.getPlexServerUrl()).toBe(LOCAL_HTTPS)
     expect(state.resourceCalls).toBe(2)
@@ -173,7 +179,7 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(1)
 
     state.down = new Set([LOCAL_HTTPS])
-    vi.advanceTimersByTime(NEGOTIATION_RETRY_GAP_MS)
+    vi.advanceTimersByTime(PLEX_TV_RETRY_GAP_MS)
 
     expect(await service.getPlexServerUrl()).toBe(REMOTE_HTTPS)
     expect(state.resourceCalls).toBe(2)

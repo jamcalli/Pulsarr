@@ -93,7 +93,7 @@ const PLEX_API_TIMEOUT = 30000
 /** Used only when nothing better is known, and never cached. */
 const PLEX_FALLBACK_URL = `http://localhost:${PLEX_DEFAULT_PORT}`
 export const CONNECTION_LIST_TTL_MS = 15 * 60 * 1000
-export const NEGOTIATION_RETRY_GAP_MS = 60 * 1000
+export const PLEX_TV_RETRY_GAP_MS = 60 * 1000
 export const PLEX_USERS_CACHE_TTL_MS = 30 * 60 * 1000
 /** Shared server info and the per-user tokens read from it. */
 export const PLEX_SHARED_SERVERS_CACHE_TTL_MS = 6 * 60 * 60 * 1000
@@ -219,7 +219,16 @@ export class PlexServerService {
     this.plexResources = caches.create({
       max: 1,
       ignoreFetchAbort: true,
-      fetchMethod: () => this.fetchPlexResources(),
+      fetchMethod: async (_key, _stale, { options }) => {
+        try {
+          return await this.fetchPlexResources()
+        } catch (error) {
+          this.log.error({ error }, 'Error fetching Plex resources')
+          // The empty fallback is kept for the retry gap so a sync waits on plex.tv once
+          options.ttl = PLEX_TV_RETRY_GAP_MS
+          return []
+        }
+      },
     })
     this.serverConnectionCache = createServerConnectionCache(
       caches,
@@ -330,7 +339,7 @@ export class PlexServerService {
     }
     if (
       this.fallbackConnections &&
-      Date.now() - this.negotiationFailedAt < NEGOTIATION_RETRY_GAP_MS
+      Date.now() - this.negotiationFailedAt < PLEX_TV_RETRY_GAP_MS
     ) {
       return this.fallbackConnections
     }
@@ -1461,16 +1470,6 @@ export class PlexServerService {
     return getAllPlexResources(this.config.plexTokens?.[0] || '')
   }
 
-  /** Empty while plex.tv is unreachable, and a failed read is never cached. */
-  private async getPlexResources(): Promise<PlexResource[]> {
-    try {
-      return await this.plexResources.forceFetch(PLEX_RESOURCES_KEY)
-    } catch (error) {
-      this.log.error({ error }, 'Error fetching Plex resources')
-      return []
-    }
-  }
-
   async getActiveSessions(): Promise<PlexSession[]> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
@@ -1680,7 +1679,8 @@ export class PlexServerService {
         return false
       }
 
-      const allResources = await this.getPlexResources()
+      const allResources =
+        await this.plexResources.forceFetch(PLEX_RESOURCES_KEY)
 
       const ownerConnections = await this.getPlexServerConnectionInfo()
 
