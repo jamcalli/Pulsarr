@@ -15,7 +15,12 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import type { ContentRoutingDeps, WorkflowDeps } from '../types.js'
-import { routeMovie, routeShow } from './content-router.js'
+import {
+  type RouteContentResult,
+  routeMovie,
+  routeShow,
+} from './content-router.js'
+import { queueForDeferredRouting } from './health-checker.js'
 
 export interface RouteSingleItemParams {
   item: Item
@@ -28,7 +33,7 @@ export interface RouteSingleItemParams {
 export async function routeSingleItem(
   params: RouteSingleItemParams,
   deps: ContentRoutingDeps,
-): Promise<boolean> {
+): Promise<RouteContentResult> {
   const { item, userId, userName, userAlias, primaryUser } = params
 
   const parsedGuids = parseGuids(item.guids)
@@ -40,7 +45,7 @@ export async function routeSingleItem(
       { userId, title: item.title },
       'Item has no GUIDs - skipping routing',
     )
-    return false
+    return { routed: false, skippedReason: 'no-valid-id' }
   }
 
   const tempItem: TemptRssWatchlistItem = {
@@ -59,7 +64,7 @@ export async function routeSingleItem(
         { userId, title: item.title, guids: parsedGuids },
         'Show has no valid TVDB ID - skipping routing',
       )
-      return false
+      return { routed: false, skippedReason: 'no-valid-id' }
     }
 
     const sonarrItem: SonarrItem = {
@@ -77,7 +82,7 @@ export async function routeSingleItem(
       tmdb: item.ratings?.tmdb,
     }
 
-    const result = await routeShow(
+    return routeShow(
       {
         tempItem,
         userId,
@@ -88,7 +93,6 @@ export async function routeSingleItem(
       },
       deps,
     )
-    return result.routed
   }
 
   if (normalizedType === 'movie') {
@@ -98,7 +102,7 @@ export async function routeSingleItem(
         { userId, title: item.title, guids: parsedGuids },
         'Movie has no valid TMDB ID - skipping routing',
       )
-      return false
+      return { routed: false, skippedReason: 'no-valid-id' }
     }
 
     const radarrItem: RadarrItem = {
@@ -113,7 +117,7 @@ export async function routeSingleItem(
       tmdb: item.ratings?.tmdb,
     }
 
-    const result = await routeMovie(
+    return routeMovie(
       {
         tempItem,
         userId,
@@ -124,14 +128,13 @@ export async function routeSingleItem(
       },
       deps,
     )
-    return result.routed
   }
 
   deps.logger.warn(
     { userId, title: item.title, type: normalizedType },
     'Unknown content type - skipping routing',
   )
-  return false
+  return { routed: false }
 }
 
 export async function routeEnrichedItemsForUser(
@@ -169,6 +172,7 @@ export async function routeEnrichedItemsForUser(
     'Routing enriched items for user',
   )
 
+  const deferred: Item[] = []
   for (const item of items) {
     if (signal.aborted) return
     const excludedUsers = exclusionMap.get(item.key)
@@ -181,7 +185,7 @@ export async function routeEnrichedItemsForUser(
     }
 
     try {
-      await routeSingleItem(
+      const result = await routeSingleItem(
         {
           item,
           userId,
@@ -191,12 +195,24 @@ export async function routeEnrichedItemsForUser(
         },
         deps,
       )
+      if (result.skippedReason === 'plex-unreachable') deferred.push(item)
     } catch (error) {
       deps.logger.error(
         { error, userId, title: item.title },
         'Error routing enriched item',
       )
     }
+  }
+
+  if (deferred.length > 0 && !signal.aborted) {
+    queueForDeferredRouting(
+      {
+        deferredRoutingQueue: deps.state.deferredRoutingQueue,
+        logger: deps.logger,
+      },
+      { type: 'items', userId, items: deferred },
+      'plex-unreachable',
+    )
   }
 }
 

@@ -204,46 +204,20 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Handle Plex server URL changes - clear connection cache and restart SSE
         if (
           'plexServerUrl' in safeConfigUpdate ||
           'plexTokens' in safeConfigUpdate
         ) {
-          try {
-            fastify.log.info(
-              'Plex server connection settings changed, clearing caches and reconnecting SSE',
-            )
-            if (
-              plexTokensChanged(
-                safeConfigUpdate,
-                currentConfig?.plexTokens ?? [],
-              )
-            ) {
-              fastify.plexServerService.clearCaches()
-            } else {
-              fastify.plexServerService.clearConnectionCaches()
-            }
-            fastify.plexServerService.disconnectSSE()
-            await fastify.plexServerService.connectSSE()
-          } catch (error) {
-            fastify.log.error(
-              { error },
-              'Failed to refresh Plex server caches and SSE after config update',
-            )
-          }
+          await fastify.plexServerService.applyConnectionSettings(
+            plexTokensChanged(
+              safeConfigUpdate,
+              currentConfig?.plexTokens ?? [],
+            ),
+          )
         }
 
-        // Handle TMDB region changes - clear provider cache
         if ('tmdbRegion' in safeConfigUpdate) {
-          try {
-            fastify.log.info('TMDB region changed, clearing provider cache')
-            fastify.tmdb.clearProviderCache()
-          } catch (error) {
-            fastify.log.error(
-              { error },
-              'Failed to clear TMDB provider cache after config update',
-            )
-          }
+          fastify.tmdb.applyRegionChange()
         }
 
         // Handle Maintainerr changes - the sync schedule follows the toggle,

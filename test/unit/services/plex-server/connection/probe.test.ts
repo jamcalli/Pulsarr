@@ -1,16 +1,9 @@
-import { CacheRegistry } from '@services/cache-registry.service.js'
 import {
-  createServerConnectionCache,
-  getBestServerConnection,
-  invalidateServerConnection,
   probeConnections,
   probeServerAccess,
-  SERVER_CONNECTION_CACHE_TTL_MS,
-  type ServerConnectionCache,
-  testConnectionReachability,
-} from '@services/plex-server/existence-check/connection-cache.js'
+} from '@services/plex-server/connection/probe.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { PLEX_IDENTITY } from '../../../../mocks/plex-resources.js'
 import { server } from '../../../../setup/msw-setup.js'
@@ -58,16 +51,6 @@ describe('probeConnections', () => {
       reason: 'unreachable',
       status: null,
     })
-  })
-})
-
-describe('testConnectionReachability', () => {
-  it('keeps only reachable connections in their original order', async () => {
-    serveProbes()
-
-    expect(
-      await testConnectionReachability([GONE, UP, BROKEN], createMockLogger()),
-    ).toEqual([UP])
   })
 })
 
@@ -138,78 +121,5 @@ describe('probe server match', () => {
       reason: 'invalid',
       status: 200,
     })
-  })
-})
-
-describe('getBestServerConnection', () => {
-  const DEAD_SERVER_BACKOFF = 5 * 60 * 1000
-  const logger = createMockLogger()
-
-  let now: number
-  let probes: number
-  let deadServers: Map<string, number>
-  let cache: ServerConnectionCache
-
-  function best(connections = [GONE, UP]) {
-    return getBestServerConnection(
-      'machine-1',
-      { serverName: 'Basement', connections, accessToken: 'server-token' },
-      cache,
-      deadServers,
-      { logger, deadServerBackoff: DEAD_SERVER_BACKOFF },
-    )
-  }
-
-  beforeEach(() => {
-    now = 1
-    probes = 0
-    deadServers = new Map()
-    cache = createServerConnectionCache(
-      new CacheRegistry({ now: () => now }),
-      deadServers,
-      logger,
-    )
-    serveProbes()
-    server.use(
-      http.get(`${UP.uri}/identity`, () => {
-        probes += 1
-        return HttpResponse.json(PLEX_IDENTITY)
-      }),
-    )
-  })
-
-  it('keeps the picked connection for its TTL', async () => {
-    expect(await best()).toEqual({ uri: UP.uri, accessToken: 'server-token' })
-    now += SERVER_CONNECTION_CACHE_TTL_MS
-    await best()
-    expect(probes).toBe(1)
-
-    now += 1
-    await best()
-    expect(probes).toBe(2)
-  })
-
-  it('shares one probe between concurrent lookups', async () => {
-    await Promise.all([best(), best(), best()])
-
-    expect(probes).toBe(1)
-  })
-
-  it('probes again after the connection is invalidated', async () => {
-    await best()
-
-    invalidateServerConnection('machine-1', cache, logger)
-    await best()
-
-    expect(probes).toBe(2)
-  })
-
-  it('stores nothing and backs off when every connection fails', async () => {
-    expect(await best([GONE, BROKEN])).toBeNull()
-
-    expect(cache.size).toBe(0)
-    expect(deadServers.has('machine-1')).toBe(true)
-    expect(await best()).toBeNull()
-    expect(probes).toBe(0)
   })
 })

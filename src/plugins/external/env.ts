@@ -16,6 +16,10 @@ import {
   QUEUE_WAIT_TIME_MS,
 } from '@root/schemas/config/config.schema.js'
 import {
+  PLEX_EXISTENCE_SCOPE_DEFAULT,
+  PLEX_EXISTENCE_SCOPES,
+} from '@root/schemas/plex/existence-scope.schema.js'
+import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema.js'
@@ -327,6 +331,11 @@ const schema = {
     skipIfExistsOnPlex: {
       type: 'boolean',
       default: false,
+    },
+    plexExistenceScope: {
+      type: 'string',
+      enum: PLEX_EXISTENCE_SCOPES,
+      default: PLEX_EXISTENCE_SCOPE_DEFAULT,
     },
     enablePlexPlaylistProtection: {
       type: 'boolean',

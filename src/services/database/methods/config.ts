@@ -5,6 +5,7 @@ import {
   NOTIFY_DEFAULTS,
   QUEUE_WAIT_TIME_MS,
 } from '@root/schemas/config/config.schema.js'
+import { PLEX_EXISTENCE_SCOPE_DEFAULT } from '@root/schemas/plex/existence-scope.schema.js'
 import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
@@ -183,6 +184,8 @@ export async function getConfig(
       config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
     plexServerUrl: config.plexServerUrl || undefined,
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
+    plexExistenceScope:
+      config.plexExistenceScope || PLEX_EXISTENCE_SCOPE_DEFAULT,
     plexLabelSync: (() => {
       const parsed = config.plexLabelSync
         ? parseJsonOr<Partial<PlexLabelSyncConfig>>(
@@ -291,6 +294,8 @@ export async function createConfig(
         config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT,
       plexServerUrl: config.plexServerUrl,
       skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
+      plexExistenceScope:
+        config.plexExistenceScope ?? PLEX_EXISTENCE_SCOPE_DEFAULT,
       selfRss: config.selfRss,
       friendsRss: config.friendsRss,
       discordWebhookUrl: config.discordWebhookUrl,
@@ -436,6 +441,7 @@ const ALLOWED_COLUMNS = new Set([
   'skipFriendSync',
   'plexServerUrl',
   'skipIfExistsOnPlex',
+  'plexExistenceScope',
   'selfRss',
   'friendsRss',
 

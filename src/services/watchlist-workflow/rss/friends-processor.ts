@@ -128,8 +128,6 @@ export async function processRssFriendsItems(
 
       queueForDeferredRouting(
         {
-          sonarrManager: deps.sonarrManager,
-          radarrManager: deps.radarrManager,
           deferredRoutingQueue: deps.state.deferredRoutingQueue,
           logger: deps.logger,
         },

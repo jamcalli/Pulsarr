@@ -1,3 +1,4 @@
+import { PLEX_EXISTENCE_SCOPE_DEFAULT } from '@root/schemas/plex/existence-scope.schema'
 import { useStore } from '@tanstack/react-form'
 import { BusyLabel } from '@/components/busy-label'
 import { ConnectionTest } from '@/components/connection-test'
@@ -18,6 +19,7 @@ import {
   CONNECTION_OPTIONS,
   connectionTestView,
   connectionUrl,
+  PLEX_EXISTENCE_SCOPE_OPTIONS,
   PLEX_SERVER_DESCRIPTION,
   type ServerFormValues,
 } from '@/lib/plex/server-address'
@@ -29,6 +31,7 @@ const DEFAULT_VALUES: ServerFormValues = {
   connection: 'auto',
   address: '',
   skipIfExistsOnPlex: false,
+  plexExistenceScope: PLEX_EXISTENCE_SCOPE_DEFAULT,
 }
 
 interface ServerCardProps {
@@ -72,6 +75,10 @@ export const ServerCard = withFieldGroup({
   props: DEFAULT_PROPS,
   render: function Render({ group, linkedToken, dirty, discovery, test }) {
     const connection = useStore(group.store, (state) => state.values.connection)
+    const skipIfExistsOnPlex = useStore(
+      group.store,
+      (state) => state.values.skipIfExistsOnPlex,
+    )
     const locked = linkedToken === null
     const servers = discovery?.servers ?? null
     const testView = connectionTestView({
@@ -158,8 +165,18 @@ export const ServerCard = withFieldGroup({
           {(field) => (
             <field.SwitchField
               label="Skip content already on Plex"
-              description="Skip requests your server or shared servers already have."
+              description="Skip requests already on your Plex servers."
               disabled={locked}
+            />
+          )}
+        </group.AppField>
+        <group.AppField name="plexExistenceScope">
+          {(field) => (
+            <field.SegmentedField
+              label="Servers to check"
+              description="Where Pulsarr looks before skipping a request. Shared servers count only for your own watchlist."
+              options={PLEX_EXISTENCE_SCOPE_OPTIONS}
+              disabled={locked || !skipIfExistsOnPlex}
             />
           )}
         </group.AppField>
@@ -175,6 +192,7 @@ export function ServerCardSkeleton() {
       <FieldRowSkeleton control="text" />
       <FieldRowSkeleton control="field" />
       <FieldRowSkeleton control="switch" />
+      <FieldRowSkeleton control="field" />
     </SettingsSectionSkeleton>
   )
 }

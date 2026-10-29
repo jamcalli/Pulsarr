@@ -93,6 +93,24 @@ describe('Config Plex token changes and watchlist feeds', () => {
     expect(await savedFeeds()).toEqual(FEEDS)
   })
 
+  it('saves which servers the existence check covers', async () => {
+    const before = await app.inject({ method: 'GET', url: '/v1/config' })
+    expect(before.json().config.plexExistenceScope).toBe('owned-and-shared')
+
+    const res = await putConfig({ plexExistenceScope: 'owned' })
+
+    expect(res.statusCode).toBe(200)
+    const after = await app.inject({ method: 'GET', url: '/v1/config' })
+    expect(after.json().config.plexExistenceScope).toBe('owned')
+    expect(app.config.plexExistenceScope).toBe('owned')
+  })
+
+  it('refuses an unknown existence check scope', async () => {
+    const res = await putConfig({ plexExistenceScope: 'everyone' })
+
+    expect(res.statusCode).toBe(400)
+  })
+
   it('keeps the feeds when the same token is saved again', async () => {
     const res = await putConfig({ plexTokens: [SEEDED_TOKEN] })
 

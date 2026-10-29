@@ -34,12 +34,14 @@ const LINKED: ConfigUpdate = {
   plexTokens: [TOKEN],
   plexServerUrl: '',
   skipIfExistsOnPlex: true,
+  plexExistenceScope: 'owned-and-shared',
   ...FEEDS,
 }
 const NOT_LINKED: ConfigUpdate = {
   plexTokens: [],
   plexServerUrl: '',
   skipIfExistsOnPlex: true,
+  plexExistenceScope: 'owned-and-shared',
   selfRss: '',
   friendsRss: '',
 }
@@ -947,7 +949,11 @@ describe('PlexConnectionPage', () => {
 
     await waitFor(() =>
       expect(calls.config).toEqual([
-        { plexServerUrl: '', skipIfExistsOnPlex: true },
+        {
+          plexServerUrl: '',
+          skipIfExistsOnPlex: true,
+          plexExistenceScope: 'owned-and-shared',
+        },
       ]),
     )
     expect(
@@ -1020,7 +1026,37 @@ describe('PlexConnectionPage', () => {
 
     await waitFor(() =>
       expect(calls.config).toEqual([
-        { plexServerUrl: 'https://plex.lan:32400', skipIfExistsOnPlex: true },
+        {
+          plexServerUrl: 'https://plex.lan:32400',
+          skipIfExistsOnPlex: true,
+          plexExistenceScope: 'owned-and-shared',
+        },
+      ]),
+    )
+  })
+
+  it('saves the servers the existence check covers, only while it is on', async () => {
+    const user = userEvent.setup()
+    const calls = mockEndpoints()
+    renderPage()
+    const card = await findSection('Plex server')
+    const ownedOnly = card.getByRole('button', { name: 'Your server' })
+
+    await user.click(ownedOnly)
+    expect(ownedOnly).toHaveAttribute('aria-pressed', 'true')
+    await user.click(
+      card.getByRole('switch', { name: 'Skip content already on Plex' }),
+    )
+    expect(ownedOnly).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() =>
+      expect(calls.config).toEqual([
+        {
+          plexServerUrl: '',
+          skipIfExistsOnPlex: false,
+          plexExistenceScope: 'owned',
+        },
       ]),
     )
   })

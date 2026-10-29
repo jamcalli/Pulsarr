@@ -307,7 +307,7 @@ describe('routeMovie with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(true)
+    ).mockResolvedValue('found')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({
@@ -328,11 +328,25 @@ describe('routeMovie with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(false)
+    ).mockResolvedValue('missing')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({ routed: true })
     expect(routedInstanceIds()).toEqual([2])
+  })
+
+  it('leaves an item unrouted when Plex could not be checked', async () => {
+    vi.spyOn(
+      fastify.plexServerService,
+      'checkExistenceAcrossServers',
+    ).mockResolvedValue('unknown')
+    deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
+
+    expect(await route(presentIn())).toEqual({
+      routed: false,
+      skippedReason: 'plex-unreachable',
+    })
+    expect(routedInstanceIds()).toEqual([])
   })
 
   it('completes a record destination outside the current targets when every target has it', async () => {
@@ -526,7 +540,7 @@ describe('routeShow with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(true)
+    ).mockResolvedValue('found')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({
@@ -547,7 +561,7 @@ describe('routeShow with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(false)
+    ).mockResolvedValue('missing')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({ routed: true })

@@ -1636,6 +1636,9 @@
           "skipIfExistsOnPlex": {
             "type": "boolean"
           },
+          "plexExistenceScope": {
+            "$ref": "#/components/schemas/PlexExistenceScope"
+          },
           "deleteMovie": {
             "type": "boolean"
           },
@@ -1796,6 +1799,7 @@
           "plexTokens",
           "skipFriendSync",
           "skipIfExistsOnPlex",
+          "plexExistenceScope",
           "deleteMovie",
           "deleteEndedShow",
           "deleteContinuingShow",
@@ -2115,6 +2119,9 @@
           },
           "skipIfExistsOnPlex": {
             "type": "boolean"
+          },
+          "plexExistenceScope": {
+            "$ref": "#/components/schemas/PlexExistenceScope"
           },
           "plexLabelSync": {
             "$ref": "#/components/schemas/PlexLabelSyncConfigPayload"
@@ -3474,6 +3481,14 @@
           "discord-both"
         ],
         "description": "Channels an admin notification goes to, legacy aliases included"
+      },
+      "PlexExistenceScope": {
+        "type": "string",
+        "enum": [
+          "owned",
+          "owned-and-shared"
+        ],
+        "description": "Which Plex servers the existence check covers, the owned server alone or also the servers shared with the account"
       },
       "PlexFriendStatus": {
         "type": "string",

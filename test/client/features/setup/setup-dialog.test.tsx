@@ -32,6 +32,7 @@ const NOT_LINKED: ConfigUpdate = {
   plexTokens: [],
   plexServerUrl: '',
   skipIfExistsOnPlex: true,
+  plexExistenceScope: 'owned-and-shared',
   _isReady: false,
 }
 const LINKED: ConfigUpdate = { ...NOT_LINKED, plexTokens: ['linked-token'] }
