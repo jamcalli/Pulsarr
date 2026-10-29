@@ -1464,7 +1464,6 @@ export class PlexServerService {
     this.userTokens.delete(username.toLowerCase())
   }
 
-  /** A failed plex.tv read resolves to an empty list and is cached until the next clear, so one sync never retries it per item. */
   private fetchPlexResources(): Promise<PlexResource[]> {
     this.log.debug('Server resources cache miss, fetching from plex.tv API')
     return getAllPlexResources(this.config.plexTokens?.[0] || '')
