@@ -33,7 +33,7 @@ describe('arr add options on write and read paths', () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   describe('approval routing', () => {

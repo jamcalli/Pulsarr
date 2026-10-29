@@ -22,7 +22,7 @@ describe('radarr instance database methods', () => {
     await resetDatabase()
     await seedConfig(knex)
     await seedInstances(knex)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   describe('minimumAvailability', () => {

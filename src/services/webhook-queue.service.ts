@@ -7,6 +7,7 @@ import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { WebhookQueue } from '@root/types/webhook.types.js'
 import {
+  createWebhookDedupeCache,
   isWebhookProcessable,
   type WebhookDedupeCache,
 } from '@utils/arr-webhook-validator.js'
@@ -60,7 +61,7 @@ export interface WebhookQueueConfig {
 export class WebhookQueueService {
   private readonly log: FastifyBaseLogger
   private readonly _queue: WebhookQueue = {}
-  private readonly _dedupeCache: WebhookDedupeCache = new Map()
+  private readonly _dedupeCache: WebhookDedupeCache
   private readonly _config: WebhookQueueConfig
   private _isRunning = false
   private _processingState = {
@@ -74,6 +75,7 @@ export class WebhookQueueService {
     config?: Partial<WebhookQueueConfig>,
   ) {
     this.log = createServiceLogger(baseLog, 'WEBHOOK_QUEUE')
+    this._dedupeCache = createWebhookDedupeCache(fastify.caches)
     this._config = {
       retryInterval: config?.retryInterval ?? 20,
       maxAge: config?.maxAge ?? 10,
@@ -194,10 +196,6 @@ export class WebhookQueueService {
 
   isWebhookProcessable(payload: WebhookPayload): boolean {
     return isWebhookProcessable(payload, this._dedupeCache, this.log)
-  }
-
-  clearDedupeCache(): void {
-    this._dedupeCache.clear()
   }
 
   isEpisodeAlreadyQueued(

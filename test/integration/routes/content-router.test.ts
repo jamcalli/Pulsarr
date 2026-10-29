@@ -26,7 +26,7 @@ describe('Content Router Rules API', () => {
     await seedConfig(knex)
     await seedInstances(knex)
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   const radarrRule = {

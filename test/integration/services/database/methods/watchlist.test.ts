@@ -52,7 +52,7 @@ describe('updateWatchlistItem', () => {
       created_at: JUNCTION_TIMESTAMP,
       updated_at: JUNCTION_TIMESTAMP,
     })
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   it('reports a write when the status progresses', async () => {
@@ -150,7 +150,7 @@ describe('getWatchlistItemsByGuid', () => {
         status: 'requested',
       },
     ])
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   it('returns only the movie for a movie lookup', async () => {

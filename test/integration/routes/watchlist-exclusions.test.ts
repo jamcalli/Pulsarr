@@ -26,7 +26,7 @@ describe('watchlist exclusion routes', () => {
     await seedAll(knex)
     await seedSystemUser(knex)
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   describe('GET /v1/watchlist-exclusions/items', () => {

@@ -34,7 +34,7 @@ describe('approval requests thumb', () => {
     const knex = getTestDatabase()
     await seedAll(knex)
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
 
     const approvalBase = {
       user_id: watchlistItem.user_id,

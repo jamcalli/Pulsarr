@@ -11,6 +11,7 @@ import type {
 import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { LRUCache } from 'lru-cache'
 import {
   fetchDetails,
   fetchProviderList,
@@ -27,7 +28,15 @@ import { fetchPlexRatings } from './tmdb/ratings.js'
 import { pickReleaseDates } from './tmdb/release-dates.js'
 import { TmdbRequestQueue } from './tmdb/request-queue.js'
 
-const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+export const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+
+const PROVIDER_CACHE_MAX_REGIONS = 50
+
+interface ProviderList {
+  providers: TmdbWatchProvider[]
+  /** False when the movie or TV list failed and only the other one is in providers. */
+  complete: boolean
+}
 
 function selectRegion(
   response: TmdbWatchProvidersResponse | undefined,
@@ -45,13 +54,7 @@ export class TmdbService {
   private readonly log: FastifyBaseLogger
   private readonly api: TmdbApiDeps
 
-  private providerCache = new Map<
-    string,
-    {
-      providers: TmdbWatchProvider[]
-      fetchedAt: number
-    }
-  >()
+  private readonly providerCache: LRUCache<string, ProviderList>
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -63,6 +66,16 @@ export class TmdbService {
       accessToken: () => this.accessToken,
       log: this.log,
     }
+    this.providerCache = fastify.caches.create({
+      max: PROVIDER_CACHE_MAX_REGIONS,
+      ttl: PROVIDER_CACHE_TTL_MS,
+      // A partial list outsizes maxEntrySize, so it answers its callers but is never stored
+      maxEntrySize: 1,
+      sizeCalculation: ({ complete }) => (complete ? 1 : 2),
+      // A clear mid-fetch still answers its waiting callers but is not written back
+      ignoreFetchAbort: true,
+      fetchMethod: (region) => this.fetchProviders(region),
+    })
   }
 
   private get accessToken(): string {
@@ -316,75 +329,70 @@ export class TmdbService {
 
     const providerRegion = region || this.defaultRegion
 
-    const cached = this.providerCache.get(providerRegion)
-    if (cached && Date.now() - cached.fetchedAt < PROVIDER_CACHE_TTL_MS) {
-      this.log.debug(`Using cached providers for region ${providerRegion}`)
-      return cached.providers
-    }
-
-    this.log.debug(`Fetching providers for region ${providerRegion} from TMDB`)
-
     try {
-      const [movieResponse, tvResponse] = await Promise.allSettled([
-        fetchProviderList(this.api, 'movie', providerRegion),
-        fetchProviderList(this.api, 'tv', providerRegion),
-      ])
-
-      if (movieResponse.status === 'rejected') {
-        this.log.warn(
-          { error: movieResponse.reason, region: providerRegion },
-          'Failed to fetch movie providers',
-        )
-      }
-      if (tvResponse.status === 'rejected') {
-        this.log.warn(
-          { error: tvResponse.reason, region: providerRegion },
-          'Failed to fetch TV providers',
-        )
-      }
-
-      if (
-        movieResponse.status === 'rejected' &&
-        tvResponse.status === 'rejected'
-      ) {
-        this.log.error(
-          `Both movie and TV provider fetches failed for region ${providerRegion}`,
-        )
-        return null
-      }
-
-      const allProviders = new Map<number, TmdbWatchProvider>()
-
-      if (movieResponse.status === 'fulfilled') {
-        for (const provider of movieResponse.value) {
-          allProviders.set(provider.provider_id, provider)
-        }
-      }
-
-      if (tvResponse.status === 'fulfilled') {
-        for (const provider of tvResponse.value) {
-          if (!allProviders.has(provider.provider_id)) {
-            allProviders.set(provider.provider_id, provider)
-          }
-        }
-      }
-
-      const providers = Array.from(allProviders.values()).sort(
-        (a, b) => a.display_priority - b.display_priority,
-      )
-
-      this.providerCache.set(providerRegion, {
-        providers,
-        fetchedAt: Date.now(),
-      })
-
-      return providers
+      return (await this.providerCache.forceFetch(providerRegion)).providers
     } catch (error) {
       this.log.error(
         { error, region: providerRegion },
         'Error fetching provider list',
       )
       return null
+    }
+  }
+
+  private async fetchProviders(region: string): Promise<ProviderList> {
+    this.log.debug(`Fetching providers for region ${region} from TMDB`)
+
+    const [movieResponse, tvResponse] = await Promise.allSettled([
+      fetchProviderList(this.api, 'movie', region),
+      fetchProviderList(this.api, 'tv', region),
+    ])
+
+    if (movieResponse.status === 'rejected') {
+      this.log.warn(
+        { error: movieResponse.reason, region },
+        'Failed to fetch movie providers',
+      )
+    }
+    if (tvResponse.status === 'rejected') {
+      this.log.warn(
+        { error: tvResponse.reason, region },
+        'Failed to fetch TV providers',
+      )
+    }
+
+    if (
+      movieResponse.status === 'rejected' &&
+      tvResponse.status === 'rejected'
+    ) {
+      throw new Error(
+        `Both movie and TV provider fetches failed for region ${region}`,
+      )
+    }
+
+    const allProviders = new Map<number, TmdbWatchProvider>()
+
+    if (movieResponse.status === 'fulfilled') {
+      for (const provider of movieResponse.value) {
+        allProviders.set(provider.provider_id, provider)
+      }
+    }
+
+    if (tvResponse.status === 'fulfilled') {
+      for (const provider of tvResponse.value) {
+        if (!allProviders.has(provider.provider_id)) {
+          allProviders.set(provider.provider_id, provider)
+        }
+      }
+    }
+
+    return {
+      providers: Array.from(allProviders.values()).sort(
+        (a, b) => a.display_priority - b.display_priority,
+      ),
+      complete:
+        movieResponse.status === 'fulfilled' &&
+        tvResponse.status === 'fulfilled',
     }
   }
 

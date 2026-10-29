@@ -1,4 +1,6 @@
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import type { ContentRouterDeps } from '@services/content-router/types.js'
+import { createUserListCache } from '@services/content-router/user-list-cache.js'
 import { createMockLogger } from './logger.js'
 
 type ShallowPartial<T> = { [K in keyof T]?: Partial<T[K]> }
@@ -17,6 +19,7 @@ export function createContentRouterDeps(
     logger: createMockLogger(),
     db: {},
     rules: {},
+    userLists: createUserListCache(new CacheRegistry()),
     radarrManager: {},
     sonarrManager: {},
     approvalService: {},

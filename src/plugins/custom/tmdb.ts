@@ -16,6 +16,6 @@ export default fp(
   },
   {
     name: 'tmdb',
-    dependencies: ['config', 'database', 'radarr-manager'],
+    dependencies: ['caches', 'config', 'database', 'radarr-manager'],
   },
 )

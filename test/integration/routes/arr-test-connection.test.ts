@@ -41,7 +41,7 @@ describe('arr test connection routes', () => {
     for (const arr of ['sonarr', 'radarr'] as const) {
       resetArrWebhookMock(arr, [pulsarrTestWebhook(arr)])
     }
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   const serveArr = (arr: (typeof ARRS)[number]) =>

@@ -70,7 +70,7 @@ describe('watchlist exclusion database methods', () => {
     await seedInstances(knex)
     await seedUsers(knex)
     await seedSystemUser(knex)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   describe('getWatchlistExclusionItems', () => {

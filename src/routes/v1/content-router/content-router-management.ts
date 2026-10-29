@@ -1,6 +1,4 @@
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
-import type { RouterRule } from '@root/types/router.types.js'
-import type { ContentRouterRuleUpdate } from '@schemas/content-router/content-router.schema.js'
 import {
   ContentRouterRuleErrorSchema,
   ContentRouterRuleListResponseSchema,
@@ -10,72 +8,11 @@ import {
   ContentRouterRuleSuccessSchema,
   ContentRouterRuleToggleSchema,
   ContentRouterRuleUpdateSchema,
-  DEFAULT_ROUTE_PRIORITY,
 } from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
-import { rejectedRouterRulePriority } from '@utils/router-rule-priority.js'
-import {
-  invalidSeasonMonitoringMessage,
-  rejectedSeasonMonitoring,
-} from '@utils/season-monitoring.js'
-import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
-
-/**
- * Maps a validated rule payload to its stored shape. PUT is a full replace,
- * so every clearable column gets an explicit value - updateRouterRule skips
- * undefined fields, which would otherwise leave stale values behind.
- */
-function normalizeRulePayload(
-  ruleData: ContentRouterRuleUpdate,
-): Omit<RouterRule, 'id' | 'created_at' | 'updated_at' | 'metadata'> {
-  const excludeFromRouting = ruleData.exclude_from_routing ?? false
-
-  return {
-    name: ruleData.name,
-    type: 'conditional',
-    criteria: {
-      condition: ruleData.condition || {
-        operator: 'AND',
-        conditions: [],
-        negate: false,
-      },
-    },
-    target_type: ruleData.target_type,
-    // Exclude rules never route, so instance-scoped fields are cleared
-    target_instance_id: excludeFromRouting ? null : ruleData.target_instance_id,
-    root_folder: excludeFromRouting ? null : (ruleData.root_folder ?? null),
-    quality_profile: excludeFromRouting
-      ? null
-      : (ruleData.quality_profile ?? null),
-    tags: excludeFromRouting ? [] : ruleData.tags || [],
-    order: ruleData.order ?? DEFAULT_ROUTE_PRIORITY,
-    enabled: ruleData.enabled ?? true,
-    search_on_add: ruleData.search_on_add ?? null,
-    season_monitoring: ruleData.season_monitoring ?? null,
-    series_type: ruleData.series_type ?? null,
-    monitor: ruleData.monitor ?? null,
-    always_require_approval: ruleData.always_require_approval ?? false,
-    bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
-    approval_reason: ruleData.approval_reason ?? null,
-    exclude_from_routing: excludeFromRouting,
-  }
-}
-
-async function targetInstanceExists(
-  db: FastifyInstance['db'],
-  ruleData: ContentRouterRuleUpdate,
-): Promise<boolean> {
-  const id = ruleData.target_instance_id
-  if (id == null) return true
-  const instance =
-    ruleData.target_type === 'radarr'
-      ? await db.getRadarrInstance(id)
-      : await db.getSonarrInstance(id)
-  return instance !== null
-}
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all router rules
@@ -319,38 +256,21 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const rejected = rejectedSeasonMonitoring(
-        request.body.season_monitoring,
-        [],
-      )
-      if (rejected !== undefined) {
-        return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
-      }
       try {
-        if (!(await targetInstanceExists(fastify.db, request.body))) {
-          return reply.badRequest('Target instance does not exist')
-        }
-
-        const order =
-          request.body.order ??
-          (await fastify.db.nextRouterRuleOrder(request.body.target_type))
-        const createdRule = await fastify.db.createRouterRule({
-          ...normalizeRulePayload(request.body),
-          order,
-          metadata: null,
-        })
-
-        fastify.contentRouter.clearRouterRulesCache()
-
-        const formattedRule = formatRule(createdRule)
+        const createdRule = await fastify.contentRouter.createRouterRule(
+          request.body,
+        )
 
         reply.status(201)
         return {
           success: true,
           message: 'Router rule created successfully',
-          rule: formattedRule,
+          rule: formatRule(createdRule),
         }
       } catch (error) {
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to create router rule',
           ruleName: request.body.name,
@@ -384,62 +304,20 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { id } = request.params
-
-        const existingRule = await fastify.db.getRouterRuleById(id)
-        if (!existingRule) {
-          return reply.notFound(`Router rule with ID ${id} not found`)
-        }
-
-        const rejected = rejectedSeasonMonitoring(
-          request.body.season_monitoring,
-          [existingRule.season_monitoring],
+        const updatedRule = await fastify.contentRouter.updateRouterRule(
+          request.params.id,
+          request.body,
         )
-        if (rejected !== undefined) {
-          return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
-        }
-
-        const rejectedPriority = rejectedRouterRulePriority(
-          request.body.order,
-          existingRule.order,
-        )
-        if (rejectedPriority !== undefined) {
-          return reply.badRequest(rejectedPriority)
-        }
-
-        if (!(await targetInstanceExists(fastify.db, request.body))) {
-          return reply.badRequest('Target instance does not exist')
-        }
-
-        const updated = await fastify.db.updateRouterRule(
-          id,
-          normalizeRulePayload(request.body),
-        )
-
-        if (!updated) {
-          return reply.internalServerError(
-            `Failed to update router rule with ID ${id}`,
-          )
-        }
-
-        const updatedRule = await fastify.db.getRouterRuleById(id)
-
-        if (!updatedRule) {
-          return reply.internalServerError(
-            `Failed to retrieve updated router rule with ID ${id}`,
-          )
-        }
-
-        fastify.contentRouter.clearRouterRulesCache()
-
-        const formattedRule = formatRule(updatedRule)
 
         return {
           success: true,
           message: 'Router rule updated successfully',
-          rule: formattedRule,
+          rule: formatRule(updatedRule),
         }
       } catch (error) {
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to update router rule',
           ruleId: request.params.id,
@@ -470,28 +348,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { id } = request.params
-
-        const existingRule = await fastify.db.getRouterRuleById(id)
-        if (!existingRule) {
-          return reply.notFound(`Router rule with ID ${id} not found`)
-        }
-
-        const deleted = await fastify.db.deleteRouterRule(id)
-
-        if (!deleted) {
-          return reply.internalServerError(
-            `Failed to delete router rule with ID ${id}`,
-          )
-        }
-
-        fastify.contentRouter.clearRouterRulesCache()
+        await fastify.contentRouter.deleteRouterRule(request.params.id)
 
         return {
           success: true,
           message: 'Router rule deleted successfully',
         }
       } catch (error) {
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to delete router rule',
           ruleId: request.params.id,
@@ -523,29 +389,18 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { id } = request.params
         const { enabled } = request.body
 
-        const existingRule = await fastify.db.getRouterRuleById(id)
-        if (!existingRule) {
-          return reply.notFound(`Router rule with ID ${id} not found`)
-        }
-
-        const updated = await fastify.db.toggleRouterRule(id, enabled)
-
-        if (!updated) {
-          return reply.internalServerError(
-            `Failed to toggle router rule with ID ${id}`,
-          )
-        }
-
-        fastify.contentRouter.clearRouterRulesCache()
+        await fastify.contentRouter.toggleRouterRule(request.params.id, enabled)
 
         return {
           success: true,
           message: `Router rule ${enabled ? 'enabled' : 'disabled'} successfully`,
         }
       } catch (error) {
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to toggle router rule',
           ruleId: request.params.id,
@@ -575,30 +430,19 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { orders } = request.body
-
-        const existingIds = new Set(
-          (await fastify.db.getAllRouterRules()).map((rule) => rule.id),
+        const rules = await fastify.contentRouter.reorderRouterRules(
+          request.body.orders,
         )
-        const missing = orders.find(({ id }) => !existingIds.has(id))
-        if (missing) {
-          return reply.notFound(`Router rule with ID ${missing.id} not found`)
-        }
-
-        await fastify.db.setRouterRuleOrders(orders)
-
-        fastify.contentRouter.clearRouterRulesCache()
-
-        const rules = await fastify.db.getAllRouterRules()
-
-        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
           message: 'Router rules reordered successfully',
-          rules: formattedRules,
+          rules: rules.map((rule) => formatRule(rule)),
         }
       } catch (error) {
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to reorder router rules',
         })

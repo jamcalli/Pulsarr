@@ -1,4 +1,5 @@
 import type { ConfigUpdate } from '@root/schemas/config/config.schema.js'
+import type { User } from '@root/types/config.types.js'
 import type {
   EtagUserInfo,
   Friend,
@@ -21,10 +22,12 @@ import type {
   PlexUntrackedUser,
   UserStatusResponse,
 } from '@schemas/plex/user-status.schema.js'
+import type { UpdateUser } from '@schemas/users/users.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { indexPlexUsersByUuid } from '@utils/plex-avatar.js'
 import { createRunRecord, type RunStatus } from '@utils/run-record.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { LRUCache } from 'lru-cache'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import { type PlexPingResult, pingPlex } from './plex-watchlist/api/client.js'
 import { assertPlexTokensAccepted } from './plex-watchlist/api/token-check.js'
@@ -79,6 +82,12 @@ import {
   type FriendUsersDeps,
 } from './plex-watchlist/users/friend-users.js'
 import { ensureTokenUsers } from './plex-watchlist/users/token-users.js'
+import {
+  type BulkUserUpdateResult,
+  bulkUpdateUsers,
+  type UserUpdateDeps,
+  updateUser,
+} from './plex-watchlist/users/user-updates.js'
 
 type WatchlistSyncResult = ReturnType<typeof buildResponse>
 
@@ -92,6 +101,13 @@ type WatchlistSyncStatus = Omit<RunStatus<WatchlistSyncCounts>, 'result'> & {
 }
 
 export const USER_STATUS_CACHE_MS = 60_000
+
+const CLASSIFIED_USERS_KEY = 'classified-users'
+
+interface Classification {
+  result: UserStatusResponse
+  complete: boolean
+}
 
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger
@@ -107,10 +123,10 @@ export class PlexWatchlistService {
     WatchlistSyncType,
     WatchlistSyncProgress
   >()
-  private classifiedUsersCache: {
-    fetchedAt: number
-    result: UserStatusResponse
-  } | null = null
+  private readonly classifiedUsers: LRUCache<
+    typeof CLASSIFIED_USERS_KEY,
+    Classification
+  >
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -119,6 +135,16 @@ export class PlexWatchlistService {
     private readonly plexLabelSyncService?: PlexLabelSyncService,
   ) {
     this.log = createServiceLogger(baseLog, 'PLEX_WATCHLIST')
+    this.classifiedUsers = fastify.caches.create({
+      max: 1,
+      ttl: USER_STATUS_CACHE_MS,
+      // An incomplete classification outsizes maxEntrySize, so it answers its callers but is never stored
+      maxEntrySize: 1,
+      sizeCalculation: ({ complete }) => (complete ? 1 : 2),
+      // A clear mid-classification still answers its waiting callers but is not written back
+      ignoreFetchAbort: true,
+      fetchMethod: () => this.classifyUsers(),
+    })
   }
 
   private get config() {
@@ -523,7 +549,7 @@ export class PlexWatchlistService {
   ): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
     const result = await ensureFriendUsers(friends, this.userDeps)
     if (result.added.length > 0) {
-      this.clearClassifiedUsersCache()
+      this.clearFriendCaches(result.added)
     }
     return result
   }
@@ -552,7 +578,7 @@ export class PlexWatchlistService {
   async sendFriendRequest(uuid: string): Promise<{ success: boolean }> {
     const result = await sendFriendRequest(this.config, this.log, uuid)
     if (result.success) {
-      this.clearClassifiedUsersCache()
+      this.clearFriendCaches()
     }
     return result
   }
@@ -560,13 +586,54 @@ export class PlexWatchlistService {
   async cancelFriendRequest(uuid: string): Promise<{ success: boolean }> {
     const result = await cancelFriendRequest(this.config, this.log, uuid)
     if (result.success) {
-      this.clearClassifiedUsersCache()
+      this.clearFriendCaches()
     }
     return result
   }
 
   clearClassifiedUsersCache(): void {
-    this.classifiedUsersCache = null
+    this.classifiedUsers.clear()
+  }
+
+  /** A request carries no known user, so only changed friends drop their token and Plex lists. */
+  private clearFriendCaches(changed: readonly EtagUserInfo[] = []): void {
+    this.clearClassifiedUsersCache()
+    this.fastify.plexServerService.clearFriendCaches()
+    for (const { userId, username } of changed) {
+      this.fastify.plexServerService.clearUserToken(username)
+      this.fastify.contentRouter.clearUserLists(userId)
+    }
+  }
+
+  private get userUpdateDeps(): UserUpdateDeps {
+    return {
+      db: this.dbService,
+      logger: this.log,
+      httpErrors: this.fastify.httpErrors,
+      onUpdated: (userIds) => {
+        for (const userId of userIds) {
+          this.fastify.contentRouter.clearUserLists(userId)
+        }
+      },
+    }
+  }
+
+  /** Throws 404 for an unknown user and 409 when the new name is taken. */
+  async updateUser(
+    userId: number,
+    updates: UpdateUser,
+  ): Promise<User & FriendStatusFields> {
+    const updated = await updateUser(userId, updates, this.userUpdateDeps)
+    const [user] = await this.withFriendStatus([updated])
+    if (!user) throw new Error('Failed to attach friend status')
+    return user
+  }
+
+  bulkUpdateUsers(
+    userIds: number[],
+    updates: UpdateUser,
+  ): Promise<BulkUserUpdateResult> {
+    return bulkUpdateUsers(userIds, updates, this.userUpdateDeps)
   }
 
   async withFriendStatus<
@@ -576,21 +643,10 @@ export class PlexWatchlistService {
   }
 
   async getClassifiedUsers(): Promise<UserStatusResponse> {
-    const cached = this.classifiedUsersCache
-    if (cached && Date.now() - cached.fetchedAt < USER_STATUS_CACHE_MS) {
-      return cached.result
-    }
-    const { result, complete } = await this.classifyUsers()
-    if (complete) {
-      this.classifiedUsersCache = { fetchedAt: Date.now(), result }
-    }
-    return result
+    return (await this.classifiedUsers.forceFetch(CLASSIFIED_USERS_KEY)).result
   }
 
-  private async classifyUsers(): Promise<{
-    result: UserStatusResponse
-    complete: boolean
-  }> {
+  private async classifyUsers(): Promise<Classification> {
     const [friendsResult, serverUsers, friendRequests, dbUsers] =
       await Promise.all([
         getFriends(this.config, this.log),
@@ -747,7 +803,7 @@ export class PlexWatchlistService {
   ): Promise<EtagUserInfo[]> {
     const removed = await checkForRemovedFriends(currentFriends, this.userDeps)
     if (removed.length > 0) {
-      this.clearClassifiedUsersCache()
+      this.clearFriendCaches(removed)
     }
     return removed
   }

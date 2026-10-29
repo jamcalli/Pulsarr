@@ -205,7 +205,7 @@ describe('routeMovie with an approval record as the truth', () => {
     await insertRadarrInstance(2)
     await seedComedyRule(50, 1)
     await seedComedyRule(51, 2)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
 
     routeItemToRadarr = vi.fn(echoAppliedRadarr())
     fastify.radarrManager.routeItemToRadarr =
@@ -505,7 +505,7 @@ describe('routeShow with an approval record as the truth', () => {
     await seedUsers(knex)
     await seedInstances(knex)
     await insertSonarrInstance(2)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
 
     routeItemToSonarr = vi.fn(echoAppliedSonarr())
     fastify.sonarrManager.routeItemToSonarr =
@@ -686,7 +686,7 @@ describe.each(churnCases)(
       await seedConfig(knex)
       await seedUsers(knex)
       await seedInstances(knex)
-      fastify.contentRouter.clearRouterRulesCache()
+      fastify.caches.clear()
 
       fastify.notifications.sendWatchlistCapReached = vi.fn()
       emit = vi.spyOn(fastify.progress, 'emit')

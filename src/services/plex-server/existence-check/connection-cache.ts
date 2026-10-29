@@ -3,9 +3,9 @@
  *
  * Provides functions for caching and managing Plex server connections.
  * Uses lightweight /identity endpoint to test connections with fast timeouts.
- * All functions are pure and receive cache state as parameters.
  */
 
+import type { CacheRegistry } from '@services/cache-registry.service.js'
 import {
   classifyProbeError,
   httpFailureOutcome,
@@ -16,12 +16,15 @@ import {
 } from '@services/plex-server/connection/probe-result.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
+import type { LRUCache } from 'lru-cache'
 
-/** Cached connection entry with TTL tracking */
+export const SERVER_CONNECTION_CACHE_TTL_MS = 30 * 60 * 1000
+
+const SERVER_CONNECTION_CACHE_MAX = 100
+
 export interface CachedConnection {
   uri: string
   accessToken: string
-  timestamp: number
   serverName: string
 }
 
@@ -38,48 +41,26 @@ export interface ConnectionCandidate {
   relay: boolean
 }
 
-/** Dependencies for connection cache operations */
-export interface ConnectionCacheDeps {
-  logger: FastifyBaseLogger
-  connectionCacheTtl: number
-  deadServerBackoff: number
+export interface ServerConnectionRequest {
+  serverName: string
+  connections: ConnectionCandidate[]
+  accessToken: string
 }
 
-/**
- * Checks if a server is in dead server backoff period.
- *
- * @param serverClientId - Unique identifier for the server
- * @param deadServerCache - Map of server IDs to death timestamps
- * @param backoffMs - Backoff period in milliseconds
- * @returns true if server is in backoff period
- */
-export function isServerInBackoff(
+/** Keyed by server client id. A server with no working connection is never stored. */
+export type ServerConnectionCache = LRUCache<
+  string,
+  CachedConnection,
+  ServerConnectionRequest
+>
+
+function isServerInBackoff(
   serverClientId: string,
   deadServerCache: Map<string, number>,
   backoffMs: number,
 ): boolean {
   const deadSince = deadServerCache.get(serverClientId)
   return deadSince !== undefined && Date.now() - deadSince < backoffMs
-}
-
-/**
- * Gets a cached connection if valid (not expired).
- *
- * @param serverClientId - Unique identifier for the server
- * @param connectionCache - Map of server IDs to cached connections
- * @param ttlMs - Cache TTL in milliseconds
- * @returns Cached connection result or null if expired/missing
- */
-export function getCachedConnection(
-  serverClientId: string,
-  connectionCache: Map<string, CachedConnection>,
-  ttlMs: number,
-): ConnectionResult | null {
-  const cached = connectionCache.get(serverClientId)
-  if (cached && Date.now() - cached.timestamp < ttlMs) {
-    return { uri: cached.uri, accessToken: cached.accessToken }
-  }
-  return null
 }
 
 export const PLEX_PROBE_TIMEOUT_MS = 2000
@@ -208,95 +189,80 @@ async function testConnections(
   })
 }
 
-/**
- * Gets the best working connection for a server, with caching and failover.
- * Uses lightweight /identity endpoint to test connections with 2s timeout.
- *
- * @param serverClientId - Unique identifier for the server
- * @param serverName - Human-readable server name for logging
- * @param connections - Array of available connections to test
- * @param accessToken - Token to use for authentication
- * @param connectionCache - Map to store cached connections
- * @param deadServerCache - Map to track dead servers for backoff
- * @param deps - Service dependencies (logger, TTL config)
- * @returns The best working connection or null if all fail
- */
-export async function getBestServerConnection(
+async function selectBestConnection(
   serverClientId: string,
-  serverName: string,
-  connections: ConnectionCandidate[],
-  accessToken: string,
-  connectionCache: Map<string, CachedConnection>,
+  { serverName, connections, accessToken }: ServerConnectionRequest,
   deadServerCache: Map<string, number>,
-  deps: ConnectionCacheDeps,
-): Promise<ConnectionResult | null> {
-  const { logger, connectionCacheTtl, deadServerBackoff } = deps
-
-  // Check dead server backoff first
-  if (isServerInBackoff(serverClientId, deadServerCache, deadServerBackoff)) {
-    logger.debug(`Skipping server "${serverName}" (in backoff period)`)
-    return null
-  }
-
-  // Check cache
-  const cached = getCachedConnection(
-    serverClientId,
-    connectionCache,
-    connectionCacheTtl,
-  )
-  if (cached) {
-    logger.debug(`Using cached connection for server "${serverName}"`)
-    return cached
-  }
-
-  // Test connections in parallel using lightweight /identity endpoint
+  logger: FastifyBaseLogger,
+): Promise<CachedConnection | undefined> {
   logger.debug(
     `Testing ${connections.length} connections for server "${serverName}"`,
   )
 
   const workingConnections = await testConnections(connections, logger)
-
-  if (workingConnections.length === 0) {
-    logger.warn(`No working connections found for server "${serverName}"`)
-    // Mark server as dead for backoff
-    deadServerCache.set(serverClientId, Date.now())
-    return null
-  }
-
-  // Clear any dead server status
-  deadServerCache.delete(serverClientId)
-
   const bestConnection = workingConnections[0]
 
-  // Cache the result
-  connectionCache.set(serverClientId, {
-    uri: bestConnection.uri,
-    accessToken,
-    timestamp: Date.now(),
-    serverName,
-  })
+  if (!bestConnection) {
+    logger.warn(`No working connections found for server "${serverName}"`)
+    deadServerCache.set(serverClientId, Date.now())
+    return undefined
+  }
 
+  deadServerCache.delete(serverClientId)
   logger.debug(
     `Selected best connection for server "${serverName}": ${bestConnection.uri}`,
   )
-
-  return { uri: bestConnection.uri, accessToken }
+  return { uri: bestConnection.uri, accessToken, serverName }
 }
 
-/**
- * Invalidates a cached connection (called on connection failure).
- * This allows the next request to re-test connections and select a new one.
- *
- * @param serverClientId - The server identifier to invalidate
- * @param connectionCache - Map of cached connections
- * @param logger - Logger instance
- */
+/** Shares one probe per server, and marks a server with no working connection in deadServerCache. */
+export function createServerConnectionCache(
+  registry: CacheRegistry,
+  deadServerCache: Map<string, number>,
+  logger: FastifyBaseLogger,
+): ServerConnectionCache {
+  return registry.create({
+    max: SERVER_CONNECTION_CACHE_MAX,
+    ttl: SERVER_CONNECTION_CACHE_TTL_MS,
+    // A clear mid-probe still answers its waiting callers but is not written back
+    ignoreFetchAbort: true,
+    fetchMethod: (serverClientId, _stale, { context }) =>
+      selectBestConnection(serverClientId, context, deadServerCache, logger),
+  })
+}
+
+/** The best working connection for a server, or null while it is in dead-server backoff or when every connection fails. */
+export async function getBestServerConnection(
+  serverClientId: string,
+  request: ServerConnectionRequest,
+  connectionCache: ServerConnectionCache,
+  deadServerCache: Map<string, number>,
+  deps: { logger: FastifyBaseLogger; deadServerBackoff: number },
+): Promise<ConnectionResult | null> {
+  if (
+    isServerInBackoff(serverClientId, deadServerCache, deps.deadServerBackoff)
+  ) {
+    deps.logger.debug(
+      `Skipping server "${request.serverName}" (in backoff period)`,
+    )
+    return null
+  }
+
+  const connection = await connectionCache.fetch(serverClientId, {
+    context: request,
+  })
+  return connection
+    ? { uri: connection.uri, accessToken: connection.accessToken }
+    : null
+}
+
+/** Drops a server's cached connection so the next lookup probes again. */
 export function invalidateServerConnection(
   serverClientId: string,
-  connectionCache: Map<string, CachedConnection>,
+  connectionCache: ServerConnectionCache,
   logger: FastifyBaseLogger,
 ): void {
-  const cached = connectionCache.get(serverClientId)
+  const cached = connectionCache.peek(serverClientId)
   if (cached) {
     logger.warn(
       `Invalidating cached connection for server "${cached.serverName}"`,

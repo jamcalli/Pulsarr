@@ -60,7 +60,7 @@ describe('analytics database methods', () => {
     await seedConfig(knex)
     await seedInstances(knex)
     await seedUsers(knex)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   describe('getRequestToReadyTimes', () => {
