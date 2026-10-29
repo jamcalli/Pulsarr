@@ -24,7 +24,7 @@ Restart Pulsarr after changing `.env`. Values marked JSON take one line of JSON,
 | `enableRequestLogging` | `false` | Log every HTTP request. |
 | `rateLimitMax` | `500` | Requests allowed per client per minute. Sign-in and account routes have their own smaller fixed limit this does not change. |
 | `closeGraceDelay` | `10000` | Milliseconds to wait for work to finish on shutdown. |
-| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. Removes the `X-Frame-Options` header, which otherwise allows framing only from the same origin. |
+| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. Removes the `X-Frame-Options` header, which otherwise allows framing only from the same origin. Embedding from a different domain asks visitors to sign in inside the frame, because browsers do not send the session cookie across sites. |
 
 ## Database
 
@@ -55,15 +55,17 @@ To set up PostgreSQL or move to it from SQLite, see [PostgreSQL](/installation/p
 
 Pulsarr generates the secrets on first start and stores them, so they stay the same across restarts. Set them in `.env` only if you need fixed values.
 
-For `requiredExceptLocal`, local means loopback, the private IPv4 ranges `10.0.0.0/8`, `172.16.0.0/12` and `192.168.0.0/16`, IPv4 link-local `169.254.0.0/16`, and IPv6 unique local `fc00::/7` and link-local `fe80::/10`.
+Browser pages on other sites can read nothing from Pulsarr and cannot change anything unless their origin is in `allowedOrigins`. Scripts and apps using an API key, and webhooks, are not affected.
 
-The local rule does not apply to a request forwarded with `X-Forwarded-For` by a proxy outside these ranges.
+For `requiredExceptLocal`, local means loopback, the private IPv4 ranges `10.0.0.0/8`, `172.16.0.0/12` and `192.168.0.0/16`, IPv4 link-local `169.254.0.0/16`, and IPv6 unique local `fc00::/7` and link-local `fe80::/10`.
 
 ## Reverse proxy
 
-The proxy must pass the path through unchanged, `basePath` prefix included.
+The proxy must pass the path through unchanged, `basePath` prefix included, and keep the original `Host` header or send `X-Forwarded-Host`.
 
-Pulsarr trusts forwarded headers only from loopback, link-local and private addresses. The proxy must send `X-Forwarded-For`, or every visitor shares the proxy's address and trips the per-IP rate limits together. Traefik, Caddy and Nginx Proxy Manager send it by default. Plain nginx needs `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+Pulsarr trusts forwarded headers only from loopback, link-local and private addresses. The proxy must send `X-Forwarded-For`, or every visitor shares the proxy's address and trips the per-IP rate limits together. Traefik, Caddy and Nginx Proxy Manager handle both headers by default. Plain nginx needs `proxy_set_header Host $host;` and `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+
+With `allowedHosts` set, list the hostname the proxy serves and any name Sonarr, Radarr or Maintainerr use to reach Pulsarr directly, such as its container name.
 
 :::warning
 With `requiredExceptLocal`, a proxy on a private address that doesn't send `X-Forwarded-For` makes every request look local, so nobody is asked to sign in.

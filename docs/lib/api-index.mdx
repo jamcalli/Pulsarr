@@ -7,7 +7,7 @@ Every route the web UI uses is part of the API. Your Pulsarr serves an interacti
 
 ## Authentication
 
-Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. A signed-in browser session also works. A request body that fails validation returns a 400 with the reason.
+Create a key under [API keys](/system/api-keys) and send it in the `X-API-Key` header. A signed-in browser session also works. Calls from another website's browser page also need that site listed in [`allowedOrigins`](/installation/environment-variables#security). A request body that fails validation returns a 400 with the reason.
 
 ```bash
 curl -H "X-API-Key: <your-key>" http://<your-server>:3003/v1/approval/requests
