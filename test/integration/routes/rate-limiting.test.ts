@@ -4,8 +4,7 @@ import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedConfig } from '../../helpers/seeds/config.js'
 
-// Cases use distinct IPs because the limiter keys on req.ip and its store
-// lives for the lifetime of the app instance
+// The limiter keys on req.ip and its store lives as long as the app, so each case gets its own IP
 const hit = (
   app: FastifyInstance,
   url: string,
@@ -36,8 +35,6 @@ const ADMIN = {
   password: 'sup3rsecret',
 }
 
-// A real cookie session, not the auth-disabled bypass: bypass builds its session
-// inside autohooks, which never runs for unmatched paths
 let signInCount = 0
 const signIn = async (app: FastifyInstance) => {
   signInCount += 1
@@ -66,6 +63,9 @@ describe('Rate limiting', () => {
 
   beforeAll(async () => {
     app = await build()
+    // Same route templates the production asset server registers
+    app.get('/assets/*', async () => 'asset')
+    app.get('/favicon.ico', async () => 'icon')
     await app.ready()
   })
 
@@ -77,13 +77,11 @@ describe('Rate limiting', () => {
     const knex = getTestDatabase()
     await resetDatabase()
     await seedConfig(knex)
-    // Rate limiting only applies to unauthenticated traffic, so auth must be on
+    // Auth must be on or anonymous requests never reach the 401 path these cases count
     app.config.authenticationMethod = 'required'
   })
 
   describe('unauthenticated /v1 requests', () => {
-    // Replying 401 from the auth hook skips the route-level limiter, so these
-    // requests used to be counted by nothing at all
     it('counts failed auth against the configured global limit', async () => {
       const max = String(app.config.rateLimitMax)
       const first = await hit(app, '/v1/config', '10.10.0.1')
@@ -107,8 +105,6 @@ describe('Rate limiting', () => {
       )
     })
 
-    // The invalid-key limiter runs inside the API-key catch block, a different
-    // path than the session rejection - its 429 must still supersede the 401
     it('returns 429 over 401 on the invalid API key path', async () => {
       const codes = await statusesFor(
         app,
@@ -202,8 +198,7 @@ describe('Rate limiting', () => {
       expect(codes[6]).toBe(429)
     })
 
-    // Only reachable once authenticated, so the tighter bucket only applies
-    // there - an anonymous caller is rejected by the auth hook first
+    // An anonymous caller is rejected by the auth hook before this bucket applies
     it('limits password changes after 5 attempts', async () => {
       const cookie = await signIn(app)
       const codes = await statusesFor(
@@ -279,9 +274,7 @@ describe('Rate limiting', () => {
   })
 
   describe('unmatched paths', () => {
-    // GET falls through the SPA catch-all, which is a real route and so is
-    // already counted by the global limiter. Only non-GET reaches the
-    // not-found handler's own preHandler.
+    // GET matches the SPA catch-all, so only non-GET reaches the not-found handler's limiter
     it('limits 404 probing after 10 attempts', async () => {
       const codes = await statusesFor(
         app,
@@ -296,10 +289,30 @@ describe('Rate limiting', () => {
       expect(codes[11]).toBe(429)
     })
 
-    it('rejects unmatched /v1 paths as unauthenticated, not 404', async () => {
+    it('returns 404 for unmatched /v1 paths', async () => {
       const res = await hit(app, '/v1/no-such-route', '10.10.0.8')
 
-      expect(res.statusCode).toBe(401)
+      expect(res.statusCode).toBe(404)
+    })
+  })
+
+  describe('static files', () => {
+    it.each(['/assets/index-abc123.js', '/favicon.ico'])(
+      'skips the limiter for %s',
+      async (url) => {
+        const res = await hit(app, url, '10.12.0.1')
+
+        expect(res.statusCode).toBe(200)
+        expect(res.headers['x-ratelimit-limit']).toBeUndefined()
+      },
+    )
+
+    it('still limits API routes from the same address', async () => {
+      const res = await hit(app, '/v1/config', '10.12.0.1')
+
+      expect(res.headers['x-ratelimit-limit']).toBe(
+        String(app.config.rateLimitMax),
+      )
     })
   })
 
