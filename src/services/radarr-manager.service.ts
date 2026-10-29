@@ -2,6 +2,7 @@ import { placeholderRadarrInstance } from '@root/schemas/common/arr-placeholder.
 import type {
   RadarrInstance,
   Item as RadarrItem,
+  RadarrMovie,
 } from '@root/types/radarr.types.js'
 import type {
   AppliedRadarrRouting,
@@ -20,6 +21,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class RadarrManagerService extends ArrManager<
   RadarrInstance,
+  RadarrMovie,
   RadarrService,
   RadarrItem,
   RadarrRouteSettings,
@@ -41,7 +43,13 @@ export class RadarrManagerService extends ArrManager<
   }
 
   protected createService(appBaseUrl: string, port: number): RadarrService {
-    return new RadarrService(this.baseLog, appBaseUrl, port, this.fastify)
+    return new RadarrService(
+      this.baseLog,
+      appBaseUrl,
+      port,
+      this.fastify,
+      this.caches,
+    )
   }
 
   protected placeholder(): Omit<RadarrInstance, 'id'> {

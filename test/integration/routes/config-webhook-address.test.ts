@@ -3,6 +3,8 @@ import type {
   ConfigConflict,
   ConfigResponse,
 } from '@root/schemas/config/config.schema.js'
+import { createArrCaches } from '@services/arr/arr-caches.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -38,8 +40,20 @@ describe('PUT /v1/config webhook address gate', () => {
     baseUrl = app.config.baseUrl,
   ) =>
     (arr === 'radarr'
-      ? new RadarrService(app.log, baseUrl, app.config.port, app)
-      : new SonarrService(app.log, baseUrl, app.config.port, app)
+      ? new RadarrService(
+          app.log,
+          baseUrl,
+          app.config.port,
+          app,
+          createArrCaches(new CacheRegistry()),
+        )
+      : new SonarrService(
+          app.log,
+          baseUrl,
+          app.config.port,
+          app,
+          createArrCaches(new CacheRegistry()),
+        )
     ).getWebhookName()
 
   const putConfig = (payload: Record<string, string | number | boolean>) =>

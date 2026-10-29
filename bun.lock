@@ -30,6 +30,7 @@
         "fastify-zod-openapi": "^5.5.0",
         "ipaddr.js": "^2.1.0",
         "knex": "^3.1.0",
+        "lru-cache": "^11.5.3",
         "p-limit": "^7.1.0",
         "pg": "^8.16.0",
         "pino": "^10.1.0",

@@ -14,9 +14,10 @@ import type {
 } from '@root/types/radarr.types.js'
 import type { ArrAddedSettings } from '@root/types/router.types.js'
 import {
-  ArrExclusionIds,
+  type ArrCaches,
   type ArrExclusions,
-} from '@services/arr/arr-exclusion-ids.js'
+  readArrCache,
+} from '@services/arr/arr-caches.js'
 import { RADARR } from '@services/arr/arr-product.js'
 import {
   resolveQualityProfileId,
@@ -35,17 +36,15 @@ const MOVIE_LIBRARY_ENDPOINT = 'movie?excludeLocalCovers=true'
 
 export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
   private config: RadarrConfiguration | null = null
-  private readonly exclusions = new ArrExclusionIds(() =>
-    this.fetchExclusions(),
-  )
 
   constructor(
     baseLog: FastifyBaseLogger,
     appBaseUrl: string,
     port: number,
     fastify: FastifyInstance,
+    private readonly caches: ArrCaches<RadarrMovie, Item>,
   ) {
-    super(RADARR, baseLog, appBaseUrl, port, fastify)
+    super(RADARR, baseLog, appBaseUrl, port, fastify, caches)
   }
 
   protected applyInstance(instance: RadarrInstance): void {
@@ -84,9 +83,24 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
     }
   }
 
+  private readLibrary(): Promise<RadarrMovie[]> {
+    return readArrCache(
+      this.caches.library,
+      this.context,
+      () => this.client.get<RadarrMovie[]>(MOVIE_LIBRARY_ENDPOINT),
+      { fresh: true },
+    )
+  }
+
+  private readExclusions(): Promise<ArrExclusions<Item>> {
+    return readArrCache(this.caches.exclusions, this.context, () =>
+      this.fetchExclusions(),
+    )
+  }
+
   async getAllMovies(): Promise<RadarrMovie[]> {
     try {
-      return await this.client.get<RadarrMovie[]>(MOVIE_LIBRARY_ENDPOINT)
+      return await this.readLibrary()
     } catch (error) {
       this.log.error({ error }, 'Error fetching all movies:')
       throw error
@@ -95,10 +109,8 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
 
   async fetchMovies(bypass = false): Promise<Set<Item>> {
     try {
-      const movies = await this.client.get<RadarrMovie[]>(
-        MOVIE_LIBRARY_ENDPOINT,
-      )
-      const exclusions = bypass ? [] : await this.exclusions.items()
+      const movies = await this.readLibrary()
+      const exclusions = bypass ? [] : (await this.readExclusions()).items
       return new Set([
         ...movies.map((movie) => this.toItem(movie)),
         ...exclusions.map((item) => ({ ...item, isExclusion: true })),
@@ -109,8 +121,8 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
     }
   }
 
-  isTmdbIdExcluded(tmdbId: number): Promise<boolean> {
-    return this.exclusions.has(tmdbId)
+  async isTmdbIdExcluded(tmdbId: number): Promise<boolean> {
+    return (await this.readExclusions()).ids.has(tmdbId)
   }
 
   private async fetchExclusions(): Promise<ArrExclusions<Item>> {

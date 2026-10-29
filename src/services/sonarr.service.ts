@@ -12,9 +12,10 @@ import type {
   SonarrTagDetail,
 } from '@root/types/sonarr.types.js'
 import {
-  ArrExclusionIds,
+  type ArrCaches,
   type ArrExclusions,
-} from '@services/arr/arr-exclusion-ids.js'
+  readArrCache,
+} from '@services/arr/arr-caches.js'
 import { SONARR } from '@services/arr/arr-product.js'
 import {
   resolveQualityProfileId,
@@ -31,17 +32,15 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
   private config: SonarrConfiguration | null = null
-  private readonly exclusions = new ArrExclusionIds(() =>
-    this.fetchExclusions(),
-  )
 
   constructor(
     baseLog: FastifyBaseLogger,
     appBaseUrl: string,
     port: number,
     fastify: FastifyInstance,
+    private readonly caches: ArrCaches<SonarrSeries, Item>,
   ) {
-    super(SONARR, baseLog, appBaseUrl, port, fastify)
+    super(SONARR, baseLog, appBaseUrl, port, fastify, caches)
   }
 
   protected applyInstance(instance: SonarrInstance): void {
@@ -89,10 +88,25 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
+  private readLibrary(): Promise<SonarrSeries[]> {
+    return readArrCache(
+      this.caches.library,
+      this.context,
+      () => this.client.get<SonarrSeries[]>('series'),
+      { fresh: true },
+    )
+  }
+
+  private readExclusions(): Promise<ArrExclusions<Item>> {
+    return readArrCache(this.caches.exclusions, this.context, () =>
+      this.fetchExclusions(),
+    )
+  }
+
   async fetchSeries(bypass = false): Promise<Set<Item>> {
     try {
-      const shows = await this.client.get<SonarrSeries[]>('series')
-      const exclusions = bypass ? [] : await this.exclusions.items()
+      const shows = await this.readLibrary()
+      const exclusions = bypass ? [] : (await this.readExclusions()).items
       return new Set([
         ...shows.map((show) => this.toItem(show)),
         ...exclusions.map((item) => ({ ...item, isExclusion: true })),
@@ -123,8 +137,8 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  isTvdbIdExcluded(tvdbId: number): Promise<boolean> {
-    return this.exclusions.has(tvdbId)
+  async isTvdbIdExcluded(tvdbId: number): Promise<boolean> {
+    return (await this.readExclusions()).ids.has(tvdbId)
   }
 
   private async fetchExclusions(): Promise<ArrExclusions<Item>> {
@@ -316,7 +330,7 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
    */
   async getAllSeries(): Promise<SonarrSeries[]> {
     try {
-      return await this.client.get<SonarrSeries[]>('series')
+      return await this.readLibrary()
     } catch (error) {
       this.log.error({ error }, 'Error fetching all series:')
       throw error

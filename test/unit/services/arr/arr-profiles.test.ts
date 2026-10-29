@@ -1,13 +1,17 @@
+import {
+  type ArrInstanceContext,
+  createArrCaches,
+} from '@services/arr/arr-caches.js'
 import { ArrClient } from '@services/arr/arr-client.js'
-import type { ArrInstanceContext } from '@services/arr/arr-instance-cache.js'
 import { RADARR, SONARR } from '@services/arr/arr-product.js'
 import {
   ArrQualityProfiles,
   resolveQualityProfileId,
   resolveRootFolder,
 } from '@services/arr/arr-profiles.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
@@ -34,29 +38,28 @@ function context(appName: string): ArrInstanceContext {
 
 describe.each([SONARR, RADARR])('$appName quality profiles', ({ appName }) => {
   it('caches profiles for the TTL and keeps them when a refresh fails', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    try {
-      let calls = 0
-      server.use(
-        http.get(`${BASE}/qualityprofile`, () => {
-          calls++
-          return calls === 1
-            ? HttpResponse.json(PROFILES)
-            : new HttpResponse(null, { status: 500 })
-        }),
-      )
-      const profiles = new ArrQualityProfiles(context(appName))
+    let now = 1
+    let calls = 0
+    server.use(
+      http.get(`${BASE}/qualityprofile`, () => {
+        calls++
+        return calls === 1
+          ? HttpResponse.json(PROFILES)
+          : new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const profiles = new ArrQualityProfiles(
+      context(appName),
+      createArrCaches(new CacheRegistry({ now: () => now })).qualityProfiles,
+    )
 
-      await profiles.list()
-      await profiles.list()
-      expect(calls).toBe(1)
+    await profiles.list()
+    await profiles.list()
+    expect(calls).toBe(1)
 
-      vi.advanceTimersByTime(30_001)
-      await expect(profiles.list()).resolves.toEqual(PROFILES)
-      expect(calls).toBe(2)
-    } finally {
-      vi.useRealTimers()
-    }
+    now += 30_001
+    await expect(profiles.list()).resolves.toEqual(PROFILES)
+    expect(calls).toBe(2)
   })
 
   it.each([

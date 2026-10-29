@@ -1,5 +1,7 @@
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import { createArrCaches } from '@services/arr/arr-caches.js'
 import { RADARR, SONARR } from '@services/arr/arr-product.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -12,7 +14,8 @@ interface Subject {
   existsInLibrary(id: number): Promise<ExistenceCheckResult>
   findIdInLibrary(id: number): Promise<number | undefined>
   deleteByExternalId(id: number): Promise<void>
-  fetchLibrary(): Promise<number>
+  fetchLibrary(bypass?: boolean): Promise<number>
+  getAll(): Promise<number>
   isExcluded(id: number): Promise<boolean>
 }
 
@@ -30,6 +33,7 @@ async function sonarr(): Promise<Subject> {
     'http://localhost',
     3003,
     {} as FastifyInstance,
+    createArrCaches(new CacheRegistry()),
   )
   await service.initialize({
     ...BASE_INSTANCE,
@@ -46,7 +50,9 @@ async function sonarr(): Promise<Subject> {
         { title: 'Show', type: 'show', guids: [`tvdb:${id}`] },
         false,
       ),
-    fetchLibrary: async () => (await service.fetchSeries(false)).size,
+    fetchLibrary: async (bypass = false) =>
+      (await service.fetchSeries(bypass)).size,
+    getAll: async () => (await service.getAllSeries()).length,
     isExcluded: (id) => service.isTvdbIdExcluded(id),
   }
 }
@@ -57,6 +63,7 @@ async function radarr(): Promise<Subject> {
     'http://localhost',
     3003,
     {} as FastifyInstance,
+    createArrCaches(new CacheRegistry()),
   )
   await service.initialize({
     ...BASE_INSTANCE,
@@ -71,7 +78,9 @@ async function radarr(): Promise<Subject> {
         { title: 'Movie', type: 'movie', guids: [`tmdb:${id}`] },
         false,
       ),
-    fetchLibrary: async () => (await service.fetchMovies(false)).size,
+    fetchLibrary: async (bypass = false) =>
+      (await service.fetchMovies(bypass)).size,
+    getAll: async () => (await service.getAllMovies()).length,
     isExcluded: (id) => service.isTmdbIdExcluded(id),
   }
 }
@@ -234,6 +243,25 @@ describe.each([
         await expect(subject.fetchLibrary()).resolves.toBe(2)
 
         expect(counter.calls).toBe(1)
+      })
+    })
+
+    describe('full library reads', () => {
+      it('share one request while it is in flight and make a new one afterwards', async () => {
+        serveLibrary([42])
+
+        await expect(
+          Promise.all([
+            subject.fetchLibrary(true),
+            subject.fetchLibrary(true),
+            subject.getAll(),
+          ]),
+        ).resolves.toEqual([1, 1, 1])
+        expect(libraryQueries).toHaveLength(1)
+
+        serveLibrary([42, 43])
+        await expect(subject.getAll()).resolves.toBe(2)
+        expect(libraryQueries).toHaveLength(2)
       })
     })
   },

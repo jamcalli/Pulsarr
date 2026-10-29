@@ -10,6 +10,11 @@ import type {
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
 import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import {
+  type ArrCaches,
+  createArrCaches,
+  dropArrCacheEntries,
+} from '@services/arr/arr-caches.js'
 import type { ArrProbeResult } from '@services/arr/arr-connection.js'
 import type { ArrProduct } from '@services/arr/arr-product.js'
 import type {
@@ -99,13 +104,15 @@ export interface ArrAppliedRouting {
 
 export abstract class ArrManager<
   TInstance extends ArrManagedInstance,
-  TService extends ArrService<TInstance, ArrLibraryResource>,
+  TResource extends ArrLibraryResource,
+  TService extends ArrService<TInstance, TResource>,
   TItem extends ContentItem,
   TSettings extends ArrRouteSettings,
   TApplied,
 > {
   protected readonly services = new Map<number, TService>()
   protected readonly log: FastifyBaseLogger
+  protected readonly caches: ArrCaches<TResource, TItem>
 
   constructor(
     protected readonly product: ArrProduct,
@@ -116,6 +123,7 @@ export abstract class ArrManager<
       baseLog,
       `${product.appName.toUpperCase()}_MANAGER`,
     )
+    this.caches = createArrCaches(fastify.caches)
   }
 
   protected abstract readonly store: ArrInstanceStore<TInstance>
@@ -527,6 +535,7 @@ export abstract class ArrManager<
     }
     await this.store.delete(id)
     this.services.delete(id)
+    dropArrCacheEntries(this.caches, id)
     this.fastify.contentRouter.clearRouterRulesCache()
   }
 
@@ -557,6 +566,7 @@ export abstract class ArrManager<
     const placeholder = this.placeholder()
     const newId = await this.store.replace(current.id, placeholder)
     this.services.delete(current.id)
+    dropArrCacheEntries(this.caches, current.id)
     this.fastify.contentRouter.clearRouterRulesCache()
 
     await this.startService(this.withId(placeholder, newId))
@@ -673,6 +683,7 @@ export abstract class ArrManager<
       this.fastify.contentRouter.clearRouterRulesCache()
     }
     this.services.set(persistedId, service)
+    dropArrCacheEntries(this.caches, id)
   }
 
   private async webhookResults(

@@ -3,22 +3,20 @@ import type {
   ArrRootFolder,
 } from '@root/types/arr-connection.types.js'
 import {
-  ArrInstanceCache,
+  type ArrCache,
   type ArrInstanceContext,
-} from '@services/arr/arr-instance-cache.js'
+  readArrCache,
+} from '@services/arr/arr-caches.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 
 export class ArrQualityProfiles {
-  private readonly cache: ArrInstanceCache<ArrQualityProfile[]>
-
-  constructor(private readonly instance: ArrInstanceContext) {
-    this.cache = new ArrInstanceCache(instance, 'quality profiles', () =>
-      this.fetch(),
-    )
-  }
+  constructor(
+    private readonly instance: ArrInstanceContext,
+    private readonly cache: ArrCache<ArrQualityProfile[]>,
+  ) {}
 
   list(): Promise<ArrQualityProfile[]> {
-    return this.cache.read()
+    return readArrCache(this.cache, this.instance, () => this.fetch())
   }
 
   async fetch(): Promise<ArrQualityProfile[]> {

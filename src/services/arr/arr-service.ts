@@ -9,6 +9,11 @@ import type {
   ExistenceCheckResult,
   HealthCheckResult,
 } from '@root/types/service-result.types.js'
+import type {
+  ArrCacheReadOptions,
+  ArrInstanceContext,
+  ArrResourceCaches,
+} from '@services/arr/arr-caches.js'
 import {
   ARR_API_TIMEOUT_MS,
   ArrClient,
@@ -21,7 +26,6 @@ import {
   testConnection,
   testWebhookAddress,
 } from '@services/arr/arr-connection.js'
-import type { ArrInstanceContext } from '@services/arr/arr-instance-cache.js'
 import {
   configurePlexNotification,
   findPlexNotification,
@@ -82,6 +86,7 @@ export abstract class ArrService<
     private readonly appBaseUrl: string,
     private readonly port: number,
     private readonly fastify: FastifyInstance,
+    caches: ArrResourceCaches,
   ) {
     this.log = createServiceLogger(baseLog, product.appName.toUpperCase())
     this.context = {
@@ -90,8 +95,11 @@ export abstract class ArrService<
       client: () => this.client,
       instanceId: () => this.instanceId,
     }
-    this.tags = new ArrTags(this.context)
-    this.qualityProfiles = new ArrQualityProfiles(this.context)
+    this.tags = new ArrTags(this.context, caches.tags)
+    this.qualityProfiles = new ArrQualityProfiles(
+      this.context,
+      caches.qualityProfiles,
+    )
   }
 
   /** Maps the instance row onto the product's own add and routing defaults. */
@@ -258,8 +266,8 @@ export abstract class ArrService<
     }
   }
 
-  getTags(): Promise<ArrTag[]> {
-    return this.tags.list()
+  getTags(options?: ArrCacheReadOptions): Promise<ArrTag[]> {
+    return this.tags.list(options)
   }
 
   createTag(label: string): Promise<ArrTag> {
