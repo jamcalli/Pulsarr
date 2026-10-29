@@ -4,6 +4,7 @@ import type {
   NOTIFY_OPTIONS,
   UPDATE_NOTIFY_OPTIONS,
 } from '@root/schemas/config/config.schema.js'
+import type { PLEX_EXISTENCE_SCOPES } from '@root/schemas/plex/existence-scope.schema.js'
 import type { PlexLabelSyncConfig } from '@root/schemas/plex/label-sync-config.schema.js'
 import type { LogLevel } from '@root/types/logs.types.js'
 
@@ -38,6 +39,8 @@ export type DeleteSyncNotifyOption = (typeof DELETE_SYNC_NOTIFY_OPTIONS)[number]
 
 export type MaintainerrExclusionMode =
   (typeof MAINTAINERR_EXCLUSION_MODES)[number]
+
+export type PlexExistenceScope = (typeof PLEX_EXISTENCE_SCOPES)[number]
 
 export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
 
@@ -182,6 +185,7 @@ export interface Config {
   plexProtectionPlaylistName: string
   plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
   skipIfExistsOnPlex?: boolean // Skip downloading if content exists on accessible Plex servers (primary token only, requires reconciliation)
+  plexExistenceScope: PlexExistenceScope
   // Plex Label Sync Configuration - nested object following complex config pattern
   plexLabelSync?: PlexLabelSyncConfig
   // RSS Config

@@ -76,6 +76,7 @@ An authentication proxy in front of Pulsarr must let `/v1/notifications/webhook`
 | `plexTokens` | `[]` | JSON. Plex tokens. Set in the app by linking a Plex account. |
 | `plexServerUrl` | | Plex server address. Empty means automatic. |
 | `skipIfExistsOnPlex` | `false` | Skip requests your server or shared servers already have. |
+| `plexExistenceScope` | `owned-and-shared` | Which servers `skipIfExistsOnPlex` checks. One of `owned` or `owned-and-shared`. |
 | `skipFriendSync` | `false` | Don't create the friends' watchlist RSS feed. |
 | `selfRss` | | Your watchlist RSS feed. Filled in by Pulsarr. |
 | `friendsRss` | | Friends' watchlist RSS feed. Filled in by Pulsarr. |

@@ -38,6 +38,7 @@ export interface RouteContentResult {
     | 'exists-on-plex'
     | 'no-instances-available'
     | 'no-valid-id'
+    | 'plex-unreachable'
 }
 
 export type ApprovedRecords = ReadonlyMap<string, ApprovalRequest>
@@ -471,14 +472,20 @@ export async function routeShow(
   if (deps.config.skipIfExistsOnPlex) {
     const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
 
-    const existsOnPlex =
-      await deps.plexServerService.checkExistenceAcrossServers(
-        tempItem.key,
-        'show',
-        isPrimaryUser,
-      )
+    const existence = await deps.plexServerService.checkExistenceAcrossServers(
+      tempItem.key,
+      'show',
+      isPrimaryUser,
+    )
 
-    if (existsOnPlex) {
+    if (existence === 'unknown') {
+      deps.logger.warn(
+        { title: tempItem.title, userId },
+        'Plex server could not be checked, leaving the item unrouted',
+      )
+      return { routed: false, skippedReason: 'plex-unreachable' }
+    }
+    if (existence === 'found') {
       await logSkip(params, sonarrItem, { reason: 'on-plex' }, deps)
       return { routed: false, skippedReason: 'exists-on-plex' }
     }
@@ -608,14 +615,20 @@ export async function routeMovie(
   if (deps.config.skipIfExistsOnPlex) {
     const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
 
-    const existsOnPlex =
-      await deps.plexServerService.checkExistenceAcrossServers(
-        tempItem.key,
-        'movie',
-        isPrimaryUser,
-      )
+    const existence = await deps.plexServerService.checkExistenceAcrossServers(
+      tempItem.key,
+      'movie',
+      isPrimaryUser,
+    )
 
-    if (existsOnPlex) {
+    if (existence === 'unknown') {
+      deps.logger.warn(
+        { title: tempItem.title, userId },
+        'Plex server could not be checked, leaving the item unrouted',
+      )
+      return { routed: false, skippedReason: 'plex-unreachable' }
+    }
+    if (existence === 'found') {
       await logSkip(params, radarrItem, { reason: 'on-plex' }, deps)
       return { routed: false, skippedReason: 'exists-on-plex' }
     }

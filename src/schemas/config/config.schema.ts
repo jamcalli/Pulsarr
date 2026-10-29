@@ -3,6 +3,7 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
 import { splitUrlList } from '@root/schemas/common/url-list.js'
 import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
+import { PlexExistenceScopeSchema } from '@root/schemas/plex/existence-scope.schema.js'
 import {
   PlexLabelSyncConfigPayloadSchema,
   PlexLabelSyncConfigSchema,
@@ -407,6 +408,7 @@ export const ConfigFullSchema = z
     skipFriendSync: z.boolean(),
     plexServerUrl: z.string().optional(),
     skipIfExistsOnPlex: z.boolean(),
+    plexExistenceScope: PlexExistenceScopeSchema,
     deleteMovie: z.boolean(),
     deleteEndedShow: z.boolean(),
     deleteContinuingShow: z.boolean(),
@@ -571,6 +573,7 @@ export const ConfigUpdateSchema = z
     // Primary token user: checks ALL accessible servers (owned + shared)
     // Friend/other users: checks ONLY the owned server (no access tokens for shared)
     skipIfExistsOnPlex: z.boolean().optional(),
+    plexExistenceScope: PlexExistenceScopeSchema.optional(),
     plexLabelSync: PlexLabelSyncConfigPayloadSchema.optional(),
     // RSS and other settings
     selfRss: z.string().optional(),

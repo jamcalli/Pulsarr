@@ -396,6 +396,12 @@ export class TmdbService {
     }
   }
 
+  /** Drops every region's provider list after the default region changed. */
+  applyRegionChange(): void {
+    this.log.info('TMDB region changed, clearing provider cache')
+    this.clearProviderCache()
+  }
+
   clearProviderCache(region?: string): void {
     if (region) {
       this.providerCache.delete(region)

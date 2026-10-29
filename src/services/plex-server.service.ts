@@ -26,26 +26,34 @@ import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { LRUCache } from 'lru-cache'
 import {
+  type ServerCandidates,
   serverCandidates,
+  sharedServerCandidates,
   warnCandidateFallback,
 } from './plex-server/connection/candidates.js'
 import { discoverServerConnections } from './plex-server/connection/discover-servers.js'
-import { connectionTestResult } from './plex-server/connection/probe-result.js'
-import { rankProbedConnections } from './plex-server/connection/ranking.js'
 import {
-  createServerConnectionCache,
-  getBestServerConnection,
+  probeConnection,
   probeConnections,
   probeServerAccess,
-  type ServerConnectionCache,
-  testConnectionReachability,
-} from './plex-server/existence-check/connection-cache.js'
+} from './plex-server/connection/probe.js'
+import { connectionTestResult } from './plex-server/connection/probe-result.js'
+import { rankProbedConnections } from './plex-server/connection/ranking.js'
 import {
   type ContentAvailabilityCache,
   checkContentOnServer,
   createContentAvailabilityCache,
+  type ServerContentCheck,
 } from './plex-server/existence-check/content-cache.js'
-import { buildUniqueServerList } from './plex-server/existence-check/server-list-builder.js'
+import {
+  combineExistence,
+  type PlexExistence,
+} from './plex-server/existence-check/existence-result.js'
+import {
+  createSharedServerResolver,
+  type ExistenceServer,
+  type SharedServerResolver,
+} from './plex-server/existence-check/server-resolver.js'
 import {
   getCurrentLabels,
   getMetadata,
@@ -102,6 +110,8 @@ const PLEX_USER_TOKENS_CACHE_MAX = 1000
 const PLEX_USERS_KEY = 'users'
 const SHARED_SERVERS_KEY = 'shared-servers'
 const PLEX_RESOURCES_KEY = 'resources'
+/** Content cache key for the owner server while its machine id is unknown. */
+const OWNER_SERVER_KEY = 'owner-server'
 
 interface ServerIdentity {
   machineId: string
@@ -172,14 +182,10 @@ export class PlexServerService {
   private protectedPlaylistsMap: Map<string, string> | null = null
   private protectedItemsCache: Set<string> | null = null
 
-  private readonly serverConnectionCache: ServerConnectionCache
+  private readonly sharedServerResolver: SharedServerResolver
 
   /** No TTL, cleared at the start of each reconciliation. */
   private readonly contentAvailabilityCache: ContentAvailabilityCache
-
-  private readonly deadServerCache: Map<string, number> = new Map()
-
-  private readonly DEAD_SERVER_BACKOFF = 5 * 60 * 1000
 
   private eventSource: PlexEventSource | null = null
   private sessionTracker: SessionTracker | null = null
@@ -218,6 +224,7 @@ export class PlexServerService {
     })
     this.plexResources = caches.create({
       max: 1,
+      ttl: CONNECTION_LIST_TTL_MS,
       ignoreFetchAbort: true,
       fetchMethod: async (_key, _stale, { options }) => {
         try {
@@ -230,14 +237,14 @@ export class PlexServerService {
         }
       },
     })
-    this.serverConnectionCache = createServerConnectionCache(
+    this.sharedServerResolver = createSharedServerResolver(
       caches,
-      this.deadServerCache,
+      CONNECTION_LIST_TTL_MS,
       this.log,
     )
     this.contentAvailabilityCache = createContentAvailabilityCache(
       caches,
-      this.serverConnectionCache,
+      (request) => this.dropServerConnection(request),
       this.log,
     )
   }
@@ -517,11 +524,10 @@ export class PlexServerService {
     return Date.now() - this.connectionTimestamp >= CONNECTION_LIST_TTL_MS
   }
 
-  /** Drops the negotiated connection, unless it is reachable, so the next call negotiates again. */
-  private releaseUnreachableSelection(reachableUrls: string[]): void {
+  /** Drops the negotiated connection, if it is still the one that failed, so the next call negotiates again. */
+  private releaseUnreachableSelection(failedUrl: string): void {
     const selected = this.selectedConnectionUrl
-    if (this.configuredServerUrl || !selected) return
-    if (reachableUrls.includes(selected)) return
+    if (this.configuredServerUrl || selected !== failedUrl) return
     this.log.warn(
       { url: selected },
       'Selected Plex server connection is unreachable. Negotiating again on next use',
@@ -1320,10 +1326,29 @@ export class PlexServerService {
     this.protectedItemsCache = null
     this.sharedServers.clear()
     this.plexResources.clear()
-
-    this.serverConnectionCache.clear()
+    this.sharedServerResolver.clear()
     this.contentAvailabilityCache.clear()
-    this.deadServerCache.clear()
+  }
+
+  /** Applies a saved server address or token change, where a token change also drops account facts. */
+  async applyConnectionSettings(tokensChanged: boolean): Promise<void> {
+    try {
+      this.log.info(
+        'Plex server connection settings changed, clearing caches and reconnecting SSE',
+      )
+      if (tokensChanged) {
+        this.clearCaches()
+      } else {
+        this.clearConnectionCaches()
+      }
+      this.disconnectSSE()
+      await this.connectSSE()
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Failed to refresh Plex server caches and SSE after config update',
+      )
+    }
   }
 
   async connectSSE(): Promise<void> {
@@ -1528,48 +1553,72 @@ export class PlexServerService {
     }
   }
 
+  private get ownerServerKey(): string {
+    return this.serverMachineId ?? OWNER_SERVER_KEY
+  }
+
+  /** The owner server at its negotiated or saved address with the admin token, or null when no address is settled. */
+  private async ownerServer(): Promise<ExistenceServer | null> {
+    const accessToken = this.adminToken
+    if (!accessToken) return null
+    await this.getPlexServerConnectionInfo()
+    const uri = this.configuredServerUrl ?? this.selectedConnectionUrl
+    if (!uri) return null
+    return {
+      clientId: this.ownerServerKey,
+      name: this.serverName ?? 'Owner Plex server',
+      uri,
+      accessToken,
+    }
+  }
+
+  private dropServerConnection(request: {
+    serverClientId: string
+    serverUri: string
+  }): void {
+    if (request.serverClientId === this.ownerServerKey) {
+      this.releaseUnreachableSelection(request.serverUri)
+      return
+    }
+    this.sharedServerResolver.invalidate(request.serverClientId)
+  }
+
+  /** Negotiates again once when the selected connection stops answering, since another one may still work. */
+  private async reachableOwnerServer(): Promise<ExistenceServer | null> {
+    const owner = await this.ownerServer()
+    if (!owner) return null
+    if ((await probeConnection(owner.uri, this.log)).ok) return owner
+    this.releaseUnreachableSelection(owner.uri)
+    const renegotiated = await this.ownerServer()
+    return renegotiated && renegotiated.uri !== owner.uri ? renegotiated : null
+  }
+
   // A down primary server makes 'not found' untrustworthy, so callers must abort to prevent mass-routing
   async checkPlexServerHealth(): Promise<{
     reachable: boolean
     serverName: string | null
   }> {
     try {
-      const ownerConnections = await this.getPlexServerConnectionInfo()
-
-      if (ownerConnections.length === 0) {
-        this.log.warn('No owner server connections available for health check')
-        return { reachable: false, serverName: this.serverName }
-      }
-
-      const reachable = await testConnectionReachability(
-        ownerConnections.map((c) => ({ uri: c.url })),
-        this.log,
-      )
-      this.releaseUnreachableSelection(reachable.map(({ uri }) => uri))
-
-      if (reachable.length === 0) {
+      const owner = await this.reachableOwnerServer()
+      if (!owner) {
         this.log.warn(
           { serverName: this.serverName },
-          'Plex server health check failed because no connections are reachable',
+          'Plex server health check failed because no owner server connection answers',
         )
         return { reachable: false, serverName: this.serverName }
       }
 
       // /identity is up during startup while library queries return empty, so probe /library/sections
-      const token = this.config.plexTokens?.[0] || ''
-      const serverUri = reachable[0].uri
-      const libraryReady = await this.waitForLibraryReady(serverUri, token)
-
-      if (!libraryReady) {
+      if (!(await this.waitForLibraryReady(owner.uri, owner.accessToken))) {
         this.log.warn(
-          { serverName: this.serverName },
+          { serverName: this.serverName, url: owner.uri },
           'Plex server is reachable but library is not ready (maintenance or still starting)',
         )
         return { reachable: false, serverName: this.serverName }
       }
 
       this.log.debug(
-        { serverName: this.serverName, reachableCount: reachable.length },
+        { serverName: this.serverName, url: owner.uri },
         'Plex server health check passed',
       )
       return { reachable: true, serverName: this.serverName }
@@ -1658,125 +1707,99 @@ export class PlexServerService {
     return false
   }
 
+  /** Unknown when the owner server could not be checked, while a shared server that fails is skipped. */
   async checkExistenceAcrossServers(
     plexKey: string | undefined,
     contentType: 'movie' | 'show',
     isPrimaryUser: boolean,
-  ): Promise<boolean> {
+  ): Promise<PlexExistence> {
     if (!plexKey) {
       this.log.debug('No Plex key provided for existence check')
-      return false
+      return 'missing'
+    }
+
+    const plexGuid = buildPlexGuid(contentType, plexKey)
+    const abortController = new AbortController()
+    const check = async (server: ExistenceServer) => {
+      const result = await checkContentOnServer(this.contentAvailabilityCache, {
+        serverClientId: server.clientId,
+        serverName: server.name,
+        serverUri: server.uri,
+        accessToken: server.accessToken,
+        contentType,
+        plexGuid,
+        signal: abortController.signal,
+      })
+      if (result === 'found') abortController.abort()
+      return result
     }
 
     try {
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
+      const ownerCheck = this.ownerServer().then((owner) => {
+        if (owner) return check(owner)
         this.log.warn(
-          'No Plex admin token available for multi-server existence check',
+          'No owner Plex server connection for the existence check, deferring the item',
         )
-        return false
-      }
-
-      const allResources =
-        await this.plexResources.forceFetch(PLEX_RESOURCES_KEY)
-
-      const ownerConnections = await this.getPlexServerConnectionInfo()
-
-      const serversToCheck = buildUniqueServerList(
-        ownerConnections,
-        allResources,
-        adminToken,
-        isPrimaryUser,
-        { logger: this.log, serverMachineId: this.serverMachineId },
+        return null
+      })
+      const sharedChecks = this.sharedServersToCheck(isPrimaryUser).then(
+        (shared) =>
+          Promise.all(
+            shared.map((candidates) =>
+              this.checkSharedServer(candidates, check),
+            ),
+          ),
       )
-
-      if (serversToCheck.length === 0) {
-        this.log.debug('No Plex servers found for existence check')
-        return false
-      }
-
-      const plexGuid = buildPlexGuid(contentType, plexKey)
-
+      const [ownerResult, sharedResults] = await Promise.all([
+        ownerCheck,
+        sharedChecks,
+      ])
+      const existence = combineExistence(ownerResult, sharedResults)
       this.log.debug(
         {
           plexKey,
           contentType,
-          plexGuid,
-          serverCount: serversToCheck.length,
+          existence,
+          sharedServers: sharedResults.length,
         },
-        'Checking content existence across Plex servers',
+        'Checked content existence across Plex servers',
       )
-
-      const connectionCacheDeps = {
-        logger: this.log,
-        deadServerBackoff: this.DEAD_SERVER_BACKOFF,
-      }
-
-      const abortController = new AbortController()
-
-      const serverChecks = serversToCheck.map(async (server) => {
-        const connection = await getBestServerConnection(
-          server.clientIdentifier,
-          {
-            serverName: server.name,
-            connections: server.connections,
-            accessToken: server.accessToken,
-          },
-          this.serverConnectionCache,
-          this.deadServerCache,
-          connectionCacheDeps,
-        )
-
-        if (!connection) {
-          this.log.debug(
-            `No working connection for server "${server.name}", skipping`,
-          )
-          return { server: server.name, found: false }
-        }
-
-        const found = await checkContentOnServer(
-          this.contentAvailabilityCache,
-          {
-            serverClientId: server.clientIdentifier,
-            serverName: server.name,
-            serverUri: connection.uri,
-            accessToken: connection.accessToken,
-            contentType,
-            plexGuid,
-            signal: abortController.signal,
-          },
-        )
-
-        if (found) {
-          this.log.debug(
-            `Content found on Plex server "${server.name}", skipping download`,
-          )
-          abortController.abort()
-        }
-
-        return { server: server.name, found }
-      })
-
-      const results = await Promise.allSettled(serverChecks)
-
-      const foundOnAnyServer = results.some(
-        (result) => result.status === 'fulfilled' && result.value.found,
-      )
-
-      if (!foundOnAnyServer) {
-        this.log.debug('Content not found on any accessible Plex server')
-      }
-
-      return foundOnAnyServer
+      return existence
     } catch (error) {
       this.log.error(
         { error, plexKey, contentType },
         'Error checking Plex servers for content existence',
       )
-      // On error, return false to allow download (fail open)
-      return false
+      return 'unknown'
     }
+  }
+
+  private async checkSharedServer(
+    candidates: ServerCandidates,
+    check: (server: ExistenceServer) => Promise<ServerContentCheck>,
+  ): Promise<ServerContentCheck> {
+    try {
+      const server = await this.sharedServerResolver.resolve(candidates)
+      return server ? await check(server) : 'failed'
+    } catch (error) {
+      this.log.warn(
+        { error, server: candidates.resource.name },
+        'Skipping shared Plex server after a failed existence check',
+      )
+      return 'failed'
+    }
+  }
+
+  /** Shared servers only for the primary user's items, and never when the scope is the owned server. */
+  private async sharedServersToCheck(
+    isPrimaryUser: boolean,
+  ): Promise<ServerCandidates[]> {
+    if (!isPrimaryUser || this.config.plexExistenceScope === 'owned') return []
+    const resources = (await this.plexResources.fetch(PLEX_RESOURCES_KEY)) ?? []
+    const ownerId = this.serverMachineId
+    return sharedServerCandidates(resources).filter(
+      ({ resource }) => resource.clientIdentifier !== ownerId,
+    )
   }
 
   async getMetadata(ratingKey: string): Promise<PlexMetadata | null> {

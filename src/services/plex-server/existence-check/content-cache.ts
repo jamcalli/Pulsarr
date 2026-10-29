@@ -4,10 +4,6 @@ import { extractPlexKey } from '@utils/guid-handler.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import type { LRUCache } from 'lru-cache'
-import {
-  invalidateServerConnection,
-  type ServerConnectionCache,
-} from './connection-cache.js'
 
 const CONTENT_CHECK_TIMEOUT_MS = 5000
 
@@ -23,6 +19,12 @@ export interface ContentCheckRequest {
   /** Aborting cancels a Plex request this caller started, which then stores nothing. */
   signal?: AbortSignal
 }
+
+/** One server's answer, where failed is a check that gave no answer and is never cached. */
+export type ServerContentCheck = 'found' | 'missing' | 'failed'
+
+/** Drops the connection a failed check used so the server's next lookup resolves it again. */
+export type DropServerConnection = (request: ContentCheckRequest) => void
 
 /** Whether a server has the content, keyed by server, content type and Plex key. Lives for one reconciliation. */
 export type ContentAvailabilityCache = LRUCache<
@@ -46,10 +48,10 @@ function contentCacheKey({
 /** Resolves undefined for a failure that must not be cached, and rejects when the caller aborted. */
 async function fetchContentAvailability(
   request: ContentCheckRequest,
-  connectionCache: ServerConnectionCache,
+  dropConnection: DropServerConnection,
   logger: FastifyBaseLogger,
 ): Promise<boolean | undefined> {
-  const { serverClientId, serverName, signal } = request
+  const { serverName, signal } = request
   try {
     const url = new URL('/library/all', request.serverUri)
     url.searchParams.append('guid', request.plexGuid)
@@ -66,7 +68,7 @@ async function fetchContentAvailability(
 
     if (!response.ok) {
       if (response.status >= 500) {
-        invalidateServerConnection(serverClientId, connectionCache, logger)
+        dropConnection(request)
       }
       return undefined
     }
@@ -88,14 +90,14 @@ async function fetchContentAvailability(
       { error, server: serverName },
       'Error checking content on server',
     )
-    invalidateServerConnection(serverClientId, connectionCache, logger)
+    dropConnection(request)
     return undefined
   }
 }
 
 export function createContentAvailabilityCache(
   registry: CacheRegistry,
-  connectionCache: ServerConnectionCache,
+  dropConnection: DropServerConnection,
   logger: FastifyBaseLogger,
 ): ContentAvailabilityCache {
   return registry.create({
@@ -103,23 +105,25 @@ export function createContentAvailabilityCache(
     // A clear mid-check still answers its waiting callers but is not written back
     ignoreFetchAbort: true,
     fetchMethod: (_key, _stale, { context }) =>
-      fetchContentAvailability(context, connectionCache, logger),
+      fetchContentAvailability(context, dropConnection, logger),
   })
 }
 
-/** False for a failed or aborted check. Concurrent checks of one server and item share a request. */
+/** Failed for a check with no answer, including one this caller aborted. Concurrent checks of one server and item share a request. */
 export async function checkContentOnServer(
   cache: ContentAvailabilityCache,
   request: ContentCheckRequest,
-): Promise<boolean> {
+): Promise<ServerContentCheck> {
   const key = contentCacheKey(request)
   for (;;) {
     try {
-      return (await cache.fetch(key, { context: request })) ?? false
+      const exists = await cache.fetch(key, { context: request })
+      if (exists === undefined) return 'failed'
+      return exists ? 'found' : 'missing'
     } catch (error) {
       // A request another caller aborted fails here too, so retry it unless this caller aborted
       const aborted = error instanceof Error && error.name === 'AbortError'
-      if (request.signal?.aborted || !aborted) return false
+      if (request.signal?.aborted || !aborted) return 'failed'
     }
   }
 }

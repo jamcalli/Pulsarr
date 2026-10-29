@@ -35,6 +35,8 @@ export interface SyncResult {
   skippedDueToWatchlistCap: number
   skippedDueToExclusion: number
   skippedDueToRouting: number
+  /** Left unrouted because the owner Plex server could not be checked, so the next run retries them. */
+  skippedPlexUnreachable: number
 }
 
 export async function syncWatchlistItems(
@@ -71,6 +73,7 @@ export async function syncWatchlistItems(
         skippedDueToWatchlistCap: 0,
         skippedDueToExclusion: 0,
         skippedDueToRouting: 0,
+        skippedPlexUnreachable: 0,
       }
     }
 
@@ -93,10 +96,11 @@ export async function syncWatchlistItems(
         skippedDueToWatchlistCap: 0,
         skippedDueToExclusion: 0,
         skippedDueToRouting: 0,
+        skippedPlexUnreachable: 0,
       }
     }
 
-    // With skipIfExistsOnPlex on, an unreachable Plex answers not-found for everything and mass-routes
+    // An unreachable Plex answers unknown for every item, so the pass is skipped instead
     if (deps.config.skipIfExistsOnPlex) {
       const plexHealth =
         await deps.fastify.plexServerService.checkPlexServerHealth()
@@ -114,6 +118,7 @@ export async function syncWatchlistItems(
           skippedDueToWatchlistCap: 0,
           skippedDueToExclusion: 0,
           skippedDueToRouting: 0,
+          skippedPlexUnreachable: 0,
         }
       }
     }
@@ -191,6 +196,7 @@ export async function syncWatchlistItems(
     let skippedDueToWatchlistCap = 0
     let skippedDueToExclusion = 0
     let skippedDueToRouting = 0
+    let skippedPlexUnreachable = 0
     const skippedItems: { shows: string[]; movies: string[] } = {
       shows: [],
       movies: [],
@@ -412,6 +418,11 @@ export async function syncWatchlistItems(
             value.skippedReason === 'excluded')
         ) {
           skippedDueToRouting++
+        } else if (
+          (value.type === 'show' || value.type === 'movie') &&
+          value.skippedReason === 'plex-unreachable'
+        ) {
+          skippedPlexUnreachable++
         } else if (value.type === 'skipped') {
           if (value.reason === 'user_setting') {
             skippedDueToUserSetting++
@@ -460,6 +471,7 @@ export async function syncWatchlistItems(
       skippedDueToWatchlistCap,
       skippedDueToExclusion,
       skippedDueToRouting,
+      skippedPlexUnreachable,
     }
 
     deps.logger.info(
@@ -471,6 +483,7 @@ export async function syncWatchlistItems(
         skippedDueToWatchlistCap: summary.skippedDueToWatchlistCap,
         skippedDueToExclusion: summary.skippedDueToExclusion,
         skippedDueToRouting: summary.skippedDueToRouting,
+        skippedPlexUnreachable: summary.skippedPlexUnreachable,
       },
       'Watchlist sync completed',
     )

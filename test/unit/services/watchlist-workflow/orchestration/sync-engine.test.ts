@@ -91,6 +91,7 @@ function zeroResult(): SyncResult {
     skippedDueToWatchlistCap: 0,
     skippedDueToExclusion: 0,
     skippedDueToRouting: 0,
+    skippedPlexUnreachable: 0,
   }
 }
 
@@ -436,6 +437,19 @@ describe('syncWatchlistItems', () => {
       expect(result.added.shows).toBe(0)
     },
   )
+
+  it('counts an item the owner Plex server could not check as unreachable', async () => {
+    vi.mocked(routeShow).mockResolvedValue({
+      routed: false,
+      skippedReason: 'plex-unreachable',
+    })
+    parts.db.getAllShowWatchlistItems.mockResolvedValue([showItem()])
+
+    const result = await syncWatchlistItems(deps)
+
+    expect(result.skippedPlexUnreachable).toBe(1)
+    expect(result.skippedDueToRouting).toBe(0)
+  })
 
   it('counts sonarr series that match no watchlist item as unmatched', async () => {
     parts.sonarrManager.fetchAllSeries.mockResolvedValue([

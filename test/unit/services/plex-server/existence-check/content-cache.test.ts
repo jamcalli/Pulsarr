@@ -1,25 +1,17 @@
 import { CacheRegistry } from '@services/cache-registry.service.js'
 import {
-  createServerConnectionCache,
-  type ServerConnectionCache,
-} from '@services/plex-server/existence-check/connection-cache.js'
-import {
   type ContentAvailabilityCache,
   type ContentCheckRequest,
   checkContentOnServer,
   createContentAvailabilityCache,
+  type DropServerConnection,
 } from '@services/plex-server/existence-check/content-cache.js'
 import { delay, HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { server } from '../../../../setup/msw-setup.js'
 
 const SERVER_URI = 'http://plex.test:32400'
-const CONNECTION = {
-  uri: SERVER_URI,
-  accessToken: 'server-token',
-  serverName: 'Basement',
-}
 
 type Answer = 'found' | 'missing' | 'empty' | '500' | '404' | 'down' | 'slow'
 
@@ -29,7 +21,7 @@ describe('checkContentOnServer', () => {
   let answer: Answer
   let requests: number
   let gate: Promise<void> | undefined
-  let connections: ServerConnectionCache
+  let dropConnection: Mock<DropServerConnection>
   let cache: ContentAvailabilityCache
 
   function request(overrides: Partial<ContentCheckRequest> = {}) {
@@ -48,10 +40,12 @@ describe('checkContentOnServer', () => {
     answer = 'found'
     requests = 0
     gate = undefined
-    const registry = new CacheRegistry()
-    connections = createServerConnectionCache(registry, new Map(), logger)
-    connections.set('machine-1', CONNECTION)
-    cache = createContentAvailabilityCache(registry, connections, logger)
+    dropConnection = vi.fn<DropServerConnection>()
+    cache = createContentAvailabilityCache(
+      new CacheRegistry(),
+      dropConnection,
+      logger,
+    )
     server.use(
       http.get(`${SERVER_URI}/library/all`, async () => {
         requests += 1
@@ -79,16 +73,13 @@ describe('checkContentOnServer', () => {
     )
   })
 
-  it.each([
-    ['found', true],
-    ['missing', false],
-  ] as const)(
+  it.each(['found', 'missing'] as const)(
     'keeps a %s result for the reconciliation',
-    async (state, exists) => {
+    async (state) => {
       answer = state
 
-      expect(await checkContentOnServer(cache, request())).toBe(exists)
-      expect(await checkContentOnServer(cache, request())).toBe(exists)
+      expect(await checkContentOnServer(cache, request())).toBe(state)
+      expect(await checkContentOnServer(cache, request())).toBe(state)
 
       expect(requests).toBe(1)
     },
@@ -97,11 +88,11 @@ describe('checkContentOnServer', () => {
   it('keeps a body without a MediaContainer as not found and keeps the connection', async () => {
     answer = 'empty'
 
-    expect(await checkContentOnServer(cache, request())).toBe(false)
-    expect(await checkContentOnServer(cache, request())).toBe(false)
+    expect(await checkContentOnServer(cache, request())).toBe('missing')
+    expect(await checkContentOnServer(cache, request())).toBe('missing')
 
     expect(requests).toBe(1)
-    expect(connections.has('machine-1')).toBe(true)
+    expect(dropConnection).not.toHaveBeenCalled()
   })
 
   it('checks again once the cache is cleared for the next reconciliation', async () => {
@@ -123,7 +114,7 @@ describe('checkContentOnServer', () => {
     ])
     release.resolve()
 
-    expect(await checks).toEqual([true, true])
+    expect(await checks).toEqual(['found', 'found'])
     expect(requests).toBe(1)
   })
 
@@ -132,11 +123,11 @@ describe('checkContentOnServer', () => {
     async (state) => {
       answer = state
 
-      expect(await checkContentOnServer(cache, request())).toBe(false)
-      expect(connections.has('machine-1')).toBe(false)
+      expect(await checkContentOnServer(cache, request())).toBe('failed')
+      expect(dropConnection).toHaveBeenCalledWith(request())
 
       answer = 'found'
-      expect(await checkContentOnServer(cache, request())).toBe(true)
+      expect(await checkContentOnServer(cache, request())).toBe('found')
       expect(requests).toBe(2)
     },
   )
@@ -144,12 +135,12 @@ describe('checkContentOnServer', () => {
   it('keeps the connection and caches nothing on a client error', async () => {
     answer = '404'
 
-    expect(await checkContentOnServer(cache, request())).toBe(false)
-    expect(connections.has('machine-1')).toBe(true)
+    expect(await checkContentOnServer(cache, request())).toBe('failed')
+    expect(dropConnection).not.toHaveBeenCalled()
     expect(cache.size).toBe(0)
   })
 
-  it('returns false and caches nothing when the check is aborted', async () => {
+  it('fails and caches nothing when the check is aborted', async () => {
     answer = 'slow'
     const controller = new AbortController()
 
@@ -160,9 +151,9 @@ describe('checkContentOnServer', () => {
     await new Promise((resolve) => setTimeout(resolve, 10))
     controller.abort()
 
-    expect(await check).toBe(false)
+    expect(await check).toBe('failed')
     expect(cache.size).toBe(0)
-    expect(connections.has('machine-1')).toBe(true)
+    expect(dropConnection).not.toHaveBeenCalled()
   })
 
   it('checks again for a caller that joined a request another caller aborted', async () => {
@@ -178,8 +169,8 @@ describe('checkContentOnServer', () => {
     answer = 'found'
     controller.abort()
 
-    expect(await aborted).toBe(false)
-    expect(await joined).toBe(true)
+    expect(await aborted).toBe('failed')
+    expect(await joined).toBe('found')
     expect(requests).toBe(2)
   })
 
@@ -191,7 +182,7 @@ describe('checkContentOnServer', () => {
     cache.clear()
     release.resolve()
 
-    expect(await check).toBe(true)
+    expect(await check).toBe('found')
     expect(cache.size).toBe(0)
   })
 })

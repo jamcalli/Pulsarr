@@ -3845,6 +3845,7 @@ export interface components {
             skipFriendSync: boolean;
             plexServerUrl?: string;
             skipIfExistsOnPlex: boolean;
+            plexExistenceScope: components["schemas"]["PlexExistenceScope"];
             deleteMovie: boolean;
             deleteEndedShow: boolean;
             deleteContinuingShow: boolean;
@@ -3972,6 +3973,7 @@ export interface components {
             plexProtectionPlaylistName?: string;
             plexServerUrl?: string | "";
             skipIfExistsOnPlex?: boolean;
+            plexExistenceScope?: components["schemas"]["PlexExistenceScope"];
             plexLabelSync?: components["schemas"]["PlexLabelSyncConfigPayload"];
             selfRss?: string;
             friendsRss?: string;
@@ -4328,6 +4330,11 @@ export interface components {
          * @enum {string}
          */
         NotifyOption: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+        /**
+         * @description Which Plex servers the existence check covers, the owned server alone or also the servers shared with the account
+         * @enum {string}
+         */
+        PlexExistenceScope: "owned" | "owned-and-shared";
         /**
          * @description Plex relationship of a user to the server owner, from friends, server shares and pending requests
          * @enum {string}

@@ -1,3 +1,4 @@
+import type { PlexExistenceScope } from '@root/types/config.types.js'
 import { CacheRegistry } from '@services/cache-registry.service.js'
 import {
   CONNECTION_LIST_TTL_MS,
@@ -62,10 +63,14 @@ function servePlex(state: PlexState) {
   )
 }
 
-function createService(plexServerUrl = '', caches = new CacheRegistry()) {
+function createService(
+  plexServerUrl = '',
+  caches = new CacheRegistry(),
+  plexExistenceScope: PlexExistenceScope = 'owned-and-shared',
+) {
   const fastify = {
     caches,
-    config: { plexTokens: ['admin-token'], plexServerUrl },
+    config: { plexTokens: ['admin-token'], plexServerUrl, plexExistenceScope },
   } as unknown as FastifyInstance
   return new PlexServerService(createMockLogger(), fastify)
 }
@@ -185,7 +190,7 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(2)
   })
 
-  it('renegotiates after the health check finds the selection unreachable', async () => {
+  it('moves the health check to another connection when the selection stops answering', async () => {
     const service = createService()
     expect(await service.getPlexServerUrl()).toBe(LOCAL_HTTPS)
 
@@ -194,6 +199,14 @@ describe('PlexServerService connection negotiation', () => {
 
     expect(await service.getPlexServerUrl()).toBe(REMOTE_HTTPS)
     expect(state.resourceCalls).toBe(2)
+  })
+
+  it('fails the health check when no owner connection answers', async () => {
+    const service = createService()
+    expect(await service.getPlexServerUrl()).toBe(LOCAL_HTTPS)
+
+    state.down = new Set([LOCAL_HTTPS, REMOTE_HTTPS])
+    expect((await service.checkPlexServerHealth()).reachable).toBe(false)
   })
 
   it('keeps the selection when the health check reaches it', async () => {
@@ -219,13 +232,14 @@ describe('PlexServerService connection negotiation', () => {
   })
 
   it('uses a saved address as is and never probes it away', async () => {
-    const saved = 'http://localhost:32400'
+    const saved = 'http://plex.saved.test:32400'
+    server.use(http.get(`${saved}/identity`, () => HttpResponse.error()))
     const service = createService(saved)
 
     expect(await service.getPlexServerUrl()).toBe(saved)
     expect(state.resourceCalls).toBe(0)
 
-    await service.checkPlexServerHealth()
+    expect((await service.checkPlexServerHealth()).reachable).toBe(false)
     vi.advanceTimersByTime(CONNECTION_LIST_TTL_MS)
     await service.getPlexServerConnectionInfo()
 
@@ -253,6 +267,213 @@ describe('PlexServerService connection negotiation', () => {
       automatic: true,
     })
     expect(state.resourceCalls).toBe(1)
+  })
+})
+
+describe('PlexServerService existence check', () => {
+  const SHARED_URI = 'https://10-0-0-9.xyz.plex.direct:32400'
+  const SHARED = plexResource({
+    name: 'Friend',
+    clientIdentifier: 'shared-1',
+    owned: false,
+    accessToken: 'shared-token',
+    connections: [plexConnection({ uri: SHARED_URI, address: '10.0.0.9' })],
+  })
+
+  type Answer = 'found' | 'missing' | 'down'
+
+  let now: number
+  let state: PlexState
+  let identityCalls: Map<string, number>
+  let ownerAnswer: Answer
+  let sharedAnswer: Answer
+  let sharedDown: boolean
+  let ownerTokens: string[]
+  let resourcesGate: Promise<void> | undefined
+
+  function libraryAnswer(answer: Answer) {
+    if (answer === 'down') return HttpResponse.error()
+    return HttpResponse.json({
+      MediaContainer:
+        answer === 'found' ? { Metadata: [{ ratingKey: '1' }] } : { size: 0 },
+    })
+  }
+
+  function countIdentity(uri: string, machineIdentifier: string) {
+    return http.get(`${uri}/identity`, () => {
+      identityCalls.set(uri, (identityCalls.get(uri) ?? 0) + 1)
+      if (uri === SHARED_URI && sharedDown) return HttpResponse.error()
+      return HttpResponse.json({ MediaContainer: { machineIdentifier } })
+    })
+  }
+
+  function createChecker(
+    scope: PlexExistenceScope = 'owned-and-shared',
+    plexServerUrl = '',
+  ) {
+    return createService(
+      plexServerUrl,
+      new CacheRegistry({ now: () => now }),
+      scope,
+    )
+  }
+
+  const check = (service: PlexServerService, key = 'abc123') =>
+    service.checkExistenceAcrossServers(key, 'movie', true)
+
+  beforeEach(() => {
+    now = 1
+    state = { plexTv: 'up', down: new Set(), resourceCalls: 0 }
+    identityCalls = new Map()
+    ownerAnswer = 'missing'
+    sharedAnswer = 'missing'
+    sharedDown = false
+    ownerTokens = []
+    resourcesGate = undefined
+    servePlex(state)
+    server.use(
+      http.get('https://plex.tv/api/v2/resources', async () => {
+        state.resourceCalls += 1
+        await resourcesGate
+        return state.plexTv === 'up'
+          ? HttpResponse.json([...RESOURCES, SHARED])
+          : HttpResponse.error()
+      }),
+      countIdentity(LOCAL_HTTPS, 'machine-1'),
+      countIdentity(REMOTE_HTTPS, 'machine-1'),
+      countIdentity(SHARED_URI, 'shared-1'),
+      http.get(`${SHARED_URI}/`, () =>
+        HttpResponse.json({
+          MediaContainer: { machineIdentifier: 'shared-1' },
+        }),
+      ),
+      http.get(`${LOCAL_HTTPS}/library/all`, ({ request }) => {
+        ownerTokens.push(request.headers.get('X-Plex-Token') ?? '')
+        return libraryAnswer(ownerAnswer)
+      }),
+      http.get(`${SHARED_URI}/library/all`, () => libraryAnswer(sharedAnswer)),
+    )
+  })
+
+  it('checks the owner at its negotiated connection without probing it again', async () => {
+    const service = createChecker()
+    await service.getPlexServerUrl()
+    identityCalls.clear()
+
+    expect(await check(service)).toBe('missing')
+
+    expect(identityCalls.get(LOCAL_HTTPS)).toBeUndefined()
+    expect(identityCalls.get(REMOTE_HTTPS)).toBeUndefined()
+    expect(ownerTokens).toEqual(['admin-token'])
+  })
+
+  it('probes a shared server once for many item checks and again after the TTL', async () => {
+    const service = createChecker()
+
+    await Promise.all(
+      ['a1', 'a2', 'a3', 'a4', 'a5'].map((key) => check(service, key)),
+    )
+    expect(identityCalls.get(SHARED_URI)).toBe(1)
+
+    now += CONNECTION_LIST_TTL_MS + 1
+    await check(service, 'a6')
+    expect(identityCalls.get(SHARED_URI)).toBe(2)
+  })
+
+  it('finds content on a shared server', async () => {
+    sharedAnswer = 'found'
+
+    expect(await check(createChecker())).toBe('found')
+  })
+
+  it('answers unknown when the owner check fails', async () => {
+    ownerAnswer = 'down'
+
+    expect(await check(createChecker())).toBe('unknown')
+  })
+
+  it('answers unknown when no owner connection is settled', async () => {
+    state.plexTv = 'down'
+
+    expect(await check(createChecker())).toBe('unknown')
+  })
+
+  it('skips a shared server that fails and keeps the owner answer', async () => {
+    sharedDown = true
+
+    expect(await check(createChecker())).toBe('missing')
+  })
+
+  it('checks only the owner for an item that is not the primary user', async () => {
+    sharedAnswer = 'found'
+    const service = createChecker()
+
+    expect(
+      await service.checkExistenceAcrossServers('abc123', 'movie', false),
+    ).toBe('missing')
+    expect(identityCalls.get(SHARED_URI)).toBeUndefined()
+  })
+
+  it('checks the owner at the saved address without probing it', async () => {
+    const SAVED = 'http://10.0.0.5:32400'
+    const savedTokens: string[] = []
+    server.use(
+      http.get(`${SAVED}/library/all`, ({ request }) => {
+        savedTokens.push(request.headers.get('X-Plex-Token') ?? '')
+        return libraryAnswer('found')
+      }),
+    )
+
+    expect(await check(createChecker('owned', SAVED))).toBe('found')
+    expect(savedTokens).toEqual(['admin-token'])
+    expect(ownerTokens).toEqual([])
+  })
+
+  it('starts the owner check without waiting for the shared server list', async () => {
+    const service = createChecker()
+    await service.getPlexServerUrl()
+    const release = Promise.withResolvers<void>()
+    resourcesGate = release.promise
+
+    const result = check(service)
+    await vi.waitFor(() => expect(ownerTokens).toEqual(['admin-token']))
+    release.resolve()
+
+    expect(await result).toBe('missing')
+  })
+
+  it('never reads the resources list with the owned scope', async () => {
+    const service = createChecker('owned')
+    await service.getPlexServerUrl()
+
+    expect(await check(service)).toBe('missing')
+    expect(state.resourceCalls).toBe(1)
+    expect(identityCalls.get(SHARED_URI)).toBeUndefined()
+  })
+
+  it('reads the resources list again after its TTL', async () => {
+    const service = createChecker()
+    await check(service, 'b1')
+    const afterFirst = state.resourceCalls
+
+    now += CONNECTION_LIST_TTL_MS
+    await check(service, 'b2')
+    expect(state.resourceCalls).toBe(afterFirst)
+
+    now += 1
+    await check(service, 'b3')
+    expect(state.resourceCalls).toBe(afterFirst + 1)
+  })
+
+  it('health checks only the selected owner connection', async () => {
+    const service = createChecker()
+    await service.getPlexServerUrl()
+    identityCalls.clear()
+
+    expect((await service.checkPlexServerHealth()).reachable).toBe(true)
+
+    expect(identityCalls.get(LOCAL_HTTPS)).toBe(1)
+    expect(identityCalls.get(REMOTE_HTTPS)).toBeUndefined()
   })
 })
 
