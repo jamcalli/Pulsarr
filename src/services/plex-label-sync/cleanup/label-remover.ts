@@ -94,12 +94,13 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
     // Group by rating key to batch operations
     const labelsByRatingKey = new Map<
       string,
-      { labels: string[]; guids: Set<string> }
+      { labels: string[]; guids: Set<string>; contentType: 'movie' | 'show' }
     >()
     for (const tracking of trackedLabels) {
       const group = labelsByRatingKey.get(tracking.plex_rating_key) ?? {
         labels: [],
         guids: new Set<string>(),
+        contentType: tracking.content_type,
       }
       group.labels.push(...tracking.labels_applied)
       for (const guid of tracking.content_guids) group.guids.add(guid)
@@ -125,7 +126,7 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
     }> = []
 
     const labelRemovalResults = await Promise.allSettled(
-      ratingKeyEntries.map(([trackedKey, { labels, guids }]) =>
+      ratingKeyEntries.map(([trackedKey, { labels, guids, contentType }]) =>
         limit(async () => {
           const itemResult = {
             processed: 0,
@@ -153,9 +154,12 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
             let ratingKey = trackedKey
             let lookup = await deps.plexServer.lookupMetadata(ratingKey)
             if (lookup.status === 'missing') {
-              const stale = await resolveStaleRatingKey(deps, ratingKey, [
-                ...guids,
-              ])
+              const stale = await resolveStaleRatingKey(
+                deps,
+                ratingKey,
+                [...guids],
+                contentType,
+              )
               if (stale.outcome === 'deleted') {
                 itemResult.removed += labels.length
                 return itemResult
@@ -615,6 +619,7 @@ export async function resetLabels(
     const settleOnLiveKey = async (
       trackedKey: string,
       guids: string[],
+      contentType: 'movie' | 'show',
       step: (
         ratingKey: string,
         remainingRows: PlexLabelTracking[],
@@ -623,7 +628,12 @@ export async function resetLabels(
       const outcome = await step(trackedKey, remainingUserRows(trackedKey))
       if (outcome !== 'missing') return outcome === 'done'
 
-      const stale = await resolveStaleRatingKey(deps, trackedKey, guids)
+      const stale = await resolveStaleRatingKey(
+        deps,
+        trackedKey,
+        guids,
+        contentType,
+      )
       if (stale.outcome === 'deleted') return true
       if (stale.outcome === 'unresolved') return false
 
@@ -653,6 +663,7 @@ export async function resetLabels(
           const settled = await settleOnLiveKey(
             entry.plexRatingKey,
             entry.guids,
+            entry.contentType,
             async (ratingKey, remainingRows) => {
               const labelsToRemove = labelsNoOneElseHolds(
                 entry.labelsApplied,
@@ -711,6 +722,7 @@ export async function resetLabels(
           const settled = await settleOnLiveKey(
             entry.plexRatingKey,
             entry.guids,
+            entry.contentType,
             async (ratingKey, remainingRows) => {
               const lookup = await deps.plexServer.lookupMetadata(ratingKey)
               if (lookup.status === 'missing') return 'missing'

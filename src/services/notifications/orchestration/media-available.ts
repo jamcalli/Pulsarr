@@ -20,7 +20,10 @@ export async function sendMediaAvailable(
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
 ): Promise<{ matchedCount: number }> {
-  const watchlistItems = await deps.db.getWatchlistItemsByGuid(mediaInfo.guid)
+  const watchlistItems = await deps.db.getWatchlistItemsByGuid(
+    mediaInfo.guid,
+    mediaInfo.type,
+  )
   const typeInfo = determineNotificationType(mediaInfo, options.isBulkRelease)
   if (!typeInfo || watchlistItems.length === 0) return { matchedCount: 0 }
 

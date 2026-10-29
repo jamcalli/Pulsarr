@@ -200,14 +200,11 @@ declare module '@services/database.service.js' {
       userId: number,
     ): Promise<WatchlistItem[]>
 
-    /**
-     * Retrieves watchlist items that match a specific GUID
-     * @param guid - GUID to match against watchlist items
-     * @returns Promise resolving to array of matching watchlist items
-     */
+    /** Matches the guid case-insensitively and only within `type`, since tmdb ids are namespaced per media kind. */
     getWatchlistItemsByGuid(
       this: DatabaseService,
       guid: string,
+      type: 'movie' | 'show',
     ): Promise<TokenWatchlistItem[]>
 
     /**

@@ -1229,27 +1229,22 @@ export async function getAllWatchlistItemsForUser(
   }))
 }
 
-/**
- * Retrieves all watchlist items containing the specified GUID in their GUIDs array, using case-insensitive matching.
- *
- * Each returned item has its `id` converted to a string, and its `guids` and `genres` fields parsed as arrays.
- *
- * @param guid - The GUID to search for within each item's GUIDs array
- * @returns An array of matching watchlist items with normalized and parsed fields
- */
+/** Matches the guid case-insensitively and only within `type`, since tmdb ids are namespaced per media kind. */
 export async function getWatchlistItemsByGuid(
   this: DatabaseService,
   guid: string,
+  type: 'movie' | 'show',
 ): Promise<TokenWatchlistItem[]> {
-  // Use database-specific JSON functions to filter efficiently at database level
   const items = this.isPostgres
     ? await this.knex('watchlist_items')
+        .where('type', type)
         .whereRaw(
           'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
           [guid],
         )
         .select('*')
     : await this.knex('watchlist_items')
+        .where('type', type)
         .whereRaw(
           "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
           [guid],

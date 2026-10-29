@@ -12,6 +12,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/create-admin',
     {
       config: {
+        public: true,
         rateLimit: CREDENTIAL_RATE_LIMIT,
       },
       schema: {

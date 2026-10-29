@@ -53,6 +53,25 @@ describe('sendMediaAvailable', () => {
     )
   })
 
+  it('looks up watchlist items within the media type', async () => {
+    const { deps } = createDeps([])
+    const show = { ...movie, type: 'show' as const }
+
+    await sendMediaAvailable(deps, movie, { isBulkRelease: false })
+    await sendMediaAvailable(deps, show, { isBulkRelease: false })
+
+    expect(deps.db.getWatchlistItemsByGuid).toHaveBeenNthCalledWith(
+      1,
+      'tmdb:1',
+      'movie',
+    )
+    expect(deps.db.getWatchlistItemsByGuid).toHaveBeenNthCalledWith(
+      2,
+      'tmdb:1',
+      'show',
+    )
+  })
+
   it('emits nothing when no watchlist item matches', async () => {
     const { deps, progress } = createDeps([])
 

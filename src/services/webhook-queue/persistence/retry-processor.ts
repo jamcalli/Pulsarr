@@ -106,7 +106,10 @@ async function processMovieWebhook(
     title: webhook.title,
   }
 
-  const watchlistItems = await db.getWatchlistItemsByGuid(webhook.guid)
+  const watchlistItems = await db.getWatchlistItemsByGuid(
+    webhook.guid,
+    mediaInfo.type,
+  )
 
   if (watchlistItems.length === 0) {
     logger.debug(`No items found for ${webhook.guid}, webhook remains pending`)
@@ -174,7 +177,10 @@ async function processShowWebhook(
     episodes: payload.episodes,
   }
 
-  const watchlistItems = await db.getWatchlistItemsByGuid(webhook.guid)
+  const watchlistItems = await db.getWatchlistItemsByGuid(
+    webhook.guid,
+    mediaInfo.type,
+  )
 
   if (watchlistItems.length === 0) {
     logger.debug(`No items found for ${webhook.guid}, webhook remains pending`)

@@ -9,7 +9,6 @@ import {
   WebhookQuerySchema,
   WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
-import { isWebhookProcessable } from '@utils/arr-webhook-validator.js'
 import { episodeRange } from '@utils/episode-code.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -23,10 +22,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/webhook',
     {
       config: {
+        public: true,
         rateLimit: {
           ...PROBE_RATE_LIMIT,
-          // Valid-secret senders are exempt - never throttle a legitimate
-          // import burst; the bucket only binds bad or missing secrets
+          // A valid secret skips the bucket so an import burst is never throttled
           allowList: (request) =>
             safeSecretCompare(
               request.headers['x-pulsarr-secret'],
@@ -55,7 +54,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       const { body } = request
       const instanceId = request.query.instanceId
 
-      // Validate webhook secret (timing-safe comparison)
       const providedSecret = request.headers['x-pulsarr-secret']
       if (!safeSecretCompare(providedSecret, fastify.config.webhookSecret)) {
         log.warn(
@@ -70,7 +68,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return { success: true }
       }
 
-      if (!isWebhookProcessable(body, log)) {
+      if (!fastify.webhookQueue.isWebhookProcessable(body)) {
         log.debug(
           {
             instanceName: body.instanceName,
@@ -82,7 +80,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       }
 
       try {
-        // Trigger Plex label sync (fire and forget)
         fastify.webhookQueue.triggerLabelSync(body)
 
         if ('movie' in body) {

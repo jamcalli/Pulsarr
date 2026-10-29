@@ -10,11 +10,12 @@ export interface PlexRatingsDeps {
 export async function fetchPlexRatings(
   deps: PlexRatingsDeps,
   tmdbId: number,
+  type: 'movie' | 'show',
 ): Promise<PlexRatings | null> {
   const { db, log } = deps
 
   try {
-    const items = await db.getWatchlistItemsByGuid(`tmdb:${tmdbId}`)
+    const items = await db.getWatchlistItemsByGuid(`tmdb:${tmdbId}`, type)
 
     if (items.length === 0) {
       log.debug(`No watchlist item found for TMDB ID ${tmdbId}`)

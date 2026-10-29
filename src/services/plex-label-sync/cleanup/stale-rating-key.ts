@@ -19,8 +19,14 @@ export async function resolveStaleRatingKey(
   deps: StaleRatingKeyDeps,
   ratingKey: string,
   contentGuids: string[],
+  contentType: 'movie' | 'show',
 ): Promise<StaleRatingKeyResolution> {
-  const current = await findCurrentRatingKey(deps, ratingKey, contentGuids)
+  const current = await findCurrentRatingKey(
+    deps,
+    ratingKey,
+    contentGuids,
+    contentType,
+  )
 
   if (current.status === 'error') {
     deps.logger.warn(
@@ -59,16 +65,18 @@ async function findCurrentRatingKey(
   deps: StaleRatingKeyDeps,
   staleKey: string,
   contentGuids: string[],
+  contentType: 'movie' | 'show',
 ): Promise<CurrentRatingKey> {
   for (const guid of contentGuids) {
     // Tracking holds external ids, but Plex is only searchable by the plex:// guid the watchlist item carries
-    const watchlistItems = await deps.db.getWatchlistItemsByGuid(guid)
+    const watchlistItems = await deps.db.getWatchlistItemsByGuid(
+      guid,
+      contentType,
+    )
     const plexGuids = new Set(
       watchlistItems
         .filter((item) => item.key)
-        .map((item) =>
-          buildPlexGuid(item.type === 'show' ? 'show' : 'movie', item.key),
-        ),
+        .map((item) => buildPlexGuid(contentType, item.key)),
     )
 
     for (const plexGuid of plexGuids) {
