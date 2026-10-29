@@ -20,6 +20,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/webhook/maintainerr',
     {
       config: {
+        public: true,
         rateLimit: {
           ...PROBE_RATE_LIMIT,
           allowList: (request) =>
@@ -45,8 +46,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
-      // Maintainerr's webhook agent has a single credential slot which is
-      // sent verbatim as the Authorization header
+      // Maintainerr has one credential slot and sends it verbatim as the Authorization header
       if (
         !safeSecretCompare(
           request.headers.authorization,
@@ -62,7 +62,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
       const { notification_type, mediaItems } = request.body
 
-      // Acks TEST_NOTIFICATION and every non-handled event type
       if (notification_type !== 'MEDIA_HANDLED') {
         if (notification_type === 'TEST_NOTIFICATION') {
           fastify.maintainerr.recordTestReceipt()

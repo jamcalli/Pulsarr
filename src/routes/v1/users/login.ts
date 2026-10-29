@@ -11,6 +11,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/login',
     {
       config: {
+        public: true,
         rateLimit: CREDENTIAL_RATE_LIMIT,
       },
       schema: {
