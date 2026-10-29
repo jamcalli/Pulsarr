@@ -35,3 +35,6 @@ export function isLocalIpAddress(ip: string): boolean {
   // process() unwraps IPv4-mapped IPv6 (::ffff:a.b.c.d) to plain IPv4
   return LOCAL_RANGES.has(ipaddr.process(cleanIp).range())
 }
+
+/** Fastify trustProxy value that honors X-Forwarded-For only from loopback, link-local and private peers. */
+export const TRUSTED_PROXY_RANGES = 'loopback,linklocal,uniquelocal'

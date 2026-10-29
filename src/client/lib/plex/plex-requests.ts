@@ -61,7 +61,7 @@ export async function testServerConnection() {
 
 /** The server saves both URLs itself, so this only refreshes the cached config. */
 export async function generateFeeds(): Promise<void> {
-  const { error } = await apiFetch.GET('/v1/plex/generate-rss-feeds')
+  const { error } = await apiFetch.POST('/v1/plex/generate-rss-feeds')
   if (error) throw error
   await invalidateConfig()
 }

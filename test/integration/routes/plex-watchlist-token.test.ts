@@ -44,7 +44,7 @@ describe('Plex watchlist sync routes', () => {
       vi.spyOn(app.watchlistWorkflow, 'getStatus').mockReturnValue('starting')
       const sync = vi.spyOn(app.plexWatchlist, method)
 
-      const res = await app.inject({ method: 'GET', url })
+      const res = await app.inject({ method: 'POST', url })
 
       expect(res.statusCode).toBe(409)
       expect(sync).not.toHaveBeenCalled()
@@ -60,7 +60,7 @@ describe('Plex watchlist sync routes', () => {
       .spyOn(app.plexWatchlist, method)
       .mockResolvedValue({ total: 0, users: [] })
 
-    const res = await app.inject({ method: 'GET', url })
+    const res = await app.inject({ method: 'POST', url })
 
     expect(res.statusCode).toBe(200)
     expect(sync).toHaveBeenCalledOnce()
@@ -81,8 +81,8 @@ describe('Plex watchlist sync routes', () => {
 
     try {
       const responses = await Promise.all([
-        app.inject({ method: 'GET', url: '/v1/plex/self-watchlist-token' }),
-        app.inject({ method: 'GET', url: '/v1/plex/others-watchlist-token' }),
+        app.inject({ method: 'POST', url: '/v1/plex/self-watchlist-token' }),
+        app.inject({ method: 'POST', url: '/v1/plex/others-watchlist-token' }),
       ])
 
       expect(responses.map((res) => res.statusCode)).toEqual([200, 200])

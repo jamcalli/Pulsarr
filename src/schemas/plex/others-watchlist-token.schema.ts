@@ -2,7 +2,7 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { PlexWatchlistSyncSchema } from '@root/schemas/plex/self-watchlist-token.schema.js'
 
 export const othersWatchlistSchema = {
-  summary: 'Get others watchlist tokens',
+  summary: 'Sync others watchlists',
   operationId: 'getOthersWatchlistTokens',
   description:
     'Retrieve watchlist items from other Plex users. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/others-watchlist/start and its status route instead.',

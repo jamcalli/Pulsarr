@@ -44,7 +44,7 @@ export async function updateConfig(updates: ConfigUpdate) {
 
 export async function refreshRssFeeds(): Promise<void> {
   // RSS generation fails without Plex Pass - skip so setup can complete without feeds
-  const { data, error } = await apiFetch.GET('/v1/plex/generate-rss-feeds')
+  const { data, error } = await apiFetch.POST('/v1/plex/generate-rss-feeds')
   if (error) return
 
   if (data.self && data.friends) {
