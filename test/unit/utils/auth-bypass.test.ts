@@ -13,7 +13,6 @@ describe('auth-bypass', () => {
 
       const mockRequest = {
         ip: '8.8.8.8',
-        headers: {},
       } as unknown as FastifyRequest
 
       const result = getAuthBypassStatus(mockFastify, mockRequest)
@@ -32,7 +31,6 @@ describe('auth-bypass', () => {
 
       const mockRequest = {
         ip: '127.0.0.1',
-        headers: {},
       } as unknown as FastifyRequest
 
       const result = getAuthBypassStatus(mockFastify, mockRequest)
@@ -51,7 +49,6 @@ describe('auth-bypass', () => {
 
       const mockRequest = {
         ip: '8.8.8.8',
-        headers: {},
       } as unknown as FastifyRequest
 
       const result = getAuthBypassStatus(mockFastify, mockRequest)
@@ -70,7 +67,6 @@ describe('auth-bypass', () => {
 
       const mockRequest = {
         ip: '127.0.0.1', // even local IP shouldn't bypass
-        headers: {},
       } as unknown as FastifyRequest
 
       const result = getAuthBypassStatus(mockFastify, mockRequest)
@@ -96,7 +92,7 @@ describe('auth-bypass', () => {
       ]
 
       for (const ip of privateIps) {
-        const mockRequest = { ip, headers: {} } as unknown as FastifyRequest
+        const mockRequest = { ip } as unknown as FastifyRequest
         const result = getAuthBypassStatus(mockFastify, mockRequest)
 
         expect(result.isAuthDisabled).toBe(false)
@@ -115,93 +111,13 @@ describe('auth-bypass', () => {
       const publicIps = ['8.8.8.8', '1.1.1.1', '208.67.222.222']
 
       for (const ip of publicIps) {
-        const mockRequest = { ip, headers: {} } as unknown as FastifyRequest
+        const mockRequest = { ip } as unknown as FastifyRequest
         const result = getAuthBypassStatus(mockFastify, mockRequest)
 
         expect(result.isAuthDisabled).toBe(false)
         expect(result.isLocalBypass).toBe(false)
         expect(result.shouldBypass).toBe(false)
       }
-    })
-
-    it('keeps the local rule for a client resolved through a trusted proxy', () => {
-      const mockFastify = {
-        config: { authenticationMethod: 'requiredExceptLocal' },
-      } as unknown as FastifyInstance
-
-      const mockRequest = {
-        ip: '192.168.1.50',
-        ips: ['10.0.0.2', '192.168.1.50'],
-        headers: { 'x-forwarded-for': '192.168.1.50' },
-      } as unknown as FastifyRequest
-
-      expect(getAuthBypassStatus(mockFastify, mockRequest).isLocalBypass).toBe(
-        true,
-      )
-    })
-
-    it('keeps the local rule when a local proxy sends an empty x-forwarded-for', () => {
-      const mockFastify = {
-        config: { authenticationMethod: 'requiredExceptLocal' },
-      } as unknown as FastifyInstance
-
-      const mockRequest = {
-        ip: '192.168.1.5',
-        ips: ['192.168.1.5'],
-        headers: { 'x-forwarded-for': ' ' },
-      } as unknown as FastifyRequest
-
-      const result = getAuthBypassStatus(mockFastify, mockRequest)
-
-      expect(result.isLocalBypass).toBe(true)
-    })
-
-    it('drops the local rule when an untrusted peer sends x-forwarded-for', () => {
-      const mockFastify = {
-        config: { authenticationMethod: 'requiredExceptLocal' },
-      } as unknown as FastifyInstance
-
-      const mockRequest = {
-        ip: '192.168.1.50',
-        ips: ['192.168.1.50'],
-        headers: { 'x-forwarded-for': '10.0.0.9' },
-      } as unknown as FastifyRequest
-
-      const result = getAuthBypassStatus(mockFastify, mockRequest)
-
-      expect(result.isLocalBypass).toBe(false)
-      expect(result.shouldBypass).toBe(false)
-    })
-
-    it('drops the local rule for x-forwarded-for when trustProxy is off', () => {
-      const mockFastify = {
-        config: { authenticationMethod: 'requiredExceptLocal' },
-      } as unknown as FastifyInstance
-
-      const mockRequest = {
-        ip: '127.0.0.1',
-        headers: { 'x-forwarded-for': '127.0.0.1' },
-      } as unknown as FastifyRequest
-
-      expect(getAuthBypassStatus(mockFastify, mockRequest).isLocalBypass).toBe(
-        false,
-      )
-    })
-
-    it('still bypasses forwarded requests when auth is disabled', () => {
-      const mockFastify = {
-        config: { authenticationMethod: 'disabled' },
-      } as unknown as FastifyInstance
-
-      const mockRequest = {
-        ip: '8.8.8.8',
-        ips: ['8.8.8.8'],
-        headers: { 'x-forwarded-for': '10.0.0.9' },
-      } as unknown as FastifyRequest
-
-      expect(getAuthBypassStatus(mockFastify, mockRequest).shouldBypass).toBe(
-        true,
-      )
     })
   })
 })

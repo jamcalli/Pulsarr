@@ -11,7 +11,10 @@ export default async function (fastify: FastifyInstance) {
   // A 401 from this hook never reaches route-level limiters, so failed auth is counted here
   const globalLimiter = fastify.rateLimit()
 
-  const checkPublicRoute = fastify.auth([fastify.checkRequestOrigin])
+  const checkPublicRoute = fastify.auth(
+    [fastify.checkRequestOrigin, fastify.rejectInvalidApiKey],
+    { relation: 'and' },
+  )
   // A presented key is always validated, so a revoked key fails instead of falling back to local access
   const checkProtectedRoute = fastify.auth(
     [

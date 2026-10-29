@@ -81,6 +81,51 @@ describe('cors with allowedOrigins', () => {
     expect(res.headers['access-control-allow-methods']).toContain('POST')
   })
 
+  it('allows the API key header in a preflight from a listed origin', async () => {
+    const res = await app.inject({
+      method: 'OPTIONS',
+      url: '/v1/api-keys/',
+      remoteAddress: '8.8.7.1',
+      headers: {
+        origin: LISTED_ORIGIN,
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'x-api-key',
+      },
+    })
+
+    expect(res.statusCode).toBe(204)
+    expect(
+      String(res.headers['access-control-allow-headers'])
+        .toLowerCase()
+        .split(', '),
+    ).toContain('x-api-key')
+  })
+
+  it('accepts a valid API key from a listed origin', async () => {
+    const { key } = await app.apiKeys.createApiKey({ name: 'dashboard' })
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/api-keys/',
+      remoteAddress: '8.8.7.2',
+      headers: { origin: LISTED_ORIGIN, 'x-api-key': key },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['access-control-allow-origin']).toBe(LISTED_ORIGIN)
+  })
+
+  it('rejects an invalid API key from a listed origin', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/api-keys/',
+      remoteAddress: '8.8.7.3',
+      headers: { origin: LISTED_ORIGIN, 'x-api-key': 'not-a-key' },
+    })
+
+    expect(res.statusCode).toBe(401)
+  })
+
   it('sends no CORS headers to an unlisted origin', async () => {
     const res = await app.inject({
       method: 'GET',

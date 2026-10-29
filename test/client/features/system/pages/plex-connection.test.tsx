@@ -314,7 +314,7 @@ function mockEndpoints({
       '/v1/plex/watchlist-sync/:type/status',
       ({ params }) => HttpResponse.json(syncs[params.type]),
     ),
-    http.get('/v1/plex/generate-rss-feeds', () =>
+    http.post('/v1/plex/generate-rss-feeds', () =>
       step('feeds', () => {
         saved = { ...saved, ...FEEDS }
         return HttpResponse.json({

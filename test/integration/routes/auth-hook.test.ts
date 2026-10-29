@@ -390,6 +390,19 @@ describe('auth hook', () => {
       expect(res.statusCode).toBe(401)
     })
 
+    it('rejects an invalid key on a public route', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/users/login',
+        remoteAddress: '8.8.6.10',
+        headers: { 'x-api-key': 'not-a-key', origin: FOREIGN_ORIGIN },
+        payload: ADMIN_LOGIN,
+      })
+
+      expect(res.statusCode).toBe(401)
+      expect(res.json()).toMatchObject({ message: 'Invalid API key' })
+    })
+
     it('rejects an invalid key from a local address under requiredExceptLocal', async () => {
       app.config.authenticationMethod = 'requiredExceptLocal'
 
@@ -402,6 +415,35 @@ describe('auth hook', () => {
 
       expect(res.statusCode).toBe(401)
       expect(res.json()).toMatchObject({ message: 'Invalid API key' })
+    })
+  })
+
+  describe('login session', () => {
+    const listKeys = (cookie: string) =>
+      app.inject({
+        method: 'GET',
+        url: '/v1/api-keys/',
+        remoteAddress: '8.8.6.11',
+        headers: { cookie },
+      })
+
+    it('issues a new session id on login and ends the one it replaces', async () => {
+      const before = await signIn('8.8.6.11')
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/users/login',
+        remoteAddress: '8.8.6.11',
+        headers: { cookie: before },
+        payload: ADMIN_LOGIN,
+      })
+      const cookie = res.cookies.at(-1)
+      const after = cookie ? `${cookie.name}=${cookie.value}` : ''
+
+      expect(res.statusCode).toBe(200)
+      expect(after).not.toBe('')
+      expect(after).not.toBe(before)
+      expect((await listKeys(before)).statusCode).toBe(401)
+      expect((await listKeys(after)).statusCode).toBe(200)
     })
   })
 

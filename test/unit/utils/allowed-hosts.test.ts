@@ -1,6 +1,7 @@
 import { hostname } from 'node:os'
 import {
   buildAllowedHostSet,
+  hostnameFromHostHeader,
   isAllowedHost,
   parseAllowedHosts,
 } from '@utils/allowed-hosts.js'
@@ -37,6 +38,24 @@ describe('allowed-hosts', () => {
     })
   })
 
+  describe('hostnameFromHostHeader', () => {
+    it.each([
+      ['pulsarr.example.com:3003', 'pulsarr.example.com'],
+      ['Pulsarr.Example.com', 'pulsarr.example.com'],
+      ['[fd00::5]:3003', '[fd00::5]'],
+      ['192.168.1.10', '192.168.1.10'],
+    ])('reads %j as %j', (value, expected) => {
+      expect(hostnameFromHostHeader(value)).toBe(expected)
+    })
+
+    it.each([undefined, '', 'bad host', 'a/b@c:x'])(
+      'returns null for %j',
+      (value) => {
+        expect(hostnameFromHostHeader(value)).toBeNull()
+      },
+    )
+  })
+
   describe('isAllowedHost', () => {
     it('matches a bracketed IPv6 entry against the request host', () => {
       const bracketed = buildAllowedHostSet(parseAllowedHosts('[fd00::5]'))
@@ -55,13 +74,12 @@ describe('allowed-hosts', () => {
       '[fd00::5]',
       '[FD00:0:0::5]',
       hostname(),
-      '',
     ])('accepts %j', (host) => {
       expect(isAllowedHost(host, allowed)).toBe(true)
     })
 
-    it.each(['other.example.com', '192.168.1.10', 'example.com'])(
-      'rejects %s',
+    it.each(['other.example.com', '192.168.1.10', 'example.com', ''])(
+      'rejects %j',
       (host) => {
         expect(isAllowedHost(host, allowed)).toBe(false)
       },

@@ -42,11 +42,19 @@ export function buildAllowedHostSet(
   ])
 }
 
-/** Whether a request hostname (as Fastify parses it, IPv6 in brackets) is accepted. An empty hostname passes. */
+/** Hostname from a raw Host header value, null when the header is absent, empty or cannot be parsed. */
+export function hostnameFromHostHeader(
+  value: string | undefined,
+): string | null {
+  return value && !/[/?#@\\\s]/.test(value) && URL.canParse(`http://${value}`)
+    ? new URL(`http://${value}`).hostname
+    : null
+}
+
+/** Whether a request hostname (as Fastify parses it, IPv6 in brackets) is accepted. An empty hostname fails. */
 export function isAllowedHost(
   requestHostname: string,
   allowed: ReadonlySet<string>,
 ): boolean {
-  if (!requestHostname) return true
   return allowed.has(normalizeHost(requestHostname))
 }

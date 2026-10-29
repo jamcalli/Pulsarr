@@ -5,7 +5,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
   fastify.route({
-    method: 'GET',
+    method: 'POST',
     url: '/others-watchlist-token',
     schema: othersWatchlistSchema,
     handler: async (request, reply) => {
