@@ -1,7 +1,13 @@
 import auth from '@fastify/auth'
 import { ApiKeyService } from '@services/api-key.service.js'
-import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
+
+const presentedApiKey = (request: FastifyRequest): string | undefined => {
+  const rawApiKey = request.headers['x-api-key']
+  const apiKey = Array.isArray(rawApiKey) ? rawApiKey[0] : rawApiKey
+  return apiKey || undefined
+}
 
 /**
  * Plugin to register the API key service and authentication strategy
@@ -19,49 +25,30 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
   // Decorate fastify with the service
   fastify.decorate('apiKeys', apiKeyService)
 
-  // Register API key verification strategy
-  fastify.decorate(
-    'verifyApiKey',
-    (
-      request: FastifyRequest,
-      _reply: FastifyReply,
-      done: (error?: Error) => void,
-    ) => {
-      const rawApiKey = request.headers['x-api-key']
-      const apiKey = Array.isArray(rawApiKey) ? rawApiKey[0] : rawApiKey
-
-      if (!apiKey) {
-        const error = new Error('Missing API key') as Error & {
-          statusCode?: number
-        }
-        error.statusCode = 401
-        return done(error)
-      }
-
-      // Verify API key and get user data in single operation
-      const user = apiKeyService.verifyAndGetUser(apiKey)
-
-      if (!user) {
-        fastify.log.warn(
-          { ip: request.ip, url: request.url },
-          'Invalid API key authentication attempt',
-        )
-        const error = new Error('Invalid API key') as Error & {
-          statusCode?: number
-        }
-        error.statusCode = 401
-        return done(error)
-      }
-
-      request.user = user
-      fastify.log.debug(
-        { userId: user.id, username: user.username, ip: request.ip },
-        'API key authentication successful',
+  fastify.decorate('rejectInvalidApiKey', async (request: FastifyRequest) => {
+    const apiKey = presentedApiKey(request)
+    if (apiKey && !apiKeyService.verifyAndGetUser(apiKey)) {
+      fastify.log.warn(
+        { ip: request.ip, url: request.url },
+        'Invalid API key authentication attempt',
       )
+      throw fastify.httpErrors.unauthorized('Invalid API key')
+    }
+  })
 
-      done()
-    },
-  )
+  fastify.decorate('verifyApiKey', async (request: FastifyRequest) => {
+    const apiKey = presentedApiKey(request)
+    const user = apiKey ? apiKeyService.verifyAndGetUser(apiKey) : null
+    if (!user) {
+      throw fastify.httpErrors.unauthorized('Missing API key')
+    }
+
+    request.user = user
+    fastify.log.debug(
+      { userId: user.id, username: user.username, ip: request.ip },
+      'API key authentication successful',
+    )
+  })
 }
 
 export default fp(apiKeyPlugin, {
@@ -69,14 +56,11 @@ export default fp(apiKeyPlugin, {
   dependencies: ['database', 'session'],
 })
 
-// Add type definitions
 declare module 'fastify' {
   interface FastifyInstance {
     apiKeys: ApiKeyService
-    verifyApiKey: (
-      request: FastifyRequest,
-      reply: FastifyReply,
-      done: (error?: Error) => void,
-    ) => void
+    /** Auth strategy that fails only when an API key is presented and does not match. */
+    rejectInvalidApiKey: (request: FastifyRequest) => Promise<void>
+    verifyApiKey: (request: FastifyRequest) => Promise<void>
   }
 }

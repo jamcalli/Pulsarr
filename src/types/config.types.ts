@@ -97,6 +97,8 @@ export interface Config {
   logLevel: ConfigLogLevel
   closeGraceDelay: number
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
+  allowedOrigins: string[]
+  allowedHosts: string[]
   rateLimitMax: number
   queueProcessDelaySeconds: number
   // Maintainerr Config

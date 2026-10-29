@@ -1,4 +1,5 @@
 import serviceApp from '@root/app.js'
+import { TRUSTED_PROXY_RANGES } from '@utils/ip.js'
 import type { FastifyInstance, onRouteHookHandler } from 'fastify'
 import Fastify from 'fastify'
 import type { TestContext } from 'vitest'
@@ -20,6 +21,7 @@ export async function build(
         removeAdditional: 'all',
       },
     },
+    trustProxy: TRUSTED_PROXY_RANGES,
   })
 
   if (onRoute) {

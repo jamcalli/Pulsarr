@@ -1,4 +1,5 @@
 import { ConfigLogLevelSchema } from '@root/schemas/config/config.schema.js'
+import { TRUSTED_PROXY_RANGES } from '@utils/ip.js'
 import { createLoggerConfig } from '@utils/logger.js'
 import { normalizeBasePath } from '@utils/url.js'
 import closeWithGrace from 'close-with-grace'
@@ -25,10 +26,7 @@ async function init() {
     logController: new LogController({
       disableRequestLogging: !enableRequestLogging,
     }),
-    // Trust X-Forwarded-For from private networks so request.ip resolves to
-    // the real client behind a reverse proxy (needed for auth bypass, rate
-    // limiting, and logging). Uses proxy-addr presets for RFC1918 + loopback.
-    trustProxy: 'loopback,linklocal,uniquelocal',
+    trustProxy: TRUSTED_PROXY_RANGES,
   })
 
   const basePath = normalizeBasePath(process.env.basePath)

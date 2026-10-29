@@ -1,13 +1,15 @@
 import { isLocalIpAddress } from '@utils/ip.js'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 
-/**
- * Resolves whether session auth is bypassed for a request: globally
- * (authenticationMethod 'disabled') or because the request comes from a
- * local IP with 'requiredExceptLocal'.
- *
- * @returns A flag per condition plus the combined shouldBypass.
- */
+// request.ips holds the socket address plus each forwarded hop Fastify accepted from a trusted proxy
+function isForwardedByUntrustedPeer(request: FastifyRequest): boolean {
+  return (
+    String(request.headers['x-forwarded-for'] ?? '').trim() !== '' &&
+    (request.ips?.length ?? 0) < 2
+  )
+}
+
+/** Whether session auth is bypassed globally ('disabled') or for a local client under 'requiredExceptLocal', never for a request forwarded by an untrusted peer. */
 export function getAuthBypassStatus(
   fastify: FastifyInstance,
   request: FastifyRequest,
@@ -15,7 +17,9 @@ export function getAuthBypassStatus(
   const authMethod = fastify.config.authenticationMethod
   const isAuthDisabled = authMethod === 'disabled'
   const isLocalBypass =
-    authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
+    authMethod === 'requiredExceptLocal' &&
+    !isForwardedByUntrustedPeer(request) &&
+    isLocalIpAddress(request.ip)
 
   return {
     isAuthDisabled,
