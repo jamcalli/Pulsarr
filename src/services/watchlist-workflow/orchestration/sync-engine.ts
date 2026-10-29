@@ -1,5 +1,8 @@
 import { PLEX_LABEL_CONCURRENCY } from '@root/schemas/plex/label-sync-config.schema.js'
-import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import type {
+  TemptRssWatchlistItem,
+  TokenWatchlistItem,
+} from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
@@ -19,6 +22,7 @@ import {
   routeMovie,
   routeShow,
 } from '../routing/content-router.js'
+import { queueForDeferredRouting } from '../routing/health-checker.js'
 import type { WorkflowDeps } from '../types.js'
 
 export interface SyncResult {
@@ -35,7 +39,7 @@ export interface SyncResult {
   skippedDueToWatchlistCap: number
   skippedDueToExclusion: number
   skippedDueToRouting: number
-  /** Left unrouted because the owner Plex server could not be checked, so the next run retries them. */
+  /** Left unrouted because the owner Plex server could not be checked, and queued for deferred routing. */
   skippedPlexUnreachable: number
 }
 
@@ -197,6 +201,7 @@ export async function syncWatchlistItems(
     let skippedDueToExclusion = 0
     let skippedDueToRouting = 0
     let skippedPlexUnreachable = 0
+    const plexUnreachableByUser = new Map<number, TokenWatchlistItem[]>()
     const skippedItems: { shows: string[]; movies: string[] } = {
       shows: [],
       movies: [],
@@ -340,6 +345,7 @@ export async function syncWatchlistItems(
                 type: 'show',
                 added: result.routed,
                 skippedReason: result.skippedReason,
+                item,
               }
             }
             if (item.type === 'movie') {
@@ -388,6 +394,7 @@ export async function syncWatchlistItems(
                 type: 'movie',
                 added: result.routed,
                 skippedReason: result.skippedReason,
+                item,
               }
             }
 
@@ -423,6 +430,9 @@ export async function syncWatchlistItems(
           value.skippedReason === 'plex-unreachable'
         ) {
           skippedPlexUnreachable++
+          const userItems = plexUnreachableByUser.get(value.item.user_id)
+          if (userItems) userItems.push(value.item)
+          else plexUnreachableByUser.set(value.item.user_id, [value.item])
         } else if (value.type === 'skipped') {
           if (value.reason === 'user_setting') {
             skippedDueToUserSetting++
@@ -453,6 +463,19 @@ export async function syncWatchlistItems(
         deps.logger.error(
           { error: result.reason },
           'Unexpected rejection processing watchlist item',
+        )
+      }
+    }
+
+    if (!signal.aborted) {
+      for (const [userId, items] of plexUnreachableByUser) {
+        queueForDeferredRouting(
+          {
+            deferredRoutingQueue: deps.state.deferredRoutingQueue,
+            logger: deps.logger,
+          },
+          { type: 'items', userId, items },
+          'plex-unreachable',
         )
       }
     }

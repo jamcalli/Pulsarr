@@ -34,11 +34,10 @@ import {
 import { discoverServerConnections } from './plex-server/connection/discover-servers.js'
 import {
   probeConnection,
-  probeConnections,
   probeServerAccess,
 } from './plex-server/connection/probe.js'
 import { connectionTestResult } from './plex-server/connection/probe-result.js'
-import { rankProbedConnections } from './plex-server/connection/ranking.js'
+import { rankServerConnections } from './plex-server/connection/ranking.js'
 import {
   type ContentAvailabilityCache,
   checkContentOnServer,
@@ -473,15 +472,7 @@ export class PlexServerService {
       }
     }
 
-    const ranked = rankProbedConnections(
-      await probeConnections(
-        server.connections.map((connection) => ({
-          ...connection,
-          machineId: server.resource.clientIdentifier,
-        })),
-        this.log,
-      ),
-    )
+    const ranked = await rankServerConnections(server, this.log)
     const connections = ranked.map(({ connection }) =>
       connectionInfo(connection.uri, connection),
     )
@@ -1720,6 +1711,7 @@ export class PlexServerService {
 
     const plexGuid = buildPlexGuid(contentType, plexKey)
     const abortController = new AbortController()
+    const firstFound = Promise.withResolvers<PlexExistence>()
     const check = async (server: ExistenceServer) => {
       const result = await checkContentOnServer(this.contentAvailabilityCache, {
         serverClientId: server.clientId,
@@ -1730,7 +1722,10 @@ export class PlexServerService {
         plexGuid,
         signal: abortController.signal,
       })
-      if (result === 'found') abortController.abort()
+      if (result === 'found') {
+        abortController.abort()
+        firstFound.resolve('found')
+      }
       return result
     }
 
@@ -1750,21 +1745,23 @@ export class PlexServerService {
             ),
           ),
       )
-      const [ownerResult, sharedResults] = await Promise.all([
-        ownerCheck,
-        sharedChecks,
-      ])
-      const existence = combineExistence(ownerResult, sharedResults)
-      this.log.debug(
-        {
-          plexKey,
-          contentType,
-          existence,
-          sharedServers: sharedResults.length,
+      const allChecked = Promise.all([ownerCheck, sharedChecks]).then(
+        ([ownerResult, sharedResults]) => {
+          const existence = combineExistence(ownerResult, sharedResults)
+          this.log.debug(
+            {
+              plexKey,
+              contentType,
+              existence,
+              sharedServers: sharedResults.length,
+            },
+            'Checked content existence across Plex servers',
+          )
+          return existence
         },
-        'Checked content existence across Plex servers',
       )
-      return existence
+      // The race keeps a handler on allChecked, so checks still running after a find never reject unhandled
+      return await Promise.race([firstFound.promise, allChecked])
     } catch (error) {
       this.log.error(
         { error, plexKey, contentType },

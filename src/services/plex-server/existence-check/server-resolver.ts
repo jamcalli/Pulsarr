@@ -3,11 +3,9 @@ import {
   type ServerCandidates,
   warnCandidateFallback,
 } from '@services/plex-server/connection/candidates.js'
-import {
-  probeConnections,
-  probeServerAccess,
-} from '@services/plex-server/connection/probe.js'
-import { rankProbedConnections } from '@services/plex-server/connection/ranking.js'
+import { probeServerAccess } from '@services/plex-server/connection/probe.js'
+import type { ProbeFailure } from '@services/plex-server/connection/probe-result.js'
+import { rankServerConnections } from '@services/plex-server/connection/ranking.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /** A Plex server the existence check queries, at its best working address with the token it accepts. */
@@ -85,7 +83,7 @@ async function resolveSharedServer(
   candidates: ServerCandidates,
   log: FastifyBaseLogger,
 ): Promise<ExistenceServer | null> {
-  const { resource, connections } = candidates
+  const { resource } = candidates
   warnCandidateFallback(log, candidates)
   if (!resource.accessToken) {
     log.debug(
@@ -95,16 +93,10 @@ async function resolveSharedServer(
     return null
   }
 
-  const [best] = rankProbedConnections(
-    await probeConnections(
-      connections.map((connection) => ({
-        ...connection,
-        machineId: resource.clientIdentifier,
-      })),
-      log,
-    ),
+  const reachable = (await rankServerConnections(candidates, log)).filter(
+    ({ outcome }) => outcome.ok,
   )
-  if (!best?.outcome.ok) {
+  if (reachable.length === 0) {
     log.warn(
       { server: resource.name },
       'No working connection found for shared Plex server',
@@ -112,23 +104,28 @@ async function resolveSharedServer(
     return null
   }
 
-  const access = await probeServerAccess(
-    best.connection.uri,
-    resource.accessToken,
-    log,
-  )
-  if (!access.ok) {
-    log.warn(
-      { server: resource.name, reason: access.reason },
-      'Shared Plex server failed its access check',
+  let lastFailure: ProbeFailure | null = null
+  for (const { connection } of reachable) {
+    const access = await probeServerAccess(
+      connection.uri,
+      resource.accessToken,
+      log,
     )
-    return null
+    if (access.ok) {
+      return {
+        clientId: resource.clientIdentifier,
+        name: resource.name,
+        uri: connection.uri,
+        accessToken: resource.accessToken,
+      }
+    }
+    lastFailure = access.reason
+    if (access.reason === 'auth') break
   }
 
-  return {
-    clientId: resource.clientIdentifier,
-    name: resource.name,
-    uri: best.connection.uri,
-    accessToken: resource.accessToken,
-  }
+  log.warn(
+    { server: resource.name, reason: lastFailure },
+    'Shared Plex server failed its access check',
+  )
+  return null
 }

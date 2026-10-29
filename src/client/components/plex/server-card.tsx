@@ -165,7 +165,7 @@ export const ServerCard = withFieldGroup({
           {(field) => (
             <field.SwitchField
               label="Skip content already on Plex"
-              description="Skip requests your server or shared servers already have."
+              description="Skip requests already on your Plex servers."
               disabled={locked}
             />
           )}
@@ -174,7 +174,7 @@ export const ServerCard = withFieldGroup({
           {(field) => (
             <field.SegmentedField
               label="Servers to check"
-              description="Where Pulsarr looks before skipping a request."
+              description="Where Pulsarr looks before skipping a request. Shared servers count only for your own watchlist."
               options={PLEX_EXISTENCE_SCOPE_OPTIONS}
               disabled={locked || !skipIfExistsOnPlex}
             />

@@ -442,6 +442,30 @@ describe('PlexServerService existence check', () => {
     expect(await result).toBe('missing')
   })
 
+  it('answers found from the owner without waiting for a shared server to resolve', async () => {
+    ownerAnswer = 'found'
+    const release = Promise.withResolvers<void>()
+    let sharedProbeEnded = false
+    server.use(
+      http.get(`${SHARED_URI}/identity`, async ({ request }) => {
+        request.signal.addEventListener('abort', () => {
+          sharedProbeEnded = true
+        })
+        await release.promise
+        sharedProbeEnded = true
+        return HttpResponse.json({
+          MediaContainer: { machineIdentifier: 'shared-1' },
+        })
+      }),
+    )
+    const service = createChecker()
+    await service.getPlexServerUrl()
+
+    expect(await check(service)).toBe('found')
+    expect(sharedProbeEnded).toBe(false)
+    release.resolve()
+  })
+
   it('never reads the resources list with the owned scope', async () => {
     const service = createChecker('owned')
     await service.getPlexServerUrl()

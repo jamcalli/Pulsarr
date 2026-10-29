@@ -69,6 +69,8 @@ describe('createSharedServerResolver', () => {
   let impostors: Set<string>
   let identityCalls: Map<string, number>
   let accessTokens: string[]
+  let accessUris: string[]
+  let accessDown: Set<string>
 
   function serve() {
     server.use(
@@ -81,6 +83,8 @@ describe('createSharedServerResolver', () => {
         }),
         http.get(`${uri}/`, ({ request }) => {
           accessTokens.push(request.headers.get('X-Plex-Token') ?? '')
+          accessUris.push(uri)
+          if (accessDown.has(uri)) return HttpResponse.error()
           if (request.headers.get('X-Plex-Token') !== 'shared-token') {
             return new HttpResponse(null, { status: 401 })
           }
@@ -101,6 +105,8 @@ describe('createSharedServerResolver', () => {
     impostors = new Set()
     identityCalls = new Map()
     accessTokens = []
+    accessUris = []
+    accessDown = new Set()
     resolver = createSharedServerResolver(
       new CacheRegistry({ now: () => now }),
       TTL_MS,
@@ -230,6 +236,33 @@ describe('createSharedServerResolver', () => {
     expect(await resolver.resolve(candidates)).toBeNull()
 
     expect(accessTokens).toEqual(['stale-token'])
+  })
+
+  it('falls back to the next address when the best one fails its access check', async () => {
+    accessDown.add(LOCAL_HTTPS.uri)
+
+    const resolved = await resolver.resolve(
+      candidatesFor(
+        sharedResource({ connections: [LOCAL_HTTPS, REMOTE_HTTPS] }),
+      ),
+    )
+
+    expect(resolved?.uri).toBe(REMOTE_HTTPS.uri)
+    expect(accessUris).toEqual([LOCAL_HTTPS.uri, REMOTE_HTTPS.uri])
+  })
+
+  it('stops at the first address that refuses the token', async () => {
+    const resolved = await resolver.resolve(
+      candidatesFor(
+        sharedResource({
+          accessToken: 'stale-token',
+          connections: [LOCAL_HTTPS, REMOTE_HTTPS],
+        }),
+      ),
+    )
+
+    expect(resolved).toBeNull()
+    expect(accessUris).toEqual([LOCAL_HTTPS.uri])
   })
 
   it('probes again after the connection is invalidated', async () => {
