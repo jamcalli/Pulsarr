@@ -135,7 +135,7 @@ describe('routeContent gates', () => {
     await seedUsers(knex)
     await seedInstances(knex)
     await seedRouterRules(knex)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
 
     routeItemToRadarr = vi.fn(echoAppliedRadarr())
     fastify.radarrManager.routeItemToRadarr =
@@ -417,7 +417,7 @@ describe('routeContent gates', () => {
 
     beforeEach(async () => {
       await seedWatchlist(getTestDatabase())
-      fastify.contentRouter.clearRouterRulesCache()
+      fastify.caches.clear()
     })
 
     it('leaves the item unrouted and unmarked, then routes it on the next pass', async () => {

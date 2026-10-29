@@ -1,6 +1,9 @@
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import {
   CONNECTION_LIST_TTL_MS,
-  NEGOTIATION_RETRY_GAP_MS,
+  PLEX_SHARED_SERVERS_CACHE_TTL_MS,
+  PLEX_TV_RETRY_GAP_MS,
+  PLEX_USERS_CACHE_TTL_MS,
   PlexServerService,
 } from '@services/plex-server.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -59,8 +62,9 @@ function servePlex(state: PlexState) {
   )
 }
 
-function createService(plexServerUrl = '') {
+function createService(plexServerUrl = '', caches = new CacheRegistry()) {
   const fastify = {
+    caches,
     config: { plexTokens: ['admin-token'], plexServerUrl },
   } as unknown as FastifyInstance
   return new PlexServerService(createMockLogger(), fastify)
@@ -125,6 +129,32 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(2)
   })
 
+  it('reuses a failed server list read for the retry gap, then reads again', async () => {
+    let now = 1
+    const service = createService('', new CacheRegistry({ now: () => now }))
+    server.use(
+      http.get(`${LOCAL_HTTPS}/library/all`, () =>
+        HttpResponse.json({ MediaContainer: { size: 0 } }),
+      ),
+    )
+    const check = () =>
+      service.checkExistenceAcrossServers('abc123', 'movie', true)
+    await service.getPlexServerUrl()
+
+    state.plexTv = 'down'
+    await check()
+    const afterFailure = state.resourceCalls
+    state.plexTv = 'up'
+    now += PLEX_TV_RETRY_GAP_MS
+    await check()
+    expect(state.resourceCalls).toBe(afterFailure)
+
+    now += 1
+    await check()
+    await check()
+    expect(state.resourceCalls).toBe(afterFailure + 1)
+  })
+
   it('never caches the fallback when plex.tv cannot be reached', async () => {
     const service = createService()
     state.plexTv = 'down'
@@ -134,7 +164,7 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(1)
 
     state.plexTv = 'up'
-    vi.advanceTimersByTime(NEGOTIATION_RETRY_GAP_MS)
+    vi.advanceTimersByTime(PLEX_TV_RETRY_GAP_MS)
 
     expect(await service.getPlexServerUrl()).toBe(LOCAL_HTTPS)
     expect(state.resourceCalls).toBe(2)
@@ -149,7 +179,7 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(1)
 
     state.down = new Set([LOCAL_HTTPS])
-    vi.advanceTimersByTime(NEGOTIATION_RETRY_GAP_MS)
+    vi.advanceTimersByTime(PLEX_TV_RETRY_GAP_MS)
 
     expect(await service.getPlexServerUrl()).toBe(REMOTE_HTTPS)
     expect(state.resourceCalls).toBe(2)
@@ -233,6 +263,7 @@ describe('PlexServerService.resolveUserPlexId', () => {
 
   function createResolver(adminPlexId: number | null = 1001) {
     const fastify = {
+      caches: new CacheRegistry(),
       config: { plexTokens: ['admin-token'], plexServerUrl: '' },
       db: { getPrimaryUser: vi.fn(async () => ({ id: OWNER.id })) },
     } as unknown as FastifyInstance
@@ -303,5 +334,134 @@ describe('PlexServerService.resolveUserPlexId', () => {
     expect(
       await service.resolveUserPlexId({ id: 9, plex_uuid: 'fff666' }),
     ).toBeNull()
+  })
+})
+
+describe('PlexServerService plex.tv caches', () => {
+  const USERS_XML =
+    '<MediaContainer><User id="7" username="alice" title="alice"/></MediaContainer>'
+  const SHARED_XML =
+    '<MediaContainer><SharedServer id="1" username="Alice" email="alice@example.com" userID="7" accessToken="alice-token"/></MediaContainer>'
+
+  let now: number
+  let calls: { users: number; shared: number }
+  let usersStatus: number
+  let usersGate: Promise<void> | undefined
+
+  function createCachedService() {
+    servePlex({ plexTv: 'up', down: new Set(), resourceCalls: 0 })
+    server.use(
+      http.get('https://plex.tv/api/users', async () => {
+        calls.users += 1
+        await usersGate
+        return usersStatus === 200
+          ? HttpResponse.text(USERS_XML)
+          : new HttpResponse(null, { status: usersStatus })
+      }),
+      http.get('https://plex.tv/api/servers/machine-1/shared_servers', () => {
+        calls.shared += 1
+        return HttpResponse.text(SHARED_XML)
+      }),
+    )
+    return createService('', new CacheRegistry({ now: () => now }))
+  }
+
+  beforeEach(() => {
+    now = 1
+    calls = { users: 0, shared: 0 }
+    usersStatus = 200
+    usersGate = undefined
+  })
+
+  it('keeps the users list for its TTL', async () => {
+    const service = createCachedService()
+
+    await service.getPlexUsers()
+    now += PLEX_USERS_CACHE_TTL_MS
+    expect((await service.getPlexUsers()).map((u) => u.id)).toEqual(['7'])
+    expect(calls.users).toBe(1)
+
+    now += 1
+    await service.getPlexUsers()
+    expect(calls.users).toBe(2)
+  })
+
+  it('shares one users request between concurrent reads', async () => {
+    const service = createCachedService()
+    const gate = Promise.withResolvers<void>()
+    usersGate = gate.promise
+
+    const reads = Promise.all([service.getPlexUsers(), service.getPlexUsers()])
+    gate.resolve()
+
+    const [first, second] = await reads
+    expect(first).toEqual(second)
+    expect(calls.users).toBe(1)
+  })
+
+  it('refetches the users list when asked to skip the cache', async () => {
+    const service = createCachedService()
+
+    await service.getPlexUsers()
+    await service.getPlexUsers({ skipCache: true })
+
+    expect(calls.users).toBe(2)
+  })
+
+  it('never caches a failed users request', async () => {
+    const service = createCachedService()
+    usersStatus = 500
+
+    expect(await service.getPlexUsers()).toEqual([])
+    usersStatus = 200
+    expect(await service.getPlexUsers()).toHaveLength(1)
+    expect(calls.users).toBe(2)
+  })
+
+  it('keeps a user token for the shared server TTL, case-insensitively', async () => {
+    const service = createCachedService()
+
+    expect(await service.getUserToken('Alice')).toBe('alice-token')
+    now += PLEX_SHARED_SERVERS_CACHE_TTL_MS
+    expect(await service.getUserToken('alice')).toBe('alice-token')
+    expect(calls.shared).toBe(1)
+
+    now += 1
+    await service.getUserToken('alice')
+    expect(calls.shared).toBe(2)
+  })
+
+  it('never caches a missing token', async () => {
+    const service = createCachedService()
+
+    expect(await service.getUserToken('bob')).toBeNull()
+    expect(await service.getUserToken('bob')).toBeNull()
+
+    expect(calls.shared).toBe(1)
+  })
+
+  it('drops the friend lists and the user token on a friend change', async () => {
+    const service = createCachedService()
+    await service.getPlexUsers()
+    await service.getUserToken('alice')
+
+    service.clearFriendCaches()
+    service.clearUserToken('Alice')
+    await service.getPlexUsers()
+    await service.getUserToken('alice')
+
+    expect(calls).toEqual({ users: 2, shared: 2 })
+  })
+
+  it('drops every plex.tv cache on clearCaches', async () => {
+    const service = createCachedService()
+    await service.getPlexUsers()
+    await service.getUserToken('alice')
+
+    service.clearCaches()
+    await service.getPlexUsers()
+    await service.getUserToken('alice')
+
+    expect(calls).toEqual({ users: 2, shared: 2 })
   })
 })

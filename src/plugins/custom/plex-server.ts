@@ -70,7 +70,7 @@ export default fp(
   },
   {
     name: 'plex-server',
-    dependencies: ['config', 'progress'],
+    dependencies: ['caches', 'config', 'progress'],
   },
 )
 

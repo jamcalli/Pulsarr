@@ -2,6 +2,7 @@ import type { Config } from '@root/types/config.types.js'
 import type {
   AppliedRadarrRouting,
   AppliedSonarrRouting,
+  RouterRule,
   RoutingDetails,
 } from '@root/types/router.types.js'
 import type { ApprovalService } from '@services/approval.service.js'
@@ -12,14 +13,15 @@ import type { QuotaService } from '@services/quota.service.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { RuleCache } from './rule-cache.js'
+import type { UserListCache } from './user-list-cache.js'
 
 export interface ContentRouterDeps {
   logger: FastifyBaseLogger
   config: Config
   db: DatabaseService
   fastify: FastifyInstance
-  rules: RuleCache
+  rules: { get(): Promise<RouterRule[]> }
+  userLists: UserListCache
   radarrManager: RadarrManagerService
   sonarrManager: SonarrManagerService
   approvalService: ApprovalService

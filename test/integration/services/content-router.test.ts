@@ -54,7 +54,7 @@ describe('ContentRouterService Integration', () => {
     await seedInstances(knex)
     await seedRouterRules(knex)
     // Clear router rules cache to pick up seeded rules
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   describe('target_type filtering in approval checks', () => {

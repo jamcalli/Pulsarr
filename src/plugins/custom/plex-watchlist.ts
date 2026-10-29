@@ -28,7 +28,9 @@ export default fp(
   {
     name: 'plex-watchlist',
     dependencies: [
+      'caches',
       'config',
+      'content-router',
       'database',
       'notification-service',
       'plex-label-sync',

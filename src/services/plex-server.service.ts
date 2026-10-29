@@ -24,6 +24,7 @@ import { isSameServerEndpoint } from '@utils/url.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { LRUCache } from 'lru-cache'
 import {
   serverCandidates,
   warnCandidateFallback,
@@ -32,16 +33,17 @@ import { discoverServerConnections } from './plex-server/connection/discover-ser
 import { connectionTestResult } from './plex-server/connection/probe-result.js'
 import { rankProbedConnections } from './plex-server/connection/ranking.js'
 import {
-  type CachedConnection,
+  createServerConnectionCache,
   getBestServerConnection,
   probeConnections,
   probeServerAccess,
+  type ServerConnectionCache,
   testConnectionReachability,
 } from './plex-server/existence-check/connection-cache.js'
 import {
-  type CachedContentAvailability,
+  type ContentAvailabilityCache,
   checkContentOnServer,
-  clearContentCacheForReconciliation,
+  createContentAvailabilityCache,
 } from './plex-server/existence-check/content-cache.js'
 import { buildUniqueServerList } from './plex-server/existence-check/server-list-builder.js'
 import {
@@ -91,7 +93,15 @@ const PLEX_API_TIMEOUT = 30000
 /** Used only when nothing better is known, and never cached. */
 const PLEX_FALLBACK_URL = `http://localhost:${PLEX_DEFAULT_PORT}`
 export const CONNECTION_LIST_TTL_MS = 15 * 60 * 1000
-export const NEGOTIATION_RETRY_GAP_MS = 60 * 1000
+export const PLEX_TV_RETRY_GAP_MS = 60 * 1000
+export const PLEX_USERS_CACHE_TTL_MS = 30 * 60 * 1000
+/** Shared server info and the per-user tokens read from it. */
+export const PLEX_SHARED_SERVERS_CACHE_TTL_MS = 6 * 60 * 60 * 1000
+
+const PLEX_USER_TOKENS_CACHE_MAX = 1000
+const PLEX_USERS_KEY = 'users'
+const SHARED_SERVERS_KEY = 'shared-servers'
+const PLEX_RESOURCES_KEY = 'resources'
 
 interface ServerIdentity {
   machineId: string
@@ -147,27 +157,28 @@ export class PlexServerService {
   private negotiationInFlight: Promise<Negotiation> | null = null
   private cacheGeneration = 0
 
-  private users: PlexUser[] | null = null
-  private usersTimestamp = 0
-  private userTokens: Map<string, { token: string; timestamp: number }> =
-    new Map()
-  private sharedServerInfo: Map<string, PlexSharedServerInfo> | null = null
-  private sharedServerInfoTimestamp = 0
-
-  private plexResourcesCache: PlexResource[] | null = null
+  private readonly plexUsers: LRUCache<typeof PLEX_USERS_KEY, PlexUser[]>
+  private readonly sharedServers: LRUCache<
+    typeof SHARED_SERVERS_KEY,
+    Map<string, PlexSharedServerInfo>
+  >
+  /** Keyed by lowercased username, with the username as typed as the fetch context. */
+  private readonly userTokens: LRUCache<string, string, string>
+  private readonly plexResources: LRUCache<
+    typeof PLEX_RESOURCES_KEY,
+    PlexResource[]
+  >
 
   private protectedPlaylistsMap: Map<string, string> | null = null
   private protectedItemsCache: Set<string> | null = null
 
-  private serverConnectionCache: Map<string, CachedConnection> = new Map()
+  private readonly serverConnectionCache: ServerConnectionCache
 
-  // Reconciliation-scoped: no TTL, cleared at cycle start
-  private contentAvailabilityCache: Map<string, CachedContentAvailability> =
-    new Map()
+  /** No TTL, cleared at the start of each reconciliation. */
+  private readonly contentAvailabilityCache: ContentAvailabilityCache
 
-  private deadServerCache: Map<string, number> = new Map()
+  private readonly deadServerCache: Map<string, number> = new Map()
 
-  private readonly CONNECTION_CACHE_TTL = 30 * 60 * 1000
   private readonly DEAD_SERVER_BACKOFF = 5 * 60 * 1000
 
   private eventSource: PlexEventSource | null = null
@@ -183,6 +194,52 @@ export class PlexServerService {
   ) {
     this.log = createServiceLogger(baseLog, 'PLEX_SERVER')
     this.log.debug('Initializing PlexServerService')
+
+    const { caches } = fastify
+    // Each cache drops a fetch that a clear overtakes, so a pre-clear read never lands
+    this.plexUsers = caches.create({
+      max: 1,
+      ttl: PLEX_USERS_CACHE_TTL_MS,
+      ignoreFetchAbort: true,
+      fetchMethod: () => this.fetchPlexUsers(),
+    })
+    this.sharedServers = caches.create({
+      max: 1,
+      ttl: PLEX_SHARED_SERVERS_CACHE_TTL_MS,
+      ignoreFetchAbort: true,
+      fetchMethod: () => this.fetchSharedServerInfo(),
+    })
+    this.userTokens = caches.create({
+      max: PLEX_USER_TOKENS_CACHE_MAX,
+      ttl: PLEX_SHARED_SERVERS_CACHE_TTL_MS,
+      ignoreFetchAbort: true,
+      fetchMethod: (_key, _stale, { context: username }) =>
+        this.lookupUserToken(username),
+    })
+    this.plexResources = caches.create({
+      max: 1,
+      ignoreFetchAbort: true,
+      fetchMethod: async (_key, _stale, { options }) => {
+        try {
+          return await this.fetchPlexResources()
+        } catch (error) {
+          this.log.error({ error }, 'Error fetching Plex resources')
+          // The empty fallback is kept for the retry gap so a sync waits on plex.tv once
+          options.ttl = PLEX_TV_RETRY_GAP_MS
+          return []
+        }
+      },
+    })
+    this.serverConnectionCache = createServerConnectionCache(
+      caches,
+      this.deadServerCache,
+      this.log,
+    )
+    this.contentAvailabilityCache = createContentAvailabilityCache(
+      caches,
+      this.serverConnectionCache,
+      this.log,
+    )
   }
 
   private get config() {
@@ -282,7 +339,7 @@ export class PlexServerService {
     }
     if (
       this.fallbackConnections &&
-      Date.now() - this.negotiationFailedAt < NEGOTIATION_RETRY_GAP_MS
+      Date.now() - this.negotiationFailedAt < PLEX_TV_RETRY_GAP_MS
     ) {
       return this.fallbackConnections
     }
@@ -507,151 +564,144 @@ export class PlexServerService {
     return removePlexNotifications(this.fastify)
   }
 
+  /** Resolves to an empty list when there is no admin token or plex.tv fails, and never caches either. */
   async getPlexUsers(options?: { skipCache?: boolean }): Promise<PlexUser[]> {
+    if (!this.config.plexTokens?.[0]) {
+      this.log.warn('No Plex admin token available for user operations')
+      return []
+    }
     try {
-      if (
-        !options?.skipCache &&
-        this.users &&
-        Date.now() - this.usersTimestamp < 30 * 60 * 1000
-      ) {
-        this.log.debug('Using cached Plex users')
-        return this.users
-      }
-
-      const plexTvUrl = 'https://plex.tv'
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
-        this.log.warn('No Plex admin token available for user operations')
-        return []
-      }
-
-      const usersUrl = new URL('/api/users', plexTvUrl)
-      const usersResponse = await fetch(usersUrl.toString(), {
-        headers: {
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
+      return await this.plexUsers.forceFetch(PLEX_USERS_KEY, {
+        forceRefresh: options?.skipCache,
       })
-
-      if (!usersResponse.ok) {
-        throw new Error(
-          `Failed to fetch users: ${usersResponse.status} ${usersResponse.statusText}`,
-        )
-      }
-
-      const responseText = await usersResponse.text()
-
-      const xmlParser = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: '',
-        isArray: (name) => name === 'User' || name === 'Server',
-      })
-
-      const parsed = xmlParser.parse(responseText)
-      const allUsers = parsed.MediaContainer?.User || []
-
-      this.log.debug(
-        `Parsed ${allUsers.length} total users from Plex API response`,
-      )
-
-      const users = this.serverMachineId
-        ? allUsers.filter(
-            (user: { Server?: Array<{ machineIdentifier?: string }> }) => {
-              const servers = user.Server || []
-              return servers.some(
-                (s) => s.machineIdentifier === this.serverMachineId,
-              )
-            },
-          )
-        : allUsers
-
-      if (this.serverMachineId && users.length !== allUsers.length) {
-        this.log.debug(
-          `Filtered to ${users.length} users for server ${this.serverMachineId} (${allUsers.length - users.length} users on other servers excluded)`,
-        )
-      }
-
-      const formattedUsers = users
-        .map(
-          (user: {
-            id?: string
-            username?: string
-            title?: string
-            email?: string
-            thumb?: string
-            home?: string | boolean
-            restricted?: string | boolean
-            protected?: string | boolean
-            allowTuners?: string | number
-            allowSync?: string | boolean
-            allowCameraUpload?: string | boolean
-            allowChannels?: string | boolean
-            allowSubtitleAdmin?: string | boolean
-            filterAll?: string
-            filterMovies?: string
-            filterMusic?: string
-            filterPhotos?: string
-            filterTelevision?: string
-            Server?: Array<{
-              id?: string
-              serverId?: string
-              machineIdentifier?: string
-              name?: string
-              lastSeenAt?: string
-              numLibraries?: string | number
-              allLibraries?: string | boolean
-              owned?: string | boolean
-              pending?: string | boolean
-            }>
-          }) => ({
-            id: user.id || '',
-            username: user.username || user.title || '',
-            title: user.title || '',
-            email: user.email || '',
-            thumb: user.thumb,
-            home: xmlBool(user.home),
-            restricted: xmlBool(user.restricted),
-            protected: xmlBool(user.protected),
-            allowTuners:
-              user.allowTuners != null ? Number(user.allowTuners) : undefined,
-            allowSync: xmlBool(user.allowSync),
-            allowCameraUpload: xmlBool(user.allowCameraUpload),
-            allowChannels: xmlBool(user.allowChannels),
-            allowSubtitleAdmin: xmlBool(user.allowSubtitleAdmin),
-            filterAll: user.filterAll || undefined,
-            filterMovies: user.filterMovies || undefined,
-            filterMusic: user.filterMusic || undefined,
-            filterPhotos: user.filterPhotos || undefined,
-            filterTelevision: user.filterTelevision || undefined,
-            Server: user.Server?.map((s) => ({
-              id: s.id || '',
-              serverId: s.serverId || '',
-              machineIdentifier: s.machineIdentifier || '',
-              name: s.name || '',
-              lastSeenAt: s.lastSeenAt || '',
-              numLibraries: s.numLibraries != null ? Number(s.numLibraries) : 0,
-              allLibraries: xmlBool(s.allLibraries) ?? false,
-              owned: xmlBool(s.owned) ?? false,
-              pending: xmlBool(s.pending) ?? false,
-            })),
-          }),
-        )
-        .filter(
-          (user: { id: string; title: string; username?: string }) =>
-            !!user.id && (!!user.username || !!user.title),
-        ) as PlexUser[]
-
-      this.users = formattedUsers
-      this.usersTimestamp = Date.now()
-
-      this.log.debug(`Found ${formattedUsers.length} Plex users`)
-      return formattedUsers
     } catch (error) {
       this.log.error({ error }, 'Error fetching Plex users:')
       return []
     }
+  }
+
+  private async fetchPlexUsers(): Promise<PlexUser[]> {
+    const plexTvUrl = 'https://plex.tv'
+    const adminToken = this.config.plexTokens?.[0] || ''
+    const usersUrl = new URL('/api/users', plexTvUrl)
+    const usersResponse = await fetch(usersUrl.toString(), {
+      headers: {
+        'X-Plex-Token': adminToken,
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+      },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
+    })
+
+    if (!usersResponse.ok) {
+      throw new Error(
+        `Failed to fetch users: ${usersResponse.status} ${usersResponse.statusText}`,
+      )
+    }
+
+    const responseText = await usersResponse.text()
+
+    const xmlParser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '',
+      isArray: (name) => name === 'User' || name === 'Server',
+    })
+
+    const parsed = xmlParser.parse(responseText)
+    const allUsers = parsed.MediaContainer?.User || []
+
+    this.log.debug(
+      `Parsed ${allUsers.length} total users from Plex API response`,
+    )
+
+    const users = this.serverMachineId
+      ? allUsers.filter(
+          (user: { Server?: Array<{ machineIdentifier?: string }> }) => {
+            const servers = user.Server || []
+            return servers.some(
+              (s) => s.machineIdentifier === this.serverMachineId,
+            )
+          },
+        )
+      : allUsers
+
+    if (this.serverMachineId && users.length !== allUsers.length) {
+      this.log.debug(
+        `Filtered to ${users.length} users for server ${this.serverMachineId} (${allUsers.length - users.length} users on other servers excluded)`,
+      )
+    }
+
+    const formattedUsers = users
+      .map(
+        (user: {
+          id?: string
+          username?: string
+          title?: string
+          email?: string
+          thumb?: string
+          home?: string | boolean
+          restricted?: string | boolean
+          protected?: string | boolean
+          allowTuners?: string | number
+          allowSync?: string | boolean
+          allowCameraUpload?: string | boolean
+          allowChannels?: string | boolean
+          allowSubtitleAdmin?: string | boolean
+          filterAll?: string
+          filterMovies?: string
+          filterMusic?: string
+          filterPhotos?: string
+          filterTelevision?: string
+          Server?: Array<{
+            id?: string
+            serverId?: string
+            machineIdentifier?: string
+            name?: string
+            lastSeenAt?: string
+            numLibraries?: string | number
+            allLibraries?: string | boolean
+            owned?: string | boolean
+            pending?: string | boolean
+          }>
+        }) => ({
+          id: user.id || '',
+          username: user.username || user.title || '',
+          title: user.title || '',
+          email: user.email || '',
+          thumb: user.thumb,
+          home: xmlBool(user.home),
+          restricted: xmlBool(user.restricted),
+          protected: xmlBool(user.protected),
+          allowTuners:
+            user.allowTuners != null ? Number(user.allowTuners) : undefined,
+          allowSync: xmlBool(user.allowSync),
+          allowCameraUpload: xmlBool(user.allowCameraUpload),
+          allowChannels: xmlBool(user.allowChannels),
+          allowSubtitleAdmin: xmlBool(user.allowSubtitleAdmin),
+          filterAll: user.filterAll || undefined,
+          filterMovies: user.filterMovies || undefined,
+          filterMusic: user.filterMusic || undefined,
+          filterPhotos: user.filterPhotos || undefined,
+          filterTelevision: user.filterTelevision || undefined,
+          Server: user.Server?.map((s) => ({
+            id: s.id || '',
+            serverId: s.serverId || '',
+            machineIdentifier: s.machineIdentifier || '',
+            name: s.name || '',
+            lastSeenAt: s.lastSeenAt || '',
+            numLibraries: s.numLibraries != null ? Number(s.numLibraries) : 0,
+            allLibraries: xmlBool(s.allLibraries) ?? false,
+            owned: xmlBool(s.owned) ?? false,
+            pending: xmlBool(s.pending) ?? false,
+          })),
+        }),
+      )
+      .filter(
+        (user: { id: string; title: string; username?: string }) =>
+          !!user.id && (!!user.username || !!user.title),
+      ) as PlexUser[]
+
+    this.log.debug(`Found ${formattedUsers.length} Plex users`)
+    return formattedUsers
   }
 
   /** Numeric Plex account id for a Pulsarr user, or null when no server user shares its plex_uuid. */
@@ -674,188 +724,176 @@ export class PlexServerService {
     return Number.isNaN(numericId) ? null : numericId
   }
 
+  /** Resolves to an empty map when there is no admin token or plex.tv fails, and never caches either. */
   async getSharedServerInfo(): Promise<Map<string, PlexSharedServerInfo>> {
+    if (!this.config.plexTokens?.[0]) {
+      this.log.warn(
+        'No Plex admin token available for shared server operations',
+      )
+      return new Map()
+    }
     try {
-      if (
-        this.sharedServerInfo &&
-        Date.now() - this.sharedServerInfoTimestamp < 6 * 60 * 60 * 1000
-      ) {
-        this.log.debug('Using cached shared server info')
-        return this.sharedServerInfo
-      }
-
-      const plexTvUrl = 'https://plex.tv'
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
-        this.log.warn(
-          'No Plex admin token available for shared server operations',
-        )
-        return new Map()
-      }
-
-      if (!this.serverMachineId) {
-        await this.getPlexServerConnectionInfo()
-        if (!this.serverMachineId) {
-          throw new Error('Could not determine server machine ID')
-        }
-      }
-
-      const sharedServersUrl = new URL(
-        `/api/servers/${this.serverMachineId}/shared_servers`,
-        plexTvUrl,
-      )
-
-      this.log.debug(
-        `Fetching shared server info from ${sharedServersUrl.toString()}`,
-      )
-
-      const response = await fetch(sharedServersUrl.toString(), {
-        headers: {
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-          // This endpoint returns XML format
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch shared server info: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const responseText = await response.text()
-
-      const serverInfoMap = new Map<string, PlexSharedServerInfo>()
-
-      const xmlParser = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: '',
-        isArray: (name) => name === 'SharedServer',
-      })
-
-      try {
-        const parsed = xmlParser.parse(responseText)
-        const sharedServers = parsed.MediaContainer?.SharedServer || []
-
-        this.log.debug(
-          `Parsed ${sharedServers.length} shared servers from Plex API response`,
-        )
-
-        for (const server of sharedServers) {
-          if (server.username && server.accessToken) {
-            serverInfoMap.set(server.username, {
-              id: server.id || '',
-              username: server.username,
-              email: server.email || '',
-              userID: server.userID || '',
-              accessToken: server.accessToken,
-            })
-          }
-        }
-      } catch (xmlError) {
-        this.log.error({ error: xmlError }, 'Error parsing shared servers XML:')
-
-        this.log.warn('Falling back to regex parsing for shared servers')
-
-        const sharedServerMatches =
-          responseText.match(/<SharedServer[^>]*>/g) || []
-        this.log.debug(
-          `Found ${sharedServerMatches.length} SharedServer entries in XML response`,
-        )
-
-        for (const serverMatch of sharedServerMatches) {
-          const id = serverMatch.match(/id="([^"]+)"/)?.[1] || ''
-          const username = serverMatch.match(/username="([^"]+)"/)?.[1] || ''
-          const email = serverMatch.match(/email="([^"]+)"/)?.[1] || ''
-          const userID = serverMatch.match(/userID="([^"]+)"/)?.[1] || ''
-          const accessToken =
-            serverMatch.match(/accessToken="([^"]+)"/)?.[1] || ''
-
-          if (username && accessToken) {
-            serverInfoMap.set(username, {
-              id,
-              username,
-              email,
-              userID,
-              accessToken,
-            })
-          }
-        }
-      }
-
-      if (this.serverMachineId && adminToken) {
-        const serverOwnerInfo = {
-          id: 'owner',
-          username: 'owner',
-          email: '',
-          userID: 'owner',
-          accessToken: adminToken,
-        }
-
-        serverInfoMap.set('owner', serverOwnerInfo)
-        this.log.debug(
-          'Added server owner to shared server info with admin token',
-        )
-      }
-
-      this.sharedServerInfo = serverInfoMap
-      this.sharedServerInfoTimestamp = Date.now()
-
-      this.log.debug(`Found access tokens for ${serverInfoMap.size} users`)
-      return serverInfoMap
+      return await this.sharedServers.forceFetch(SHARED_SERVERS_KEY)
     } catch (error) {
       this.log.error({ error }, 'Error fetching shared server info:')
       return new Map()
     }
   }
 
-  async getUserToken(username: string): Promise<string | null> {
-    try {
-      const cachedInfo = this.userTokens.get(username.toLowerCase())
-      if (
-        cachedInfo &&
-        Date.now() - cachedInfo.timestamp < 6 * 60 * 60 * 1000
-      ) {
-        this.log.debug(`Using cached token for user "${username}"`)
-        return cachedInfo.token
+  private async fetchSharedServerInfo(): Promise<
+    Map<string, PlexSharedServerInfo>
+  > {
+    const plexTvUrl = 'https://plex.tv'
+    const adminToken = this.config.plexTokens?.[0] || ''
+    if (!this.serverMachineId) {
+      await this.getPlexServerConnectionInfo()
+      if (!this.serverMachineId) {
+        throw new Error('Could not determine server machine ID')
       }
+    }
 
-      const serverInfoMap = await this.getSharedServerInfo()
+    const sharedServersUrl = new URL(
+      `/api/servers/${this.serverMachineId}/shared_servers`,
+      plexTvUrl,
+    )
 
-      let userInfo: PlexSharedServerInfo | undefined
+    this.log.debug(
+      `Fetching shared server info from ${sharedServersUrl.toString()}`,
+    )
 
-      userInfo = serverInfoMap.get(username)
+    const response = await fetch(sharedServersUrl.toString(), {
+      headers: {
+        'X-Plex-Token': adminToken,
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+        // This endpoint returns XML format
+      },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
+    })
 
-      if (!userInfo) {
-        for (const [key, info] of serverInfoMap.entries()) {
-          if (
-            key.toLowerCase() === username.toLowerCase() ||
-            info.email.toLowerCase() === username.toLowerCase()
-          ) {
-            userInfo = info
-            break
-          }
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch shared server info: ${response.status} ${response.statusText}`,
+      )
+    }
+
+    const responseText = await response.text()
+
+    const serverInfoMap = new Map<string, PlexSharedServerInfo>()
+
+    const xmlParser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '',
+      isArray: (name) => name === 'SharedServer',
+    })
+
+    try {
+      const parsed = xmlParser.parse(responseText)
+      const sharedServers = parsed.MediaContainer?.SharedServer || []
+
+      this.log.debug(
+        `Parsed ${sharedServers.length} shared servers from Plex API response`,
+      )
+
+      for (const server of sharedServers) {
+        if (server.username && server.accessToken) {
+          serverInfoMap.set(server.username, {
+            id: server.id || '',
+            username: server.username,
+            email: server.email || '',
+            userID: server.userID || '',
+            accessToken: server.accessToken,
+          })
         }
       }
+    } catch (xmlError) {
+      this.log.error({ error: xmlError }, 'Error parsing shared servers XML:')
 
-      if (!userInfo) {
-        this.log.warn(`No access token found for user "${username}"`)
-        return null
+      this.log.warn('Falling back to regex parsing for shared servers')
+
+      const sharedServerMatches =
+        responseText.match(/<SharedServer[^>]*>/g) || []
+      this.log.debug(
+        `Found ${sharedServerMatches.length} SharedServer entries in XML response`,
+      )
+
+      for (const serverMatch of sharedServerMatches) {
+        const id = serverMatch.match(/id="([^"]+)"/)?.[1] || ''
+        const username = serverMatch.match(/username="([^"]+)"/)?.[1] || ''
+        const email = serverMatch.match(/email="([^"]+)"/)?.[1] || ''
+        const userID = serverMatch.match(/userID="([^"]+)"/)?.[1] || ''
+        const accessToken =
+          serverMatch.match(/accessToken="([^"]+)"/)?.[1] || ''
+
+        if (username && accessToken) {
+          serverInfoMap.set(username, {
+            id,
+            username,
+            email,
+            userID,
+            accessToken,
+          })
+        }
+      }
+    }
+
+    if (this.serverMachineId && adminToken) {
+      const serverOwnerInfo = {
+        id: 'owner',
+        username: 'owner',
+        email: '',
+        userID: 'owner',
+        accessToken: adminToken,
       }
 
-      this.userTokens.set(username.toLowerCase(), {
-        token: userInfo.accessToken,
-        timestamp: Date.now(),
-      })
+      serverInfoMap.set('owner', serverOwnerInfo)
+      this.log.debug(
+        'Added server owner to shared server info with admin token',
+      )
+    }
 
-      this.log.debug(`Found access token for user "${username}"`)
-      return userInfo.accessToken
+    this.log.debug(`Found access tokens for ${serverInfoMap.size} users`)
+    return serverInfoMap
+  }
+
+  /** Null when the user has no access token, which is never cached. */
+  async getUserToken(username: string): Promise<string | null> {
+    try {
+      const token = await this.userTokens.fetch(username.toLowerCase(), {
+        context: username,
+      })
+      return token ?? null
     } catch (error) {
       this.log.error({ error }, `Error getting token for user "${username}":`)
       return null
     }
+  }
+
+  private async lookupUserToken(username: string): Promise<string | undefined> {
+    const serverInfoMap = await this.getSharedServerInfo()
+
+    let userInfo: PlexSharedServerInfo | undefined
+
+    userInfo = serverInfoMap.get(username)
+
+    if (!userInfo) {
+      for (const [key, info] of serverInfoMap.entries()) {
+        if (
+          key.toLowerCase() === username.toLowerCase() ||
+          info.email.toLowerCase() === username.toLowerCase()
+        ) {
+          userInfo = info
+          break
+        }
+      }
+    }
+
+    if (!userInfo) {
+      this.log.warn(`No access token found for user "${username}"`)
+      return undefined
+    }
+
+    this.log.debug(`Found access token for user "${username}"`)
+    return userInfo.accessToken
   }
 
   async findUserPlaylistByTitle(
@@ -1276,14 +1314,12 @@ export class PlexServerService {
     this.negotiationFailedAt = 0
     this.negotiationInFlight = null
     this.cacheGeneration += 1
-    this.users = null
-    this.usersTimestamp = 0
-    this.userTokens = new Map()
+    this.plexUsers.clear()
+    this.userTokens.clear()
     this.protectedPlaylistsMap = null
     this.protectedItemsCache = null
-    this.sharedServerInfo = null
-    this.sharedServerInfoTimestamp = 0
-    this.plexResourcesCache = null
+    this.sharedServers.clear()
+    this.plexResources.clear()
 
     this.serverConnectionCache.clear()
     this.contentAvailabilityCache.clear()
@@ -1414,8 +1450,23 @@ export class PlexServerService {
   }
 
   clearPlexResourcesCache(): void {
-    this.plexResourcesCache = null
+    this.plexResources.clear()
     this.log.debug('Cleared Plex resources cache')
+  }
+
+  /** Drops the plex.tv users list and shared server info, so a friend change shows on the next read. */
+  clearFriendCaches(): void {
+    this.plexUsers.clear()
+    this.sharedServers.clear()
+  }
+
+  clearUserToken(username: string): void {
+    this.userTokens.delete(username.toLowerCase())
+  }
+
+  private fetchPlexResources(): Promise<PlexResource[]> {
+    this.log.debug('Server resources cache miss, fetching from plex.tv API')
+    return getAllPlexResources(this.config.plexTokens?.[0] || '')
   }
 
   async getActiveSessions(): Promise<PlexSession[]> {
@@ -1468,7 +1519,13 @@ export class PlexServerService {
   }
 
   clearContentCacheForReconciliation(): void {
-    clearContentCacheForReconciliation(this.contentAvailabilityCache, this.log)
+    const previousSize = this.contentAvailabilityCache.size
+    this.contentAvailabilityCache.clear()
+    if (previousSize > 0) {
+      this.log.debug(
+        `Cleared ${previousSize} content cache entries for new reconciliation`,
+      )
+    }
   }
 
   // A down primary server makes 'not found' untrustworthy, so callers must abort to prevent mass-routing
@@ -1621,19 +1678,8 @@ export class PlexServerService {
         return false
       }
 
-      let allResources = this.plexResourcesCache
-      if (!allResources) {
-        this.log.debug('Server resources cache miss, fetching from plex.tv API')
-        try {
-          allResources = await getAllPlexResources(adminToken)
-        } catch (error) {
-          this.log.error({ error }, 'Error fetching Plex resources')
-          allResources = []
-        }
-        this.plexResourcesCache = allResources
-      } else {
-        this.log.debug('Using cached server resources')
-      }
+      const allResources =
+        await this.plexResources.forceFetch(PLEX_RESOURCES_KEY)
 
       const ownerConnections = await this.getPlexServerConnectionInfo()
 
@@ -1664,19 +1710,19 @@ export class PlexServerService {
 
       const connectionCacheDeps = {
         logger: this.log,
-        connectionCacheTtl: this.CONNECTION_CACHE_TTL,
         deadServerBackoff: this.DEAD_SERVER_BACKOFF,
       }
-      const contentCacheDeps = { logger: this.log }
 
       const abortController = new AbortController()
 
       const serverChecks = serversToCheck.map(async (server) => {
         const connection = await getBestServerConnection(
           server.clientIdentifier,
-          server.name,
-          server.connections,
-          server.accessToken,
+          {
+            serverName: server.name,
+            connections: server.connections,
+            accessToken: server.accessToken,
+          },
           this.serverConnectionCache,
           this.deadServerCache,
           connectionCacheDeps,
@@ -1690,16 +1736,16 @@ export class PlexServerService {
         }
 
         const found = await checkContentOnServer(
-          server.clientIdentifier,
-          server.name,
-          connection.uri,
-          connection.accessToken,
-          plexGuid,
-          contentType,
           this.contentAvailabilityCache,
-          this.serverConnectionCache,
-          contentCacheDeps,
-          abortController.signal,
+          {
+            serverClientId: server.clientIdentifier,
+            serverName: server.name,
+            serverUri: connection.uri,
+            accessToken: connection.accessToken,
+            contentType,
+            plexGuid,
+            signal: abortController.signal,
+          },
         )
 
         if (found) {

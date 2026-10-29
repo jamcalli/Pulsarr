@@ -1,13 +1,21 @@
 import crypto from 'node:crypto'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import type { CacheRegistry } from '@services/cache-registry.service.js'
 import type { FastifyBaseLogger } from 'fastify'
+import type { LRUCache } from 'lru-cache'
 
-export type WebhookDedupeCache = Map<
-  string,
-  { timestamp: number; contentInfo: string }
->
+/** Content description by payload hash, for webhooks inside the dedupe window. */
+export type WebhookDedupeCache = LRUCache<string, string>
 
-const WEBHOOK_CACHE_TTL_MS = 10_000
+export const WEBHOOK_CACHE_TTL_MS = 10_000
+
+const WEBHOOK_CACHE_MAX = 1000
+
+export function createWebhookDedupeCache(
+  registry: CacheRegistry,
+): WebhookDedupeCache {
+  return registry.create({ max: WEBHOOK_CACHE_MAX, ttl: WEBHOOK_CACHE_TTL_MS })
+}
 
 // Event type and upgrade status stay out of the hash so related events dedupe together
 function createWebhookHash(payload: WebhookPayload): string {
@@ -84,15 +92,14 @@ function checkDuplicateWebhook(
   logger?: FastifyBaseLogger,
 ): boolean {
   const hash = createWebhookHash(payload)
-  const now = Date.now()
   const existing = webhookCache.get(hash)
 
-  if (existing && now - existing.timestamp < WEBHOOK_CACHE_TTL_MS) {
+  if (existing !== undefined) {
     logger?.debug(
       {
         hash,
-        ageMs: now - existing.timestamp,
-        contentInfo: existing.contentInfo,
+        ageMs: WEBHOOK_CACHE_TTL_MS - webhookCache.getRemainingTTL(hash),
+        contentInfo: existing,
       },
       'Duplicate webhook detected within deduplication window',
     )
@@ -111,20 +118,7 @@ function checkDuplicateWebhook(
     contentInfo = `${payload.series.title} S${episode.seasonNumber}E${episode.episodeNumber} (${payload.series.tvdbId})`
   }
 
-  webhookCache.set(hash, {
-    timestamp: now,
-    contentInfo,
-  })
-
-  const expiredKeys: string[] = []
-  for (const [key, entry] of webhookCache.entries()) {
-    if (now - entry.timestamp > WEBHOOK_CACHE_TTL_MS) {
-      expiredKeys.push(key)
-    }
-  }
-  for (const key of expiredKeys) {
-    webhookCache.delete(key)
-  }
+  webhookCache.set(hash, contentInfo)
 
   logger?.debug(
     { hash, contentInfo, cacheSize: webhookCache.size },

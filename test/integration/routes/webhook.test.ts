@@ -95,7 +95,7 @@ describe('Webhook Routes', () => {
       beforeEach(async () => {
         await resetDatabase()
         await seedAll(getTestDatabase())
-        app.webhookQueue.clearDedupeCache()
+        app.caches.clear()
       })
 
       afterEach(() => {
@@ -206,7 +206,7 @@ describe('Webhook Routes', () => {
       beforeEach(async () => {
         await resetDatabase()
         await seedAll(getTestDatabase())
-        app.webhookQueue.clearDedupeCache()
+        app.caches.clear()
       })
 
       it('accepts the download and queues the episode', async () => {

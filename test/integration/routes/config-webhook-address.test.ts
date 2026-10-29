@@ -82,7 +82,7 @@ describe('PUT /v1/config webhook address gate', () => {
     await resetDatabase()
     await seedAll(knex)
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
 
     for (const arr of ARRS) {
       resetArrWebhookMock(arr, [

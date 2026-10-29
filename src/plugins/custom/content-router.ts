@@ -27,6 +27,7 @@ export default fp(
     dependencies: [
       'anime',
       'approval',
+      'caches',
       'database',
       'notification-service',
       'progress',

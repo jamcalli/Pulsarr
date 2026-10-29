@@ -1,64 +1,41 @@
-/**
- * Content Cache Module
- *
- * Provides functions for caching content availability checks on Plex servers.
- * Cache is reconciliation-scoped (cleared at start of each cycle, no TTL).
- * All functions are pure and receive cache state as parameters.
- */
-
 import type { PlexSearchResponse } from '@root/types/plex-server.types.js'
+import type { CacheRegistry } from '@services/cache-registry.service.js'
 import { extractPlexKey } from '@utils/guid-handler.js'
 import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
-import type { CachedConnection } from './connection-cache.js'
-import { invalidateServerConnection } from './connection-cache.js'
+import type { LRUCache } from 'lru-cache'
+import {
+  invalidateServerConnection,
+  type ServerConnectionCache,
+} from './connection-cache.js'
 
-/**
- * Type guard for PlexSearchResponse
- * Validates the shape of the response from Plex API
- */
-function isPlexSearchResponse(data: unknown): data is PlexSearchResponse {
-  if (typeof data !== 'object' || data === null) {
-    return false
-  }
-  if (!('MediaContainer' in data)) {
-    return false
-  }
-  const container = data.MediaContainer
-  if (typeof container !== 'object' || container === null) {
-    return false
-  }
-  // MediaContainer exists, Metadata is optional (can be undefined or array)
-  if (!('Metadata' in container)) {
-    return true // Metadata is optional
-  }
-  return Array.isArray(container.Metadata) || container.Metadata === undefined
-}
+const CONTENT_CHECK_TIMEOUT_MS = 5000
 
-/** Cached content availability entry */
-export interface CachedContentAvailability {
-  exists: boolean
+const CONTENT_CACHE_MAX = 10_000
+
+export interface ContentCheckRequest {
+  serverClientId: string
   serverName: string
+  serverUri: string
+  accessToken: string
+  contentType: 'movie' | 'show'
+  plexGuid: string
+  /** Aborting cancels a Plex request this caller started, which then stores nothing. */
+  signal?: AbortSignal
 }
 
-/** Dependencies for content cache operations */
-export interface ContentCacheDeps {
-  logger: FastifyBaseLogger
-}
+/** Whether a server has the content, keyed by server, content type and Plex key. Lives for one reconciliation. */
+export type ContentAvailabilityCache = LRUCache<
+  string,
+  boolean,
+  ContentCheckRequest
+>
 
-/**
- * Builds a cache key for content availability lookup.
- *
- * @param serverClientId - Unique identifier for the server
- * @param contentType - The content type ("movie" or "show")
- * @param plexGuid - The full Plex GUID (e.g., "plex://movie/abc123")
- * @returns Cache key string
- */
-export function buildContentCacheKey(
-  serverClientId: string,
-  contentType: 'movie' | 'show',
-  plexGuid: string,
-): string {
+function contentCacheKey({
+  serverClientId,
+  contentType,
+  plexGuid,
+}: ContentCheckRequest): string {
   const plexKey = extractPlexKey(plexGuid)
   if (!plexKey) {
     throw new Error(`Invalid plexGuid: ${plexGuid}`)
@@ -66,148 +43,83 @@ export function buildContentCacheKey(
   return `${serverClientId}:${contentType}:${plexKey}`
 }
 
-/**
- * Gets cached content availability if present.
- *
- * @param cacheKey - The cache key to look up
- * @param contentCache - Map of cached content availability
- * @returns Cached result or undefined if not cached
- */
-export function getCachedContentAvailability(
-  cacheKey: string,
-  contentCache: Map<string, CachedContentAvailability>,
-): CachedContentAvailability | undefined {
-  return contentCache.get(cacheKey)
-}
-
-/**
- * Clears the content cache at the start of each reconciliation.
- * Content cache is reconciliation-scoped, not TTL-based.
- *
- * @param contentCache - Map of cached content availability
- * @param logger - Logger instance
- */
-export function clearContentCacheForReconciliation(
-  contentCache: Map<string, CachedContentAvailability>,
+/** Resolves undefined for a failure that must not be cached, and rejects when the caller aborted. */
+async function fetchContentAvailability(
+  request: ContentCheckRequest,
+  connectionCache: ServerConnectionCache,
   logger: FastifyBaseLogger,
-): void {
-  const previousSize = contentCache.size
-  contentCache.clear()
-  if (previousSize > 0) {
-    logger.debug(
-      `Cleared ${previousSize} content cache entries for new reconciliation`,
-    )
-  }
-}
-
-/**
- * Checks if content exists on a specific server with caching and failover handling.
- * Uses the content availability cache (reconciliation-scoped).
- * On connection failure, invalidates the cached connection for automatic re-selection.
- *
- * @param serverClientId - Unique identifier for the server
- * @param serverName - Human-readable server name for logging
- * @param serverUri - The server URI to connect to
- * @param accessToken - Token to use for authentication
- * @param plexGuid - The full Plex GUID (e.g., "plex://movie/abc123")
- * @param contentType - The content type ("movie" or "show")
- * @param contentCache - Map of cached content availability
- * @param connectionCache - Map of cached connections (for invalidation on failure)
- * @param deps - Service dependencies
- * @param abortSignal - Optional abort signal for early termination
- * @returns true if content exists on this server, false otherwise
- */
-export async function checkContentOnServer(
-  serverClientId: string,
-  serverName: string,
-  serverUri: string,
-  accessToken: string,
-  plexGuid: string,
-  contentType: 'movie' | 'show',
-  contentCache: Map<string, CachedContentAvailability>,
-  connectionCache: Map<string, CachedConnection>,
-  deps: ContentCacheDeps,
-  abortSignal?: AbortSignal,
-): Promise<boolean> {
-  const { logger } = deps
-
-  // Build cache key
-  const cacheKey = buildContentCacheKey(serverClientId, contentType, plexGuid)
-
-  // Check cache first (no TTL check - cache is cleared per reconciliation)
-  const cached = getCachedContentAvailability(cacheKey, contentCache)
-  if (cached !== undefined) {
-    logger.debug(
-      `Cache HIT for ${contentType} on "${cached.serverName}": ${cached.exists ? 'exists' : 'not found'}`,
-    )
-    return cached.exists
-  }
-
-  // Make API call
+): Promise<boolean | undefined> {
+  const { serverClientId, serverName, signal } = request
   try {
-    const url = new URL('/library/all', serverUri)
-    url.searchParams.append('guid', plexGuid)
+    const url = new URL('/library/all', request.serverUri)
+    url.searchParams.append('guid', request.plexGuid)
 
+    const timeout = AbortSignal.timeout(CONTENT_CHECK_TIMEOUT_MS)
     const response = await fetch(url.toString(), {
       headers: {
         Accept: 'application/json',
-        'X-Plex-Token': accessToken,
+        'X-Plex-Token': request.accessToken,
         'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
-      signal: abortSignal
-        ? AbortSignal.any([AbortSignal.timeout(5000), abortSignal])
-        : AbortSignal.timeout(5000),
+      signal: signal ? AbortSignal.any([timeout, signal]) : timeout,
     })
 
     if (!response.ok) {
-      // Server error - might be connection issue, invalidate cached connection
       if (response.status >= 500) {
         invalidateServerConnection(serverClientId, connectionCache, logger)
       }
-      return false
+      return undefined
     }
 
-    const data: unknown = await response.json()
-    if (!isPlexSearchResponse(data)) {
-      logger.debug(
-        { server: serverName },
-        'Invalid response format from Plex server',
-      )
-      // Cache negative result to avoid repeated requests to misconfigured server
-      contentCache.set(cacheKey, {
-        exists: false,
-        serverName,
-      })
-      return false
-    }
+    const data = (await response.json()) as PlexSearchResponse
     const exists = (data.MediaContainer?.Metadata?.length ?? 0) > 0
-
-    // Cache the result (no timestamp needed - cleared per reconciliation)
-    contentCache.set(cacheKey, {
-      exists,
-      serverName,
-    })
-
     if (exists) {
       logger.debug(`Content found on Plex server "${serverName}"`)
     }
-
     return exists
   } catch (error) {
-    // Check if aborted (found on another server)
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (signal?.aborted) {
       logger.debug(
         `Content check aborted for server "${serverName}" (found elsewhere)`,
       )
-      return false
+      throw error
     }
-
-    // Network error - invalidate cached connection for this server
     logger.debug(
       { error, server: serverName },
       'Error checking content on server',
     )
     invalidateServerConnection(serverClientId, connectionCache, logger)
-    return false
+    return undefined
+  }
+}
+
+export function createContentAvailabilityCache(
+  registry: CacheRegistry,
+  connectionCache: ServerConnectionCache,
+  logger: FastifyBaseLogger,
+): ContentAvailabilityCache {
+  return registry.create({
+    max: CONTENT_CACHE_MAX,
+    // A clear mid-check still answers its waiting callers but is not written back
+    ignoreFetchAbort: true,
+    fetchMethod: (_key, _stale, { context }) =>
+      fetchContentAvailability(context, connectionCache, logger),
+  })
+}
+
+/** False for a failed or aborted check. Concurrent checks of one server and item share a request. */
+export async function checkContentOnServer(
+  cache: ContentAvailabilityCache,
+  request: ContentCheckRequest,
+): Promise<boolean> {
+  const key = contentCacheKey(request)
+  for (;;) {
+    try {
+      return (await cache.fetch(key, { context: request })) ?? false
+    } catch (error) {
+      // A request another caller aborted fails here too, so retry it unless this caller aborted
+      const aborted = error instanceof Error && error.name === 'AbortError'
+      if (request.signal?.aborted || !aborted) return false
+    }
   }
 }

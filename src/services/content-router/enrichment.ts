@@ -17,25 +17,18 @@ import {
 import { isString, isStringArray } from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
 import type { ContentRouterDeps } from './types.js'
+import { readUserLists, type UserLists } from './user-list-cache.js'
 
 type EnrichmentDeps = Pick<
   ContentRouterDeps,
-  'logger' | 'config' | 'db' | 'fastify' | 'radarrManager' | 'sonarrManager'
+  | 'logger'
+  | 'config'
+  | 'db'
+  | 'fastify'
+  | 'radarrManager'
+  | 'sonarrManager'
+  | 'userLists'
 >
-
-const LIST_CACHE_TTL_MS = 10_000
-
-interface CachedListData {
-  lists: Map<string, Set<string>>
-  fetchedFor: Set<string>
-  timestamp: number
-}
-
-const userListCache = new Map<number, CachedListData>()
-const userListInflight = new Map<
-  string,
-  Promise<Map<string, Set<string>> | null>
->()
 
 /**
  * Determines which types of enrichment are needed based on active router rules.
@@ -467,24 +460,9 @@ async function enrichListMemberships(
   const adminToken = deps.config.plexTokens?.[0]
   if (!adminToken) return undefined
 
-  const now = Date.now()
-  for (const [cachedUserId, entry] of userListCache) {
-    if (now - entry.timestamp >= LIST_CACHE_TTL_MS) {
-      userListCache.delete(cachedUserId)
-    }
-  }
-
-  const cached = userListCache.get(userId)
-  if (cached && [...ruleListNames].every((n) => cached.fetchedFor.has(n))) {
-    return buildMemberships(cached.lists, itemKey)
-  }
-
-  // Coalesce concurrent fetches for the same user so parallel
-  // item enrichment doesn't fan out into duplicate GraphQL calls
-  const inflightKey = `${userId}:${[...ruleListNames].sort().join('\0')}`
-  let inflight = userListInflight.get(inflightKey)
-  if (!inflight) {
-    inflight = (async () => {
+  const lists = await readUserLists(deps.userLists, userId, {
+    names: ruleListNames,
+    load: async () => {
       const user = await deps.db.getUser(userId)
       if (!user?.plex_uuid) return null
 
@@ -508,7 +486,7 @@ async function enrichListMemberships(
         return false
       })
 
-      const result = new Map<string, Set<string>>()
+      const result: UserLists = new Map()
       for (const list of relevantLists) {
         const keys = await fetchListItemsBySlug(
           adminToken,
@@ -520,34 +498,12 @@ async function enrichListMemberships(
       }
 
       return result
-    })()
-    userListInflight.set(inflightKey, inflight)
-  }
-
-  let result: Map<string, Set<string>> | null
-  try {
-    result = await inflight
-  } finally {
-    userListInflight.delete(inflightKey)
-  }
-
-  if (!result) return undefined
-
-  const existing = userListCache.get(userId)
-  userListCache.set(userId, {
-    lists: existing ? new Map([...existing.lists, ...result]) : result,
-    fetchedFor: existing
-      ? new Set([...existing.fetchedFor, ...ruleListNames])
-      : new Set(ruleListNames),
-    timestamp: Date.now(),
+    },
   })
-  return buildMemberships(result, itemKey)
+  return lists && buildMemberships(lists, itemKey)
 }
 
-function buildMemberships(
-  lists: Map<string, Set<string>>,
-  itemKey: string,
-): Set<string> {
+function buildMemberships(lists: UserLists, itemKey: string): Set<string> {
   const memberships = new Set<string>()
   for (const [name, keys] of lists) {
     if (keys.has(itemKey)) {

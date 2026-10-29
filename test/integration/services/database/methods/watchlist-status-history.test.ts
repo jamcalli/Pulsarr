@@ -41,7 +41,7 @@ describe('watchlist status history', () => {
     await knex('watchlist_items')
       .whereIn('key', [MOVIE_KEY, SHOW_KEY])
       .update({ status: 'pending' })
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   describe('updateWatchlistItem', () => {

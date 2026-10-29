@@ -91,7 +91,7 @@ describe('routeContent condition evaluation', () => {
       tags: JSON.stringify([]),
       synced_instances: JSON.stringify([]),
     })
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
     fastify.config.authenticationMethod = 'disabled'
 
     routeItemToRadarr = vi.fn(echoAppliedRadarr())
