@@ -57,7 +57,7 @@ describe('RadarrManagerService.movieExistsByTmdbId', () => {
       fastify as FastifyInstance,
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, service)
+    manager['services'].set(1, service)
   })
 
   function lookupReturns(found: boolean, checked = true) {
@@ -176,7 +176,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       fastify as FastifyInstance,
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, service)
+    manager['services'].set(1, service)
   })
 
   it('emits a watchlist status event for the routed user', async () => {
@@ -302,7 +302,7 @@ describe('RadarrManagerService.resyncWebhooks', () => {
       fastify as FastifyInstance,
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, oldService)
+    manager['services'].set(1, oldService)
     return vi.spyOn(oldService, 'removeWebhook').mockResolvedValue()
   }
 
@@ -349,7 +349,7 @@ describe('RadarrManagerService.resyncWebhooks', () => {
   it('keeps the old hook and service when the new one is rejected', async () => {
     const removeWebhook = seedOldService('http://old-host')
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    const oldService = manager['radarrServices'].get(1)
+    const oldService = manager['services'].get(1)
     initialize.mockRejectedValue(
       new WebhookCallbackError(
         'Failed to create webhook: Unable to send test message',
@@ -473,7 +473,7 @@ describe('RadarrManagerService.testWebhookAddress', () => {
       fastify as FastifyInstance,
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, existing)
+    manager['services'].set(1, existing)
 
     await manager.testWebhookAddress('http://new-host', 4004)
 

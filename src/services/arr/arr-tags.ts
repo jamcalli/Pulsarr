@@ -1,8 +1,21 @@
 import { type ArrTag, HttpError } from '@root/types/arr-connection.types.js'
+import type { ArrClient } from '@services/arr/arr-client.js'
 import {
   ArrInstanceCache,
   type ArrInstanceContext,
 } from '@services/arr/arr-instance-cache.js'
+import type { ArrProduct } from '@services/arr/arr-product.js'
+import type { FastifyBaseLogger } from 'fastify'
+import pLimit from 'p-limit'
+
+const BULK_TAG_CONCURRENCY = 4
+
+export interface ArrItemTagUpdate {
+  itemId: number
+  tagIds: number[]
+}
+
+export type ArrApplyTags = 'add' | 'remove' | 'replace'
 
 export class ArrTags {
   private readonly cache: ArrInstanceCache<ArrTag[]>
@@ -71,5 +84,50 @@ export class ArrTags {
   async delete(tagId: number): Promise<void> {
     await this.instance.client().delete(`tag/${tagId}`)
     this.cache.invalidate()
+  }
+}
+
+/** Sends one editor request per distinct tag set, so items sharing tags go in one call. */
+export async function bulkUpdateItemTags(
+  client: ArrClient,
+  product: ArrProduct,
+  log: FastifyBaseLogger,
+  updates: ArrItemTagUpdate[],
+  applyTags: ArrApplyTags,
+): Promise<void> {
+  if (updates.length === 0) return
+  const { itemsLabel } = product
+
+  const groups = new Map<string, { tagIds: number[]; itemIds: number[] }>()
+  for (const update of updates) {
+    const tagIds = [...new Set(update.tagIds)].sort((a, b) => a - b)
+    const key = tagIds.join(',')
+    const group = groups.get(key)
+    if (group) group.itemIds.push(update.itemId)
+    else groups.set(key, { tagIds, itemIds: [update.itemId] })
+  }
+
+  try {
+    const limit = pLimit(BULK_TAG_CONCURRENCY)
+    await Promise.all(
+      [...groups.values()].map(({ tagIds, itemIds }) =>
+        limit(async () => {
+          await client.put(`${product.itemEndpoint}/editor`, {
+            [product.editorIdsKey]: itemIds,
+            tags: tagIds,
+            applyTags,
+          })
+          log.debug(
+            `Bulk updated ${itemIds.length} ${itemsLabel} with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
+          )
+        }),
+      ),
+    )
+    log.debug(
+      `Bulk updated tags for ${updates.length} ${itemsLabel} across ${groups.size} tag groups (mode: ${applyTags})`,
+    )
+  } catch (error) {
+    log.error({ error }, `Failed to bulk update ${itemsLabel} tags`)
+    throw error
   }
 }

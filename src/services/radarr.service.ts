@@ -30,9 +30,6 @@ import {
 } from '@utils/guid-handler.js'
 import { findQualityProfileName } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import pLimit from 'p-limit'
-
-const BULK_TAG_CONCURRENCY = 4
 
 export class RadarrService extends ArrService<RadarrInstance> {
   private config: RadarrConfiguration | null = null
@@ -339,68 +336,5 @@ export class RadarrService extends ArrService<RadarrInstance> {
 
   getTagDetails(): Promise<RadarrTagDetail[]> {
     return this.client.get<RadarrTagDetail[]>('tag/detail')
-  }
-
-  /**
-   * Bulk update tags for multiple movies using the movieeditor endpoint
-   * This provides significant performance improvements over individual updates
-   *
-   * @param updates Array of movie updates containing movieId and tagIds
-   * @returns Promise resolving when all updates are complete
-   */
-  async bulkUpdateMovieTags(
-    updates: Array<{ movieId: number; tagIds: number[] }>,
-    applyTags: 'add' | 'remove' | 'replace' = 'replace',
-  ): Promise<void> {
-    if (updates.length === 0) {
-      return
-    }
-
-    try {
-      // Group updates by identical tag sets for efficiency
-      const tagGroups = new Map<string, number[]>()
-
-      for (const update of updates) {
-        // Create a key from sorted tag IDs for grouping
-        const tagKey = [...new Set(update.tagIds)].sort().join(',')
-        if (!tagGroups.has(tagKey)) {
-          tagGroups.set(tagKey, [])
-        }
-        tagGroups.get(tagKey)?.push(update.movieId)
-      }
-
-      // Process each tag group as a bulk operation with concurrency limit
-      const limit = pLimit(BULK_TAG_CONCURRENCY)
-      const promises = Array.from(tagGroups.entries()).map(
-        ([tagKey, movieIds]) =>
-          limit(async () => {
-            const tagIds =
-              tagKey === ''
-                ? []
-                : tagKey.split(',').map((id) => Number.parseInt(id, 10))
-
-            const payload = {
-              movieIds: movieIds,
-              tags: tagIds,
-              applyTags,
-            }
-
-            await this.client.put('movie/editor', payload)
-
-            this.log.debug(
-              `Bulk updated ${movieIds.length} movies with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
-            )
-          }),
-      )
-
-      await Promise.all(promises)
-
-      this.log.debug(
-        `Bulk updated tags for ${updates.length} movies across ${tagGroups.size} tag groups (mode: ${applyTags})`,
-      )
-    } catch (error) {
-      this.log.error({ error }, 'Failed to bulk update movie tags:')
-      throw error
-    }
   }
 }

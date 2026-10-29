@@ -29,7 +29,12 @@ import {
   ArrQualityProfiles,
   fetchRootFolders,
 } from '@services/arr/arr-profiles.js'
-import { ArrTags } from '@services/arr/arr-tags.js'
+import {
+  type ArrApplyTags,
+  type ArrItemTagUpdate,
+  ArrTags,
+  bulkUpdateItemTags,
+} from '@services/arr/arr-tags.js'
 import {
   type ArrWebhookTarget,
   type PulsarrAddress,
@@ -194,6 +199,11 @@ export abstract class ArrService<TInstance extends ArrInstanceRow> {
     return probe(this.product, { baseUrl, apiKey })
   }
 
+  /** True while the instance row still holds the not-set-up API key. */
+  isPlaceholder(): boolean {
+    return this.credentials?.apiKey === ARR_API_KEY_PLACEHOLDER
+  }
+
   async isHealthy(): Promise<HealthCheckResult> {
     if (!this.credentials) {
       return {
@@ -214,6 +224,19 @@ export abstract class ArrService<TInstance extends ArrInstanceRow> {
 
   deleteTag(tagId: number): Promise<void> {
     return this.tags.delete(tagId)
+  }
+
+  bulkUpdateTags(
+    updates: ArrItemTagUpdate[],
+    applyTags: ArrApplyTags = 'replace',
+  ): Promise<void> {
+    return bulkUpdateItemTags(
+      this.client,
+      this.product,
+      this.log,
+      updates,
+      applyTags,
+    )
   }
 
   getQualityProfiles(): Promise<ArrQualityProfile[]> {
