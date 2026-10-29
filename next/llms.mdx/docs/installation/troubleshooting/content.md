@@ -32,6 +32,10 @@ Labels and user tags apply only to items on a user's watchlist. Labels need the 
 
 **Playlist protection** matches the **Playlist name** exactly, including case, in each user's own Plex account. Items in a playlist with any other spelling aren't protected.
 
+## Saving settings returns 403 [#saving-settings-returns-403]
+
+The request reached Pulsarr from a different origin than the page. Either the reverse proxy rewrites the `Host` header, or the page is served from another site. Keep the original `Host` or send `X-Forwarded-Host`, or list the site in `allowedOrigins`. See [Reverse proxy](/installation/environment-variables#reverse-proxy).
+
 ## Sign-in never prompts or rate limits trip behind a reverse proxy [#sign-in-never-prompts-or-rate-limits-trip-behind-a-reverse-proxy]
 
 The proxy isn't sending `X-Forwarded-For`, so every visitor shares the proxy's address. See [Reverse proxy](/installation/environment-variables#reverse-proxy).

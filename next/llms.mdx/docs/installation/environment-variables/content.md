@@ -21,7 +21,7 @@ Restart Pulsarr after changing `.env`. Values marked JSON take one line of JSON,
 | `enableRequestLogging` | `false` | Log every HTTP request. |
 | `rateLimitMax` | `500` | Requests allowed per client per minute. Sign-in and account routes have their own smaller fixed limit this does not change. |
 | `closeGraceDelay` | `10000` | Milliseconds to wait for work to finish on shutdown. |
-| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. Removes the `X-Frame-Options` header, which otherwise allows framing only from the same origin. |
+| `allowIframes` | `false` | Allow Pulsarr to be embedded in another page, such as a dashboard. Removes the `X-Frame-Options` header, which otherwise allows framing only from the same origin. Embedding from another domain needs `requiredExceptLocal` or `disabled`, or serving the page and Pulsarr on the same domain, because sign-in does not work inside a cross-site frame. |
 
 ## Database [#database]
 
@@ -47,16 +47,24 @@ To set up PostgreSQL or move to it from SQLite, see [PostgreSQL](/installation/p
 | `cookieName` | `pulsarr` | Name of the session cookie. Two Pulsarr instances on one host need different names. |
 | `cookieSecured` | `false` | Send the session cookie over HTTPS only. Turn on when Pulsarr is behind HTTPS. |
 | `webhookSecret` | Generated | Authenticates webhooks from Sonarr and Radarr. At least 16 characters. |
+| `allowedOrigins` | | Comma-separated origins, such as `https://dashboard.example.com`, that may call the API from a browser page. A page on a listed origin can act as whoever opens it, through the local access rule or, when it shares Pulsarr's domain, their signed-in session. List only sites you control. |
+| `allowedHosts` | | Optional. When set, Pulsarr only answers requests addressed to a listed hostname, plus `localhost`, `127.0.0.1`, `::1` and the machine's hostname. Include every hostname that browsers, your reverse proxy and webhook senders use to reach Pulsarr. Leave empty to accept any host. Leaving it empty also leaves `requiredExceptLocal` open to other sites that point their domain at your Pulsarr address. |
 
 Pulsarr generates the secrets on first start and stores them, so they stay the same across restarts. Set them in `.env` only if you need fixed values.
+
+Browser pages on other sites cannot read Pulsarr's responses and cannot make changes unless their origin is in `allowedOrigins`. Scripts and apps using an API key, and webhooks, are not affected.
+
+With `requiredExceptLocal`, also set `allowedHosts`. A site can point its own domain at your Pulsarr address, and its pages would then count as local visitors.
 
 For `requiredExceptLocal`, local means loopback, the private IPv4 ranges `10.0.0.0/8`, `172.16.0.0/12` and `192.168.0.0/16`, IPv4 link-local `169.254.0.0/16`, and IPv6 unique local `fc00::/7` and link-local `fe80::/10`.
 
 ## Reverse proxy [#reverse-proxy]
 
-The proxy must pass the path through unchanged, `basePath` prefix included.
+The proxy must pass the path through unchanged, `basePath` prefix included, and keep the original `Host` header or send `X-Forwarded-Host`.
 
-Pulsarr trusts forwarded headers only from loopback, link-local and private addresses. The proxy must send `X-Forwarded-For`, or every visitor shares the proxy's address and trips the per-IP rate limits together. Traefik, Caddy and Nginx Proxy Manager send it by default. Plain nginx needs `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+Pulsarr trusts forwarded headers only from loopback, link-local and private addresses. The proxy must send `X-Forwarded-For`, or every visitor shares the proxy's address and trips the per-IP rate limits together. Traefik, Caddy and Nginx Proxy Manager handle both headers by default. Plain nginx needs `proxy_set_header Host $host;` and `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+
+With `allowedHosts` set, list the hostname the proxy serves and any name Sonarr, Radarr or Maintainerr use to reach Pulsarr directly, such as its container name. If the proxy rewrites `Host` to its upstream name, list that name too. Keeping the original with `proxy_set_header Host $host;` avoids this.
 
 :::warning
 With `requiredExceptLocal`, a proxy on a private address that doesn't send `X-Forwarded-For` makes every request look local, so nobody is asked to sign in.

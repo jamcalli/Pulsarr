@@ -13076,7 +13076,7 @@
       }
     },
     "/v1/plex/generate-rss-feeds": {
-      "get": {
+      "post": {
         "operationId": "generateRssFeeds",
         "summary": "Generate RSS feeds",
         "tags": [
@@ -13238,9 +13238,9 @@
       }
     },
     "/v1/plex/others-watchlist-token": {
-      "get": {
+      "post": {
         "operationId": "getOthersWatchlistTokens",
-        "summary": "Get others watchlist tokens",
+        "summary": "Sync others watchlists",
         "tags": [
           "Plex"
         ],
@@ -13559,7 +13559,7 @@
       }
     },
     "/v1/plex/rss-watchlist": {
-      "get": {
+      "post": {
         "operationId": "parseRssWatchlists",
         "summary": "Parse RSS watchlists",
         "tags": [
@@ -13792,9 +13792,9 @@
       }
     },
     "/v1/plex/self-watchlist-token": {
-      "get": {
+      "post": {
         "operationId": "getSelfWatchlistItems",
-        "summary": "Get self watchlist items",
+        "summary": "Sync self watchlist",
         "tags": [
           "Plex"
         ],
