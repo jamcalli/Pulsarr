@@ -129,6 +129,26 @@ describe('PlexServerService connection negotiation', () => {
     expect(state.resourceCalls).toBe(2)
   })
 
+  it('reads the server list again after plex.tv failed during an existence check', async () => {
+    const service = createService()
+    server.use(
+      http.get(`${LOCAL_HTTPS}/library/all`, () =>
+        HttpResponse.json({ MediaContainer: { size: 0 } }),
+      ),
+    )
+    await service.getPlexServerUrl()
+
+    state.plexTv = 'down'
+    await service.checkExistenceAcrossServers('abc123', 'movie', true)
+    const afterFailure = state.resourceCalls
+
+    state.plexTv = 'up'
+    await service.checkExistenceAcrossServers('abc123', 'movie', true)
+    await service.checkExistenceAcrossServers('abc123', 'movie', true)
+
+    expect(state.resourceCalls).toBe(afterFailure + 1)
+  })
+
   it('never caches the fallback when plex.tv cannot be reached', async () => {
     const service = createService()
     state.plexTv = 'down'

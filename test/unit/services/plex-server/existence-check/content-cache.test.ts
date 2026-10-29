@@ -21,7 +21,7 @@ const CONNECTION = {
   serverName: 'Basement',
 }
 
-type Answer = 'found' | 'missing' | '500' | '404' | 'down' | 'slow'
+type Answer = 'found' | 'missing' | 'empty' | '500' | '404' | 'down' | 'slow'
 
 describe('checkContentOnServer', () => {
   const logger = createMockLogger()
@@ -63,6 +63,8 @@ describe('checkContentOnServer', () => {
             })
           case 'missing':
             return HttpResponse.json({ MediaContainer: { size: 0 } })
+          case 'empty':
+            return HttpResponse.json({})
           case '500':
             return new HttpResponse(null, { status: 500 })
           case '404':
@@ -91,6 +93,16 @@ describe('checkContentOnServer', () => {
       expect(requests).toBe(1)
     },
   )
+
+  it('keeps a body without a MediaContainer as not found and keeps the connection', async () => {
+    answer = 'empty'
+
+    expect(await checkContentOnServer(cache, request())).toBe(false)
+    expect(await checkContentOnServer(cache, request())).toBe(false)
+
+    expect(requests).toBe(1)
+    expect(connections.has('machine-1')).toBe(true)
+  })
 
   it('checks again once the cache is cleared for the next reconciliation', async () => {
     await checkContentOnServer(cache, request())

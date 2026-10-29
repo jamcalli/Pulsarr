@@ -72,7 +72,7 @@ async function fetchContentAvailability(
     }
 
     const data = (await response.json()) as PlexSearchResponse
-    const exists = (data.MediaContainer.Metadata?.length ?? 0) > 0
+    const exists = (data.MediaContainer?.Metadata?.length ?? 0) > 0
     if (exists) {
       logger.debug(`Content found on Plex server "${serverName}"`)
     }

@@ -1456,10 +1456,15 @@ export class PlexServerService {
   }
 
   /** A failed plex.tv read resolves to an empty list and is cached until the next clear, so one sync never retries it per item. */
-  private async fetchPlexResources(): Promise<PlexResource[]> {
+  private fetchPlexResources(): Promise<PlexResource[]> {
     this.log.debug('Server resources cache miss, fetching from plex.tv API')
+    return getAllPlexResources(this.config.plexTokens?.[0] || '')
+  }
+
+  /** Empty while plex.tv is unreachable, and a failed read is never cached. */
+  private async getPlexResources(): Promise<PlexResource[]> {
     try {
-      return await getAllPlexResources(this.config.plexTokens?.[0] || '')
+      return await this.plexResources.forceFetch(PLEX_RESOURCES_KEY)
     } catch (error) {
       this.log.error({ error }, 'Error fetching Plex resources')
       return []
@@ -1675,8 +1680,7 @@ export class PlexServerService {
         return false
       }
 
-      const allResources =
-        await this.plexResources.forceFetch(PLEX_RESOURCES_KEY)
+      const allResources = await this.getPlexResources()
 
       const ownerConnections = await this.getPlexServerConnectionInfo()
 
