@@ -186,6 +186,16 @@ describe.each([
         await expect(subject.findIdInLibrary(42)).resolves.toBe(77)
         await expect(subject.findIdInLibrary(7)).resolves.toBeUndefined()
       })
+
+      it('never returns an unrelated item when the filter is ignored', async () => {
+        server.use(
+          http.get(libraryUrl, () =>
+            HttpResponse.json([libraryRecord(5), libraryRecord(6)]),
+          ),
+        )
+
+        await expect(subject.findIdInLibrary(42)).resolves.toBeUndefined()
+      })
     })
 
     describe('delete without a stored arr id', () => {

@@ -166,7 +166,14 @@ function createArrRoutes(): ArrMockRoute[] {
     {
       method: 'GET',
       path: 'movie',
-      handler: () => json(movies),
+      handler: (_request, url) => {
+        const tmdbIdParam = url.searchParams.get('tmdbId')
+        if (tmdbIdParam) {
+          const tmdbId = Number(tmdbIdParam)
+          return json(movies.filter((movie) => movie.tmdbId === tmdbId))
+        }
+        return json(movies)
+      },
     },
     {
       method: 'GET',

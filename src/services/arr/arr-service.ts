@@ -59,6 +59,8 @@ export interface ArrInstanceRow {
 export interface ArrLibraryResource {
   id: number
   tags?: number[]
+  tvdbId?: number
+  tmdbId?: number
 }
 
 export abstract class ArrService<
@@ -229,10 +231,11 @@ export abstract class ArrService<
   /** Reads the arr's own library by tvdbId or tmdbId, so it never waits on the remote metadata service. */
   async findInLibrary(externalId: number): Promise<TResource | undefined> {
     const { itemEndpoint, idField } = this.product
-    const [resource] = await this.client.get<TResource[]>(
+    const resources = await this.client.get<TResource[]>(
       `${itemEndpoint}?${idField}=${externalId}`,
     )
-    return resource
+    // A proxy or mock that drops the filter returns every item, so the id is matched here too
+    return resources.find((resource) => resource[idField] === externalId)
   }
 
   /** Reports a failed read as unchecked rather than throwing. */
