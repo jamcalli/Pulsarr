@@ -20,6 +20,14 @@ describe('allowed-hosts', () => {
     })
 
     it.each([
+      ['[fd00::5]', 'fd00::5'],
+      ['FD00:0:0::5', 'fd00::5'],
+      ['::ffff:192.168.1.5', '192.168.1.5'],
+    ])('normalizes the IPv6 entry %s', (entry, expected) => {
+      expect(parseAllowedHosts(entry)).toEqual([expected])
+    })
+
+    it.each([
       'https://pulsarr.example.com',
       'pulsarr.example.com:3003',
       'pulsarr.example.com/app',
@@ -30,6 +38,12 @@ describe('allowed-hosts', () => {
   })
 
   describe('isAllowedHost', () => {
+    it('matches a bracketed IPv6 entry against the request host', () => {
+      const bracketed = buildAllowedHostSet(parseAllowedHosts('[fd00::5]'))
+
+      expect(isAllowedHost('[fd00::5]', bracketed)).toBe(true)
+    })
+
     const allowed = buildAllowedHostSet(['pulsarr.example.com', 'fd00::5'])
 
     it.each([
@@ -39,6 +53,7 @@ describe('allowed-hosts', () => {
       '127.0.0.1',
       '[::1]',
       '[fd00::5]',
+      '[FD00:0:0::5]',
       hostname(),
       '',
     ])('accepts %j', (host) => {
