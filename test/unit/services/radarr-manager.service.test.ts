@@ -4,6 +4,8 @@ import type {
   RadarrInstance,
   Item as RadarrItem,
 } from '@root/types/radarr.types.js'
+import { createArrCaches } from '@services/arr/arr-caches.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { RadarrManagerService } from '@services/radarr-manager.service.js'
@@ -45,12 +47,16 @@ describe('RadarrManagerService.movieExistsByTmdbId', () => {
       async () => INSTANCE,
     )
     const db: Partial<DatabaseService> = { getRadarrInstance }
-    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    const fastify: Partial<FastifyInstance> = {
+      db: db as DatabaseService,
+      caches: new CacheRegistry(),
+    }
     service = new RadarrService(
       createMockLogger(),
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     manager = new RadarrManagerService(
       createMockLogger(),
@@ -161,6 +167,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       ),
     }
     const fastify: Partial<FastifyInstance> = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       progress: { emit } as unknown as FastifyInstance['progress'],
     }
@@ -169,6 +176,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     addToRadarr = vi.spyOn(service, 'addToRadarr').mockResolvedValue(ADDED)
     manager = new RadarrManagerService(
@@ -300,6 +308,7 @@ describe('RadarrManagerService.resyncWebhooks', () => {
       appBaseUrl,
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     manager['services'].set(1, oldService)
@@ -313,6 +322,7 @@ describe('RadarrManagerService.resyncWebhooks', () => {
       ),
     }
     fastify = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       config: {
         baseUrl: 'http://localhost',
@@ -409,6 +419,7 @@ describe('RadarrManagerService.testWebhookAddress', () => {
       ),
     }
     fastify = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       config: {
         baseUrl: 'http://localhost',
@@ -471,6 +482,7 @@ describe('RadarrManagerService.testWebhookAddress', () => {
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     manager['services'].set(1, existing)

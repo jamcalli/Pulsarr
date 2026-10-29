@@ -41,6 +41,14 @@ describe('tag-cache', () => {
       expect(result.get(3)).toBe('hd')
     })
 
+    it('reads tags fresh from the service, past its TTL cache', async () => {
+      vi.mocked(mockService.getTags).mockResolvedValue([])
+
+      await tagCache.getTagsForInstance(1, mockService, 'sonarr', mockLogger)
+
+      expect(mockService.getTags).toHaveBeenCalledWith({ fresh: true })
+    })
+
     it('should return cached tags on second call', async () => {
       const mockTags = [
         { id: 1, label: 'user-john' },

@@ -8,7 +8,11 @@ import type {
   SonarrRouteSettings,
 } from '@root/types/router.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
-import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
+import type {
+  SonarrInstance,
+  SonarrItem,
+  SonarrSeries,
+} from '@root/types/sonarr.types.js'
 import {
   type ArrInstanceStore,
   ArrManager,
@@ -41,6 +45,7 @@ const ROLLING_ADD_MONITOR: Record<SonarrRollingMonitorOption, string> = {
 
 export class SonarrManagerService extends ArrManager<
   SonarrInstance,
+  SonarrSeries,
   SonarrService,
   SonarrItem,
   SonarrRouteSettings,
@@ -62,7 +67,13 @@ export class SonarrManagerService extends ArrManager<
   }
 
   protected createService(appBaseUrl: string, port: number): SonarrService {
-    return new SonarrService(this.baseLog, appBaseUrl, port, this.fastify)
+    return new SonarrService(
+      this.baseLog,
+      appBaseUrl,
+      port,
+      this.fastify,
+      this.caches,
+    )
   }
 
   protected placeholder(): Omit<SonarrInstance, 'id'> {

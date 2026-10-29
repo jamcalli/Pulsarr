@@ -1,9 +1,13 @@
+import {
+  type ArrInstanceContext,
+  createArrCaches,
+} from '@services/arr/arr-caches.js'
 import { ArrClient } from '@services/arr/arr-client.js'
-import type { ArrInstanceContext } from '@services/arr/arr-instance-cache.js'
 import { RADARR, SONARR } from '@services/arr/arr-product.js'
 import { ArrTags, bulkUpdateItemTags } from '@services/arr/arr-tags.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
@@ -24,6 +28,16 @@ function context(appName: string, instanceId?: number): ArrInstanceContext {
   }
 }
 
+let now = 1
+const clock = { now: () => now }
+
+function newTags(appName: string, instanceId?: number): ArrTags {
+  return new ArrTags(
+    context(appName, instanceId),
+    createArrCaches(new CacheRegistry(clock)).tags,
+  )
+}
+
 function serveTags(...lists: Array<Array<{ id: number; label: string }>>) {
   const counter = { calls: 0 }
   server.use(
@@ -37,9 +51,13 @@ function serveTags(...lists: Array<Array<{ id: number; label: string }>>) {
 }
 
 describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
+  beforeEach(() => {
+    now = 1
+  })
+
   it('serves a second read within the TTL from cache', async () => {
     const counter = serveTags([{ id: 1, label: 'a' }])
-    const tags = new ArrTags(context(appName, 1))
+    const tags = newTags(appName, 1)
 
     await tags.list()
     await expect(tags.list()).resolves.toEqual([{ id: 1, label: 'a' }])
@@ -47,24 +65,19 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
   })
 
   it('re-reads once the TTL has passed', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    try {
-      const counter = serveTags([{ id: 1, label: 'a' }])
-      const tags = new ArrTags(context(appName, 1))
+    const counter = serveTags([{ id: 1, label: 'a' }])
+    const tags = newTags(appName, 1)
 
-      await tags.list()
-      vi.advanceTimersByTime(30_001)
-      await tags.list()
+    await tags.list()
+    now += 30_001
+    await tags.list()
 
-      expect(counter.calls).toBe(2)
-    } finally {
-      vi.useRealTimers()
-    }
+    expect(counter.calls).toBe(2)
   })
 
   it('never caches without an instance id', async () => {
     const counter = serveTags([])
-    const tags = new ArrTags(context(appName))
+    const tags = newTags(appName)
 
     await tags.list()
     await tags.list()
@@ -73,26 +86,19 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
   })
 
   it('serves the stale list when a refresh fails', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    try {
-      serveTags([{ id: 1, label: 'a' }])
-      const tags = new ArrTags(context(appName, 1))
-      await tags.list()
-      server.use(
-        http.get(TAG_URL, () => new HttpResponse(null, { status: 500 })),
-      )
-      vi.advanceTimersByTime(30_001)
+    serveTags([{ id: 1, label: 'a' }])
+    const tags = newTags(appName, 1)
+    await tags.list()
+    server.use(http.get(TAG_URL, () => new HttpResponse(null, { status: 500 })))
+    now += 30_001
 
-      await expect(tags.list()).resolves.toEqual([{ id: 1, label: 'a' }])
-    } finally {
-      vi.useRealTimers()
-    }
+    await expect(tags.list()).resolves.toEqual([{ id: 1, label: 'a' }])
   })
 
   it('rejects a failed first read', async () => {
     server.use(http.get(TAG_URL, () => new HttpResponse(null, { status: 500 })))
 
-    await expect(new ArrTags(context(appName, 1)).list()).rejects.toThrow()
+    await expect(newTags(appName, 1).list()).rejects.toThrow()
   })
 
   it('drops the cache after creating a tag', async () => {
@@ -102,7 +108,7 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
         HttpResponse.json({ id: 2, label: 'new' }, { status: 201 }),
       ),
     )
-    const tags = new ArrTags(context(appName, 1))
+    const tags = newTags(appName, 1)
     await tags.list()
 
     await expect(tags.create('new')).resolves.toEqual({ id: 2, label: 'new' })
@@ -116,9 +122,10 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
       http.post(TAG_URL, () => new HttpResponse(null, { status: 409 })),
     )
 
-    await expect(
-      new ArrTags(context(appName, 1)).create('kids'),
-    ).resolves.toEqual({ id: 4, label: 'kids' })
+    await expect(newTags(appName, 1).create('kids')).resolves.toEqual({
+      id: 4,
+      label: 'kids',
+    })
   })
 
   it('throws when the arr answers a create with no tag', async () => {
@@ -126,9 +133,9 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
       http.post(TAG_URL, () => new HttpResponse(null, { status: 204 })),
     )
 
-    await expect(
-      new ArrTags(context(appName, 1)).create('kids'),
-    ).rejects.toThrow(`${appName} returned no tag for "kids"`)
+    await expect(newTags(appName, 1).create('kids')).rejects.toThrow(
+      `${appName} returned no tag for "kids"`,
+    )
   })
 
   it('drops the cache after deleting a tag', async () => {
@@ -139,7 +146,7 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
         () => new HttpResponse(null, { status: 200 }),
       ),
     )
-    const tags = new ArrTags(context(appName, 1))
+    const tags = newTags(appName, 1)
     await tags.list()
 
     await tags.delete(1)
@@ -158,7 +165,7 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
       serveTags(existing)
 
       await expect(
-        new ArrTags(context(appName, 1)).resolveForAdd(
+        newTags(appName, 1).resolveForAdd(
           ['5', 'anime', '9', 'missing', 'kids'],
           ['7'],
         ),
@@ -169,7 +176,7 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
       serveTags(existing)
 
       await expect(
-        new ArrTags(context(appName, 1)).resolveForAdd([], ['7', '9', 'kids']),
+        newTags(appName, 1).resolveForAdd([], ['7', '9', 'kids']),
       ).resolves.toEqual({ ids: ['7'], existing })
     })
 
@@ -177,7 +184,7 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
       const counter = serveTags(existing)
 
       await expect(
-        new ArrTags(context(appName, 1)).resolveForAdd(undefined, []),
+        newTags(appName, 1).resolveForAdd(undefined, []),
       ).resolves.toEqual({ ids: [], existing: [] })
       expect(counter.calls).toBe(0)
     })

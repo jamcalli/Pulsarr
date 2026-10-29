@@ -1,6 +1,8 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
+import { createArrCaches } from '@services/arr/arr-caches.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { SonarrManagerService } from '@services/sonarr-manager.service.js'
@@ -45,12 +47,16 @@ describe('SonarrManagerService.seriesExistsByTvdbId', () => {
       async () => INSTANCE,
     )
     const db: Partial<DatabaseService> = { getSonarrInstance }
-    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    const fastify: Partial<FastifyInstance> = {
+      db: db as DatabaseService,
+      caches: new CacheRegistry(),
+    }
     service = new SonarrService(
       createMockLogger(),
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     manager = new SonarrManagerService(
       createMockLogger(),
@@ -161,6 +167,7 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
       ),
     }
     const fastify: Partial<FastifyInstance> = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       progress: { emit } as unknown as FastifyInstance['progress'],
     }
@@ -169,6 +176,7 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     addToSonarr = vi.spyOn(service, 'addToSonarr').mockResolvedValue(ADDED)
     manager = new SonarrManagerService(
@@ -300,6 +308,7 @@ describe('SonarrManagerService.resyncWebhooks', () => {
       appBaseUrl,
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     manager['services'].set(1, oldService)
@@ -313,6 +322,7 @@ describe('SonarrManagerService.resyncWebhooks', () => {
       ),
     }
     fastify = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       config: {
         baseUrl: 'http://localhost',
@@ -409,6 +419,7 @@ describe('SonarrManagerService.testWebhookAddress', () => {
       ),
     }
     fastify = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       config: {
         baseUrl: 'http://localhost',
@@ -471,6 +482,7 @@ describe('SonarrManagerService.testWebhookAddress', () => {
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     manager['services'].set(1, existing)

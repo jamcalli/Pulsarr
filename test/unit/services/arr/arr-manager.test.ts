@@ -5,8 +5,13 @@ import type {
   SonarrItem,
   SonarrSeries,
 } from '@root/types/sonarr.types.js'
+import {
+  type ArrResourceCaches,
+  createArrCaches,
+} from '@services/arr/arr-caches.js'
 import { WEBHOOK_RESYNC_CONCURRENCY } from '@services/arr/arr-manager.js'
 import { ArrService } from '@services/arr/arr-service.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import { RadarrService } from '@services/radarr.service.js'
@@ -68,6 +73,7 @@ interface Harness {
   fetchAll(): Promise<object[]>
   spyFetch(): Mock<(bypass?: boolean) => Promise<Set<object>>>
   manager: SonarrManagerService | RadarrManagerService
+  caches(): ArrResourceCaches
   services(): Map<
     number,
     | ArrService<SonarrInstance, SonarrSeries>
@@ -78,6 +84,7 @@ interface Harness {
 function fastifyWith(db: Partial<DatabaseService>) {
   const clearRouterRulesCache = vi.fn()
   const fastify: Partial<FastifyInstance> = {
+    caches: new CacheRegistry(),
     db: db as DatabaseService,
     config: {
       baseUrl: 'http://localhost',
@@ -115,6 +122,8 @@ function sonarrHarness(store: Store) {
         ),
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     services: () => manager['services'],
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    caches: () => manager['caches'],
   }
   return { harness, clearRouterRulesCache }
 }
@@ -144,6 +153,8 @@ function radarrHarness(store: Store) {
         ),
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     services: () => manager['services'],
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    caches: () => manager['caches'],
   }
   return { harness, clearRouterRulesCache }
 }
@@ -280,9 +291,45 @@ describe.each([
       expect(removeWebhook).not.toHaveBeenCalled()
       expect(store.delete).toHaveBeenCalledWith(9)
     })
+
+    it("drops the instance's cached entries and keeps the others", async () => {
+      const { tags, qualityProfiles } = harness.caches()
+      tags.entries.set(7, [{ id: 1, label: 'a' }])
+      tags.entries.set(8, [{ id: 1, label: 'a' }])
+      qualityProfiles.entries.set(7, [])
+
+      await harness.manager.removeInstance(7)
+
+      expect(tags.entries.has(7)).toBe(false)
+      expect(qualityProfiles.entries.has(7)).toBe(false)
+      expect(tags.entries.has(8)).toBe(true)
+    })
   })
 
   describe('updateInstance', () => {
+    it.each([
+      { change: 'API key', updates: { apiKey: 'rotated' } },
+      { change: 'server', updates: { baseUrl: 'http://other.test' } },
+    ])('drops cached entries when the $change changes', async ({ updates }) => {
+      harness.seed({ id: 1 })
+      const { tags } = harness.caches()
+      tags.entries.set(1, [{ id: 1, label: 'a' }])
+
+      await harness.manager.updateInstance(1, updates)
+
+      expect(tags.entries.has(1)).toBe(false)
+    })
+
+    it('keeps cached entries when only options change', async () => {
+      harness.seed({ id: 1 })
+      const { tags } = harness.caches()
+      tags.entries.set(1, [{ id: 1, label: 'a' }])
+
+      await harness.manager.updateInstance(1, { name: 'Renamed' })
+
+      expect(tags.entries.has(1)).toBe(true)
+    })
+
     it('keeps the live webhook when saving a new API key on the same server fails', async () => {
       harness.seed({ id: 1 })
       store.update.mockRejectedValue(new Error('db down'))
@@ -423,6 +470,7 @@ describe('Sonarr post-add step', () => {
       updateWatchlistItem: async () => true,
     }
     const fastify: Partial<FastifyInstance> = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       progress: { emit: vi.fn() } as unknown as FastifyInstance['progress'],
       plexSessionMonitor: {
@@ -439,6 +487,7 @@ describe('Sonarr post-add step', () => {
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     addToSonarr = vi.spyOn(service, 'addToSonarr').mockResolvedValue({
       seriesId: 42,

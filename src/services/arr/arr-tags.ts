@@ -1,9 +1,11 @@
 import { type ArrTag, HttpError } from '@root/types/arr-connection.types.js'
-import type { ArrClient } from '@services/arr/arr-client.js'
 import {
-  ArrInstanceCache,
+  type ArrCache,
+  type ArrCacheReadOptions,
   type ArrInstanceContext,
-} from '@services/arr/arr-instance-cache.js'
+  readArrCache,
+} from '@services/arr/arr-caches.js'
+import type { ArrClient } from '@services/arr/arr-client.js'
 import type { ArrProduct } from '@services/arr/arr-product.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
@@ -18,16 +20,23 @@ export interface ArrItemTagUpdate {
 export type ArrApplyTags = 'add' | 'remove' | 'replace'
 
 export class ArrTags {
-  private readonly cache: ArrInstanceCache<ArrTag[]>
+  constructor(
+    private readonly instance: ArrInstanceContext,
+    private readonly cache: ArrCache<ArrTag[]>,
+  ) {}
 
-  constructor(private readonly instance: ArrInstanceContext) {
-    this.cache = new ArrInstanceCache(instance, 'tags', () =>
-      instance.client().get<ArrTag[]>('tag'),
+  list(options?: ArrCacheReadOptions): Promise<ArrTag[]> {
+    return readArrCache(
+      this.cache,
+      this.instance,
+      () => this.instance.client().get<ArrTag[]>('tag'),
+      options,
     )
   }
 
-  list(): Promise<ArrTag[]> {
-    return this.cache.read()
+  private invalidate(): void {
+    const instanceId = this.instance.instanceId()
+    if (instanceId !== undefined) this.cache.entries.delete(instanceId)
   }
 
   /** Returns the arr's existing tag when the label is already taken. */
@@ -35,7 +44,7 @@ export class ArrTags {
     const { appName, log } = this.instance
     try {
       const result = await this.instance.client().post<ArrTag>('tag', { label })
-      this.cache.invalidate()
+      this.invalidate()
       if (!result) throw new Error(`${appName} returned no tag for "${label}"`)
       return result
     } catch (error) {
@@ -43,7 +52,7 @@ export class ArrTags {
         log.debug(
           `Tag "${label}" already exists in ${appName}, skipping creation`,
         )
-        this.cache.invalidate()
+        this.invalidate()
         const existing = (await this.list()).find((tag) => tag.label === label)
         if (existing) return existing
       }
@@ -83,7 +92,7 @@ export class ArrTags {
 
   async delete(tagId: number): Promise<void> {
     await this.instance.client().delete(`tag/${tagId}`)
-    this.cache.invalidate()
+    this.invalidate()
   }
 }
 

@@ -1,10 +1,13 @@
+import type { ArrCacheReadOptions } from '@services/arr/arr-caches.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
  * Service interface for fetching tags from Sonarr/Radarr
  */
 export interface TagService {
-  getTags: () => Promise<Array<{ id: number; label: string }>>
+  getTags: (
+    options: ArrCacheReadOptions,
+  ) => Promise<Array<{ id: number; label: string }>>
 }
 
 /**
@@ -41,7 +44,7 @@ export class TagCache {
 
     try {
       // Fetch tags from the service
-      const allTags = await service.getTags()
+      const allTags = await service.getTags({ fresh: true })
 
       // Create a map of tag IDs to normalized tag labels (trimmed and lowercase)
       const tagMap = new Map(
