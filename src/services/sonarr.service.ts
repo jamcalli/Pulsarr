@@ -1,7 +1,6 @@
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import { HttpError } from '@root/types/arr-connection.types.js'
 import type { ArrAddedSettings } from '@root/types/router.types.js'
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
   SonarrItem as Item,
   SonarrAddOptions,
@@ -12,27 +11,28 @@ import type {
   SonarrSeries,
   SonarrTagDetail,
 } from '@root/types/sonarr.types.js'
-import { ArrExclusionIds } from '@services/arr/arr-exclusion-ids.js'
+import {
+  ArrExclusionIds,
+  type ArrExclusions,
+} from '@services/arr/arr-exclusion-ids.js'
 import { SONARR } from '@services/arr/arr-product.js'
 import {
   resolveQualityProfileId,
   resolveRootFolder,
 } from '@services/arr/arr-profiles.js'
 import { ArrService } from '@services/arr/arr-service.js'
-import { errorMessage } from '@utils/error-message.js'
 import {
   extractSonarrId,
   extractTvdbId,
-  hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
 import { findQualityProfileName } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
-export class SonarrService extends ArrService<SonarrInstance> {
+export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
   private config: SonarrConfiguration | null = null
-  private readonly exclusionTvdbIds = new ArrExclusionIds(() =>
-    this.fetchExclusionTvdbIds(),
+  private readonly exclusions = new ArrExclusionIds(() =>
+    this.fetchExclusions(),
   )
 
   constructor(
@@ -92,56 +92,14 @@ export class SonarrService extends ArrService<SonarrInstance> {
   async fetchSeries(bypass = false): Promise<Set<Item>> {
     try {
       const shows = await this.client.get<SonarrSeries[]>('series')
-
-      let exclusions: Set<Item> = new Set()
-      if (!bypass) {
-        exclusions = await this.fetchExclusions()
-      }
-
-      const showItems = shows.map((show) => this.toItem(show))
-
-      // Mark exclusions so they can be filtered out from tagging
-      const exclusionItems = Array.from(exclusions).map((item) => ({
-        ...item,
-        isExclusion: true,
-      }))
-
-      const allItems = [...showItems, ...exclusionItems]
-
-      return new Set(allItems)
+      const exclusions = bypass ? [] : await this.exclusions.items()
+      return new Set([
+        ...shows.map((show) => this.toItem(show)),
+        ...exclusions.map((item) => ({ ...item, isExclusion: true })),
+      ])
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching series')
       throw err
-    }
-  }
-
-  /**
-   * Check if a series exists in Sonarr using efficient lookup
-   * @param tvdbId - The TVDB ID to check
-   * @returns Promise resolving to ExistenceCheckResult with availability info
-   */
-  async seriesExistsByTvdbId(tvdbId: number): Promise<ExistenceCheckResult> {
-    try {
-      const series = await this.client.get<SonarrSeries[]>(
-        `series/lookup?term=tvdb:${tvdbId}`,
-      )
-
-      // Series exists if it has a valid internal ID (> 0)
-      const found = series.length > 0 && series[0].id > 0
-
-      return {
-        found,
-        checked: true,
-        serviceName: 'Sonarr',
-      }
-    } catch (err) {
-      this.log.error({ error: err, tvdbId }, 'Error checking series existence')
-      return {
-        found: false,
-        checked: false,
-        serviceName: 'Sonarr',
-        error: errorMessage(err),
-      }
     }
   }
 
@@ -166,26 +124,24 @@ export class SonarrService extends ArrService<SonarrInstance> {
   }
 
   isTvdbIdExcluded(tvdbId: number): Promise<boolean> {
-    return this.exclusionTvdbIds.has(tvdbId)
+    return this.exclusions.has(tvdbId)
   }
 
-  private async fetchExclusionTvdbIds(): Promise<Set<number>> {
-    const ids = new Set<number>()
-    for (const item of await this.fetchExclusions()) {
-      const id = extractTvdbId(item.guids)
-      if (id) ids.add(id)
-    }
-    return ids
-  }
-
-  async fetchExclusions(): Promise<Set<Item>> {
+  private async fetchExclusions(): Promise<ArrExclusions<Item>> {
     try {
       const exclusions = await this.client.getAllPages<SonarrSeries>(
         'importlistexclusion/paged',
         'title',
       )
       this.log.debug(`Fetched all exclusions (${exclusions.length} shows)`)
-      return new Set(exclusions.map((show) => this.toItem(show)))
+      return {
+        items: exclusions.map((show) => this.toItem(show)),
+        ids: new Set(
+          exclusions
+            .map((show) => show.tvdbId)
+            .filter((id): id is number => id !== undefined && id > 0),
+        ),
+      }
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')
       throw err
@@ -320,7 +276,6 @@ export class SonarrService extends ArrService<SonarrInstance> {
         return
       }
 
-      // Fallback: try to find by TVDB ID
       const tvdbId = extractTvdbId(item.guids)
       if (tvdbId === 0) {
         this.log.warn(
@@ -329,21 +284,12 @@ export class SonarrService extends ArrService<SonarrInstance> {
         return
       }
 
-      const allSeries = await this.fetchSeries(true)
-      const matchingSeries = [...allSeries].find((show) =>
-        hasMatchingGuids(show.guids, [`tvdb:${tvdbId}`]),
-      )
-
-      if (!matchingSeries) {
+      const series = await this.findInLibrary(tvdbId)
+      if (!series) {
         throw new Error(`Could not find show with TVDB ID: ${tvdbId}`)
       }
 
-      const matchingSonarrId = extractSonarrId(matchingSeries.guids)
-      if (matchingSonarrId === 0) {
-        throw new Error('Could not find Sonarr ID for show')
-      }
-
-      await this.deleteFromSonarrById(matchingSonarrId, deleteFiles)
+      await this.deleteFromSonarrById(series.id, deleteFiles)
       this.log.debug(`Deleted ${item.title} from Sonarr`)
     } catch (err) {
       this.log.error({ error: err }, 'Error deleting from Sonarr')

@@ -5,7 +5,10 @@ import type {
   ArrTag,
   ConnectionTestResult,
 } from '@root/types/arr-connection.types.js'
-import type { HealthCheckResult } from '@root/types/service-result.types.js'
+import type {
+  ExistenceCheckResult,
+  HealthCheckResult,
+} from '@root/types/service-result.types.js'
 import {
   ARR_API_TIMEOUT_MS,
   ArrClient,
@@ -42,6 +45,7 @@ import {
   setupWebhook,
   webhookName,
 } from '@services/arr/arr-webhook.js'
+import { errorMessage } from '@utils/error-message.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -52,7 +56,15 @@ export interface ArrInstanceRow {
   apiKey: string
 }
 
-export abstract class ArrService<TInstance extends ArrInstanceRow> {
+export interface ArrLibraryResource {
+  id: number
+  tags?: number[]
+}
+
+export abstract class ArrService<
+  TInstance extends ArrInstanceRow,
+  TResource extends ArrLibraryResource,
+> {
   protected readonly log: FastifyBaseLogger
   protected readonly context: ArrInstanceContext
   private arrClient: ArrClient | null = null
@@ -212,6 +224,35 @@ export abstract class ArrService<TInstance extends ArrInstanceRow> {
       }
     }
     return checkHealth(this.product, this.credentials)
+  }
+
+  /** Reads the arr's own library by tvdbId or tmdbId, so it never waits on the remote metadata service. */
+  async findInLibrary(externalId: number): Promise<TResource | undefined> {
+    const { itemEndpoint, idField } = this.product
+    const [resource] = await this.client.get<TResource[]>(
+      `${itemEndpoint}?${idField}=${externalId}`,
+    )
+    return resource
+  }
+
+  /** Reports a failed read as unchecked rather than throwing. */
+  async existsInLibrary(externalId: number): Promise<ExistenceCheckResult> {
+    const { appName, idField } = this.product
+    try {
+      const found = (await this.findInLibrary(externalId)) !== undefined
+      return { found, checked: true, serviceName: appName }
+    } catch (err) {
+      this.log.error(
+        { error: err, [idField]: externalId },
+        `Error checking ${appName} library for item`,
+      )
+      return {
+        found: false,
+        checked: false,
+        serviceName: appName,
+        error: errorMessage(err),
+      }
+    }
   }
 
   getTags(): Promise<ArrTag[]> {

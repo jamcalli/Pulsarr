@@ -210,7 +210,7 @@ describe('watchlist workflow rss mode', { timeout: 30_000 }, () => {
             },
           }),
       ),
-      http.get('http://test-radarr:7878/api/v3/movie/lookup', () =>
+      http.get('http://test-radarr:7878/api/v3/movie', () =>
         HttpResponse.json([]),
       ),
     )

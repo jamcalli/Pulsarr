@@ -61,7 +61,7 @@ describe('RadarrManagerService.movieExistsByTmdbId', () => {
   })
 
   function lookupReturns(found: boolean, checked = true) {
-    vi.spyOn(service, 'movieExistsByTmdbId').mockResolvedValue({
+    vi.spyOn(service, 'existsInLibrary').mockResolvedValue({
       found,
       checked,
       serviceName: 'Radarr',

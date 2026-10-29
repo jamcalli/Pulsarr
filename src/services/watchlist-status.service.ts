@@ -236,7 +236,11 @@ export class StatusService {
         `Syncing statuses for ${instanceType} instance ${instanceId}`,
       )
 
-      await this.syncAllStatuses()
+      const { userIds } =
+        instanceType === 'radarr'
+          ? await this.syncRadarrStatuses()
+          : await this.syncSonarrStatuses()
+      emitWatchlistChange(this.fastify.progress, 'status', userIds)
 
       this.log.debug(
         `Completed sync for ${instanceType} instance ${instanceId}: ${itemsCopied} items copied and statuses updated`,

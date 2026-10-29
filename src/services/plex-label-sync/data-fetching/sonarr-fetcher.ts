@@ -130,44 +130,33 @@ export async function fetchSonarrTagsForItem(
         continue
       }
 
-      // Use the targeted lookup to find the series
-      const series = await sonarrService.client.get<
-        Array<{ id: number; title: string; tags?: number[] }>
-      >(`series/lookup?term=tvdb:${tvdbId}`)
+      const show = await sonarrService.findInLibrary(tvdbId)
 
-      if (series.length > 0 && series[0].id > 0) {
-        const show = series[0]
+      if (show?.tags && show.tags.length > 0) {
+        const tagDefinitions = await sonarrService.getTags()
+        const tagMap = new Map(tagDefinitions.map((tag) => [tag.id, tag.label]))
 
-        if (show.tags && show.tags.length > 0) {
-          // Fetch tag definitions to convert IDs to names
-          const tagDefinitions = await sonarrService.getTags()
-          const tagMap = new Map(
-            tagDefinitions.map((tag) => [tag.id, tag.label]),
-          )
+        const tagNames = show.tags
+          .map((tagId) => tagMap.get(tagId))
+          .filter((tag): tag is string => tag !== undefined)
 
-          const tagNames = show.tags
-            .map((tagId: number) => tagMap.get(tagId))
-            .filter((tag: string | undefined) => Boolean(tag)) as string[]
+        const filteredTags = tagNames.filter(
+          (tag) => !isUserTaggingSystemTag(tag),
+        )
 
-          // Filter out user tagging system tags
-          const filteredTags = tagNames.filter(
-            (tag) => !isUserTaggingSystemTag(tag),
-          )
+        logger.debug(
+          {
+            instanceId,
+            tvdbId,
+            title,
+            seriesTitle: show.title,
+            tagIds: show.tags,
+            tagNames: filteredTags,
+          },
+          'Found Sonarr tags for series using targeted lookup',
+        )
 
-          logger.debug(
-            {
-              instanceId,
-              tvdbId,
-              title,
-              seriesTitle: show.title,
-              tagIds: show.tags,
-              tagNames: filteredTags,
-            },
-            'Found Sonarr tags for series using targeted lookup',
-          )
-
-          return filteredTags
-        }
+        return filteredTags
       }
     } catch (error) {
       logger.warn(

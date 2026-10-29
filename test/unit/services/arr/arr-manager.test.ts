@@ -1,6 +1,10 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
-import type { RadarrInstance } from '@root/types/radarr.types.js'
-import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
+import type { RadarrInstance, RadarrMovie } from '@root/types/radarr.types.js'
+import type {
+  SonarrInstance,
+  SonarrItem,
+  SonarrSeries,
+} from '@root/types/sonarr.types.js'
 import { WEBHOOK_RESYNC_CONCURRENCY } from '@services/arr/arr-manager.js'
 import { ArrService } from '@services/arr/arr-service.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -66,7 +70,8 @@ interface Harness {
   manager: SonarrManagerService | RadarrManagerService
   services(): Map<
     number,
-    ArrService<SonarrInstance> | ArrService<RadarrInstance>
+    | ArrService<SonarrInstance, SonarrSeries>
+    | ArrService<RadarrInstance, RadarrMovie>
   >
 }
 
@@ -150,8 +155,10 @@ describe.each([
   let store: Store
   let harness: Harness
   let clearRouterRulesCache: Mock
-  let initialize: Mock<ArrService<SonarrInstance>['initialize']>
-  let removeWebhook: Mock<ArrService<SonarrInstance>['removeWebhook']>
+  let initialize: Mock<ArrService<SonarrInstance, SonarrSeries>['initialize']>
+  let removeWebhook: Mock<
+    ArrService<SonarrInstance, SonarrSeries>['removeWebhook']
+  >
 
   beforeEach(() => {
     store = {
@@ -358,7 +365,7 @@ describe.each([
   describe('placeholder instances', () => {
     it('leaves a placeholder out of the health check', async () => {
       initialize.mockImplementation(async function (
-        this: ArrService<SonarrInstance>,
+        this: ArrService<SonarrInstance, SonarrSeries>,
         instance,
       ) {
         if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {

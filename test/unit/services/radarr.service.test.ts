@@ -735,3 +735,35 @@ describe('RadarrService.probe', () => {
     expect(initialize).not.toHaveBeenCalled()
   })
 })
+
+describe('RadarrService full library reads', () => {
+  let service: RadarrService
+  let queries: string[]
+
+  beforeEach(async () => {
+    queries = []
+    service = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      {} as FastifyInstance,
+    )
+    await service.initialize(INSTANCE)
+    server.use(
+      http.get('http://radarr.test/api/v3/movie', ({ request }) => {
+        queries.push(new URL(request.url).search)
+        return HttpResponse.json([{ id: 1, title: 'Movie', tmdbId: 5 }])
+      }),
+    )
+  })
+
+  it('skips local cover mapping on every full fetch', async () => {
+    await service.getAllMovies()
+    await service.fetchMovies(true)
+
+    expect(queries).toEqual([
+      '?excludeLocalCovers=true',
+      '?excludeLocalCovers=true',
+    ])
+  })
+})

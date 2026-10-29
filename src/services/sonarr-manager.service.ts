@@ -85,13 +85,6 @@ export class SonarrManagerService extends ArrManager<
     return [...series].map((s) => ({ ...s, sonarr_instance_id: instanceId }))
   }
 
-  protected itemExists(
-    service: SonarrService,
-    tvdbId: number,
-  ): Promise<ExistenceCheckResult> {
-    return service.seriesExistsByTvdbId(tvdbId)
-  }
-
   protected isItemExcluded(
     service: SonarrService,
     tvdbId: number,
