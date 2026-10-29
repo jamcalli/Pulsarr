@@ -28,6 +28,9 @@ export interface ArrProduct {
   appName: 'Sonarr' | 'Radarr'
   idField: 'tvdbId' | 'tmdbId'
   itemEndpoint: 'series' | 'movie'
+  itemsLabel: 'series' | 'movies'
+  /** The id list key in the body of PUT {itemEndpoint}/editor. */
+  editorIdsKey: 'seriesIds' | 'movieIds'
   webhook: {
     flags: ArrNotificationFlags
     fields: (url: string, secret: string) => ArrWebhookField[]
@@ -43,6 +46,8 @@ export const SONARR = {
   appName: 'Sonarr',
   idField: 'tvdbId',
   itemEndpoint: 'series',
+  itemsLabel: 'series',
+  editorIdsKey: 'seriesIds',
   webhook: {
     flags: {
       onGrab: false,
@@ -132,6 +137,8 @@ export const RADARR = {
   appName: 'Radarr',
   idField: 'tmdbId',
   itemEndpoint: 'movie',
+  itemsLabel: 'movies',
+  editorIdsKey: 'movieIds',
   webhook: {
     flags: {
       onGrab: false,

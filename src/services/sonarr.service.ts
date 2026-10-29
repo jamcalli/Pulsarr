@@ -28,9 +28,6 @@ import {
 } from '@utils/guid-handler.js'
 import { findQualityProfileName } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import pLimit from 'p-limit'
-
-const BULK_TAG_CONCURRENCY = 4
 
 export class SonarrService extends ArrService<SonarrInstance> {
   private config: SonarrConfiguration | null = null
@@ -365,69 +362,6 @@ export class SonarrService extends ArrService<SonarrInstance> {
 
   getTagDetails(): Promise<SonarrTagDetail[]> {
     return this.client.get<SonarrTagDetail[]>('tag/detail')
-  }
-
-  /**
-   * Bulk update tags for multiple series using the serieseditor endpoint
-   * This provides significant performance improvements over individual updates
-   *
-   * @param updates Array of series updates containing seriesId and tagIds
-   * @returns Promise resolving when all updates are complete
-   */
-  async bulkUpdateSeriesTags(
-    updates: Array<{ seriesId: number; tagIds: number[] }>,
-    applyTags: 'add' | 'remove' | 'replace' = 'replace',
-  ): Promise<void> {
-    if (updates.length === 0) {
-      return
-    }
-
-    try {
-      // Group updates by identical tag sets for efficiency
-      const tagGroups = new Map<string, number[]>()
-
-      for (const update of updates) {
-        // Create a key from sorted tag IDs for grouping
-        const tagKey = [...new Set(update.tagIds)].sort().join(',')
-        if (!tagGroups.has(tagKey)) {
-          tagGroups.set(tagKey, [])
-        }
-        tagGroups.get(tagKey)?.push(update.seriesId)
-      }
-
-      // Process each tag group as a bulk operation with concurrency limit
-      const limit = pLimit(BULK_TAG_CONCURRENCY)
-      const promises = Array.from(tagGroups.entries()).map(
-        ([tagKey, seriesIds]) =>
-          limit(async () => {
-            const tagIds =
-              tagKey === ''
-                ? []
-                : tagKey.split(',').map((id) => Number.parseInt(id, 10))
-
-            const payload = {
-              seriesIds: seriesIds,
-              tags: tagIds,
-              applyTags,
-            }
-
-            await this.client.put('series/editor', payload)
-
-            this.log.debug(
-              `Bulk updated ${seriesIds.length} series with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
-            )
-          }),
-      )
-
-      await Promise.all(promises)
-
-      this.log.debug(
-        `Bulk updated tags for ${updates.length} series across ${tagGroups.size} tag groups (mode: ${applyTags})`,
-      )
-    } catch (error) {
-      this.log.error({ error }, 'Failed to bulk update series tags:')
-      throw error
-    }
   }
 
   /**

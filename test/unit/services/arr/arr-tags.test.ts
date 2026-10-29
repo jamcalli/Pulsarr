@@ -1,7 +1,7 @@
 import { ArrClient } from '@services/arr/arr-client.js'
 import type { ArrInstanceContext } from '@services/arr/arr-instance-cache.js'
 import { RADARR, SONARR } from '@services/arr/arr-product.js'
-import { ArrTags } from '@services/arr/arr-tags.js'
+import { ArrTags, bulkUpdateItemTags } from '@services/arr/arr-tags.js'
 import { HttpResponse, http } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -181,5 +181,69 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
       ).resolves.toEqual({ ids: [], existing: [] })
       expect(counter.calls).toBe(0)
     })
+  })
+})
+
+describe.each([
+  { product: SONARR, path: 'series/editor', idsKey: 'seriesIds' },
+  { product: RADARR, path: 'movie/editor', idsKey: 'movieIds' },
+])('$product.appName bulk tag editor', ({ product, path, idsKey }) => {
+  function serveEditor() {
+    const bodies: object[] = []
+    server.use(
+      http.put(`http://arr.test/api/v3/${path}`, async ({ request }) => {
+        bodies.push((await request.json()) as object)
+        return HttpResponse.json([], { status: 202 })
+      }),
+    )
+    return bodies
+  }
+
+  function update(...updates: Array<{ itemId: number; tagIds: number[] }>) {
+    const { client } = context(product.appName, 1)
+    return bulkUpdateItemTags(
+      client(),
+      product,
+      createMockLogger(),
+      updates,
+      'add',
+    )
+  }
+
+  it('sends one request per distinct tag set under the product ids key', async () => {
+    const bodies = serveEditor()
+
+    await update(
+      { itemId: 1, tagIds: [10, 2] },
+      { itemId: 2, tagIds: [2, 10, 2] },
+      { itemId: 3, tagIds: [] },
+    )
+
+    expect(bodies).toEqual(
+      expect.arrayContaining([
+        { [idsKey]: [1, 2], tags: [2, 10], applyTags: 'add' },
+        { [idsKey]: [3], tags: [], applyTags: 'add' },
+      ]),
+    )
+    expect(bodies).toHaveLength(2)
+  })
+
+  it('sends nothing for no updates', async () => {
+    const bodies = serveEditor()
+
+    await update()
+
+    expect(bodies).toEqual([])
+  })
+
+  it('rejects when the arr refuses the edit', async () => {
+    server.use(
+      http.put(
+        `http://arr.test/api/v3/${path}`,
+        () => new HttpResponse(null, { status: 400 }),
+      ),
+    )
+
+    await expect(update({ itemId: 1, tagIds: [1] })).rejects.toThrow()
   })
 })
