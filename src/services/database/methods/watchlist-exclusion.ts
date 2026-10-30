@@ -7,7 +7,10 @@ import type {
   WatchlistExclusionScope,
   WatchlistExclusionUser,
 } from '@root/schemas/watchlist-exclusions/watchlist-exclusions.schema.js'
-import type { WatchlistExclusion } from '@root/types/watchlist-exclusion.types.js'
+import type {
+  ExclusionDrivenGuids,
+  WatchlistExclusion,
+} from '@root/types/watchlist-exclusion.types.js'
 import { applySearchFilter } from '@services/database/search-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { toContentType } from '@utils/content-type.js'
@@ -517,10 +520,10 @@ export async function removeExclusion(
 /** GUIDs of keys where every non-pending watchlister has a per-user or global exclusion, read without mutating watchlist_items. */
 export async function getExclusionDrivenDeletionGuids(
   this: DatabaseService,
-): Promise<Set<string>> {
+): Promise<ExclusionDrivenGuids> {
   // Raw SQL because the doubly nested correlated subquery does not fit knex's nested `this` typing
-  const result = await this.knex.raw<Array<{ guids: string }>>(
-    `SELECT DISTINCT we.key AS key, we.guids AS guids
+  const result = await this.knex.raw<Array<{ type: string; guids: string }>>(
+    `SELECT DISTINCT we.key AS key, we.type AS type, we.guids AS guids
      FROM watchlist_exclusions we
      WHERE NOT EXISTS (
        SELECT 1 FROM watchlist_items wi
@@ -535,12 +538,13 @@ export async function getExclusionDrivenDeletionGuids(
     [SYSTEM_USER_ID],
   )
 
-  const rows = this.extractRawQueryRows<{ guids: string }>(result)
+  const rows = this.extractRawQueryRows<{ type: string; guids: string }>(result)
 
-  const guids = new Set<string>()
+  const guids: ExclusionDrivenGuids = { movie: new Set(), show: new Set() }
   for (const row of rows) {
+    const bucket = guids[toContentType(row.type)]
     for (const guid of parseGuids(row.guids)) {
-      guids.add(guid)
+      bucket.add(guid)
     }
   }
   return guids

@@ -82,7 +82,7 @@ import {
   createUserPlaylist,
   findUserPlaylistByTitle,
   getUserPlaylistItems,
-} from './plex-server/playlists/index.js'
+} from './plex-server/playlists/playlist-operations.js'
 import { getAllPlexResources } from './plex-server/resources/resource-operations.js'
 import { getActiveSessions } from './plex-server/sessions/session-operations.js'
 import {
@@ -563,18 +563,25 @@ export class PlexServerService {
 
   /** Resolves to an empty list when there is no admin token or plex.tv fails, and never caches either. */
   async getPlexUsers(options?: { skipCache?: boolean }): Promise<PlexUser[]> {
-    if (!this.config.plexTokens?.[0]) {
-      this.log.warn('No Plex admin token available for user operations')
-      return []
-    }
     try {
-      return await this.plexUsers.forceFetch(PLEX_USERS_KEY, {
-        forceRefresh: options?.skipCache,
-      })
+      return await this.getPlexUsersStrict(options)
     } catch (error) {
       this.log.error({ error }, 'Error fetching Plex users:')
       return []
     }
+  }
+
+  /** Like getPlexUsers but throws when plex.tv fails, for reads that must not treat a failure as no users. */
+  private async getPlexUsersStrict(options?: {
+    skipCache?: boolean
+  }): Promise<PlexUser[]> {
+    if (!this.config.plexTokens?.[0]) {
+      this.log.warn('No Plex admin token available for user operations')
+      return []
+    }
+    return this.plexUsers.forceFetch(PLEX_USERS_KEY, {
+      forceRefresh: options?.skipCache,
+    })
   }
 
   private async fetchPlexUsers(): Promise<PlexUser[]> {
@@ -723,18 +730,25 @@ export class PlexServerService {
 
   /** Resolves to an empty map when there is no admin token or plex.tv fails, and never caches either. */
   async getSharedServerInfo(): Promise<Map<string, PlexSharedServerInfo>> {
+    try {
+      return await this.getSharedServerInfoStrict()
+    } catch (error) {
+      this.log.error({ error }, 'Error fetching shared server info:')
+      return new Map()
+    }
+  }
+
+  /** Like getSharedServerInfo but throws when plex.tv fails, so a failure never reads as every user lacking a token. */
+  private async getSharedServerInfoStrict(): Promise<
+    Map<string, PlexSharedServerInfo>
+  > {
     if (!this.config.plexTokens?.[0]) {
       this.log.warn(
         'No Plex admin token available for shared server operations',
       )
       return new Map()
     }
-    try {
-      return await this.sharedServers.forceFetch(SHARED_SERVERS_KEY)
-    } catch (error) {
-      this.log.error({ error }, 'Error fetching shared server info:')
-      return new Map()
-    }
+    return this.sharedServers.forceFetch(SHARED_SERVERS_KEY)
   }
 
   private async fetchSharedServerInfo(): Promise<
@@ -762,7 +776,6 @@ export class PlexServerService {
       headers: {
         'X-Plex-Token': adminToken,
         'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-        // This endpoint returns XML format
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })
@@ -852,21 +865,16 @@ export class PlexServerService {
     return serverInfoMap
   }
 
-  /** Null when the user has no access token, which is never cached. */
+  /** Null when the user has no access token, which is never cached, and throws when plex.tv cannot be read. */
   async getUserToken(username: string): Promise<string | null> {
-    try {
-      const token = await this.userTokens.fetch(username.toLowerCase(), {
-        context: username,
-      })
-      return token ?? null
-    } catch (error) {
-      this.log.error({ error }, `Error getting token for user "${username}":`)
-      return null
-    }
+    const token = await this.userTokens.fetch(username.toLowerCase(), {
+      context: username,
+    })
+    return token ?? null
   }
 
   private async lookupUserToken(username: string): Promise<string | undefined> {
-    const serverInfoMap = await this.getSharedServerInfo()
+    const serverInfoMap = await this.getSharedServerInfoStrict()
 
     let userInfo: PlexSharedServerInfo | undefined
 
@@ -939,92 +947,79 @@ export class PlexServerService {
     }
 
     const playlistMap = new Map<string, string>()
+    const playlistName = this.getProtectionPlaylistName()
 
-    try {
-      const playlistName = this.getProtectionPlaylistName()
+    // Cloned because the owner entry is pushed onto this cached list below
+    const users = [...(await this.getPlexUsersStrict())]
 
-      // Get all users (clone to avoid mutating cached array)
-      const users = [...(await this.getPlexUsers())]
-
-      const adminToken = this.config.plexTokens?.[0]
-      if (adminToken) {
-        const hasOwner = users.some(
-          (user) =>
-            user.username.toLowerCase() === 'owner' ||
-            user.username.toLowerCase() === 'admin',
-        )
-
-        if (!hasOwner) {
-          this.log.debug(
-            'Adding admin/owner user to the protection playlist creation list',
-          )
-          users.push({
-            id: 'owner',
-            username: 'owner',
-            title: 'Owner',
-            email: '',
-          })
-        }
-      }
-
-      this.log.debug(`Checking protection playlists for ${users.length} users`)
-
-      for (const user of users) {
-        try {
-          const existingPlaylistId = await this.findUserPlaylistByTitle(
-            user.username,
-            playlistName,
-          )
-
-          if (existingPlaylistId) {
-            this.log.debug(
-              `Found existing "${playlistName}" playlist for user "${user.username}" with ID: ${existingPlaylistId}`,
-            )
-            playlistMap.set(user.username, existingPlaylistId)
-            continue
-          }
-
-          if (createIfMissing) {
-            const newPlaylistId = await this.createUserPlaylist(user.username, {
-              title: playlistName,
-              type: 'mixed',
-              smart: false,
-            })
-
-            if (newPlaylistId) {
-              this.log.info(
-                `Created "${playlistName}" playlist for user "${user.username}" with ID: ${newPlaylistId}`,
-              )
-              playlistMap.set(user.username, newPlaylistId)
-            } else {
-              this.log.warn(
-                `Failed to create "${playlistName}" playlist for user "${user.username}"`,
-              )
-            }
-          } else {
-            this.log.debug(
-              `No "${playlistName}" playlist found for user "${user.username}" and creation is disabled`,
-            )
-          }
-        } catch (error) {
-          this.log.error(
-            { error },
-            `Error processing protection playlist for user "${user.username}":`,
-          )
-        }
-      }
-
-      this.log.debug(
-        `Successfully processed protection playlists for ${playlistMap.size} of ${users.length} users`,
+    const adminToken = this.config.plexTokens?.[0]
+    if (adminToken) {
+      const hasOwner = users.some(
+        (user) =>
+          user.username.toLowerCase() === 'owner' ||
+          user.username.toLowerCase() === 'admin',
       )
 
-      this.protectedPlaylistsMap = playlistMap
-
-      return playlistMap
-    } catch (error) {
-      this.log.error({ error }, 'Error in getOrCreateProtectionPlaylists:')
-      return playlistMap
+      if (!hasOwner) {
+        this.log.debug(
+          'Adding admin/owner user to the protection playlist creation list',
+        )
+        users.push({
+          id: 'owner',
+          username: 'owner',
+          title: 'Owner',
+          email: '',
+        })
+      }
     }
+
+    this.log.debug(`Checking protection playlists for ${users.length} users`)
+
+    for (const user of users) {
+      const existingPlaylistId = await this.findUserPlaylistByTitle(
+        user.username,
+        playlistName,
+      )
+
+      if (existingPlaylistId) {
+        this.log.debug(
+          `Found existing "${playlistName}" playlist for user "${user.username}" with ID: ${existingPlaylistId}`,
+        )
+        playlistMap.set(user.username, existingPlaylistId)
+        continue
+      }
+
+      if (createIfMissing) {
+        const newPlaylistId = await this.createUserPlaylist(user.username, {
+          title: playlistName,
+          type: 'mixed',
+          smart: false,
+        })
+
+        if (newPlaylistId) {
+          this.log.info(
+            `Created "${playlistName}" playlist for user "${user.username}" with ID: ${newPlaylistId}`,
+          )
+          playlistMap.set(user.username, newPlaylistId)
+        } else {
+          this.log.warn(
+            `Failed to create "${playlistName}" playlist for user "${user.username}"`,
+          )
+        }
+      } else {
+        this.log.debug(
+          `No "${playlistName}" playlist found for user "${user.username}" and creation is disabled`,
+        )
+      }
+    }
+
+    this.log.debug(
+      `Successfully processed protection playlists for ${playlistMap.size} of ${users.length} users`,
+    )
+
+    this.protectedPlaylistsMap = playlistMap
+
+    return playlistMap
   }
 
   async getUserPlaylistItems(
@@ -1035,8 +1030,7 @@ export class PlexServerService {
     const token = await this.getUserToken(username)
 
     if (!token) {
-      this.log.warn(`No token available for user "${username}"`)
-      return new Set()
+      throw new Error(`No token available for user "${username}"`)
     }
 
     return getUserPlaylistItems(playlistId, serverUrl, token, this.log)
@@ -1061,7 +1055,7 @@ export class PlexServerService {
       const userPlaylists = await this.getOrCreateProtectionPlaylists(true)
 
       // Plex has revoked token access when shared users exist but none got through
-      const sharedUserCount = (await this.getPlexUsers()).length
+      const sharedUserCount = (await this.getPlexUsersStrict()).length
       const nonOwnerPlaylists = [...userPlaylists.keys()].filter(
         (u) => u !== 'owner',
       )
@@ -1072,65 +1066,47 @@ export class PlexServerService {
       }
 
       for (const [username, playlistId] of userPlaylists.entries()) {
-        try {
-          const playlistItems = await this.getUserPlaylistItems(
-            username,
-            playlistId,
-          )
+        const playlistItems = await this.getUserPlaylistItems(
+          username,
+          playlistId,
+        )
 
-          if (playlistItems.size === 0) {
-            this.log.debug(
-              `Protection playlist for user "${username}" is empty`,
-            )
-            continue
-          }
-
-          this.log.debug(
-            `Processing ${playlistItems.size} protected items from playlist "${playlistName}" for user "${username}"`,
-          )
-
-          for (const item of playlistItems) {
-            try {
-              const itemMetadata = await this.getItemMetadata(
-                username,
-                item.guid,
-                item.grandparentGuid,
-                item.type,
-              )
-
-              if (itemMetadata?.guids && itemMetadata.guids.length > 0) {
-                for (const guid of itemMetadata.guids) {
-                  protectedGuids.add(guid)
-                  this.log.debug(
-                    `Protected item GUID: "${guid}" (${item.title})`,
-                  )
-                }
-
-                this.log.debug(
-                  `Added protected item "${item.title}" with ${itemMetadata.guids.length} GUIDs from user "${username}"`,
-                )
-              } else {
-                this.log.warn(
-                  `Failed to retrieve standardized GUIDs for protected item "${item.title}", so the item may not be properly protected`,
-                )
-              }
-            } catch (itemError) {
-              this.log.error(
-                { error: itemError },
-                `Error processing protected item "${item.title}":`,
-              )
-            }
-          }
-
-          this.log.debug(
-            `Processed ${playlistItems.size} protected items from user "${username}"`,
-          )
-        } catch (error) {
-          this.log.error(
-            { error },
-            `Error processing protected items for user "${username}":`,
-          )
+        if (playlistItems.size === 0) {
+          this.log.debug(`Protection playlist for user "${username}" is empty`)
+          continue
         }
+
+        this.log.debug(
+          `Processing ${playlistItems.size} protected items from playlist "${playlistName}" for user "${username}"`,
+        )
+
+        for (const item of playlistItems) {
+          const itemMetadata = await this.getItemMetadata(
+            username,
+            item.guid,
+            item.grandparentGuid,
+            item.type,
+          )
+
+          if (itemMetadata?.guids && itemMetadata.guids.length > 0) {
+            for (const guid of itemMetadata.guids) {
+              protectedGuids.add(guid)
+              this.log.debug(`Protected item GUID: "${guid}" (${item.title})`)
+            }
+
+            this.log.debug(
+              `Added protected item "${item.title}" with ${itemMetadata.guids.length} GUIDs from user "${username}"`,
+            )
+          } else {
+            this.log.warn(
+              `Failed to retrieve standardized GUIDs for protected item "${item.title}", so the item may not be properly protected`,
+            )
+          }
+        }
+
+        this.log.debug(
+          `Processed ${playlistItems.size} protected items from user "${username}"`,
+        )
       }
 
       this.log.debug(
@@ -1164,74 +1140,81 @@ export class PlexServerService {
     }
   }
 
+  /** Null when plex.tv has no record of the item, throws when the lookup itself fails. */
   async getItemMetadata(
     _username: string,
     plexGuid: string,
     grandparentGuid?: string,
     itemType?: string,
   ): Promise<{ title: string; guids: string[] } | null> {
-    try {
-      const guidToUse =
-        itemType === 'episode' && grandparentGuid ? grandparentGuid : plexGuid
+    const guidToUse =
+      itemType === 'episode' && grandparentGuid ? grandparentGuid : plexGuid
 
-      const mediaId = guidToUse.split(/[/:]/).pop()
-      if (!mediaId) {
-        this.log.warn(`Invalid Plex GUID format: "${guidToUse}"`)
-        return null
-      }
-
-      const contentType = guidToUse.includes('/movie/')
-        ? 'movie'
-        : guidToUse.includes('/show/')
-          ? 'show'
-          : itemType || (plexGuid.includes('/episode/') ? 'show' : 'movie')
-
-      const tempItem = {
-        id: mediaId,
-        key: mediaId,
-        title: itemType === 'episode' ? 'TV Episode' : 'Protected Item',
-        type: contentType,
-        user_id: 0,
-        status: 'pending' as const,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        guids: [],
-        genres: [],
-      }
-
-      const itemSet = await toItemsSingle(this.config, this.log, tempItem, 0, 3)
-
-      const items = Array.from(itemSet)
-      if (items.length === 0) {
-        this.log.warn('No metadata found for item')
-        return null
-      }
-
-      const item = items[0] as Item
-
-      const extractedGuids = Array.isArray(item.guids)
-        ? item.guids
-        : typeof item.guids === 'string'
-          ? parseGuids(item.guids)
-          : []
-
-      if (extractedGuids.length > 0) {
-        this.log.debug(
-          `Found ${extractedGuids.length} GUIDs for item "${item.title || 'Unknown'}"`,
-        )
-      } else {
-        this.log.warn(
-          `No standardized GUIDs found for item "${item.title || 'Unknown'}"`,
-        )
-      }
-
-      return {
-        title: item.title || `Unknown ${itemType || 'item'}`,
-        guids: extractedGuids,
-      }
-    } catch (error) {
-      this.log.error({ error }, 'Error getting metadata for item')
+    const mediaId = guidToUse.split(/[/:]/).pop()
+    if (!mediaId) {
+      this.log.warn(`Invalid Plex GUID format: "${guidToUse}"`)
       return null
+    }
+
+    const contentType = guidToUse.includes('/movie/')
+      ? 'movie'
+      : guidToUse.includes('/show/')
+        ? 'show'
+        : itemType || (plexGuid.includes('/episode/') ? 'show' : 'movie')
+
+    const tempItem = {
+      id: mediaId,
+      key: mediaId,
+      title: itemType === 'episode' ? 'TV Episode' : 'Protected Item',
+      type: contentType,
+      user_id: 0,
+      status: 'pending' as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      guids: [],
+      genres: [],
+    }
+
+    const notFound: string[] = []
+    const itemSet = await toItemsSingle(
+      this.config,
+      this.log,
+      tempItem,
+      0,
+      3,
+      undefined,
+      notFound,
+    )
+
+    const items = Array.from(itemSet)
+    if (items.length === 0) {
+      if (notFound.length > 0) {
+        return null
+      }
+      throw new Error(`Failed to fetch Plex metadata for "${plexGuid}"`)
+    }
+
+    const item = items[0] as Item
+
+    const extractedGuids = Array.isArray(item.guids)
+      ? item.guids
+      : typeof item.guids === 'string'
+        ? parseGuids(item.guids)
+        : []
+
+    if (extractedGuids.length > 0) {
+      this.log.debug(
+        `Found ${extractedGuids.length} GUIDs for item "${item.title || 'Unknown'}"`,
+      )
+    } else {
+      this.log.warn(
+        `No standardized GUIDs found for item "${item.title || 'Unknown'}"`,
+      )
+    }
+
+    return {
+      title: item.title || `Unknown ${itemType || 'item'}`,
+      guids: extractedGuids,
     }
   }
 

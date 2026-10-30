@@ -533,4 +533,58 @@ describe('watchlist exclusion database methods', () => {
       ).toEqual([{ count: 0 }])
     })
   })
+
+  describe('getExclusionDrivenDeletionGuids', () => {
+    it('splits GUIDs by the excluded media type', async () => {
+      await getTestDatabase()('watchlist_exclusions').insert([
+        {
+          ...exclusion(
+            SYSTEM_USER_ID,
+            'movie-key',
+            'Movie',
+            'movie',
+            '2026-01-01',
+          ),
+          guids: JSON.stringify(['tmdb:500']),
+        },
+        {
+          ...exclusion(
+            SYSTEM_USER_ID,
+            'show-key',
+            'Show',
+            'show',
+            '2026-01-01',
+          ),
+          guids: JSON.stringify(['tmdb:600', 'tvdb:700']),
+        },
+      ])
+
+      const guids = await fastify.db.getExclusionDrivenDeletionGuids()
+
+      expect(guids.movie).toEqual(new Set(['tmdb:500']))
+      expect(guids.show).toEqual(new Set(['tmdb:600', 'tvdb:700']))
+    })
+
+    it('leaves out a key someone still watchlists without an exclusion', async () => {
+      const knex = getTestDatabase()
+      await knex('watchlist_items').insert(
+        watchlistItem(
+          PRIMARY,
+          'kept',
+          'Kept',
+          'movie',
+          'requested',
+          '2026-01-01',
+        ),
+      )
+      await knex('watchlist_exclusions').insert(
+        exclusion(SECOND, 'kept', 'Kept', 'movie', '2026-01-01'),
+      )
+
+      const guids = await fastify.db.getExclusionDrivenDeletionGuids()
+
+      expect(guids.movie.size).toBe(0)
+      expect(guids.show.size).toBe(0)
+    })
+  })
 })

@@ -56,7 +56,6 @@ describe('tag-cache', () => {
       ]
       vi.mocked(mockService.getTags).mockResolvedValue(mockTags)
 
-      // First call
       const result1 = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -64,7 +63,6 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Second call
       const result2 = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -72,10 +70,8 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Should only fetch once
       expect(mockService.getTags).toHaveBeenCalledOnce()
 
-      // Both results should be the same cached map
       expect(result1).toBe(result2)
       expect(result1.get(1)).toBe('user-john')
       expect(result2.get(1)).toBe('user-john')
@@ -96,9 +92,9 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      expect(result.get(1)).toBe('user-john') // trimmed and lowercase
-      expect(result.get(2)).toBe('removed') // lowercase
-      expect(result.get(3)).toBe('hd') // trimmed and lowercase
+      expect(result.get(1)).toBe('user-john')
+      expect(result.get(2)).toBe('removed')
+      expect(result.get(3)).toBe('hd')
     })
 
     it('should use separate cache keys for different instance types', async () => {
@@ -109,7 +105,6 @@ describe('tag-cache', () => {
         .mockResolvedValueOnce(radarrTags)
         .mockResolvedValueOnce(sonarrTags)
 
-      // Fetch for Radarr instance 1
       const radarrResult = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -117,7 +112,6 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Fetch for Sonarr instance 1
       const sonarrResult = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -125,10 +119,8 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Should have been called twice (different instance types)
       expect(mockService.getTags).toHaveBeenCalledTimes(2)
 
-      // Different tags for each
       expect(radarrResult.get(1)).toBe('radarr-tag')
       expect(sonarrResult.get(1)).toBe('sonarr-tag')
     })
@@ -141,7 +133,6 @@ describe('tag-cache', () => {
         .mockResolvedValueOnce(instance1Tags)
         .mockResolvedValueOnce(instance2Tags)
 
-      // Fetch for instance 1
       const result1 = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -149,7 +140,6 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Fetch for instance 2
       const result2 = await tagCache.getTagsForInstance(
         2,
         mockService,
@@ -157,10 +147,8 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Should have been called twice (different instance IDs)
       expect(mockService.getTags).toHaveBeenCalledTimes(2)
 
-      // Different tags for each
       expect(result1.get(1)).toBe('instance-1-tag')
       expect(result2.get(1)).toBe('instance-2-tag')
     })
@@ -179,19 +167,13 @@ describe('tag-cache', () => {
       expect(result.size).toBe(0)
     })
 
-    it('should return empty map on error', async () => {
+    it('should throw on error', async () => {
       const error = new Error('API connection failed')
       vi.mocked(mockService.getTags).mockRejectedValue(error)
 
-      const result = await tagCache.getTagsForInstance(
-        1,
-        mockService,
-        'radarr',
-        mockLogger,
-      )
-
-      expect(result).toBeInstanceOf(Map)
-      expect(result.size).toBe(0)
+      await expect(
+        tagCache.getTagsForInstance(1, mockService, 'radarr', mockLogger),
+      ).rejects.toThrow('API connection failed')
     })
 
     it('should not cache error results', async () => {
@@ -200,16 +182,10 @@ describe('tag-cache', () => {
         .mockRejectedValueOnce(error)
         .mockResolvedValueOnce([{ id: 1, label: 'recovered-tag' }])
 
-      // First call fails
-      const result1 = await tagCache.getTagsForInstance(
-        1,
-        mockService,
-        'radarr',
-        mockLogger,
-      )
-      expect(result1.size).toBe(0)
+      await expect(
+        tagCache.getTagsForInstance(1, mockService, 'radarr', mockLogger),
+      ).rejects.toThrow('API connection failed')
 
-      // Second call should try again (error not cached)
       const result2 = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -217,10 +193,8 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Should have been called twice
       expect(mockService.getTags).toHaveBeenCalledTimes(2)
 
-      // Second call should succeed
       expect(result2.size).toBe(1)
       expect(result2.get(1)).toBe('recovered-tag')
     })
@@ -288,21 +262,16 @@ describe('tag-cache', () => {
       const mockTags = [{ id: 1, label: 'cached-tag' }]
       vi.mocked(mockService.getTags).mockResolvedValue(mockTags)
 
-      // Fetch and cache tags
       await tagCache.getTagsForInstance(1, mockService, 'radarr', mockLogger)
       await tagCache.getTagsForInstance(2, mockService, 'radarr', mockLogger)
       await tagCache.getTagsForInstance(1, mockService, 'sonarr', mockLogger)
 
-      // Should have been called 3 times (3 different cache keys)
       expect(mockService.getTags).toHaveBeenCalledTimes(3)
 
-      // Clear the cache
       tagCache.clear()
 
-      // Fetch again - should call API again since cache is cleared
       await tagCache.getTagsForInstance(1, mockService, 'radarr', mockLogger)
 
-      // Should have been called 4 times now (cache was cleared)
       expect(mockService.getTags).toHaveBeenCalledTimes(4)
     })
 
@@ -314,7 +283,6 @@ describe('tag-cache', () => {
         .mockResolvedValueOnce(firstTags)
         .mockResolvedValueOnce(secondTags)
 
-      // First fetch
       const result1 = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -323,10 +291,8 @@ describe('tag-cache', () => {
       )
       expect(result1.get(1)).toBe('first-run')
 
-      // Clear cache
       tagCache.clear()
 
-      // Second fetch
       const result2 = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -335,7 +301,6 @@ describe('tag-cache', () => {
       )
       expect(result2.get(1)).toBe('second-run')
 
-      // Should have been called twice (cache was cleared between)
       expect(mockService.getTags).toHaveBeenCalledTimes(2)
     })
 
@@ -357,7 +322,6 @@ describe('tag-cache', () => {
         .mockResolvedValueOnce(radarr2Tags)
         .mockResolvedValueOnce(sonarr1Tags)
 
-      // Fetch all
       const r1 = await tagCache.getTagsForInstance(
         1,
         mockService,
@@ -377,17 +341,14 @@ describe('tag-cache', () => {
         mockLogger,
       )
 
-      // Each should have their own tags
       expect(r1.get(1)).toBe('radarr-1')
       expect(r2.get(2)).toBe('radarr-2')
       expect(s1.get(3)).toBe('sonarr-1')
 
-      // Fetch again - should use cache
       await tagCache.getTagsForInstance(1, mockService, 'radarr', mockLogger)
       await tagCache.getTagsForInstance(2, mockService, 'radarr', mockLogger)
       await tagCache.getTagsForInstance(1, mockService, 'sonarr', mockLogger)
 
-      // Should only have been called 3 times (all cached)
       expect(mockService.getTags).toHaveBeenCalledTimes(3)
     })
   })
@@ -408,7 +369,6 @@ describe('tag-cache', () => {
       const regex1 = tagCache.getCompiledRegex(pattern)
       const regex2 = tagCache.getCompiledRegex(pattern)
 
-      // Should be the exact same object (cached)
       expect(regex1).toBe(regex2)
     })
 
@@ -419,10 +379,8 @@ describe('tag-cache', () => {
       const regex1 = tagCache.getCompiledRegex(pattern1)
       const regex2 = tagCache.getCompiledRegex(pattern2)
 
-      // Should be different objects
       expect(regex1).not.toBe(regex2)
 
-      // Should match different patterns
       expect(regex1.test('user-john')).toBe(true)
       expect(regex1.test('admin-john')).toBe(false)
 
@@ -435,15 +393,12 @@ describe('tag-cache', () => {
 
       const regex1 = tagCache.getCompiledRegex(pattern)
 
-      // Clear cache
       tagCache.clear()
 
       const regex2 = tagCache.getCompiledRegex(pattern)
 
-      // Should be different objects (not cached)
       expect(regex1).not.toBe(regex2)
 
-      // But should match the same pattern
       expect(regex1.test('user-john')).toBe(true)
       expect(regex2.test('user-john')).toBe(true)
     })
@@ -454,18 +409,17 @@ describe('tag-cache', () => {
 
       expect(regex.test('user-john-123')).toBe(true)
       expect(regex.test('user-jane-456')).toBe(true)
-      expect(regex.test('user-john')).toBe(false) // missing number
-      expect(regex.test('admin-john-123')).toBe(false) // wrong prefix
+      expect(regex.test('user-john')).toBe(false)
+      expect(regex.test('admin-john-123')).toBe(false)
     })
 
     it('should compile regex with case-insensitive and unicode flags', () => {
-      // Regex is compiled with 'iu' flags to match lowercased tags and support Unicode
       const pattern = 'USER'
       const regex = tagCache.getCompiledRegex(pattern)
 
       expect(regex.test('USER')).toBe(true)
-      expect(regex.test('user')).toBe(true) // Case-insensitive due to 'i' flag
-      expect(regex.test('UsEr')).toBe(true) // Case-insensitive
+      expect(regex.test('user')).toBe(true)
+      expect(regex.test('UsEr')).toBe(true)
     })
 
     it('should handle special regex characters', () => {
@@ -480,19 +434,14 @@ describe('tag-cache', () => {
       const pattern1 = 'user-.*'
       const pattern2 = 'admin-.*'
 
-      // First call with pattern1
       const regex1a = tagCache.getCompiledRegex(pattern1)
 
-      // Switch to pattern2
       tagCache.getCompiledRegex(pattern2)
 
-      // Switch back to pattern1
       const regex1b = tagCache.getCompiledRegex(pattern1)
 
-      // Should compile new regex (not cached from first call)
       expect(regex1a).not.toBe(regex1b)
 
-      // But should match the same pattern
       expect(regex1a.test('user-john')).toBe(true)
       expect(regex1b.test('user-john')).toBe(true)
     })

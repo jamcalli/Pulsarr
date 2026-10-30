@@ -710,3 +710,201 @@ describe('PlexServerService plex.tv caches', () => {
     expect(calls).toEqual({ users: 2, shared: 2 })
   })
 })
+
+describe('PlexServerService.getProtectedItems', () => {
+  const PLAYLISTS = `${LOCAL_HTTPS}/playlists`
+  const PLAYLIST_ITEMS = `${LOCAL_HTTPS}/playlists/:id/items`
+  const METADATA = 'https://discover.provider.plex.tv/library/metadata/:id'
+  const USERS = 'https://plex.tv/api/users'
+  const SHARED_SERVERS = 'https://plex.tv/api/servers/machine-1/shared_servers'
+  const PLAYLIST_NAME = 'Do Not Delete'
+
+  const USERS_XML =
+    '<MediaContainer><User id="7" username="alice" title="alice"><Server machineIdentifier="machine-1"/></User><User id="8" username="bob" title="bob"><Server machineIdentifier="machine-1"/></User></MediaContainer>'
+  const SHARED_XML =
+    '<MediaContainer><SharedServer id="1" username="alice" email="alice@example.com" userID="7" accessToken="alice-token"/></MediaContainer>'
+
+  let playlistCreates: number
+
+  function playlistItem(id: string) {
+    return { guid: `plex://movie/${id}`, type: 'movie', title: id }
+  }
+
+  function createProtectionService() {
+    servePlex({ plexTv: 'up', down: new Set(), resourceCalls: 0 })
+    playlistCreates = 0
+    server.use(
+      http.get(USERS, () => HttpResponse.text('<MediaContainer/>')),
+      http.get(SHARED_SERVERS, () => HttpResponse.text('<MediaContainer/>')),
+      http.post(PLAYLISTS, () => {
+        playlistCreates += 1
+        return HttpResponse.json({
+          MediaContainer: { Metadata: [{ ratingKey: 'new' }] },
+        })
+      }),
+    )
+    const fastify = {
+      caches: new CacheRegistry(),
+      config: {
+        plexTokens: ['admin-token'],
+        plexServerUrl: '',
+        plexExistenceScope: 'owned-and-shared',
+        enablePlexPlaylistProtection: true,
+        plexProtectionPlaylistName: PLAYLIST_NAME,
+      },
+    } as unknown as FastifyInstance
+    return new PlexServerService(createMockLogger(), fastify)
+  }
+
+  function servePlaylistsByToken(playlists: Record<string, string>) {
+    server.use(
+      http.get(PLAYLISTS, ({ request }) => {
+        const id = playlists[request.headers.get('X-Plex-Token') ?? '']
+        return HttpResponse.json({
+          MediaContainer: {
+            Metadata: id ? [{ ratingKey: id, title: PLAYLIST_NAME }] : [],
+          },
+        })
+      }),
+    )
+  }
+
+  function servePlaylistItems(items: Record<string, string[]>) {
+    server.use(
+      http.get(PLAYLIST_ITEMS, ({ params }) => {
+        const ids = items[String(params.id)] ?? []
+        return HttpResponse.json({
+          MediaContainer: {
+            totalSize: ids.length,
+            Metadata: ids.map(playlistItem),
+          },
+        })
+      }),
+    )
+  }
+
+  function serveMetadata(missing: string[] = []) {
+    server.use(
+      http.get(METADATA, ({ params }) =>
+        missing.includes(String(params.id))
+          ? new HttpResponse(null, { status: 404 })
+          : HttpResponse.json({
+              MediaContainer: {
+                Metadata: [{ Guid: [{ id: `tmdb://${params.id}` }] }],
+              },
+            }),
+      ),
+    )
+  }
+
+  function serveOwnerPlaylist(ids: string[]) {
+    servePlaylistsByToken({ 'admin-token': 'owner-list' })
+    servePlaylistItems({ 'owner-list': ids })
+  }
+
+  it('throws when the playlist fetch fails', async () => {
+    const service = createProtectionService()
+    servePlaylistsByToken({ 'admin-token': 'owner-list' })
+    server.use(
+      http.get(PLAYLIST_ITEMS, () => new HttpResponse(null, { status: 500 })),
+    )
+
+    await expect(service.getProtectedItems()).rejects.toThrow()
+  })
+
+  it('throws when a user with a playlist has no token', async () => {
+    const service = createProtectionService()
+    vi.spyOn(service, 'getOrCreateProtectionPlaylists').mockResolvedValue(
+      new Map([['bob', 'bob-list']]),
+    )
+
+    await expect(service.getProtectedItems()).rejects.toThrow()
+  })
+
+  it('throws when item metadata cannot be fetched', async () => {
+    const service = createProtectionService()
+    serveOwnerPlaylist(['101', '202'])
+    server.use(
+      http.get(METADATA, ({ params }) =>
+        params.id === '202'
+          ? HttpResponse.error()
+          : HttpResponse.json({
+              MediaContainer: { Metadata: [{ Guid: [{ id: 'tmdb://101' }] }] },
+            }),
+      ),
+    )
+
+    await expect(service.getProtectedItems()).rejects.toThrow()
+  })
+
+  it('skips an item plex.tv has no record of and protects the rest', async () => {
+    const service = createProtectionService()
+    serveOwnerPlaylist(['101', '202'])
+    serveMetadata(['202'])
+
+    expect(await service.getProtectedItems()).toEqual(new Set(['tmdb:101']))
+  })
+
+  it('throws and creates no playlist when the playlist lookup fails', async () => {
+    const service = createProtectionService()
+    server.use(
+      http.get(PLAYLISTS, () => new HttpResponse(null, { status: 500 })),
+    )
+
+    await expect(service.getProtectedItems()).rejects.toThrow()
+    expect(playlistCreates).toBe(0)
+  })
+
+  it('creates the playlist when the user has none', async () => {
+    const service = createProtectionService()
+    server.use(
+      http.get(PLAYLISTS, () => HttpResponse.json({ MediaContainer: {} })),
+    )
+    servePlaylistItems({})
+
+    expect(await service.getProtectedItems()).toEqual(new Set())
+    expect(playlistCreates).toBe(1)
+  })
+
+  it('throws when the shared servers fetch fails', async () => {
+    const service = createProtectionService()
+    serveOwnerPlaylist(['101'])
+    serveMetadata()
+    server.use(
+      http.get(SHARED_SERVERS, () => new HttpResponse(null, { status: 500 })),
+    )
+
+    await expect(service.getProtectedItems()).rejects.toThrow()
+  })
+
+  it('throws when the users fetch fails', async () => {
+    const service = createProtectionService()
+    serveOwnerPlaylist(['101'])
+    serveMetadata()
+    server.use(http.get(USERS, () => new HttpResponse(null, { status: 500 })))
+
+    await expect(service.getProtectedItems()).rejects.toThrow()
+  })
+
+  it('skips a user with no access token and protects the others', async () => {
+    const service = createProtectionService()
+    server.use(
+      http.get(USERS, () => HttpResponse.text(USERS_XML)),
+      http.get(SHARED_SERVERS, () => HttpResponse.text(SHARED_XML)),
+    )
+    servePlaylistsByToken({
+      'admin-token': 'owner-list',
+      'alice-token': 'alice-list',
+    })
+    servePlaylistItems({ 'owner-list': ['101'], 'alice-list': ['303'] })
+    serveMetadata()
+
+    expect(await service.getProtectedItems()).toEqual(
+      new Set(['tmdb:101', 'tmdb:303']),
+    )
+    expect([
+      ...(await service.getOrCreateProtectionPlaylists()).keys(),
+    ]).toEqual(['alice', 'owner'])
+    expect(playlistCreates).toBe(0)
+  })
+})

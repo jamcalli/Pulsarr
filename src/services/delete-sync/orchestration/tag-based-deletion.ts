@@ -1,6 +1,7 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { ExclusionDrivenGuids } from '@root/types/watchlist-exclusion.types.js'
 import { isAnyGuidProtected } from '@services/delete-sync/cache/protected-cache.js'
 import type { TagCache } from '@services/delete-sync/cache/tag-cache.js'
 import { isAnyGuidTracked } from '@services/delete-sync/cache/tracked-cache.js'
@@ -40,13 +41,8 @@ export interface TagBasedDeletionDeps {
   tagCache: TagCache
   protectedGuids: Set<string> | null
   trackedGuids: Set<string> | null
-  /**
-   * GUIDs that exclusions designate for deletion right now (per-user or
-   * global; see DatabaseService.getExclusionDrivenDeletionGuids). Treated as a
-   * deletion signal in tag-based mode alongside the removal tag. null when
-   * there are no exclusions in scope.
-   */
-  exclusionDrivenGuids: Set<string> | null
+  /** GUIDs that exclusions mark for deletion alongside the removal tag, split by media type. */
+  exclusionDrivenGuids: ExclusionDrivenGuids
   deletedMovieGuids: Set<string>
   deletedShowGuids: Set<string>
   logger: FastifyBaseLogger
@@ -55,10 +51,7 @@ export interface TagBasedDeletionDeps {
   setTrackedGuids: (guids: Set<string> | null) => void
 }
 
-/**
- * Performs tag-based safety check to prevent mass deletion
- * Returns a result if safety check fails, or null if it passes
- */
+/** Null when the check passes, otherwise the safety-triggered result. */
 async function performTagBasedDeletionSafetyCheck(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
@@ -67,7 +60,6 @@ async function performTagBasedDeletionSafetyCheck(
   const { config, sonarrManager, radarrManager, tagCache, logger } = deps
 
   try {
-    // Count how many items would be deleted by tag-based deletion
     const [taggedForDeletionSeries, taggedForDeletionMovies] =
       await Promise.all([
         countTaggedSeries(
@@ -80,7 +72,7 @@ async function performTagBasedDeletionSafetyCheck(
             deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
             removedTagPrefix: config.removedTagPrefix,
             deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
-            exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
+            exclusionDrivenGuids: deps.exclusionDrivenGuids.show,
           },
           sonarrManager,
           tagCache,
@@ -110,7 +102,7 @@ async function performTagBasedDeletionSafetyCheck(
             deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
             removedTagPrefix: config.removedTagPrefix,
             deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
-            exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
+            exclusionDrivenGuids: deps.exclusionDrivenGuids.movie,
           },
           radarrManager,
           tagCache,
@@ -153,7 +145,7 @@ async function performTagBasedDeletionSafetyCheck(
       )
     }
 
-    return null // Safety check passed
+    return null
   } catch (error) {
     logger.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
@@ -170,15 +162,7 @@ async function performTagBasedDeletionSafetyCheck(
   }
 }
 
-/**
- * Orchestrates tag-based deletion process
- *
- * @param existingSeries - All series from Sonarr
- * @param existingMovies - All movies from Radarr
- * @param deps - Dependencies containing services and configuration
- * @param dryRun - Whether to simulate without making changes
- * @returns Delete sync result
- */
+/** Expects the tracked and protection caches already loaded, and aborts with a safety result when either is missing. */
 export async function executeTagBasedDeletion(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
@@ -191,7 +175,6 @@ export async function executeTagBasedDeletion(
     `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${config.removedTagPrefix}"`,
   )
 
-  // Validate once to avoid per-item warnings/work
   const removalTagPrefix = getRemovalTagPrefixNormalized(
     config.removedTagPrefix,
   )
@@ -204,8 +187,6 @@ export async function executeTagBasedDeletion(
     )
   }
 
-  // Cache is already loaded in service before calling this function
-  // Safety check to verify caches were loaded if features are enabled
   if (config.deleteSyncTrackedOnly && !deps.trackedGuids) {
     const errorMsg =
       'Tracked-only deletion is enabled but tracked GUIDs were not loaded'
@@ -228,7 +209,6 @@ export async function executeTagBasedDeletion(
     )
   }
 
-  // Run safety check to prevent mass deletion
   const safetyCheckResult = await performTagBasedDeletionSafetyCheck(
     existingSeries,
     existingMovies,
@@ -238,10 +218,8 @@ export async function executeTagBasedDeletion(
     return safetyCheckResult
   }
 
-  // Initialize deletion counters
   const counters = new DeletionCounters()
 
-  // Process movie deletions using unified processor
   await processMovieDeletions(
     {
       movies: existingMovies,
@@ -253,7 +231,7 @@ export async function executeTagBasedDeletion(
         enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
         deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
         removedTagPrefix: config.removedTagPrefix,
-        exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
+        exclusionDrivenGuids: deps.exclusionDrivenGuids.movie,
       },
       validators: {
         isAnyGuidTracked: (guids, onHit) =>
@@ -282,7 +260,6 @@ export async function executeTagBasedDeletion(
     counters,
   )
 
-  // Process show deletions using unified processor
   await processShowDeletions(
     {
       shows: existingSeries,
@@ -295,7 +272,7 @@ export async function executeTagBasedDeletion(
         enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
         deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
         removedTagPrefix: config.removedTagPrefix,
-        exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
+        exclusionDrivenGuids: deps.exclusionDrivenGuids.show,
       },
       validators: {
         isAnyGuidTracked: (guids, onHit) =>
@@ -324,7 +301,6 @@ export async function executeTagBasedDeletion(
     counters,
   )
 
-  // Build summary from counters
   const deletionSummary = {
     movies: {
       deleted: counters.moviesDeleted,
@@ -350,7 +326,6 @@ export async function executeTagBasedDeletion(
     `Tag-based delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${counters.totalDeleted} items identified for deletion, ${counters.totalSkipped} skipped, ${counters.totalProtected} protected, ${counters.totalProcessed} total processed`,
   )
 
-  // Log detailed summary at debug level
   logger.debug(
     {
       ...deletionSummary,
@@ -358,8 +333,6 @@ export async function executeTagBasedDeletion(
     },
     `Detailed tag-based deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary`,
   )
-
-  // Resources will be cleared in finally block of run() method
 
   return deletionSummary
 }
