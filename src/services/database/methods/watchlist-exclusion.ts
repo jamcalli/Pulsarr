@@ -521,9 +521,9 @@ export async function removeExclusion(
 export async function getExclusionDrivenDeletionGuids(
   this: DatabaseService,
 ): Promise<ExclusionDrivenGuids> {
-  // Raw SQL because the doubly nested correlated subquery does not fit knex's nested `this` typing
+  // Raw SQL for the nested correlated subquery, and no DISTINCT because Postgres json has no equality operator
   const result = await this.knex.raw<Array<{ type: string; guids: string }>>(
-    `SELECT DISTINCT we.key AS key, we.type AS type, we.guids AS guids
+    `SELECT we.type AS type, we.guids AS guids
      FROM watchlist_exclusions we
      WHERE NOT EXISTS (
        SELECT 1 FROM watchlist_items wi
