@@ -169,7 +169,7 @@ describe('quota database methods', () => {
     it('pages same-day usage newest id first without skipping or repeating rows', async () => {
       const day = localDate(daysFromToday(0))
       await getTestDatabase()('quota_usage').insert(
-        ['movie', 'movie', 'show'].map((contentType) => ({
+        ['movie', 'show'].map((contentType) => ({
           user_id: 1,
           content_type: contentType,
           request_date: day,
@@ -182,7 +182,7 @@ describe('quota database methods', () => {
         undefined,
         undefined,
         undefined,
-        2,
+        1,
         0,
       )
       const page2 = await fastify.db.getQuotaUsageHistory(
@@ -190,13 +190,12 @@ describe('quota database methods', () => {
         undefined,
         undefined,
         undefined,
-        2,
-        2,
+        1,
+        1,
       )
 
       expect([...page1, ...page2].map((row) => row.contentType)).toEqual([
         'show',
-        'movie',
         'movie',
       ])
     })

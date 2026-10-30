@@ -809,7 +809,9 @@ describe('PlexServerService.getProtectedItems', () => {
       http.get(PLAYLIST_ITEMS, () => new HttpResponse(null, { status: 500 })),
     )
 
-    await expect(service.getProtectedItems()).rejects.toThrow()
+    await expect(service.getProtectedItems()).rejects.toThrow(
+      /Failed to fetch playlist items: 500/,
+    )
   })
 
   it('throws when a user with a playlist has no token', async () => {
@@ -818,7 +820,9 @@ describe('PlexServerService.getProtectedItems', () => {
       new Map([['bob', 'bob-list']]),
     )
 
-    await expect(service.getProtectedItems()).rejects.toThrow()
+    await expect(service.getProtectedItems()).rejects.toThrow(
+      /No token available for user "bob"/,
+    )
   })
 
   it('throws when item metadata cannot be fetched', async () => {
@@ -834,7 +838,9 @@ describe('PlexServerService.getProtectedItems', () => {
       ),
     )
 
-    await expect(service.getProtectedItems()).rejects.toThrow()
+    await expect(service.getProtectedItems()).rejects.toThrow(
+      /Failed to fetch Plex metadata for "plex:\/\/movie\/202"/,
+    )
   })
 
   it('skips an item plex.tv has no record of and protects the rest', async () => {
@@ -851,7 +857,9 @@ describe('PlexServerService.getProtectedItems', () => {
       http.get(PLAYLISTS, () => new HttpResponse(null, { status: 500 })),
     )
 
-    await expect(service.getProtectedItems()).rejects.toThrow()
+    await expect(service.getProtectedItems()).rejects.toThrow(
+      /Failed to fetch playlists: 500/,
+    )
     expect(playlistCreates).toBe(0)
   })
 
@@ -874,7 +882,9 @@ describe('PlexServerService.getProtectedItems', () => {
       http.get(SHARED_SERVERS, () => new HttpResponse(null, { status: 500 })),
     )
 
-    await expect(service.getProtectedItems()).rejects.toThrow()
+    await expect(service.getProtectedItems()).rejects.toThrow(
+      /Failed to fetch shared server info: 500/,
+    )
   })
 
   it('throws when the users fetch fails', async () => {
@@ -883,7 +893,9 @@ describe('PlexServerService.getProtectedItems', () => {
     serveMetadata()
     server.use(http.get(USERS, () => new HttpResponse(null, { status: 500 })))
 
-    await expect(service.getProtectedItems()).rejects.toThrow()
+    await expect(service.getProtectedItems()).rejects.toThrow(
+      /Failed to fetch users: 500/,
+    )
   })
 
   it('skips a user with no access token and protects the others', async () => {

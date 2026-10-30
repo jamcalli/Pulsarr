@@ -8,6 +8,7 @@ import {
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createDeferred } from '../../../../helpers/deferred.js'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 describe('executeTagBasedDeletion', () => {
@@ -73,6 +74,44 @@ describe('executeTagBasedDeletion', () => {
 
     expect(result.safetyTriggered).toBe(true)
     expect(result.total.deleted).toBe(0)
+    expect(radarrService.deleteFromRadarr).not.toHaveBeenCalled()
+  })
+
+  it('waits for the other counter to settle before aborting', async () => {
+    const sonarrService = {
+      getTags: vi.fn().mockRejectedValue(new Error('Sonarr unreachable')),
+    }
+    vi.mocked(deps.sonarrManager.getSonarrService).mockReturnValue(
+      sonarrService as unknown as ReturnType<
+        SonarrManagerService['getSonarrService']
+      >,
+    )
+    deps.config.deleteEndedShow = true
+    const radarrTags = createDeferred<Array<{ id: number; label: string }>>()
+    radarrService.getTags.mockReturnValue(radarrTags.promise)
+    const series = [
+      {
+        id: 2,
+        title: 'Ended Show',
+        tags: [],
+        series_status: 'ended',
+        sonarr_instance_id: 1,
+        guids: 'tvdb://22222',
+      } as unknown as SonarrItem,
+    ]
+
+    let settled = false
+    const run = executeTagBasedDeletion(series, movies, deps).then((result) => {
+      settled = true
+      return result
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(settled).toBe(false)
+
+    radarrTags.resolve([{ id: 1, label: 'pulsarr:removed' }])
+    const result = await run
+
+    expect(result.safetyTriggered).toBe(true)
     expect(radarrService.deleteFromRadarr).not.toHaveBeenCalled()
   })
 

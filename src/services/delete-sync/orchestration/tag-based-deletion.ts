@@ -60,69 +60,73 @@ async function performTagBasedDeletionSafetyCheck(
   const { config, sonarrManager, radarrManager, tagCache, logger } = deps
 
   try {
-    const [taggedForDeletionSeries, taggedForDeletionMovies] =
-      await Promise.all([
-        countTaggedSeries(
-          existingSeries,
-          {
-            deleteEndedShow: config.deleteEndedShow,
-            deleteContinuingShow: config.deleteContinuingShow,
-            deleteMovie: config.deleteMovie,
-            enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
-            deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
-            removedTagPrefix: config.removedTagPrefix,
-            deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
-            exclusionDrivenGuids: deps.exclusionDrivenGuids.show,
-          },
-          sonarrManager,
-          tagCache,
-          deps.protectedGuids,
-          (guids) =>
-            isAnyGuidProtected(
-              guids,
-              deps.protectedGuids,
-              config.enablePlexPlaylistProtection,
-            ),
-          deps.trackedGuids,
-          (guids) =>
-            isAnyGuidTracked(
-              guids,
-              deps.trackedGuids,
-              config.deleteSyncTrackedOnly,
-            ),
-          logger,
-        ),
-        countTaggedMovies(
-          existingMovies,
-          {
-            deleteEndedShow: config.deleteEndedShow,
-            deleteContinuingShow: config.deleteContinuingShow,
-            deleteMovie: config.deleteMovie,
-            enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
-            deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
-            removedTagPrefix: config.removedTagPrefix,
-            deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
-            exclusionDrivenGuids: deps.exclusionDrivenGuids.movie,
-          },
-          radarrManager,
-          tagCache,
-          deps.protectedGuids,
-          (guids) =>
-            isAnyGuidProtected(
-              guids,
-              deps.protectedGuids,
-              config.enablePlexPlaylistProtection,
-            ),
-          deps.trackedGuids,
-          (guids) =>
-            isAnyGuidTracked(
-              guids,
-              deps.trackedGuids,
-              config.deleteSyncTrackedOnly,
-            ),
-          logger,
-        ),
-      ])
+    // Settles both so a failed counter never leaves the other writing the tag cache after the run ends
+    const [seriesCount, moviesCount] = await Promise.allSettled([
+      countTaggedSeries(
+        existingSeries,
+        {
+          deleteEndedShow: config.deleteEndedShow,
+          deleteContinuingShow: config.deleteContinuingShow,
+          deleteMovie: config.deleteMovie,
+          enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
+          deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
+          removedTagPrefix: config.removedTagPrefix,
+          deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
+          exclusionDrivenGuids: deps.exclusionDrivenGuids.show,
+        },
+        sonarrManager,
+        tagCache,
+        deps.protectedGuids,
+        (guids) =>
+          isAnyGuidProtected(
+            guids,
+            deps.protectedGuids,
+            config.enablePlexPlaylistProtection,
+          ),
+        deps.trackedGuids,
+        (guids) =>
+          isAnyGuidTracked(
+            guids,
+            deps.trackedGuids,
+            config.deleteSyncTrackedOnly,
+          ),
+        logger,
+      ),
+      countTaggedMovies(
+        existingMovies,
+        {
+          deleteEndedShow: config.deleteEndedShow,
+          deleteContinuingShow: config.deleteContinuingShow,
+          deleteMovie: config.deleteMovie,
+          enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
+          deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
+          removedTagPrefix: config.removedTagPrefix,
+          deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
+          exclusionDrivenGuids: deps.exclusionDrivenGuids.movie,
+        },
+        radarrManager,
+        tagCache,
+        deps.protectedGuids,
+        (guids) =>
+          isAnyGuidProtected(
+            guids,
+            deps.protectedGuids,
+            config.enablePlexPlaylistProtection,
+          ),
+        deps.trackedGuids,
+        (guids) =>
+          isAnyGuidTracked(
+            guids,
+            deps.trackedGuids,
+            config.deleteSyncTrackedOnly,
+          ),
+        logger,
+      ),
+    ])
+    if (seriesCount.status === 'rejected') throw seriesCount.reason
+    if (moviesCount.status === 'rejected') throw moviesCount.reason
+    const taggedForDeletionSeries = seriesCount.value
+    const taggedForDeletionMovies = moviesCount.value
 
     const safetyCheck = performTagBasedSafetyCheck(
       existingSeries,
