@@ -231,6 +231,33 @@ describe('tagContentWithData', () => {
     })
   })
 
+  it('fails the instance without marking items for removal when a user tag cannot be created', async () => {
+    const adapter = createFakeAdapter({
+      usersWithItems: vi.fn(async () => [ALICE, BOB]),
+      getTags: vi.fn(async () => [
+        { id: BOB_TAG, label: 'pulsarr-user-bob' },
+        { id: REMOVED_TAG, label: 'pulsarr-removed' },
+      ]),
+      createTag: vi.fn(async () => {
+        throw new Error('tag create refused')
+      }),
+    })
+
+    const results = await tag(
+      adapter,
+      [libraryItem(1, [BOB_TAG])],
+      'special-tag',
+    )
+
+    expect(adapter.bulkUpdateTags).not.toHaveBeenCalled()
+    expect(results).toEqual({
+      tagged: 0,
+      skipped: 0,
+      failed: 0,
+      failedInstances: 1,
+    })
+  })
+
   it('counts an instance whose tagging rejects as failed', async () => {
     const broken = createFakeAdapter({
       instanceId: 2,

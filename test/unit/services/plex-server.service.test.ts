@@ -802,6 +802,26 @@ describe('PlexServerService.getProtectedItems', () => {
     servePlaylistItems({ 'owner-list': ids })
   }
 
+  it('throws when a protected item has no external ids on plex.tv', async () => {
+    const service = createProtectionService()
+    serveOwnerPlaylist(['101', '202'])
+    server.use(
+      http.get(METADATA, ({ params }) =>
+        HttpResponse.json({
+          MediaContainer: {
+            Metadata: [
+              { Guid: params.id === '202' ? [] : [{ id: 'tmdb://101' }] },
+            ],
+          },
+        }),
+      ),
+    )
+
+    await expect(service.getProtectedItems()).rejects.toThrow(
+      /Protected item "202" has no TMDB, TVDB or IMDB ids/,
+    )
+  })
+
   it('throws when the playlist fetch fails', async () => {
     const service = createProtectionService()
     servePlaylistsByToken({ 'admin-token': 'owner-list' })

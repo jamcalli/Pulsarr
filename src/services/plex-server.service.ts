@@ -1088,20 +1088,26 @@ export class PlexServerService {
             item.type,
           )
 
-          if (itemMetadata?.guids && itemMetadata.guids.length > 0) {
-            for (const guid of itemMetadata.guids) {
-              protectedGuids.add(guid)
-              this.log.debug(`Protected item GUID: "${guid}" (${item.title})`)
-            }
-
-            this.log.debug(
-              `Added protected item "${item.title}" with ${itemMetadata.guids.length} GUIDs from user "${username}"`,
-            )
-          } else {
+          if (!itemMetadata) {
             this.log.warn(
-              `Failed to retrieve standardized GUIDs for protected item "${item.title}", so the item may not be properly protected`,
+              `Plex has no record of protected item "${item.title}", so it is skipped`,
+            )
+            continue
+          }
+          if (itemMetadata.guids.length === 0) {
+            throw new Error(
+              `Protected item "${item.title}" has no TMDB, TVDB or IMDB ids on Plex, so it cannot be protected. Remove it from the "${playlistName}" playlist or disable playlist protection to resume delete sync.`,
             )
           }
+
+          for (const guid of itemMetadata.guids) {
+            protectedGuids.add(guid)
+            this.log.debug(`Protected item GUID: "${guid}" (${item.title})`)
+          }
+
+          this.log.debug(
+            `Added protected item "${item.title}" with ${itemMetadata.guids.length} GUIDs from user "${username}"`,
+          )
         }
 
         this.log.debug(

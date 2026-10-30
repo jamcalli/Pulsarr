@@ -92,7 +92,7 @@ export class QuotaService {
   /** Returns null when the user has no quotas to update. */
   async updateUserQuotas(
     userId: number,
-    data: UpdateUserQuotaData,
+    data: Omit<UpdateUserQuotaData, 'contentType'>,
   ): Promise<UserQuotaConfigs | null> {
     const existing = await this.fastify.db.getUserQuotas(userId)
     if (!existing.movieQuota && !existing.showQuota) {

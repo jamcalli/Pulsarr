@@ -77,7 +77,18 @@ async function tagInstance(
   const { adapter, items, guidIndex, settings } = params
   const { logger } = deps
   const users = await adapter.usersWithItems()
-  const { tagLabelMap, tagIdMap } = await ensureUserTags(adapter, users, deps)
+  const { tagLabelMap, tagIdMap, failedCount } = await ensureUserTags(
+    adapter,
+    users,
+    deps,
+  )
+  // A user without a tag makes their items look unowned, so tagging would mark them for removal
+  if (failedCount > 0) {
+    logger.error(
+      `Skipping ${adapter.type} instance ${adapter.name} because ${failedCount} user tag(s) could not be created`,
+    )
+    return { ...emptyResults(), failedInstances: 1 }
+  }
 
   const userTagIdByUser = new Map<number, number>()
   for (const user of users) {

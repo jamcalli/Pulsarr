@@ -210,7 +210,7 @@ export async function updateUserQuotas(
   this: DatabaseService,
   userId: number,
   contentTypes: ReadonlyArray<'movie' | 'show'>,
-  data: UpdateUserQuotaData,
+  data: Omit<UpdateUserQuotaData, 'contentType'>,
 ): Promise<Partial<Record<'movie' | 'show', UserQuotaConfig>>> {
   return this.knex.transaction(async (trx) => {
     const updated: Partial<Record<'movie' | 'show', UserQuotaConfig>> = {}
