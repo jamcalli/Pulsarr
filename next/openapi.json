@@ -13240,7 +13240,7 @@
     "/v1/plex/others-watchlist-token": {
       "post": {
         "operationId": "getOthersWatchlistTokens",
-        "summary": "Sync others watchlists",
+        "summary": "Sync other users' watchlists",
         "tags": [
           "Plex"
         ],
@@ -13794,7 +13794,7 @@
     "/v1/plex/self-watchlist-token": {
       "post": {
         "operationId": "getSelfWatchlistItems",
-        "summary": "Sync self watchlist",
+        "summary": "Sync your own watchlist",
         "tags": [
           "Plex"
         ],
