@@ -6,6 +6,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { UsersMetadata } from '@root/types/progress.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { createDefaultQuotasForUser } from './token-users.js'
 
@@ -51,7 +52,7 @@ export async function ensureFriendUsers(
   )
   const usersByName = new Map(allUsers.map((user) => [user.name, user]))
 
-  await Promise.all(
+  await allSettledOrThrow(
     Array.from(friends).map(async ([friend]) => {
       const existing = usersByUuid.get(friend.watchlistId)
       const { user, created } = existing
