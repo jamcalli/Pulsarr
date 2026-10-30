@@ -926,7 +926,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Sync others watchlists
+         * Sync other users' watchlists
          * @deprecated
          * @description Retrieve watchlist items from other Plex users. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/others-watchlist/start and its status route instead.
          */
@@ -1067,7 +1067,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Sync self watchlist
+         * Sync your own watchlist
          * @deprecated
          * @description Retrieve the current user watchlist items from Plex. Holds the request open for the whole sync, so use POST /v1/plex/watchlist-sync/self-watchlist/start and its status route instead.
          */
