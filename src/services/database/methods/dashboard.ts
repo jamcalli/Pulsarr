@@ -173,6 +173,10 @@ export async function getRecentRequests(
         .modify(scopeWatchlistQuery('movie', 'watchlist_radarr_instances'))
         .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
+        .orderBy([
+          { column: 'wri.is_primary', order: 'desc' },
+          'wri.radarr_instance_id',
+        ])
 
       const sonarrItems = await this.knex('watchlist_items as wi')
         .select(
@@ -202,6 +206,10 @@ export async function getRecentRequests(
         .modify(scopeWatchlistQuery('show', 'watchlist_sonarr_instances'))
         .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
+        .orderBy([
+          { column: 'wsi.is_primary', order: 'desc' },
+          'wsi.sonarr_instance_id',
+        ])
 
       const watchlistItemsMap = new Map<
         number,

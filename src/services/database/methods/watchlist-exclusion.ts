@@ -11,6 +11,7 @@ import type {
   ExclusionDrivenGuids,
   WatchlistExclusion,
 } from '@root/types/watchlist-exclusion.types.js'
+import { orderNullsLast } from '@services/database/ordering.js'
 import { applySearchFilter } from '@services/database/search-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { toContentType } from '@utils/content-type.js'
@@ -390,17 +391,6 @@ function groupedExclusionItems(
   }
 
   return query
-}
-
-// SQLite sorts NULL first ascending and Postgres sorts it last, so null placement is explicit
-function orderNullsLast(
-  query: Knex.QueryBuilder,
-  column: string,
-  direction: 'asc' | 'desc',
-): Knex.QueryBuilder {
-  return query
-    .orderByRaw('CASE WHEN ?? IS NULL THEN 1 ELSE 0 END', [column])
-    .orderBy(column, direction)
 }
 
 /** One row per title with its users attached, plus exclusions whose watchlist item is gone. */

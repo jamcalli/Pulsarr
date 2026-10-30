@@ -8,6 +8,7 @@ import type {
   UpdateApprovalRequestData,
 } from '@root/types/approval.types.js'
 import { normalizeGuid } from '@root/utils/guid-handler.js'
+import { orderNullsLast } from '@services/database/ordering.js'
 import { applySearchFilter } from '@services/database/search-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseJsonOr } from '@utils/json.js'
@@ -267,9 +268,13 @@ export async function getApprovalHistory(
   }
 
   const orderColumn = sortColumnMap[sortBy] || 'approval_requests.created_at'
+  const ordered =
+    sortBy === 'expiresAt'
+      ? orderNullsLast(query, orderColumn, sortOrder)
+      : query.orderBy(orderColumn, sortOrder)
 
-  const rows = await query
-    .orderBy(orderColumn, sortOrder)
+  const rows = await ordered
+    .orderBy('approval_requests.id', sortOrder)
     .limit(limit)
     .offset(offset)
 
