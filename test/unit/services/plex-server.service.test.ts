@@ -805,16 +805,11 @@ describe('PlexServerService.getProtectedItems', () => {
   it('throws when a protected item has no external ids on plex.tv', async () => {
     const service = createProtectionService()
     serveOwnerPlaylist(['101', '202'])
-    server.use(
-      http.get(METADATA, ({ params }) =>
-        HttpResponse.json({
-          MediaContainer: {
-            Metadata: [
-              { Guid: params.id === '202' ? [] : [{ id: 'tmdb://101' }] },
-            ],
-          },
-        }),
-      ),
+    vi.spyOn(service, 'getItemMetadata').mockImplementation(
+      async (_username, plexGuid) =>
+        plexGuid.endsWith('/202')
+          ? { title: '202', guids: [] }
+          : { title: '101', guids: ['tmdb:101'] },
     )
 
     await expect(service.getProtectedItems()).rejects.toThrow(
