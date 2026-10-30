@@ -99,14 +99,14 @@ export class QuotaService {
       return null
     }
 
-    const [movieQuota, showQuota] = await Promise.all([
-      existing.movieQuota
-        ? this.fastify.db.updateUserQuota(userId, 'movie', data)
-        : undefined,
-      existing.showQuota
-        ? this.fastify.db.updateUserQuota(userId, 'show', data)
-        : undefined,
-    ])
+    const { movie: movieQuota, show: showQuota } =
+      await this.fastify.db.updateUserQuotas(
+        userId,
+        [existing.movieQuota, existing.showQuota].flatMap((quota) =>
+          quota ? [quota.contentType] : [],
+        ),
+        data,
+      )
 
     if (!movieQuota && !showQuota) {
       throw new Error('Failed to update user quotas')

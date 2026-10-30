@@ -7,6 +7,7 @@ import {
   SyncTaggingResponseSchema,
   TagStatusResponseSchema,
 } from '@schemas/tags/user-tags.schema.js'
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -96,7 +97,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               message: 'Radarr user tagging is disabled in configuration',
             })
 
-        const [sonarrTagResults, radarrTagResults] = await Promise.all([
+        const [sonarrTagResults, radarrTagResults] = await allSettledOrThrow([
           sonarrPromise,
           radarrPromise,
         ])

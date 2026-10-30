@@ -225,7 +225,7 @@ describe('streaming-updater', () => {
         for await (const _line of generator) {
           // Should not reach here
         }
-      }).rejects.toThrow()
+      }).rejects.toMatchObject({ name: 'TimeoutError' })
     })
 
     it('should retry on 500 errors', async () => {
@@ -669,7 +669,7 @@ describe('streaming-updater', () => {
           timeout: 20, // 20ms timeout, server responds at 100ms
           retries: 0, // Don't retry - we're testing timeout behavior
         }),
-      ).rejects.toThrow()
+      ).rejects.toMatchObject({ name: 'TimeoutError' })
     })
 
     it('should retry on 500 errors', async () => {

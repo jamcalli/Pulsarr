@@ -76,12 +76,16 @@ describe('better-sqlite3-bun shim', () => {
     })
 
     it('throws on a missing file when fileMustExist is set', () => {
-      expect(() => new Database(tempPath(), { fileMustExist: true })).toThrow()
+      expect(() => new Database(tempPath(), { fileMustExist: true })).toThrow(
+        expect.objectContaining({ code: 'SQLITE_CANTOPEN' }),
+      )
     })
 
     it('does not create a missing file in readonly mode', () => {
       const p = tempPath()
-      expect(() => new Database(p, { readonly: true })).toThrow()
+      expect(() => new Database(p, { readonly: true })).toThrow(
+        expect.objectContaining({ code: 'SQLITE_CANTOPEN' }),
+      )
       expect(existsSync(p)).toBe(false)
     })
 

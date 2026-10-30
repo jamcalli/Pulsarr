@@ -126,7 +126,10 @@ describe('SonarrService.isTvdbIdExcluded', () => {
     server.use(
       http.get(EXCLUSIONS_URL, () => new HttpResponse(null, { status: 500 })),
     )
-    await expect(service.isTvdbIdExcluded(123)).rejects.toThrow()
+    await expect(service.isTvdbIdExcluded(123)).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 500,
+    })
 
     serveExclusions([123])
 
@@ -138,7 +141,10 @@ describe('SonarrService.isTvdbIdExcluded', () => {
       http.get(EXCLUSIONS_URL, () => new HttpResponse(null, { status: 500 })),
     )
 
-    await expect(service.isTvdbIdExcluded(123)).rejects.toThrow()
+    await expect(service.isTvdbIdExcluded(123)).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 500,
+    })
   })
 })
 

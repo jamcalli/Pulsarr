@@ -2,8 +2,6 @@ import type { PlexNotificationResponse } from '@schemas/plex/plex-notification-r
 import type { PlexNotificationTarget } from '@services/plex-server/notifications/notification-target.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-const CONFIGURE_TIMEOUT_MS = 5000
-
 type PlexNotificationResult =
   PlexNotificationResponse['results']['radarr'][number]
 
@@ -53,22 +51,6 @@ interface ArrSide {
   label: 'Radarr' | 'Sonarr'
   instances: ReadonlyArray<{ id: number; name: string }>
   serviceFor: (id: number) => PlexNotificationService | undefined
-}
-
-async function withTimeout<T>(
-  work: Promise<T>,
-  ms: number,
-  message: string,
-): Promise<T> {
-  let timer: NodeJS.Timeout | undefined
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(message)), ms)
-  })
-  try {
-    return await Promise.race([work, timeout])
-  } finally {
-    clearTimeout(timer)
-  }
 }
 
 async function runOnSide(
@@ -179,15 +161,11 @@ export function configurePlexNotifications(
   return runOnArrInstances(
     deps,
     async (service) => {
-      await withTimeout(
-        service.configurePlexNotification(
-          target.plexToken,
-          target.plexHost,
-          target.plexPort,
-          target.useSsl,
-        ),
-        CONFIGURE_TIMEOUT_MS,
-        'Timeout configuring Plex notification',
+      await service.configurePlexNotification(
+        target.plexToken,
+        target.plexHost,
+        target.plexPort,
+        target.useSsl,
       )
       return {
         success: true,

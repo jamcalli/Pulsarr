@@ -30,6 +30,7 @@ import {
   createSafetyTriggeredResult,
 } from '@services/delete-sync/utils/result-builder.js'
 import { performWatchlistSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
+import type { TaggingResults } from '@services/user-tags/types.js'
 import { errorMessage, toError } from '@utils/error-message.js'
 import { createGuidSet } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -198,11 +199,11 @@ export class DeleteSyncService {
 
       this.logDeleteConfiguration(dryRun)
 
-      const { existingSeries, existingMovies } =
-        await this.fetchAllMediaContent()
+      let { existingSeries, existingMovies } = await this.fetchAllMediaContent()
 
-      const shouldUpdateTags = deletionMode === 'tag-based'
-      if (shouldUpdateTags) {
+      let result: DeleteSyncResult
+
+      if (deletionMode === 'tag-based') {
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
           return this.handleSafetyTriggered(
@@ -213,12 +214,25 @@ export class DeleteSyncService {
           )
         }
 
-        await this.updateUserTags(existingSeries, existingMovies)
-      }
+        const tagResult = await this.updateUserTags(
+          existingSeries,
+          existingMovies,
+        )
+        if (!tagResult.success) {
+          return this.handleSafetyTriggered(
+            tagResult.message,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
+        }
+        if (tagResult.tagged) {
+          // Tagging rewrites removal tags in the arrs, so deletion reads a fresh snapshot
+          const fresh = await this.fetchAllMediaContent()
+          existingSeries = fresh.existingSeries
+          existingMovies = fresh.existingMovies
+        }
 
-      let result: DeleteSyncResult
-
-      if (deletionMode === 'tag-based') {
         this.log.debug(
           `Running tag-based deletion using tag "${this.config.removedTagPrefix}"`,
         )
@@ -228,6 +242,9 @@ export class DeleteSyncService {
           existingMovies,
           dryRun,
         )
+        if (result.safetyTriggered) {
+          return result
+        }
       } else {
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
@@ -589,14 +606,18 @@ export class DeleteSyncService {
   private async updateUserTags(
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
-  ): Promise<void> {
+  ): Promise<{ success: boolean; tagged: boolean; message: string }> {
     this.log.debug('Updating user tags before delete sync')
 
     try {
       const userTagService = this.fastify.userTags
       if (!userTagService) {
         this.log.warn('UserTagService not available, skipping tag update')
-        return
+        return {
+          success: true,
+          tagged: false,
+          message: 'User tag update skipped',
+        }
       }
 
       const movieWatchlistItems =
@@ -604,24 +625,54 @@ export class DeleteSyncService {
       const showWatchlistItems =
         await this.fastify.db.getAllShowWatchlistItems()
 
+      const results: TaggingResults[] = []
       if (this.config.tagUsersInRadarr && existingMovies.length > 0) {
-        await userTagService.tagRadarrContentWithData(
-          existingMovies,
-          movieWatchlistItems,
+        results.push(
+          await userTagService.tagRadarrContentWithData(
+            existingMovies,
+            movieWatchlistItems,
+          ),
         )
       }
 
       if (this.config.tagUsersInSonarr && existingSeries.length > 0) {
-        await userTagService.tagSonarrContentWithData(
-          existingSeries,
-          showWatchlistItems,
+        results.push(
+          await userTagService.tagSonarrContentWithData(
+            existingSeries,
+            showWatchlistItems,
+          ),
         )
       }
 
+      const failedInstances = results.reduce(
+        (sum, result) => sum + result.failedInstances,
+        0,
+      )
+      const failedItems = results.reduce(
+        (sum, result) => sum + result.failed,
+        0,
+      )
+      if (failedInstances > 0 || failedItems > 0) {
+        return {
+          success: false,
+          tagged: true,
+          message: `Failed to update user tags before delete sync (${failedInstances} instance(s) and ${failedItems} item(s) failed)`,
+        }
+      }
+
       this.log.debug('User tags updated successfully')
+      return {
+        success: true,
+        tagged: results.length > 0,
+        message: 'User tags updated successfully',
+      }
     } catch (error) {
       this.log.error({ error }, 'Error updating user tags:')
-      throw new Error('Failed to update user tags before delete sync')
+      return {
+        success: false,
+        tagged: true,
+        message: `Failed to update user tags before delete sync: ${errorMessage(error)}`,
+      }
     }
   }
 
@@ -668,7 +719,7 @@ export class DeleteSyncService {
       )
     }
 
-    return executeTagBasedDeletion(
+    const result = await executeTagBasedDeletion(
       existingSeries,
       existingMovies,
       {
@@ -705,6 +756,10 @@ export class DeleteSyncService {
       },
       dryRun,
     )
+    if (result.safetyTriggered) {
+      void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
+    }
+    return result
   }
 
   private clearTagCache(): void {

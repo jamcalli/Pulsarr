@@ -7,7 +7,8 @@ import { RADARR, SONARR } from '@services/arr/arr-product.js'
 import { ArrTags, bulkUpdateItemTags } from '@services/arr/arr-tags.js'
 import { CacheRegistry } from '@services/cache-registry.service.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createDeferred } from '../../../helpers/deferred.js'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
@@ -98,7 +99,10 @@ describe.each([SONARR, RADARR])('$appName tags', ({ appName }) => {
   it('rejects a failed first read', async () => {
     server.use(http.get(TAG_URL, () => new HttpResponse(null, { status: 500 })))
 
-    await expect(newTags(appName, 1).list()).rejects.toThrow()
+    await expect(newTags(appName, 1).list()).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 500,
+    })
   })
 
   it('drops the cache after creating a tag', async () => {
@@ -251,6 +255,39 @@ describe.each([
       ),
     )
 
-    await expect(update({ itemId: 1, tagIds: [1] })).rejects.toThrow()
+    await expect(update({ itemId: 1, tagIds: [1] })).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 400,
+    })
+  })
+
+  it('starts no further group once one fails, then rejects after the rest land', async () => {
+    const gate = createDeferred<void>()
+    let started = 0
+    server.use(
+      http.put(`http://arr.test/api/v3/${path}`, async ({ request }) => {
+        started++
+        const body = (await request.json()) as { tags: number[] }
+        if (body.tags[0] === 0) return new HttpResponse(null, { status: 500 })
+        await gate.promise
+        return HttpResponse.json([], { status: 202 })
+      }),
+    )
+
+    const run = update(
+      ...Array.from({ length: 6 }, (_, tag) => ({
+        itemId: tag,
+        tagIds: [tag],
+      })),
+    )
+    const outcome = run.catch((error: Error) => error)
+    await vi.waitFor(() => expect(started).toBeGreaterThanOrEqual(4))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(started).toBe(4)
+
+    gate.resolve()
+
+    expect(await outcome).toMatchObject({ name: 'HttpError', status: 500 })
+    expect(started).toBe(4)
   })
 })

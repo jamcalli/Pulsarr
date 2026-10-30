@@ -85,6 +85,8 @@ export interface TaggingResults {
   tagged: number
   skipped: number
   failed: number
+  /** Instances whose tagging threw, leaving their items untagged and uncounted. */
+  failedInstances: number
 }
 
 export interface CreateResults {
