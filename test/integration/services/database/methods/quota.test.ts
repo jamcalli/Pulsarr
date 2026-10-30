@@ -164,4 +164,40 @@ describe('quota database methods', () => {
       expect(await knex('user_quotas').where('user_id', 1)).toHaveLength(0)
     })
   })
+
+  describe('getQuotaUsageHistory', () => {
+    it('pages same-day usage newest id first without skipping or repeating rows', async () => {
+      const day = localDate(daysFromToday(0))
+      await getTestDatabase()('quota_usage').insert(
+        ['movie', 'show'].map((contentType) => ({
+          user_id: 1,
+          content_type: contentType,
+          request_date: day,
+          created_at: new Date().toISOString(),
+        })),
+      )
+
+      const page1 = await fastify.db.getQuotaUsageHistory(
+        1,
+        undefined,
+        undefined,
+        undefined,
+        1,
+        0,
+      )
+      const page2 = await fastify.db.getQuotaUsageHistory(
+        1,
+        undefined,
+        undefined,
+        undefined,
+        1,
+        1,
+      )
+
+      expect([...page1, ...page2].map((row) => row.contentType)).toEqual([
+        'show',
+        'movie',
+      ])
+    })
+  })
 })

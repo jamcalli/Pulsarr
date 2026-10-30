@@ -168,8 +168,9 @@ export async function getUserQuotas(
   }
 }
 
-export async function updateUserQuota(
+async function updateQuotaRow(
   this: DatabaseService,
+  executor: Knex | Knex.Transaction,
   userId: number,
   contentType: 'movie' | 'show',
   data: UpdateUserQuotaData,
@@ -186,13 +187,45 @@ export async function updateUserQuota(
   if (data.watchlistCap !== undefined)
     updateData.watchlist_cap = data.watchlistCap
 
-  const [row] = await this.knex('user_quotas')
+  const [row] = await executor('user_quotas')
     .where('user_id', userId)
     .where('content_type', contentType)
     .update(updateData)
     .returning('*')
 
   return row ? mapRowToUserQuotaConfig(row) : null
+}
+
+export async function updateUserQuota(
+  this: DatabaseService,
+  userId: number,
+  contentType: 'movie' | 'show',
+  data: UpdateUserQuotaData,
+): Promise<UserQuotaConfig | null> {
+  return updateQuotaRow.call(this, this.knex, userId, contentType, data)
+}
+
+/** Updates each listed content type in one transaction, keyed by the content type it was asked to update. */
+export async function updateUserQuotas(
+  this: DatabaseService,
+  userId: number,
+  contentTypes: ReadonlyArray<'movie' | 'show'>,
+  data: Omit<UpdateUserQuotaData, 'contentType'>,
+): Promise<Partial<Record<'movie' | 'show', UserQuotaConfig>>> {
+  return this.knex.transaction(async (trx) => {
+    const updated: Partial<Record<'movie' | 'show', UserQuotaConfig>> = {}
+    for (const contentType of contentTypes) {
+      const row = await updateQuotaRow.call(
+        this,
+        trx,
+        userId,
+        contentType,
+        data,
+      )
+      if (row) updated[contentType] = row
+    }
+    return updated
+  })
 }
 
 /** Returns false when no quota existed */
@@ -539,6 +572,7 @@ export async function getQuotaUsageHistory(
 
   const rows = await query
     .orderBy('request_date', 'desc')
+    .orderBy('id', 'desc')
     .limit(limit)
     .offset(offset)
   return rows.map(mapRowToQuotaUsage)

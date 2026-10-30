@@ -229,7 +229,9 @@ describe('plex/watchlist-api', () => {
           ),
         )
 
-        await expect(getWatchlist('token', mockLogger)).rejects.toThrow()
+        await expect(getWatchlist('token', mockLogger)).rejects.toMatchObject({
+          name: 'TimeoutError',
+        })
       } finally {
         AbortSignal.timeout = originalTimeout
       }
@@ -245,7 +247,9 @@ describe('plex/watchlist-api', () => {
         ),
       )
 
-      await expect(getWatchlist('token', mockLogger)).rejects.toThrow()
+      await expect(getWatchlist('token', mockLogger)).rejects.toThrow(
+        'Failed to fetch',
+      )
     }, 20000)
 
     it('should throw error when content type is not JSON', async () => {

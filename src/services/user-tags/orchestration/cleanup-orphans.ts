@@ -1,3 +1,4 @@
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
@@ -113,7 +114,7 @@ export async function cleanupOrphanedUserTags(
       ),
     )
 
-    const [radarr, sonarr] = await Promise.all([
+    const [radarr, sonarr] = await allSettledOrThrow([
       cleanupOrphanedTagsForType({ type: 'radarr', validUserTagLabels }, deps),
       cleanupOrphanedTagsForType({ type: 'sonarr', validUserTagLabels }, deps),
     ])

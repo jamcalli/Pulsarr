@@ -1,25 +1,3 @@
-/**
- * Delete Synchronization Service
- *
- * Responsible for removing content from Sonarr and Radarr that is no longer in any Plex watchlist.
- * This service implements the watchlist-driven content management approach, where content is only
- * kept in your media servers if it's actively watchlisted by at least one user.
- *
- * Responsible for:
- * - Periodically checking for content that should be removed
- * - Enforcing deletion policies based on configuration (movies, ended shows, continuing shows)
- * - Coordinating with Sonarr and Radarr managers to perform actual deletions
- * - Respecting configuration settings for deletion behavior (e.g., whether to delete files)
- * - Handling deletion errors gracefully with comprehensive logging
- * - Providing summary statistics on deletion operations
- *
- * The service runs at a configurable interval and can be triggered manually via API if needed.
- *
- * @example
- * // Running the delete sync manually:
- * await fastify.deleteSync.run();
- */
-
 import {
   MAX_DELETION_PREVENTION,
   PLEX_PROTECTION_PLAYLIST_DEFAULT,
@@ -52,6 +30,7 @@ import {
   createSafetyTriggeredResult,
 } from '@services/delete-sync/utils/result-builder.js'
 import { performWatchlistSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
+import type { TaggingResults } from '@services/user-tags/types.js'
 import { errorMessage, toError } from '@utils/error-message.js'
 import { createGuidSet } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -59,41 +38,19 @@ import { createRunRecord } from '@utils/run-record.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class DeleteSyncService {
-  /**
-   * Cache of protected GUIDs for efficient lookup
-   */
   private protectedGuids: Set<string> | null = null
 
-  /**
-   * Cache of tracked content GUIDs (from approval_requests) for efficient lookup
-   */
   private trackedGuids: Set<string> | null = null
 
-  /**
-   * Cache of tags by instance for efficient lookup during tag-based deletion
-   * Key format: "{instanceType}-{instanceId}" to avoid collisions between Sonarr and Radarr
-   */
   private tagCache: TagCache = new TagCache()
 
-  /**
-   * Flag to prevent concurrent runs of the delete sync process
-   */
   private _running = false
 
   private readonly dryRun = createRunRecord<DeleteSyncDryRunOutcome>()
 
-  /**
-   * Track deleted content by type for approval cleanup
-   */
   private deletedMovieGuids: Set<string> = new Set()
   private deletedShowGuids: Set<string> = new Set()
 
-  /**
-   * Creates a new DeleteSyncService instance
-   *
-   * @param log - Fastify logger instance for recording operations
-   * @param fastify - Fastify instance for accessing other services and configuration
-   */
   private readonly log: FastifyBaseLogger
 
   constructor(
@@ -104,38 +61,22 @@ export class DeleteSyncService {
     this.log.debug('Initializing Delete Sync Service')
   }
 
-  /**
-   * Access to application configuration
-   */
   private get config() {
     return this.fastify.config
   }
 
-  /**
-   * Access to database service
-   */
   private get dbService() {
     return this.fastify.db
   }
 
-  /**
-   * Access to Sonarr manager service
-   */
   private get sonarrManager() {
     return this.fastify.sonarrManager
   }
 
-  /**
-   * Access to Radarr manager service
-   */
   private get radarrManager() {
     return this.fastify.radarrManager
   }
 
-  /**
-   * Ensures tracked content cache is loaded once per workflow
-   * Loads GUIDs from approval_requests table for tracked-only deletion
-   */
   private async ensureTrackedCache(): Promise<Set<string> | null> {
     this.trackedGuids = await ensureTrackedCache(
       this.trackedGuids,
@@ -146,10 +87,6 @@ export class DeleteSyncService {
     return this.trackedGuids
   }
 
-  /**
-   * Ensures protection cache is loaded once per workflow
-   * Avoids redundant API calls for protection playlist loading
-   */
   private async ensureProtectionCache(): Promise<Set<string> | null> {
     this.protectedGuids = await ensureProtectionCache(
       this.protectedGuids,
@@ -161,12 +98,8 @@ export class DeleteSyncService {
     return this.protectedGuids
   }
 
-  /**
-   * Initialize the service and its dependencies
-   */
   async initialize(): Promise<boolean> {
     try {
-      // Initialize Plex server service
       const initialized = await this.fastify.plexServerService.initialize()
       if (!initialized) {
         this.log.error('Failed to initialize Plex server service')
@@ -219,19 +152,8 @@ export class DeleteSyncService {
     this.fastify.progress.emit(event)
   }
 
-  /**
-   * Execute a full delete synchronization process
-   *
-   * This method orchestrates the entire deletion workflow based on the configured deletion mode:
-   * - watchlist mode: removes content that is not on any watchlist
-   * - tag-based mode: removes content that has the specified removal tag
-   *
-   * Both modes follow the same safety checks and notification procedures.
-   *
-   * @returns Promise resolving to detailed results of the delete operation
-   */
+  /** Resolves to a skipped result instead of starting while another run is in progress. */
   async run(dryRun = false): Promise<DeleteSyncResult> {
-    // Check if delete sync is already running
     if (this._running) {
       this.log.warn(
         'Delete-sync already in progress, ignoring duplicate trigger',
@@ -246,16 +168,13 @@ export class DeleteSyncService {
         `Starting delete sync operation in ${deletionMode} mode${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
-      // Clear tag cache at the start of each run
       this.clearTagCache()
-      // Reset per-run caches to ensure fresh data every run
       this.protectedGuids = null
       this.trackedGuids = null
       this.deletedMovieGuids.clear()
       this.deletedShowGuids.clear()
       this.fastify.plexServerService.clearWorkflowCaches()
 
-      // Make sure the Plex server is initialized if needed
       if (
         this.config.enablePlexPlaylistProtection &&
         !this.fastify.plexServerService.isInitialized()
@@ -272,7 +191,6 @@ export class DeleteSyncService {
         }
       }
 
-      // Step 1: Skip if deletion features are not enabled in configuration
       if (!this.isDeleteEnabled()) {
         return this.handleEmptyResult(
           'Delete sync is not enabled in configuration, skipping operation',
@@ -281,14 +199,11 @@ export class DeleteSyncService {
 
       this.logDeleteConfiguration(dryRun)
 
-      // Step 2: Fetch all content from media management servers
-      const { existingSeries, existingMovies } =
-        await this.fetchAllMediaContent()
+      let { existingSeries, existingMovies } = await this.fetchAllMediaContent()
 
-      // Step 3: Update user tags before processing deletion (especially important for tag-based deletion)
-      const shouldUpdateTags = deletionMode === 'tag-based'
-      if (shouldUpdateTags) {
-        // Refresh watchlists to ensure we detect newly removed items
+      let result: DeleteSyncResult
+
+      if (deletionMode === 'tag-based') {
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
           return this.handleSafetyTriggered(
@@ -299,28 +214,38 @@ export class DeleteSyncService {
           )
         }
 
-        await this.updateUserTags(existingSeries, existingMovies)
-      }
+        const tagResult = await this.updateUserTags(
+          existingSeries,
+          existingMovies,
+        )
+        if (!tagResult.success) {
+          return this.handleSafetyTriggered(
+            tagResult.message,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
+        }
+        if (tagResult.tagged) {
+          // Tagging rewrites removal tags in the arrs, so deletion reads a fresh snapshot
+          const fresh = await this.fetchAllMediaContent()
+          existingSeries = fresh.existingSeries
+          existingMovies = fresh.existingMovies
+        }
 
-      let result: DeleteSyncResult
-
-      // Branch based on deletion mode
-      if (deletionMode === 'tag-based') {
-        // Tag-based deletion workflow
         this.log.debug(
           `Running tag-based deletion using tag "${this.config.removedTagPrefix}"`,
         )
 
-        // Process tag-based delete sync workflow
         result = await this.processTagBasedDeleteSync(
           existingSeries,
           existingMovies,
           dryRun,
         )
+        if (result.safetyTriggered) {
+          return result
+        }
       } else {
-        // Watchlist-based delete sync workflow
-
-        // Step 4: Refresh watchlists to ensure current data
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
           return this.handleSafetyTriggered(
@@ -331,12 +256,10 @@ export class DeleteSyncService {
           )
         }
 
-        // Step 5: Get watchlisted GUIDs with excluded routed items dropped
         const allWatchlistItems = await this.getWatchlistGuids(
           this.config.respectUserSyncSetting,
         )
 
-        // Step 6: Ensure we have at least some watchlist items (safety check)
         if (allWatchlistItems.size === 0) {
           return this.handleSafetyTriggered(
             'No watchlist items found, which could be an error condition. Aborting delete sync to prevent mass deletion.',
@@ -350,7 +273,6 @@ export class DeleteSyncService {
           `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
         )
 
-        // Step 7: Load tracked content GUIDs if tracked-only deletion is enabled
         const trackedLoadResult = await this.loadTrackedCacheIfEnabled(
           existingSeries.length,
           existingMovies.length,
@@ -360,7 +282,6 @@ export class DeleteSyncService {
           return trackedLoadResult.result
         }
 
-        // Step 8: Load protection playlists if enabled (needed for accurate safety check)
         const protectionLoadResult = await this.loadProtectionCacheIfEnabled(
           existingSeries.length,
           existingMovies.length,
@@ -371,7 +292,6 @@ export class DeleteSyncService {
         }
         const protectedGuids = protectionLoadResult.protectedGuids
 
-        // Step 9: Perform safety check for mass deletion prevention (with protection awareness)
         const safetyResult = performWatchlistSafetyCheck(
           existingSeries,
           existingMovies,
@@ -392,8 +312,7 @@ export class DeleteSyncService {
           )
         }
 
-        // Step 9: If everything is safe, proceed with the actual watchlist-based processing
-        // Protection cache is already set by ensureProtectionCache()
+        // processDeleteSync reads this.protectedGuids, which ensureProtectionCache set above
         result = await this.processDeleteSync(
           existingSeries,
           existingMovies,
@@ -406,7 +325,6 @@ export class DeleteSyncService {
         `Delete sync${dryRun ? ' dry run' : ''} completed: ${result.movies.deleted} movies and ${result.shows.deleted} shows ${dryRun ? 'identified for deletion' : 'deleted'}, ${result.total.skipped} skipped, ${result.total.protected ?? 0} protected`,
       )
 
-      // Step 10a: Clean up orphaned approval records (content deleted before setting was enabled)
       const existingMovieGuids = createGuidSet(existingMovies)
       const existingSeriesGuids = createGuidSet(existingSeries)
       await cleanupOrphanedApprovalRequests(
@@ -423,7 +341,6 @@ export class DeleteSyncService {
         dryRun,
       )
 
-      // Step 10b: Clean up approval requests for content deleted in this cycle
       await cleanupApprovalRequestsForDeletedContent(
         {
           db: this.dbService,
@@ -438,7 +355,6 @@ export class DeleteSyncService {
         dryRun,
       )
 
-      // Step 11: Clean up rolling monitored shows for deleted series
       await cleanupRollingMonitoredShowsForDeletedContent(
         {
           db: this.dbService,
@@ -448,7 +364,6 @@ export class DeleteSyncService {
         dryRun,
       )
 
-      // Step 12: Send notifications about results if enabled
       void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
 
       return result
@@ -457,7 +372,6 @@ export class DeleteSyncService {
       throw error
     } finally {
       this._running = false
-      // Always reset caches, even if we exited early
       this.fastify.plexServerService.clearWorkflowCaches()
       this.protectedGuids = null
       this.trackedGuids = null
@@ -467,17 +381,11 @@ export class DeleteSyncService {
     }
   }
 
-  /**
-   * Creates an empty result object when deletion is skipped
-   */
   private handleEmptyResult(logMessage: string): DeleteSyncResult {
     this.log.info(logMessage)
     return createEmptyResult(logMessage)
   }
 
-  /**
-   * Creates a result object for when safety was triggered
-   */
   private handleSafetyTriggered(
     message: string,
     dryRun: boolean,
@@ -493,15 +401,11 @@ export class DeleteSyncService {
       moviesCount,
     )
 
-    // Send notification about the safety trigger if enabled
     void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
 
     return result
   }
 
-  /**
-   * Logs the current delete configuration
-   */
   private logDeleteConfiguration(dryRun: boolean): void {
     this.log.debug(
       {
@@ -521,15 +425,12 @@ export class DeleteSyncService {
     )
   }
 
-  /**
-   * Refreshes all watchlists to ensure current data with retry logic
-   */
   private async refreshWatchlists(): Promise<{
     success: boolean
     message: string
   }> {
     const maxRetries = 2
-    const baseDelay = 1000 // 1 second
+    const baseDelay = 1000
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -559,7 +460,7 @@ export class DeleteSyncService {
           )
           return { success: false, message }
         } else {
-          const delay = baseDelay * 2 ** attempt // Exponential backoff
+          const delay = baseDelay * 2 ** attempt
           this.log.warn(
             { error: refreshError, attempt: attempt + 1, retryIn: delay },
             `Watchlist refresh failed, retrying in ${delay}ms`,
@@ -573,17 +474,14 @@ export class DeleteSyncService {
     return { success: false, message: 'Unexpected error in retry logic' }
   }
 
-  /**
-   * Fetches all content from media management servers
-   */
   private async fetchAllMediaContent(): Promise<{
     existingSeries: SonarrItem[]
     existingMovies: RadarrItem[]
   }> {
     this.log.debug('Retrieving all content from Sonarr and Radarr instances')
     const [existingSeries, existingMovies] = await Promise.all([
-      this.sonarrManager.fetchAllSeries(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
-      this.radarrManager.fetchAllMovies(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
+      this.sonarrManager.fetchAllSeries(true),
+      this.radarrManager.fetchAllMovies(true),
     ])
     this.log.debug(
       `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
@@ -591,10 +489,6 @@ export class DeleteSyncService {
     return { existingSeries, existingMovies }
   }
 
-  /**
-   * Load tracked content GUIDs if tracked-only deletion is enabled
-   * Returns success status
-   */
   private async loadTrackedCacheIfEnabled(
     seriesCount: number,
     moviesCount: number,
@@ -640,10 +534,6 @@ export class DeleteSyncService {
     }
   }
 
-  /**
-   * Load protection playlists if Plex playlist protection is enabled
-   * Returns success status and protected GUIDs set
-   */
   private async loadProtectionCacheIfEnabled(
     seriesCount: number,
     moviesCount: number,
@@ -674,7 +564,6 @@ export class DeleteSyncService {
         `Beginning deletion analysis; Plex playlist protection enabled with playlist "${this.getProtectionPlaylistName()}"`,
       )
 
-      // Use cached protection loading to avoid redundant API calls
       const protectedGuids = await this.ensureProtectionCache()
 
       if (!protectedGuids) {
@@ -710,65 +599,83 @@ export class DeleteSyncService {
     }
   }
 
-  /**
-   * Helper method to log errors with consistent format
-   */
   private logError(message: string, error: unknown): void {
     this.log.error({ error: toError(error) }, message)
   }
 
-  /**
-   * Updates user tags for all instances before deletion processing
-   * @param existingSeries - Already fetched series data to avoid duplicate API calls
-   * @param existingMovies - Already fetched movies data to avoid duplicate API calls
-   */
   private async updateUserTags(
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
-  ): Promise<void> {
+  ): Promise<{ success: boolean; tagged: boolean; message: string }> {
     this.log.debug('Updating user tags before delete sync')
 
     try {
       const userTagService = this.fastify.userTags
       if (!userTagService) {
         this.log.warn('UserTagService not available, skipping tag update')
-        return
+        return {
+          success: true,
+          tagged: false,
+          message: 'User tag update skipped',
+        }
       }
 
-      // Get all watchlist items
       const movieWatchlistItems =
         await this.fastify.db.getAllMovieWatchlistItems()
       const showWatchlistItems =
         await this.fastify.db.getAllShowWatchlistItems()
 
-      // Tag content using the data - these methods create tags and apply them
-      // The service will handle all the tag creation and application internally
+      const results: TaggingResults[] = []
       if (this.config.tagUsersInRadarr && existingMovies.length > 0) {
-        await userTagService.tagRadarrContentWithData(
-          existingMovies,
-          movieWatchlistItems,
+        results.push(
+          await userTagService.tagRadarrContentWithData(
+            existingMovies,
+            movieWatchlistItems,
+          ),
         )
       }
 
       if (this.config.tagUsersInSonarr && existingSeries.length > 0) {
-        await userTagService.tagSonarrContentWithData(
-          existingSeries,
-          showWatchlistItems,
+        results.push(
+          await userTagService.tagSonarrContentWithData(
+            existingSeries,
+            showWatchlistItems,
+          ),
         )
       }
 
+      const failedInstances = results.reduce(
+        (sum, result) => sum + result.failedInstances,
+        0,
+      )
+      const failedItems = results.reduce(
+        (sum, result) => sum + result.failed,
+        0,
+      )
+      if (failedInstances > 0 || failedItems > 0) {
+        return {
+          success: false,
+          tagged: true,
+          message: `Failed to update user tags before delete sync (${failedInstances} instance(s) and ${failedItems} item(s) failed)`,
+        }
+      }
+
       this.log.debug('User tags updated successfully')
+      return {
+        success: true,
+        tagged: results.length > 0,
+        message: 'User tags updated successfully',
+      }
     } catch (error) {
       this.log.error({ error }, 'Error updating user tags:')
-      throw new Error('Failed to update user tags before delete sync')
+      return {
+        success: false,
+        tagged: true,
+        message: `Failed to update user tags before delete sync: ${errorMessage(error)}`,
+      }
     }
   }
 
-  /**
-   * Determines if any deletion functionality is enabled in configuration
-   *
-   * @returns Boolean indicating if at least one deletion type is enabled
-   */
   private isDeleteEnabled(): boolean {
     return (
       this.config.deleteMovie ||
@@ -777,33 +684,15 @@ export class DeleteSyncService {
     )
   }
 
-  /**
-   * Determines which deletion mode is active
-   *
-   * @returns The active deletion mode ('watchlist' or 'tag-based')
-   */
   private getDeletionMode(): 'watchlist' | 'tag-based' {
     return this.config.deletionMode || 'watchlist'
   }
 
-  /**
-   * Process and execute deletions based on tag presence
-   *
-   * This method identifies content that has the configured removal tag
-   * and executes the deletion operations. It handles both movies and TV shows
-   * and follows similar safety checks as the watchlist-based deletion.
-   *
-   * @param existingSeries - Array of all series found in Sonarr instances
-   * @param existingMovies - Array of all movies found in Radarr instances
-   * @param dryRun - Whether to simulate the operation without making changes
-   * @returns Promise resolving to detailed results of the delete operation
-   */
   private async processTagBasedDeleteSync(
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
     dryRun = false,
   ): Promise<DeleteSyncResult> {
-    // Load tracked cache with safety-guarded wrapper (parity with watchlist path)
     const trackedLoadResult = await this.loadTrackedCacheIfEnabled(
       existingSeries.length,
       existingMovies.length,
@@ -813,7 +702,6 @@ export class DeleteSyncService {
       return trackedLoadResult.result
     }
 
-    // Load protection cache with safety-guarded wrapper (parity with watchlist path)
     const protectionLoadResult = await this.loadProtectionCacheIfEnabled(
       existingSeries.length,
       existingMovies.length,
@@ -823,20 +711,15 @@ export class DeleteSyncService {
       return protectionLoadResult.result
     }
 
-    // Exclusions drive deletion in tag-based mode the same way they do in
-    // watchlist mode: a key qualifies when every user still watchlisting it is
-    // also covered by an exclusion (per-user or global). Globals alone are
-    // sufficient. The DB returns the union of GUIDs across qualifying keys;
-    // delete-sync treats them as parallel candidates to tagged items.
     const exclusionDrivenGuids =
       await this.dbService.getExclusionDrivenDeletionGuids()
-    if (exclusionDrivenGuids.size > 0) {
+    if (exclusionDrivenGuids.movie.size + exclusionDrivenGuids.show.size > 0) {
       this.log.debug(
-        `Loaded ${exclusionDrivenGuids.size} exclusion-driven deletion GUID(s) for tag-based delete sync`,
+        `Loaded ${exclusionDrivenGuids.movie.size} movie and ${exclusionDrivenGuids.show.size} show exclusion-driven deletion GUID(s) for tag-based delete sync`,
       )
     }
 
-    return executeTagBasedDeletion(
+    const result = await executeTagBasedDeletion(
       existingSeries,
       existingMovies,
       {
@@ -859,8 +742,7 @@ export class DeleteSyncService {
         tagCache: this.tagCache,
         protectedGuids: this.protectedGuids,
         trackedGuids: this.trackedGuids,
-        exclusionDrivenGuids:
-          exclusionDrivenGuids.size > 0 ? exclusionDrivenGuids : null,
+        exclusionDrivenGuids,
         deletedMovieGuids: this.deletedMovieGuids,
         deletedShowGuids: this.deletedShowGuids,
         logger: this.log,
@@ -874,30 +756,23 @@ export class DeleteSyncService {
       },
       dryRun,
     )
+    if (result.safetyTriggered) {
+      void this.fastify.notifications.sendDeleteSyncNotification(result, dryRun)
+    }
+    return result
   }
 
-  /**
-   * Clear the tag cache (should be called at the start of each sync run)
-   */
   private clearTagCache(): void {
     this.tagCache.clear()
   }
 
-  /**
-   * Gets the configured protection playlist name or uses the default
-   *
-   * @returns The protection playlist name to use
-   */
   private getProtectionPlaylistName(): string {
     return (
       this.config.plexProtectionPlaylistName || PLEX_PROTECTION_PLAYLIST_DEFAULT
     )
   }
 
-  /**
-   * Builds the protected GUID set, dropping excluded routed items in memory so
-   * dry and real runs protect the same content.
-   */
+  /** Watchlisted GUIDs minus excluded routed items, filtered in memory so dry and real runs agree. */
   private async getWatchlistGuids(
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
@@ -915,18 +790,6 @@ export class DeleteSyncService {
     }
   }
 
-  /**
-   * Process and execute deletions based on configuration rules
-   *
-   * This core method identifies content that should be deleted (not present in any
-   * watchlist) and executes the deletion operations based on the configured deletion
-   * policies. It handles both movies and TV shows with appropriate categorization.
-   *
-   * @param existingSeries - Array of all series found in Sonarr instances
-   * @param existingMovies - Array of all movies found in Radarr instances
-   * @param watchlistGuids - Set of all GUIDs that exist in watchlists
-   * @returns Promise resolving to void when complete
-   */
   private async processDeleteSync(
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],

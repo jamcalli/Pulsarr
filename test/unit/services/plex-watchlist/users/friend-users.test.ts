@@ -8,6 +8,7 @@ import {
 } from '@services/plex-watchlist/users/friend-users.js'
 import type { FastifyInstance } from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createDeferred } from '../../../../helpers/deferred.js'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { createMockUser } from '../../../../mocks/user.js'
 
@@ -107,6 +108,35 @@ describe('friend-users', () => {
       )
       expect(mockDb.updateUser).not.toHaveBeenCalled()
       expect(emit).not.toHaveBeenCalled()
+    })
+
+    it('waits for the other friends to finish before rejecting', async () => {
+      mockDb.getAllUsers.mockResolvedValue([])
+      const slow = createDeferred<{
+        user: ReturnType<typeof createMockUser>
+        created: boolean
+      }>()
+      mockDb.getOrCreateUser.mockImplementation(async ({ name }) =>
+        name === 'bad'
+          ? Promise.reject(new Error('insert failed'))
+          : slow.promise,
+      )
+
+      let settled = false
+      const run = ensureFriendUsers(
+        friendSet(friend('uuid-bad', 'bad'), friend('uuid-slow', 'slow')),
+        deps,
+      ).finally(() => {
+        settled = true
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(settled).toBe(false)
+
+      slow.resolve({
+        user: createMockUser(8, 'slow', { plex_uuid: 'uuid-slow' }),
+        created: false,
+      })
+      await expect(run).rejects.toThrow('insert failed')
     })
 
     it('emits a users added event for a created user', async () => {

@@ -79,6 +79,7 @@ export async function getRecentRequests(
           if (limit !== undefined) qb.limit(limit)
         })
         .orderBy('approval_requests.created_at', 'desc')
+        .orderBy('approval_requests.id', 'desc')
 
       for (const row of approvals) {
         pendingApprovalKeys.add(`${row.user_id}:${row.key}`)
@@ -122,6 +123,7 @@ export async function getRecentRequests(
               }
             })
             .orderBy('newest.created_at', 'desc')
+            .orderBy('newest.id', 'desc')
             .limit(limit)
           qb.whereIn('wi.id', newestIds)
         }
@@ -173,6 +175,11 @@ export async function getRecentRequests(
         .modify(scopeWatchlistQuery('movie', 'watchlist_radarr_instances'))
         .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
+        .orderBy('wi.id', 'desc')
+        .orderBy([
+          { column: 'wri.is_primary', order: 'desc' },
+          'wri.radarr_instance_id',
+        ])
 
       const sonarrItems = await this.knex('watchlist_items as wi')
         .select(
@@ -202,6 +209,11 @@ export async function getRecentRequests(
         .modify(scopeWatchlistQuery('show', 'watchlist_sonarr_instances'))
         .modify(withStatusTimes)
         .orderBy('wi.created_at', 'desc')
+        .orderBy('wi.id', 'desc')
+        .orderBy([
+          { column: 'wsi.is_primary', order: 'desc' },
+          'wsi.sonarr_instance_id',
+        ])
 
       const watchlistItemsMap = new Map<
         number,

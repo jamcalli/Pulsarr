@@ -1,6 +1,7 @@
 import type { RemovedTagMode } from '@root/types/config.types.js'
 import type { ArrAdapter, LibraryItem } from '@services/user-tags/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createDeferred } from '../../../../helpers/deferred.js'
 import { createMockUser } from '../../../../mocks/user.js'
 import {
   createFakeAdapter,
@@ -21,6 +22,7 @@ import {
   listInstances,
 } from '@services/user-tags/arr-adapter.js'
 import {
+  syncAllTags,
   syncTags,
   tagContentWithData,
 } from '@services/user-tags/orchestration/sync-tags.js'
@@ -94,7 +96,12 @@ describe('tagContentWithData', () => {
       ],
       'remove',
     )
-    expect(results).toEqual({ tagged: 2, skipped: 0, failed: 0 })
+    expect(results).toEqual({
+      tagged: 2,
+      skipped: 0,
+      failed: 0,
+      failedInstances: 0,
+    })
   })
 
   it('keeps instances apart: own items, own users, own tag ids', async () => {
@@ -137,7 +144,12 @@ describe('tagContentWithData', () => {
       [{ itemId: 2, tagIds: [22] }],
       'add',
     )
-    expect(results).toEqual({ tagged: 2, skipped: 0, failed: 0 })
+    expect(results).toEqual({
+      tagged: 2,
+      skipped: 0,
+      failed: 0,
+      failedInstances: 0,
+    })
   })
 
   it('leaves unwatched items alone in keep mode', async () => {
@@ -157,7 +169,12 @@ describe('tagContentWithData', () => {
       [{ itemId: 1, tagIds: [REMOVED_TAG] }],
       'remove',
     )
-    expect(results).toEqual({ tagged: 1, skipped: 1, failed: 0 })
+    expect(results).toEqual({
+      tagged: 1,
+      skipped: 1,
+      failed: 0,
+      failedInstances: 0,
+    })
   })
 
   it('swaps stale user tags for the removed tag in special-tag mode', async () => {
@@ -206,7 +223,87 @@ describe('tagContentWithData', () => {
     const results = await tag(adapter, [libraryItem(1, [])], 'remove')
 
     expect(adapter.bulkUpdateTags).not.toHaveBeenCalled()
-    expect(results).toEqual({ tagged: 0, skipped: 1, failed: 0 })
+    expect(results).toEqual({
+      tagged: 0,
+      skipped: 1,
+      failed: 0,
+      failedInstances: 0,
+    })
+  })
+
+  it('fails the instance without marking items for removal when a user tag cannot be created', async () => {
+    const adapter = createFakeAdapter({
+      usersWithItems: vi.fn(async () => [ALICE, BOB]),
+      getTags: vi.fn(async () => [
+        { id: BOB_TAG, label: 'pulsarr-user-bob' },
+        { id: REMOVED_TAG, label: 'pulsarr-removed' },
+      ]),
+      createTag: vi.fn(async () => {
+        throw new Error('tag create refused')
+      }),
+    })
+
+    const results = await tag(
+      adapter,
+      [libraryItem(1, [BOB_TAG])],
+      'special-tag',
+    )
+
+    expect(adapter.bulkUpdateTags).not.toHaveBeenCalled()
+    expect(results).toEqual({
+      tagged: 0,
+      skipped: 0,
+      failed: 0,
+      failedInstances: 1,
+    })
+  })
+
+  it('counts an instance whose tagging rejects as failed', async () => {
+    const broken = createFakeAdapter({
+      instanceId: 2,
+      name: 'Broken',
+      usersWithItems: vi.fn(async () => {
+        throw new Error('arr unreachable')
+      }),
+    })
+    useAdapters({ sonarr: [adapterWithTags(), broken] })
+
+    const results = await tagContentWithData(
+      {
+        type: 'sonarr',
+        items: [libraryItem(1, [])],
+        watchlistItems: [{ user_id: ALICE.id, guids: ['tvdb:100'] }],
+      },
+      createUserTagDeps(),
+    )
+
+    expect(results).toEqual({
+      tagged: 1,
+      skipped: 0,
+      failed: 0,
+      failedInstances: 1,
+    })
+  })
+
+  it('counts an instance whose add bulk fails as failed and skips its remove bulk', async () => {
+    const adapter = adapterWithTags()
+    vi.mocked(adapter.bulkUpdateTags).mockRejectedValueOnce(
+      new Error('editor refused'),
+    )
+
+    const results = await tag(
+      adapter,
+      [libraryItem(1, [BOB_TAG]), libraryItem(2, [ALICE_TAG, REMOVED_TAG])],
+      'remove',
+    )
+
+    expect(adapter.bulkUpdateTags).toHaveBeenCalledTimes(1)
+    expect(results).toEqual({
+      tagged: 0,
+      skipped: 0,
+      failed: 0,
+      failedInstances: 1,
+    })
   })
 })
 
@@ -226,6 +323,43 @@ describe('syncTags', () => {
     )
 
     expect(fetchLibrary).not.toHaveBeenCalled()
-    expect(results).toEqual({ tagged: 0, skipped: 0, failed: 0 })
+    expect(results).toEqual({
+      tagged: 0,
+      skipped: 0,
+      failed: 0,
+      failedInstances: 0,
+    })
+  })
+})
+
+describe('syncAllTags', () => {
+  beforeEach(() => {
+    vi.mocked(getAdapters).mockReset()
+    vi.mocked(listInstances).mockReset()
+    vi.mocked(fetchLibrary).mockReset()
+  })
+
+  it('waits for the other arr to finish before rejecting', async () => {
+    useAdapters({})
+    const radarrLibrary = createDeferred<LibraryItem[]>()
+    vi.mocked(fetchLibrary).mockImplementation((type) =>
+      type === 'sonarr'
+        ? Promise.reject(new Error('Sonarr unreachable'))
+        : radarrLibrary.promise,
+    )
+
+    let settled = false
+    const run = syncAllTags(
+      createUserTagDeps({ config: { cleanupOrphanedTags: false } }),
+    ).catch((error: Error) => {
+      settled = true
+      return error
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(settled).toBe(false)
+
+    radarrLibrary.resolve([])
+
+    expect(await run).toMatchObject({ message: 'Sonarr unreachable' })
   })
 })

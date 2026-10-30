@@ -204,4 +204,35 @@ describe('analytics database methods', () => {
       ])
     })
   })
+
+  describe('getMostWatchlistedMovies', () => {
+    it('pages same-title groups with equal counts by their oldest item', async () => {
+      const knex = getTestDatabase()
+      await knex('watchlist_items').insert(
+        ['tmdb:9', 'tmdb:1'].map((guid, index) => ({
+          user_id: 1,
+          title: 'Same Title',
+          key: `same-title-${index}`,
+          type: 'movie',
+          guids: JSON.stringify([guid]),
+          genres: JSON.stringify([]),
+          status: 'pending',
+        })),
+      )
+
+      const page1 = await fastify.db.getMostWatchlistedMovies({
+        limit: 1,
+        offset: 0,
+      })
+      const page2 = await fastify.db.getMostWatchlistedMovies({
+        limit: 1,
+        offset: 1,
+      })
+
+      expect([...page1, ...page2].map((row) => row.guids)).toEqual([
+        ['tmdb:9'],
+        ['tmdb:1'],
+      ])
+    })
+  })
 })

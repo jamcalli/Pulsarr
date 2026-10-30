@@ -125,7 +125,10 @@ describe('RadarrService.isTmdbIdExcluded', () => {
     server.use(
       http.get(EXCLUSIONS_URL, () => new HttpResponse(null, { status: 500 })),
     )
-    await expect(service.isTmdbIdExcluded(123)).rejects.toThrow()
+    await expect(service.isTmdbIdExcluded(123)).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 500,
+    })
 
     serveExclusions([123])
 
@@ -137,7 +140,10 @@ describe('RadarrService.isTmdbIdExcluded', () => {
       http.get(EXCLUSIONS_URL, () => new HttpResponse(null, { status: 500 })),
     )
 
-    await expect(service.isTmdbIdExcluded(123)).rejects.toThrow()
+    await expect(service.isTmdbIdExcluded(123)).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 500,
+    })
   })
 })
 

@@ -1,3 +1,4 @@
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
@@ -151,7 +152,7 @@ export async function removeAllUserTags(
   )
 
   try {
-    const [sonarr, radarr] = await Promise.all([
+    const [sonarr, radarr] = await allSettledOrThrow([
       removeUserTags({ type: 'sonarr', deleteTagDefinitions }, deps),
       removeUserTags({ type: 'radarr', deleteTagDefinitions }, deps),
     ])

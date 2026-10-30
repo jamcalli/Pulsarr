@@ -100,6 +100,20 @@ type WatchlistAggregateRow = {
   count: number | string
 }
 
+function parseUserNames(
+  this: DatabaseService,
+  userNames: string | null,
+): string[] {
+  return parseJsonOr<string[]>(
+    userNames,
+    [],
+    this.log,
+    'watchlist_item.user_names',
+  )
+    .filter(Boolean)
+    .sort()
+}
+
 /** Counts items created in the last `days` days, or all time when `days` is 0 */
 export async function getMostWatchlistedShows(
   this: DatabaseService,
@@ -135,6 +149,8 @@ export async function getMostWatchlistedShows(
     .count('* as count')
     .groupBy('watchlist_items.title', 'watchlist_items.guids')
     .orderBy('count', 'desc')
+    .orderBy('watchlist_items.title')
+    .orderByRaw('MIN(watchlist_items.id)')
     .limit(limit)
     .offset(offset)
 
@@ -148,12 +164,7 @@ export async function getMostWatchlistedShows(
     thumb: row.thumb,
     guids: parseJsonOr(row.guids, [], this.log, 'watchlist_item.guids'),
     content_type: 'show' as const,
-    users: parseJsonOr(
-      row.user_names,
-      [],
-      this.log,
-      'watchlist_item.user_names',
-    ).filter(Boolean),
+    users: parseUserNames.call(this, row.user_names),
   }))
 }
 
@@ -192,6 +203,8 @@ export async function getMostWatchlistedMovies(
     .count('* as count')
     .groupBy('watchlist_items.title', 'watchlist_items.guids')
     .orderBy('count', 'desc')
+    .orderBy('watchlist_items.title')
+    .orderByRaw('MIN(watchlist_items.id)')
     .limit(limit)
     .offset(offset)
 
@@ -205,12 +218,7 @@ export async function getMostWatchlistedMovies(
     thumb: row.thumb,
     guids: parseJsonOr(row.guids, [], this.log, 'watchlist_item.guids'),
     content_type: 'movie' as const,
-    users: parseJsonOr(
-      row.user_names,
-      [],
-      this.log,
-      'watchlist_item.user_names',
-    ).filter(Boolean),
+    users: parseUserNames.call(this, row.user_names),
   }))
 }
 
@@ -227,6 +235,8 @@ export async function getUsersWithMostWatchlistItems(
     .count('watchlist_items.id as count')
     .groupBy('users.id', 'users.name')
     .orderBy('count', 'desc')
+    .orderBy('users.name')
+    .orderBy('users.id')
     .limit(limit)
 
   if (cutoff) {

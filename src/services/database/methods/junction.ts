@@ -1,5 +1,6 @@
 import type { User } from '@root/types/config.types.js'
 import type { SonarrShowWithEnrollmentStatus } from '@root/types/watchlist-status.types.js'
+import { orderAsText } from '@services/database/ordering.js'
 import { mapRowToUser } from '@services/database/user-rows.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
@@ -573,12 +574,15 @@ export async function getInstanceContentBreakdown(
         .count('* as count')
         .first()
 
-      const statusBreakdown = await this.knex('watchlist_radarr_instances')
-        .where(routedInRange('watchlist_radarr_instances'))
-        .select('status')
-        .count('* as count')
-        .where('radarr_instance_id', instance.id)
-        .groupBy('status')
+      const statusBreakdown = await orderAsText(
+        this.knex('watchlist_radarr_instances')
+          .where(routedInRange('watchlist_radarr_instances'))
+          .select('status')
+          .count('* as count')
+          .where('radarr_instance_id', instance.id)
+          .groupBy('status'),
+        'status',
+      )
 
       const contentTypeBreakdown = await this.knex('watchlist_radarr_instances')
         .where(routedInRange('watchlist_radarr_instances'))
@@ -625,12 +629,15 @@ export async function getInstanceContentBreakdown(
         .count('* as count')
         .first()
 
-      const statusBreakdown = await this.knex('watchlist_sonarr_instances')
-        .where(routedInRange('watchlist_sonarr_instances'))
-        .select('status')
-        .count('* as count')
-        .where('sonarr_instance_id', instance.id)
-        .groupBy('status')
+      const statusBreakdown = await orderAsText(
+        this.knex('watchlist_sonarr_instances')
+          .where(routedInRange('watchlist_sonarr_instances'))
+          .select('status')
+          .count('* as count')
+          .where('sonarr_instance_id', instance.id)
+          .groupBy('status'),
+        'status',
+      )
 
       const contentTypeBreakdown = await this.knex('watchlist_sonarr_instances')
         .where(routedInRange('watchlist_sonarr_instances'))

@@ -7,6 +7,7 @@ import {
 } from '@services/arr/arr-caches.js'
 import type { ArrClient } from '@services/arr/arr-client.js'
 import type { ArrProduct } from '@services/arr/arr-product.js'
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -117,15 +118,23 @@ export async function bulkUpdateItemTags(
   }
 
   try {
-    const limit = pLimit(BULK_TAG_CONCURRENCY)
-    await Promise.all(
+    const limit = pLimit({
+      concurrency: BULK_TAG_CONCURRENCY,
+      rejectOnClear: true,
+    })
+    await allSettledOrThrow(
       [...groups.values()].map(({ tagIds, itemIds }) =>
         limit(async () => {
-          await client.put(`${product.itemEndpoint}/editor`, {
-            [product.editorIdsKey]: itemIds,
-            tags: tagIds,
-            applyTags,
-          })
+          try {
+            await client.put(`${product.itemEndpoint}/editor`, {
+              [product.editorIdsKey]: itemIds,
+              tags: tagIds,
+              applyTags,
+            })
+          } catch (error) {
+            limit.clearQueue()
+            throw error
+          }
           log.debug(
             `Bulk updated ${itemIds.length} ${itemsLabel} with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
           )

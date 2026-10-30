@@ -894,7 +894,7 @@ describe('label-cleaner', () => {
 
         await expect(
           cleanupLabelsForWatchlistItems(watchlistItems, baseDeps),
-        ).resolves.not.toThrow()
+        ).resolves.toBeUndefined()
       })
 
       it('should handle disabled config', async () => {

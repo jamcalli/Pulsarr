@@ -1,4 +1,5 @@
 import type { NotificationType } from '@root/types/notification.types.js'
+import { orderAsText } from '@services/database/ordering.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
@@ -158,11 +159,14 @@ export async function getNotificationStats(
   if (!isAllTime && cutoffDateStr) {
     byTypeQuery = byTypeQuery.where('created_at', '>=', cutoffDateStr)
   }
-  const byTypeResult = byTypeQuery
-    .select('type')
-    .count('* as count')
-    .groupBy('type')
-    .orderBy('count', 'desc')
+  const byTypeResult = orderAsText(
+    byTypeQuery
+      .select('type')
+      .count('* as count')
+      .groupBy('type')
+      .orderBy('count', 'desc'),
+    'type',
+  )
 
   const channelQueries = [
     { channel: 'discord', column: 'sent_to_discord' },
@@ -204,6 +208,8 @@ export async function getNotificationStats(
     .count('notifications.id as count')
     .groupBy('users.id')
     .orderBy('count', 'desc')
+    .orderBy('users.name')
+    .orderBy('users.id')
 
   const [total, byType, byChannel, byUser] = await Promise.all([
     totalResult,

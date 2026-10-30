@@ -7,6 +7,7 @@
 
 import type { Config, User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -62,7 +63,7 @@ export async function ensureTokenUsers(
 ): Promise<Map<string, number>> {
   const userMap = new Map<string, number>()
 
-  await Promise.all(
+  await allSettledOrThrow(
     deps.config.plexTokens.map(async (token, index) => {
       // Fetch the actual Plex username for this token
       let plexUsername = `token${index + 1}` // Fallback name
