@@ -150,6 +150,7 @@ export async function getMostWatchlistedShows(
     .groupBy('watchlist_items.title', 'watchlist_items.guids')
     .orderBy('count', 'desc')
     .orderBy('watchlist_items.title')
+    .orderByRaw('MIN(watchlist_items.id)')
     .limit(limit)
     .offset(offset)
 
@@ -203,6 +204,7 @@ export async function getMostWatchlistedMovies(
     .groupBy('watchlist_items.title', 'watchlist_items.guids')
     .orderBy('count', 'desc')
     .orderBy('watchlist_items.title')
+    .orderByRaw('MIN(watchlist_items.id)')
     .limit(limit)
     .offset(offset)
 

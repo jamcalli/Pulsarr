@@ -43,6 +43,7 @@ export async function getPendingWebhooks(
     const webhooks = await this.knex('pending_webhooks')
       .where('expires_at', '>', new Date().toISOString())
       .orderBy('received_at', 'asc')
+      .orderBy('id', 'asc')
       .limit(limit)
 
     return webhooks.map((webhook) => ({

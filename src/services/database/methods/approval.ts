@@ -191,6 +191,7 @@ export async function getPendingApprovalRequests(
 
   const rows = await query
     .orderBy('approval_requests.created_at', 'desc')
+    .orderBy('approval_requests.id', 'desc')
     .limit(limit)
     .offset(offset)
 

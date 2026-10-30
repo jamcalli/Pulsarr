@@ -539,6 +539,7 @@ export async function getQuotaUsageHistory(
 
   const rows = await query
     .orderBy('request_date', 'desc')
+    .orderBy('id', 'desc')
     .limit(limit)
     .offset(offset)
   return rows.map(mapRowToQuotaUsage)
