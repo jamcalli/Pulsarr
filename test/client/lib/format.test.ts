@@ -20,6 +20,7 @@ import {
   formatWeekday,
   formatYear,
   pluralize,
+  resolveFormatLocale,
   setFormatLocale,
 } from '@/lib/format'
 
@@ -191,5 +192,35 @@ describe('compareSortValues', () => {
   it('orders numbers numerically and text by locale', () => {
     expect([10, 2, 1].sort(compareSortValues)).toEqual([1, 2, 10])
     expect(['beta', 'Alpha'].sort(compareSortValues)).toEqual(['Alpha', 'beta'])
+  })
+})
+
+describe('resolveFormatLocale', () => {
+  afterEach(() => setFormatLocale(undefined))
+
+  it.each([
+    [['fi-FI'], 'en-FI'],
+    [['fi'], 'en-FI'],
+    [['de-DE'], 'en-DE'],
+    [['en-US'], 'en-US'],
+    [['pt-BR', 'en-GB'], 'en-GB'],
+    [['pt-BR'], 'en-150'],
+    [['ru-RU'], 'en-150'],
+    [['zh-CN'], 'en-150'],
+    [['es-MX'], 'en-001'],
+    [['ko-KR'], 'en-001'],
+    [[], 'en'],
+  ])('maps %j to %s', (browserLocales, expected) => {
+    expect(resolveFormatLocale('en', browserLocales)).toBe(expected)
+  })
+
+  it('keeps English words with Finnish date order, clock and separators', () => {
+    setFormatLocale(resolveFormatLocale('en', ['fi-FI']))
+    const now = new Date(2026, 9, 4, 14, 0, 0).getTime()
+    expect(formatRelative(now - 3 * 60 * 60 * 1000, now)).toBe('3 hours ago')
+    expect(formatDateTime(new Date(2026, 9, 4, 14, 5, 9))).toBe(
+      '4 Oct 2026, 14.05.09',
+    )
+    expect(formatNumber(1234567.5)).toBe('1\u00a0234\u00a0567,5')
   })
 })

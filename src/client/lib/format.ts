@@ -11,6 +11,30 @@ export function formatLocale(): string | undefined {
   return locale
 }
 
+/** Words in `language` with the browser region's formats, or day-first `en-150`/`en-001` keeping the browser's clock when the region has no `language` data. */
+export function resolveFormatLocale(
+  language: string,
+  browserLocales: readonly string[],
+): string {
+  for (const browserLocale of browserLocales) {
+    const region = new Intl.Locale(browserLocale).maximize().region
+    if (!region) continue
+    const candidate = `${language}-${region}`
+    // supportedLocalesOf accepts regions it silently formats as plain `language`
+    if (
+      new Intl.DateTimeFormat(candidate).resolvedOptions().locale === candidate
+    ) {
+      return candidate
+    }
+  }
+  const [first] = browserLocales
+  if (language !== 'en' || first === undefined) return language
+  const { hourCycle } = new Intl.DateTimeFormat(first, {
+    hour: 'numeric',
+  }).resolvedOptions()
+  return hourCycle === 'h11' || hourCycle === 'h12' ? 'en-001' : 'en-150'
+}
+
 export function formatTime(value: Date | number): string {
   return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(value)
 }
