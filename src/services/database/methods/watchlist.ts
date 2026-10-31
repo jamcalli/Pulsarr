@@ -10,6 +10,7 @@ import type {
 import { whereGuidsContainAny } from '@services/database/guid-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
+import { parseGuids } from '@utils/guid-handler.js'
 import { parseJsonOr } from '@utils/json.js'
 import {
   allowedStatusesUpTo,
@@ -710,7 +711,7 @@ export async function createWatchlistItems(
         type:
           typeof item.type === 'string' ? item.type.toLowerCase() : item.type,
         thumb: item.thumb,
-        guids: JSON.stringify(item.guids || []),
+        guids: JSON.stringify(parseGuids(item.guids)),
         genres: JSON.stringify(item.genres || []),
         ...ratingsToColumns(item.ratings),
         status: item.status || 'pending',

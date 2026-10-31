@@ -233,3 +233,56 @@ describe('getWatchlistItemsWithUsersByGuids', () => {
     ).toEqual([])
   })
 })
+
+describe('createWatchlistItems', () => {
+  let fastify: FastifyInstance
+
+  beforeAll(async () => {
+    fastify = await build()
+    await fastify.ready()
+  })
+
+  afterAll(async () => {
+    await fastify.close()
+  })
+
+  beforeEach(async () => {
+    const knex = getTestDatabase()
+    await resetDatabase()
+    await seedConfig(knex)
+    await seedInstances(knex)
+    await seedUsers(knex)
+    fastify.caches.clear()
+  })
+
+  it('stores guids normalized and deduped whatever form the caller passes', async () => {
+    await fastify.db.createWatchlistItems([
+      {
+        user_id: 1,
+        title: 'Array input',
+        key: 'normalize-array',
+        type: 'movie',
+        guids: ['TMDB://603', 'tmdb:603', 'IMDB:tt0133093'],
+        genres: [],
+        status: 'pending',
+      },
+      {
+        user_id: 1,
+        title: 'String input',
+        key: 'normalize-string',
+        type: 'movie',
+        guids: '["TVDB://81189"]',
+        genres: [],
+        status: 'pending',
+      },
+    ])
+
+    expect(JSON.parse((await itemFor('normalize-array')).guids)).toEqual([
+      'tmdb:603',
+      'imdb:tt0133093',
+    ])
+    expect(JSON.parse((await itemFor('normalize-string')).guids)).toEqual([
+      'tvdb:81189',
+    ])
+  })
+})
