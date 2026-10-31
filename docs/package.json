@@ -14,7 +14,7 @@
     "@fumadocs/base-ui": "16.17.8",
     "@tailwindcss/typography": "^0.5.20",
     "class-variance-authority": "^0.7.1",
-    "cn": "^0.4.0",
+    "cn": "^0.5.0",
     "fumadocs-core": "16.17.8",
     "fumadocs-mdx": "15.4.10",
     "fumadocs-openapi": "12.5.5",
