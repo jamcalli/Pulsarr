@@ -2,11 +2,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build installers for (e.g., v0.10.0-beta.1)'
+        description: "Tag to build installers for (e.g., v0.10.0-beta.1)"
         required: true
         type: string
 permissions:
@@ -328,7 +328,7 @@ jobs:
       id-token: write
       packages: write
     env:
-      COSIGN_YES: 'true'
+      COSIGN_YES: "true"
       BUN_REF: lakker/pulsarr@${{ needs.docker-bun-manifest.outputs.digest }}
       NODE_REF: lakker/pulsarr@${{ needs.docker-node-manifest.outputs.digest }}
       GHCR_BUN_REF: ghcr.io/jamcalli/pulsarr@${{ needs.docker-bun-manifest.outputs.digest }}

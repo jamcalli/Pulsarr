@@ -3,15 +3,15 @@ on:
   push:
     branches: [master, develop]
     paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
+      - "**/*.md"
+      - "docs/**"
   pull_request:
     branches: [master, develop]
     paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
+      - "**/*.md"
+      - "docs/**"
   schedule:
-    - cron: '50 7 * * 5'
+    - cron: "50 7 * * 5"
 
 permissions:
   contents: read
@@ -52,4 +52,4 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          category: '/language:${{ matrix.language }}'
+          category: "/language:${{ matrix.language }}"
