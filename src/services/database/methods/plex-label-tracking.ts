@@ -1,5 +1,7 @@
+import { whereGuidsContainAny } from '@services/database/guid-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
+import { normalizeGuid } from '@utils/guid-handler.js'
 import { parseJsonOr } from '@utils/json.js'
 
 const BATCH_CHUNK_SIZE = 50
@@ -83,7 +85,7 @@ export async function trackPlexLabelsBulk(
               }
 
               const normalizedGuids = Array.from(
-                new Set(contentGuids.map((g) => g.toLowerCase())),
+                new Set(contentGuids.map(normalizeGuid)),
               )
               const guidsJson = JSON.stringify(normalizedGuids)
               const labelsJson = JSON.stringify(
@@ -105,8 +107,9 @@ export async function trackPlexLabelsBulk(
               )
 
               // Conflict target must match the plex_label_tracking_content_unique expression index exactly
-              const result = await trx.raw(
-                `
+              const result = await trx.transaction((sp) =>
+                sp.raw(
+                  `
                   INSERT INTO plex_label_tracking (
                     content_guids,
                     content_type,
@@ -124,14 +127,15 @@ export async function trackPlexLabelsBulk(
                     synced_at = excluded.synced_at
                   RETURNING id AS record_id
                 `,
-                [
-                  guidsJson,
-                  contentType,
-                  userId,
-                  plexRatingKey,
-                  labelsJson,
-                  this.timestamp,
-                ],
+                  [
+                    guidsJson,
+                    contentType,
+                    userId,
+                    plexRatingKey,
+                    labelsJson,
+                    this.timestamp,
+                  ],
+                ),
               )
 
               this.log.debug(
@@ -198,7 +202,7 @@ export async function trackPlexLabelsBulk(
               }
 
               const normalizedGuids = Array.from(
-                new Set(contentGuids.map((g) => g.toLowerCase())),
+                new Set(contentGuids.map(normalizeGuid)),
               )
               const guidsJson = JSON.stringify(normalizedGuids)
               const normalizedLabels = Array.from(
@@ -209,14 +213,14 @@ export async function trackPlexLabelsBulk(
               const existing = await trx('plex_label_tracking')
                 .where('user_id', userId)
                 .where('plex_rating_key', plexRatingKey)
-                .where((builder) => {
-                  for (const guid of normalizedGuids) {
-                    builder.orWhereRaw(
-                      "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-                      [guid],
-                    )
-                  }
-                })
+                .where((qb) =>
+                  whereGuidsContainAny(
+                    qb,
+                    'content_guids',
+                    contentGuids,
+                    this.isPostgres,
+                  ),
+                )
                 .first()
 
               let recordId: number
@@ -314,33 +318,14 @@ export async function trackPlexLabels(
     throw new Error(`Failed to track labels for rating key ${plexRatingKey}`)
   }
 
-  const normalizedGuids = Array.from(
-    new Set(contentGuids.map((g) => g.toLowerCase())),
-  )
-
-  const record = this.isPostgres
-    ? await this.knex('plex_label_tracking')
-        .where('user_id', userId)
-        .where('content_type', contentType)
-        .where('plex_rating_key', plexRatingKey)
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
-          [normalizedGuids],
-        )
-        .first()
-    : await this.knex('plex_label_tracking')
-        .where('user_id', userId)
-        .where('content_type', contentType)
-        .where('plex_rating_key', plexRatingKey)
-        .where((builder) => {
-          for (const guid of normalizedGuids) {
-            builder.orWhereRaw(
-              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-              [guid],
-            )
-          }
-        })
-        .first()
+  const record = await this.knex('plex_label_tracking')
+    .where('user_id', userId)
+    .where('content_type', contentType)
+    .where('plex_rating_key', plexRatingKey)
+    .where((qb) =>
+      whereGuidsContainAny(qb, 'content_guids', contentGuids, this.isPostgres),
+    )
+    .first()
 
   if (!record) {
     throw new Error('Failed to retrieve tracking record after creation')
@@ -383,10 +368,13 @@ export async function untrackPlexLabelBulk(
                 throw new Error('Content GUIDs array cannot be empty')
               }
 
-              const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+              const normalizedGuids = [
+                ...new Set(contentGuids.map(normalizeGuid)),
+              ]
 
-              const result = await trx.raw(
-                `
+              const result = await trx.transaction((sp) =>
+                sp.raw(
+                  `
                   WITH updated_records AS (
                     UPDATE plex_label_tracking 
                     SET 
@@ -399,10 +387,7 @@ export async function untrackPlexLabelBulk(
                       synced_at = ?
                     WHERE user_id IS NOT DISTINCT FROM ?
                       AND plex_rating_key = ?
-                      AND EXISTS (
-                        SELECT 1 FROM jsonb_array_elements_text(content_guids) elem 
-                        WHERE lower(elem) = ANY(?)
-                      )
+                      AND content_guids \\?| ?::text[]
                       AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE lower(label) = ?)
                       AND jsonb_array_length(
                         COALESCE(
@@ -418,10 +403,7 @@ export async function untrackPlexLabelBulk(
                     DELETE FROM plex_label_tracking
                     WHERE user_id IS NOT DISTINCT FROM ?
                       AND plex_rating_key = ?
-                      AND EXISTS (
-                        SELECT 1 FROM jsonb_array_elements_text(content_guids) elem 
-                        WHERE lower(elem) = ANY(?)
-                      )
+                      AND content_guids \\?| ?::text[]
                       AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE lower(label) = ?)
                       AND jsonb_array_length(
                         COALESCE(
@@ -437,20 +419,21 @@ export async function untrackPlexLabelBulk(
                     (SELECT COUNT(*) FROM updated_records) as updated_count,
                     (SELECT COUNT(*) FROM deleted_records) as deleted_count
                   `,
-                [
-                  labelLower,
-                  this.timestamp,
-                  userId,
-                  plexRatingKey,
-                  normalizedGuids,
-                  labelLower,
-                  labelLower,
-                  userId,
-                  plexRatingKey,
-                  normalizedGuids,
-                  labelLower,
-                  labelLower,
-                ],
+                  [
+                    labelLower,
+                    this.timestamp,
+                    userId,
+                    plexRatingKey,
+                    normalizedGuids,
+                    labelLower,
+                    labelLower,
+                    userId,
+                    plexRatingKey,
+                    normalizedGuids,
+                    labelLower,
+                    labelLower,
+                  ],
+                ),
               )
 
               const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
@@ -507,19 +490,17 @@ export async function untrackPlexLabelBulk(
                 throw new Error('Content GUIDs array cannot be empty')
               }
 
-              const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
-
               const existing = await trx('plex_label_tracking')
                 .where('user_id', userId)
                 .where('plex_rating_key', plexRatingKey)
-                .where((builder) => {
-                  for (const guid of normalizedGuids) {
-                    builder.orWhereRaw(
-                      "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-                      [guid],
-                    )
-                  }
-                })
+                .where((qb) =>
+                  whereGuidsContainAny(
+                    qb,
+                    'content_guids',
+                    contentGuids,
+                    this.isPostgres,
+                  ),
+                )
                 .first()
 
               if (!existing) {
@@ -619,37 +600,21 @@ export async function getTrackedLabelsForContent(
     return []
   }
 
-  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
-
   this.log.debug(
     {
       contentType,
-      normalizedGuids,
+      contentGuids,
     },
     'getTrackedLabelsForContent: Searching for records',
   )
 
-  const rows = this.isPostgres
-    ? await this.knex('plex_label_tracking')
-        .where('content_type', contentType)
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
-          [normalizedGuids],
-        )
-        .orderBy('synced_at', 'asc')
-        .select('*')
-    : await this.knex('plex_label_tracking')
-        .where('content_type', contentType)
-        .where((builder) => {
-          for (const guid of normalizedGuids) {
-            builder.orWhereRaw(
-              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-              [guid],
-            )
-          }
-        })
-        .orderBy('synced_at', 'asc')
-        .select('*')
+  const rows = await this.knex('plex_label_tracking')
+    .where('content_type', contentType)
+    .where((qb) =>
+      whereGuidsContainAny(qb, 'content_guids', contentGuids, this.isPostgres),
+    )
+    .orderBy('synced_at', 'asc')
+    .select('*')
 
   return rows.map((row) => ({
     id: row.id,
@@ -686,38 +651,22 @@ export async function cleanupUserContentTracking(
     return 0
   }
 
-  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
-
   this.log.debug(
     {
       userId,
       contentType,
-      normalizedGuids,
+      contentGuids,
     },
     'cleanupUserContentTracking: Deleting records',
   )
 
-  const deleted = this.isPostgres
-    ? await this.knex('plex_label_tracking')
-        .where('user_id', userId)
-        .where('content_type', contentType)
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
-          [normalizedGuids],
-        )
-        .delete()
-    : await this.knex('plex_label_tracking')
-        .where('user_id', userId)
-        .where('content_type', contentType)
-        .where((builder) => {
-          for (const guid of normalizedGuids) {
-            builder.orWhereRaw(
-              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-              [guid],
-            )
-          }
-        })
-        .delete()
+  const deleted = await this.knex('plex_label_tracking')
+    .where('user_id', userId)
+    .where('content_type', contentType)
+    .where((qb) =>
+      whereGuidsContainAny(qb, 'content_guids', contentGuids, this.isPostgres),
+    )
+    .delete()
 
   if (deleted > 0) {
     this.log.debug(
@@ -876,50 +825,30 @@ export async function isLabelTracked(
     return false
   }
 
-  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
-
   this.log.debug(
     {
       userId,
       contentType,
       plexRatingKey,
       labelApplied,
-      normalizedGuids,
+      contentGuids,
     },
     'isLabelTracked: Checking label tracking',
   )
 
-  const record = this.isPostgres
-    ? await this.knex('plex_label_tracking')
-        .where('user_id', userId)
-        .where('content_type', contentType)
-        .where('plex_rating_key', plexRatingKey)
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
-          [normalizedGuids],
-        )
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE lower(label) = ?)',
-          [labelApplied.toLowerCase()],
-        )
-        .first()
-    : await this.knex('plex_label_tracking')
-        .where('user_id', userId)
-        .where('content_type', contentType)
-        .where('plex_rating_key', plexRatingKey)
-        .where((builder) => {
-          for (const guid of normalizedGuids) {
-            builder.orWhereRaw(
-              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-              [guid],
-            )
-          }
-        })
-        .whereRaw(
-          "EXISTS (SELECT 1 FROM json_each(labels_applied) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-          [labelApplied.toLowerCase()],
-        )
-        .first()
+  const labelMatch = this.isPostgres
+    ? 'EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE lower(label) = ?)'
+    : "EXISTS (SELECT 1 FROM json_each(labels_applied) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)"
+
+  const record = await this.knex('plex_label_tracking')
+    .where('user_id', userId)
+    .where('content_type', contentType)
+    .where('plex_rating_key', plexRatingKey)
+    .where((qb) =>
+      whereGuidsContainAny(qb, 'content_guids', contentGuids, this.isPostgres),
+    )
+    .whereRaw(labelMatch, [labelApplied.toLowerCase()])
+    .first()
 
   return !!record
 }
@@ -973,8 +902,9 @@ export async function removeTrackedLabels(
                 labelsToRemove.map((l) => l.toLowerCase()),
               )
 
-              const result = await trx.raw(
-                `
+              const result = await trx.transaction((sp) =>
+                sp.raw(
+                  `
                   WITH updated_records AS (
                     UPDATE plex_label_tracking
                     SET
@@ -1021,16 +951,17 @@ export async function removeTrackedLabels(
                     (SELECT COUNT(*) FROM updated_records) as updated_count,
                     (SELECT COUNT(*) FROM deleted_records) as deleted_count
                   `,
-                [
-                  labelsJson,
-                  this.timestamp,
-                  plexRatingKey,
-                  labelsJson,
-                  labelsJson,
-                  plexRatingKey,
-                  labelsJson,
-                  labelsJson,
-                ],
+                  [
+                    labelsJson,
+                    this.timestamp,
+                    plexRatingKey,
+                    labelsJson,
+                    labelsJson,
+                    plexRatingKey,
+                    labelsJson,
+                    labelsJson,
+                  ],
+                ),
               )
 
               const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
@@ -1282,8 +1213,9 @@ export async function removeOrphanedTrackingBulk(
                 orphanedLabels.map((l) => l.toLowerCase()),
               )
 
-              const result = await trx.raw(
-                `
+              const result = await trx.transaction((sp) =>
+                sp.raw(
+                  `
                   WITH updated_records AS (
                     UPDATE plex_label_tracking 
                     SET 
@@ -1330,16 +1262,17 @@ export async function removeOrphanedTrackingBulk(
                     (SELECT COUNT(*) FROM updated_records) as updated_count,
                     (SELECT COUNT(*) FROM deleted_records) as deleted_count
                   `,
-                [
-                  orphanedArray,
-                  this.timestamp,
-                  plexRatingKey,
-                  orphanedArray,
-                  orphanedArray,
-                  plexRatingKey,
-                  orphanedArray,
-                  orphanedArray,
-                ],
+                  [
+                    orphanedArray,
+                    this.timestamp,
+                    plexRatingKey,
+                    orphanedArray,
+                    orphanedArray,
+                    plexRatingKey,
+                    orphanedArray,
+                    orphanedArray,
+                  ],
+                ),
               )
 
               const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
