@@ -7,9 +7,9 @@ import type {
   WatchlistItemUpdate,
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
+import { whereGuidsContainAny } from '@services/database/guid-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
-import { normalizeGuid } from '@utils/guid-handler.js'
 import { parseJsonOr } from '@utils/json.js'
 import {
   allowedStatusesUpTo,
@@ -867,21 +867,12 @@ export async function getWatchlistItemsByGuid(
   guid: string,
   type: 'movie' | 'show',
 ): Promise<TokenWatchlistItem[]> {
-  const items = this.isPostgres
-    ? await this.knex('watchlist_items')
-        .where('type', type)
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
-          [guid],
-        )
-        .select('*')
-    : await this.knex('watchlist_items')
-        .where('type', type)
-        .whereRaw(
-          "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
-          [guid],
-        )
-        .select('*')
+  const items = await whereGuidsContainAny(
+    this.knex('watchlist_items').where('type', type),
+    'guids',
+    [guid],
+    this.isPostgres,
+  ).select('*')
 
   return items.map((item) => ({
     ...item,
@@ -923,49 +914,23 @@ export async function getWatchlistItemsWithUsersByGuids(
     return []
   }
 
-  const normalizedGuids = guids.map(normalizeGuid)
-
-  const items = this.isPostgres
-    ? await this.knex('watchlist_items as wi')
-        .join('users as u', 'wi.user_id', 'u.id')
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(wi.guids) elem WHERE lower(elem) = ANY(?))',
-          [normalizedGuids],
-        )
-        .select(
-          'wi.id',
-          'wi.user_id',
-          'wi.key',
-          'wi.title',
-          'wi.type',
-          'wi.thumb',
-          'wi.guids',
-          'wi.genres',
-          'wi.status',
-          'u.name as username',
-        )
-    : await this.knex('watchlist_items as wi')
-        .join('users as u', 'wi.user_id', 'u.id')
-        .where((builder) => {
-          for (const guid of normalizedGuids) {
-            builder.orWhereRaw(
-              "EXISTS (SELECT 1 FROM json_each(wi.guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-              [guid],
-            )
-          }
-        })
-        .select(
-          'wi.id',
-          'wi.user_id',
-          'wi.key',
-          'wi.title',
-          'wi.type',
-          'wi.thumb',
-          'wi.guids',
-          'wi.genres',
-          'wi.status',
-          'u.name as username',
-        )
+  const items = await whereGuidsContainAny(
+    this.knex('watchlist_items as wi').join('users as u', 'wi.user_id', 'u.id'),
+    'wi.guids',
+    guids,
+    this.isPostgres,
+  ).select(
+    'wi.id',
+    'wi.user_id',
+    'wi.key',
+    'wi.title',
+    'wi.type',
+    'wi.thumb',
+    'wi.guids',
+    'wi.genres',
+    'wi.status',
+    'u.name as username',
+  )
 
   return items.map((item) => ({
     ...item,

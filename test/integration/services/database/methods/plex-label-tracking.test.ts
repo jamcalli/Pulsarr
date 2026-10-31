@@ -102,4 +102,95 @@ describe('plex label tracking database methods', () => {
       ['pulsarr:bob'],
     ])
   })
+
+  describe('guid lookups', () => {
+    const track = () =>
+      app.db.trackPlexLabels(
+        ['IMDB://tt0111161', 'tmdb:278'],
+        'movie',
+        SEED_USERS[0].id,
+        '12345',
+        ['pulsarr:alice'],
+      )
+
+    it('stores the guids normalized', async () => {
+      await track()
+
+      const row = await getTestDatabase()('plex_label_tracking').first()
+      expect(JSON.parse(row.content_guids)).toEqual([
+        'imdb:tt0111161',
+        'tmdb:278',
+      ])
+    })
+
+    it('matches mixed-case and provider:// input', async () => {
+      await track()
+
+      const rows = await app.db.getTrackedLabelsForContent(
+        ['TMDB://278'],
+        'movie',
+      )
+      expect(rows.map((row) => row.plex_rating_key)).toEqual(['12345'])
+      expect(
+        await app.db.isLabelTracked(
+          ['Imdb:TT0111161'],
+          'movie',
+          SEED_USERS[0].id,
+          '12345',
+          'pulsarr:alice',
+        ),
+      ).toBe(true)
+    })
+
+    it('does not match a guid that is a string prefix of a stored one', async () => {
+      await track()
+
+      expect(
+        await app.db.getTrackedLabelsForContent(['tmdb:27'], 'movie'),
+      ).toEqual([])
+    })
+
+    it('applies the content type filter', async () => {
+      await track()
+
+      expect(
+        await app.db.getTrackedLabelsForContent(['tmdb:278'], 'show'),
+      ).toEqual([])
+      expect(
+        await app.db.cleanupUserContentTracking(
+          ['tmdb:278'],
+          'show',
+          SEED_USERS[0].id,
+        ),
+      ).toBe(0)
+    })
+
+    it('untracks and cleans up by normalized guid', async () => {
+      await track()
+
+      const result = await app.db.untrackPlexLabelBulk([
+        {
+          contentGuids: ['TMDB://278'],
+          userId: SEED_USERS[0].id,
+          plexRatingKey: '12345',
+          labelApplied: 'pulsarr:alice',
+        },
+      ])
+
+      expect(result).toEqual({ processedCount: 1, failedIds: [] })
+      expect(await getTestDatabase()('plex_label_tracking')).toHaveLength(0)
+    })
+
+    it('cleans up a user row by normalized guid', async () => {
+      await track()
+
+      expect(
+        await app.db.cleanupUserContentTracking(
+          ['IMDB://tt0111161'],
+          'movie',
+          SEED_USERS[0].id,
+        ),
+      ).toBe(1)
+    })
+  })
 })

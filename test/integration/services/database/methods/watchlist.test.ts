@@ -145,7 +145,7 @@ describe('getWatchlistItemsByGuid', () => {
         title: 'Sex and the City',
         key: 'shared-tmdb-show',
         type: 'show',
-        guids: JSON.stringify(['TMDB:105', 'tvdb:76648']),
+        guids: JSON.stringify(['tmdb:105', 'tvdb:76648']),
         genres: JSON.stringify([]),
         status: 'requested',
       },
@@ -159,9 +159,77 @@ describe('getWatchlistItemsByGuid', () => {
     expect(items.map((item) => item.key)).toEqual(['shared-tmdb-movie'])
   })
 
-  it('returns only the show for a show lookup, matching case-insensitively', async () => {
-    const items = await fastify.db.getWatchlistItemsByGuid('tmdb:105', 'show')
+  it('returns only the show for a show lookup, normalizing the input guid', async () => {
+    const items = await fastify.db.getWatchlistItemsByGuid('TMDB://105', 'show')
 
     expect(items.map((item) => item.key)).toEqual(['shared-tmdb-show'])
+  })
+
+  it('does not match a guid that is a string prefix of a stored one', async () => {
+    expect(
+      await fastify.db.getWatchlistItemsByGuid('tmdb:10', 'movie'),
+    ).toEqual([])
+  })
+})
+
+describe('getWatchlistItemsWithUsersByGuids', () => {
+  let fastify: FastifyInstance
+
+  beforeAll(async () => {
+    fastify = await build()
+    await fastify.ready()
+  })
+
+  afterAll(async () => {
+    await fastify.close()
+  })
+
+  beforeEach(async () => {
+    const knex = getTestDatabase()
+    await resetDatabase()
+    await seedConfig(knex)
+    await seedInstances(knex)
+    await seedUsers(knex)
+    await seedWatchlist(knex)
+    await knex('watchlist_items').insert([
+      {
+        user_id: 1,
+        title: 'Back to the Future',
+        key: 'guid-lookup-movie',
+        type: 'movie',
+        guids: JSON.stringify(['tmdb:9999105', 'imdb:tt9990088763']),
+        genres: JSON.stringify([]),
+        status: 'requested',
+      },
+      {
+        user_id: 2,
+        title: 'Sex and the City',
+        key: 'guid-lookup-show',
+        type: 'show',
+        guids: JSON.stringify(['tvdb:9999648']),
+        genres: JSON.stringify([]),
+        status: 'requested',
+      },
+    ])
+    fastify.caches.clear()
+  })
+
+  it('matches any of several normalized guids and returns each item once', async () => {
+    const items = await fastify.db.getWatchlistItemsWithUsersByGuids([
+      'TMDB://9999105',
+      'imdb:tt9990088763',
+      'tvdb:9999648',
+    ])
+
+    expect(items.map((item) => item.key).sort()).toEqual([
+      'guid-lookup-movie',
+      'guid-lookup-show',
+    ])
+  })
+
+  it('does not match a guid that is a string prefix of a stored one', async () => {
+    expect(
+      await fastify.db.getWatchlistItemsWithUsersByGuids(['tvdb:999964']),
+    ).toEqual([])
   })
 })

@@ -3,7 +3,7 @@ import { orderAsText } from '@services/database/ordering.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
-/** Returns null when an identical row already exists and the insert was ignored. */
+/** Returns null when an active episode, season or movie claim with the same key already exists. */
 export async function createNotificationRecord(
   this: DatabaseService,
   notification: {
@@ -40,14 +40,7 @@ export async function createNotificationRecord(
     const query = trx || this.knex
     const result = await query('notifications')
       .insert(insertData)
-      .onConflict([
-        'user_id',
-        'watchlist_item_id',
-        'type',
-        'season_number',
-        'episode_number',
-        'notification_status',
-      ])
+      .onConflict()
       .ignore()
       .returning('id')
 
