@@ -20,7 +20,7 @@ jobs:
         uses: SethCohen/github-releases-to-discord@24d166886aee4646d448c8a389ff9e1ebcab3682 # v1.20.0
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
-          color: "16776960"  # Yellow/orange color for beta
+          color: "16776960" # Yellow/orange color for beta
           username: "Pulsarr Beta Releases"
           avatar_url: "https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png"
           content: "<@&1561840674415050752> 🧪 New Pulsarr beta release is available for testing!"

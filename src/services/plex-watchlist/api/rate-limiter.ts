@@ -39,7 +39,7 @@ export class PlexRateLimiter {
   public getRemainingCooldown(): number {
     if (!this.isRateLimited) return 0
     const remaining = this.cooldownEndTime - Date.now()
-    return remaining > 0 ? remaining : 0
+    return Math.max(remaining, 0)
   }
 
   // Set rate limited state with a specific duration, or use default exponential backoff

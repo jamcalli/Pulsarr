@@ -125,11 +125,12 @@
       "groupName": "Build tools"
     },
     {
-      "description": "Pin Biome to an exact version so lock file maintenance can't move it past the biome.json schema",
+      "description": "Pin Biome to an exact version so lock file maintenance can't move it past the biome.json schema, and give package and schema one release age so they bump together",
       "matchPackageNames": [
         "@biomejs/biome"
       ],
-      "rangeStrategy": "pin"
+      "rangeStrategy": "pin",
+      "minimumReleaseAge": "3 days"
     },
     {
       "description": "Use widen strategy for peer dependencies",

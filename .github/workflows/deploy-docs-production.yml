@@ -6,12 +6,12 @@ on:
       - master
       - develop
     paths:
-      - 'docs/**'
-      - 'src/**'  # OpenAPI generation depends on source files
-      - 'scripts/**'  # Build scripts
-      - 'package.json'
-      - 'bun.lock'
-      - '.github/workflows/deploy-docs-production.yml'
+      - "docs/**"
+      - "src/**" # OpenAPI generation depends on source files
+      - "scripts/**" # Build scripts
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/deploy-docs-production.yml"
 
 permissions:
   contents: write
@@ -41,8 +41,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
+          node-version-file: ".nvmrc"
+          cache: "npm"
           cache-dependency-path: docs/package-lock.json
 
       - name: Pick the deploy target
