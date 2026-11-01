@@ -1,3 +1,4 @@
+import { TMDB_REGION_DEFAULT } from '@root/schemas/config/config.schema.js'
 import type {
   TmdbWatchProvider,
   TmdbWatchProviderData,
@@ -83,7 +84,7 @@ export class TmdbService {
   }
 
   get defaultRegion(): string {
-    return this.fastify.config.tmdbRegion || 'US'
+    return this.fastify.config.tmdbRegion || TMDB_REGION_DEFAULT
   }
 
   private get lookupDeps(): RadarrLookupDeps {

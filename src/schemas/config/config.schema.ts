@@ -77,6 +77,12 @@ export const QUOTA_WEEKLY_ROLLING_DAYS = { min: 1, max: 365 } as const
 export const QUOTA_MONTHLY_RESET_DAY = { min: 1, max: 31 } as const
 /** Empty means Pulsarr negotiates the Plex server connection itself. */
 export const PLEX_SERVER_URL_DEFAULT = ''
+export const TMDB_REGION_DEFAULT = 'US'
+export const PENDING_WEBHOOK_DEFAULTS = {
+  retryIntervalSeconds: 20,
+  maxAgeMinutes: 10,
+  cleanupIntervalSeconds: 60,
+} as const
 
 export const NOTIFY_OPTIONS = [
   'none', // No notifications
@@ -166,6 +172,9 @@ const DeleteSyncNotifyOptionEnum = z.enum(DELETE_SYNC_NOTIFY_OPTIONS).meta({
 
 export const DELETION_MODES = ['watchlist', 'tag-based'] as const
 
+export const DELETION_MODE_DEFAULT =
+  'watchlist' satisfies (typeof DELETION_MODES)[number]
+
 const DeletionModeEnum = z.enum(DELETION_MODES).meta({
   id: 'DeletionMode',
   description:
@@ -198,6 +207,10 @@ const RemovedTagModeSchema = z.enum(['remove', 'keep', 'special-tag']).meta({
   id: 'RemovedTagMode',
   description: 'What happens to a user tag once that user drops the content',
 })
+
+export const REMOVED_TAG_MODE_DEFAULT = 'remove' satisfies z.infer<
+  typeof RemovedTagModeSchema
+>
 
 const QuotaMonthEndSchema = z
   .enum(['last-day', 'skip-month', 'next-month'])
