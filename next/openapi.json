@@ -319,6 +319,13 @@
             "maximum": 365
           }
         },
+        "required": [
+          "enabled",
+          "defaultExpirationHours",
+          "expirationAction",
+          "autoApproveOnQuotaAvailable",
+          "cleanupExpiredDays"
+        ],
         "description": "Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one."
       },
       "ApprovalExpirationStatus": {
@@ -1500,24 +1507,8 @@
             "minimum": 1,
             "maximum": 65535
           },
-          "dbPath": {
-            "type": "string"
-          },
-          "cookieSecured": {
-            "type": "boolean"
-          },
           "logLevel": {
             "$ref": "#/components/schemas/ConfigLogLevel"
-          },
-          "closeGraceDelay": {
-            "type": "number",
-            "description": "Shutdown grace period in milliseconds"
-          },
-          "rateLimitMax": {
-            "type": "number"
-          },
-          "queueProcessDelaySeconds": {
-            "type": "number"
           },
           "maintainerrEnabled": {
             "type": "boolean"
@@ -1780,8 +1771,6 @@
           "id",
           "created_at",
           "updated_at",
-          "cookieSecured",
-          "queueProcessDelaySeconds",
           "maintainerrEnabled",
           "enableApprise",
           "appriseUrl",
@@ -1924,23 +1913,8 @@
             "minimum": 1,
             "maximum": 65535
           },
-          "dbPath": {
-            "type": "string"
-          },
-          "cookieSecured": {
-            "type": "boolean"
-          },
           "logLevel": {
             "$ref": "#/components/schemas/ConfigLogLevel"
-          },
-          "closeGraceDelay": {
-            "type": "number"
-          },
-          "rateLimitMax": {
-            "type": "number"
-          },
-          "queueProcessDelaySeconds": {
-            "type": "number"
           },
           "maintainerrEnabled": {
             "type": "boolean"
@@ -2000,7 +1974,13 @@
               }
             },
             "required": [
-              "enabled"
+              "enabled",
+              "discordWebhookUrls",
+              "discordWebhookUrlsMovies",
+              "discordWebhookUrlsShows",
+              "appriseUrls",
+              "appriseUrlsMovies",
+              "appriseUrlsShows"
             ]
           },
           "plexMobileEnabled": {
