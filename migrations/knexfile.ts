@@ -80,15 +80,24 @@ function moveSqliteFiles(fromDir: string, toDir: string): void {
 }
 
 /**
- * Renames SQLite database files in a directory to `pulsarr.db.bak*` so recovery never deletes data.
+ * Renames the SQLite file set in `dir` to a new timestamped backup name and returns that name, never overwriting an earlier backup.
  */
-function backupSqliteFiles(dir: string): void {
+function backupSqliteFiles(dir: string): string {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)
+  const taken = (name: string) =>
+    SQLITE_SUFFIXES.some((suffix) => fs.existsSync(resolve(dir, name + suffix)))
+  let name = `pulsarr.db.bak-${stamp}`
+  let attempt = 1
+  while (taken(name)) {
+    name = `pulsarr.db.bak-${stamp}-${attempt++}`
+  }
   for (const suffix of SQLITE_SUFFIXES) {
     const src = resolve(dir, `pulsarr.db${suffix}`)
     if (fs.existsSync(src)) {
-      moveFile(src, resolve(dir, `pulsarr.db.bak${suffix}`))
+      moveFile(src, resolve(dir, `${name}${suffix}`))
     }
   }
+  return name
 }
 
 /**
@@ -188,15 +197,15 @@ function recoverMisplacedDatabase(
 
     if (correctIsFresh && altHasData) {
       // Current DB is a fresh re-setup, alt has the real data — swap
-      backupSqliteFiles(correctDbDir)
+      const backup = backupSqliteFiles(correctDbDir)
       moveSqliteFiles(altDbDir, correctDbDir)
       console.log(
-        `[DB Recovery] Replaced fresh database with recovered data from ${altDbDir}`,
+        `[DB Recovery] Replaced fresh database with recovered data from ${altDbDir}, fresh one kept as ${backup}`,
       )
     } else if (altIsFresh && correctHasData) {
-      backupSqliteFiles(altDbDir)
+      const backup = backupSqliteFiles(altDbDir)
       console.log(
-        `[DB Recovery] Moved unused database at ${altDbDir} to pulsarr.db.bak`,
+        `[DB Recovery] Moved unused database at ${altDbDir} to ${backup}`,
       )
     } else if (altHasData && correctHasData) {
       // Both have real data — don't touch either, warn the user
