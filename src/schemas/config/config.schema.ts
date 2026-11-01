@@ -36,7 +36,6 @@ const DiscordWebhookUrlListSchema = z
   .refine((val) => splitUrlList(val).every(isDiscordWebhookUrl), {
     message: 'Must be valid Discord webhook URL(s) (comma-separated)',
   })
-  .optional()
 
 /**
  * Apprise URL schema - accepts any string.
@@ -44,7 +43,7 @@ const DiscordWebhookUrlListSchema = z
  * conform to WHATWG URL spec, so we skip client-side validation and let
  * Apprise handle validation when sending notifications.
  */
-const AppriseUrlSchema = z.string().optional()
+const AppriseUrlSchema = z.string()
 
 export const ConfigLogLevelSchema = z
   .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
@@ -248,14 +247,13 @@ const ApprovalExpirationSchema = z
 
 const ApprovalExpirationPayloadSchema = z
   .object({
-    enabled: z.boolean().optional(),
+    enabled: z.boolean(),
     defaultExpirationHours: z
       .number({ error: 'Enter a number of hours.' })
       .min(APPROVAL_EXPIRATION_HOURS.min)
-      .max(APPROVAL_EXPIRATION_HOURS.max)
-      .optional(),
-    expirationAction: ApprovalExpirationActionSchema.optional(),
-    autoApproveOnQuotaAvailable: z.boolean().optional(),
+      .max(APPROVAL_EXPIRATION_HOURS.max),
+    expirationAction: ApprovalExpirationActionSchema,
+    autoApproveOnQuotaAvailable: z.boolean(),
     quotaExceededExpirationHours: ExpirationOverrideHoursSchema.optional(),
     routerRuleExpirationHours: ExpirationOverrideHoursSchema.optional(),
     manualFlagExpirationHours: ExpirationOverrideHoursSchema.optional(),
@@ -263,8 +261,7 @@ const ApprovalExpirationPayloadSchema = z
     cleanupExpiredDays: z
       .number({ error: 'Enter a number of days.' })
       .min(EXPIRED_APPROVAL_CLEANUP_DAYS.min)
-      .max(EXPIRED_APPROVAL_CLEANUP_DAYS.max)
-      .optional(),
+      .max(EXPIRED_APPROVAL_CLEANUP_DAYS.max),
   })
   .meta({
     id: 'ApprovalExpirationPayload',
@@ -343,17 +340,8 @@ export const ConfigFullSchema = z
     // System Config (from database)
     baseUrl: z.string().optional(),
     port: z.number().int().min(PORT_RANGE.min).max(PORT_RANGE.max).optional(),
-    dbPath: z.string().optional(),
-    // cookieSecret, webhookSecret, and cookieName are server-internal
-    cookieSecured: z.boolean(),
     // Logging & Performance
     logLevel: ConfigLogLevelSchema.optional(),
-    closeGraceDelay: z
-      .number()
-      .meta({ description: 'Shutdown grace period in milliseconds' })
-      .optional(),
-    rateLimitMax: z.number().optional(),
-    queueProcessDelaySeconds: z.number(),
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
     maintainerrEnabled: z.boolean(),
     maintainerrUrl: z.string().optional(),
@@ -434,8 +422,6 @@ export const ConfigFullSchema = z
     tagUsersInSonarr: z.boolean(),
     tagUsersInRadarr: z.boolean(),
     cleanupOrphanedTags: z.boolean(),
-    // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
-    // persistHistoricalTags: z.boolean(),
     tagPrefix: z.string(),
     tagNamingSource: UserNamingSourceSchema,
     removedTagMode: RemovedTagModeSchema,
@@ -474,24 +460,18 @@ export const ConfigUpdateSchema = z
   .object({
     baseUrl: HttpUrlOptionalSchema,
     port: z.number().int().min(PORT_RANGE.min).max(PORT_RANGE.max).optional(),
-    dbPath: z.string().optional(),
-    // cookieSecret, webhookSecret, and cookieName are server-internal
-    cookieSecured: z.boolean().optional(),
     logLevel: ConfigLogLevelSchema.optional(),
-    closeGraceDelay: z.number().optional(),
-    rateLimitMax: z.number().optional(),
-    queueProcessDelaySeconds: z.number().optional(),
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
     maintainerrEnabled: z.boolean().optional(),
     maintainerrUrl: HttpUrlOptionalSchema,
     maintainerrExclusionMode: MaintainerrExclusionModeSchema.optional(),
     // Discord Config
-    discordWebhookUrl: DiscordWebhookUrlListSchema,
+    discordWebhookUrl: DiscordWebhookUrlListSchema.optional(),
     discordBotToken: z.string().optional(),
     discordClientId: z.string().optional(),
     // Apprise Config (enableApprise/appriseUrl are runtime-only; not writable via API)
-    systemAppriseUrl: AppriseUrlSchema,
-    appriseEmailSender: AppriseUrlSchema,
+    systemAppriseUrl: AppriseUrlSchema.optional(),
+    appriseEmailSender: AppriseUrlSchema.optional(),
     // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
     publicContentNotifications: z
       .object({

@@ -195,10 +195,6 @@ const schema = {
       type: 'string',
       default: '',
     },
-    queueProcessDelaySeconds: {
-      type: 'number',
-      default: 60,
-    },
     discordWebhookUrl: {
       type: 'string',
       default: '',

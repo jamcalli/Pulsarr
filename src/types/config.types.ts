@@ -100,7 +100,6 @@ export interface Config {
   allowedOrigins: string[]
   allowedHosts: string[]
   rateLimitMax: number
-  queueProcessDelaySeconds: number
   // Maintainerr Config
   maintainerrEnabled: boolean
   maintainerrUrl: string

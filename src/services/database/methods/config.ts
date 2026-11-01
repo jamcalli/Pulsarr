@@ -138,7 +138,6 @@ export async function getConfig(
     discordBotToken: config.discordBotToken || undefined,
     discordClientId: config.discordClientId || undefined,
     baseUrl: config.baseUrl || undefined,
-    queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
     queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
     newEpisodeThreshold:
       config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
@@ -207,7 +206,6 @@ export async function getConfig(
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
     cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
-    // TODO: drop the dormant persistHistoricalTags column, replaced by removedTagMode
     tagPrefix: config.tagPrefix || TAG_PREFIX_DEFAULTS.tagPrefix,
     tagNamingSource: config.tagNamingSource || 'username',
     removedTagMode: config.removedTagMode || 'remove',
@@ -247,7 +245,6 @@ export async function createConfig(
       logLevel: config.logLevel,
       closeGraceDelay: config.closeGraceDelay,
       rateLimitMax: config.rateLimitMax,
-      queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
       queueWaitTime: config.queueWaitTime ?? QUEUE_WAIT_TIME_MS.default,
       newEpisodeThreshold:
         config.newEpisodeThreshold ?? NEW_EPISODE_THRESHOLD_MS.default,
@@ -377,7 +374,6 @@ const ALLOWED_COLUMNS = new Set([
   '_isReady',
 
   'dbType',
-  'dbPath',
   'dbHost',
   'dbPort',
   'dbName',
@@ -385,7 +381,6 @@ const ALLOWED_COLUMNS = new Set([
   'dbPassword',
   'dbConnectionString',
 
-  'cookieSecured',
   'authenticationMethod',
   'allowIframes',
 
@@ -394,9 +389,6 @@ const ALLOWED_COLUMNS = new Set([
   'maintainerrExclusionMode',
 
   'logLevel',
-  'closeGraceDelay',
-  'rateLimitMax',
-  'queueProcessDelaySeconds',
 
   'discordWebhookUrl',
   'discordBotToken',

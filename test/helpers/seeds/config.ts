@@ -15,7 +15,6 @@ import type { Knex } from 'knex'
  * - logLevel: enum
  * - closeGraceDelay: integer
  * - rateLimitMax: integer
- * - queueProcessDelaySeconds: integer (default: 60)
  * - discordWebhookUrl: string
  * - discordBotToken: string
  * - discordClientId: string
@@ -42,7 +41,6 @@ import type { Knex } from 'knex'
  * - tagUsersInSonarr: boolean (default: false)
  * - tagUsersInRadarr: boolean (default: false)
  * - cleanupOrphanedTags: boolean (default: true)
- * - persistHistoricalTags: boolean (default: false)
  * - tagPrefix: string (default: 'pulsarr:user')
  * - removedTagMode: enum (default: 'remove')
  * - removedTagPrefix: string (default: 'pulsarr:removed')
@@ -89,7 +87,6 @@ export const SEED_CONFIGS = [
     logLevel: 'silent',
     closeGraceDelay: 10000,
     rateLimitMax: 500,
-    queueProcessDelaySeconds: 60,
     discordWebhookUrl: null,
     discordBotToken: null,
     discordClientId: null,
@@ -126,7 +123,6 @@ export const SEED_CONFIGS = [
     tagUsersInSonarr: false,
     tagUsersInRadarr: false,
     cleanupOrphanedTags: true,
-    persistHistoricalTags: false,
     tagPrefix: 'pulsarr:user',
     removedTagMode: 'remove',
     removedTagPrefix: 'pulsarr:removed',
