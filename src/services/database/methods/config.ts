@@ -2,6 +2,7 @@ import type { ConfigFull } from '@root/schemas/config/config.schema.js'
 import {
   type PublicConfigPatch,
   SECRET_CONFIG_KEYS,
+  STORED_CONFIG_DEFAULTS,
   STORED_CONFIG_KEYS,
 } from '@root/schemas/config/config-defaults.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
@@ -40,6 +41,7 @@ export async function createConfig(
   }
 
   const settings = {
+    ...pickStoredKeys(STORED_CONFIG_DEFAULTS, STORED_CONFIG_KEYS),
     ...pickStoredKeys(config, STORED_CONFIG_KEYS),
     ...pickStoredKeys(config, SECRET_CONFIG_KEYS),
   }
