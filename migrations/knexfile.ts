@@ -80,15 +80,24 @@ function moveSqliteFiles(fromDir: string, toDir: string): void {
 }
 
 /**
- * Removes SQLite database files from a directory.
+ * Renames the SQLite file set in `dir` to a new timestamped backup name and returns that name, never overwriting an earlier backup.
  */
-function removeSqliteFiles(dir: string): void {
+function backupSqliteFiles(dir: string): string {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)
+  const taken = (name: string) =>
+    SQLITE_SUFFIXES.some((suffix) => fs.existsSync(resolve(dir, name + suffix)))
+  let name = `pulsarr.db.bak-${stamp}`
+  let attempt = 1
+  while (taken(name)) {
+    name = `pulsarr.db.bak-${stamp}-${attempt++}`
+  }
   for (const suffix of SQLITE_SUFFIXES) {
-    const file = resolve(dir, `pulsarr.db${suffix}`)
-    if (fs.existsSync(file)) {
-      fs.unlinkSync(file)
+    const src = resolve(dir, `pulsarr.db${suffix}`)
+    if (fs.existsSync(src)) {
+      moveFile(src, resolve(dir, `${name}${suffix}`))
     }
   }
+  return name
 }
 
 /**
@@ -104,14 +113,21 @@ function queryDbRichness(
   try {
     const db = new Database(dbPath, { readonly: true })
     try {
+      const columns = db
+        .prepare("SELECT name FROM pragma_table_info('configs')")
+        .all() as { name: string }[]
+      // SQLite reads a double-quoted unknown column as a string literal, so pick the column that exists
+      const readyExpr = columns.some((column) => column.name === 'settings')
+        ? "json_extract(settings, '$._isReady')"
+        : '_isReady'
       const configRow = db
-        .prepare('SELECT "_isReady" FROM configs WHERE id = 1')
-        .get() as { _isReady: number | boolean } | undefined
+        .prepare(`SELECT ${readyExpr} AS isReady FROM configs WHERE id = 1`)
+        .get() as { isReady: number | boolean | null } | undefined
       const countRow = db
-        .prepare('SELECT COUNT(*) as count FROM users')
+        .prepare('SELECT COUNT(*) as count FROM users WHERE id != 0')
         .get() as { count: number } | undefined
       return {
-        isReady: configRow ? Boolean(configRow._isReady) : false,
+        isReady: Boolean(configRow?.isReady),
         userCount: countRow?.count ?? 0,
       }
     } finally {
@@ -181,21 +197,16 @@ function recoverMisplacedDatabase(
 
     if (correctIsFresh && altHasData) {
       // Current DB is a fresh re-setup, alt has the real data — swap
-      // Back up all companion files to avoid orphaned WAL/SHM from the fresh DB
-      for (const suffix of SQLITE_SUFFIXES) {
-        const src = resolve(correctDbDir, `pulsarr.db${suffix}`)
-        if (fs.existsSync(src)) {
-          moveFile(src, resolve(correctDbDir, `pulsarr.db.bak${suffix}`))
-        }
-      }
+      const backup = backupSqliteFiles(correctDbDir)
       moveSqliteFiles(altDbDir, correctDbDir)
       console.log(
-        `[DB Recovery] Replaced fresh database with recovered data from ${altDbDir}`,
+        `[DB Recovery] Replaced fresh database with recovered data from ${altDbDir}, fresh one kept as ${backup}`,
       )
     } else if (altIsFresh && correctHasData) {
-      // Alt is the empty one — clean it up
-      removeSqliteFiles(altDbDir)
-      console.log(`[DB Recovery] Cleaned up empty database at ${altDbDir}`)
+      const backup = backupSqliteFiles(altDbDir)
+      console.log(
+        `[DB Recovery] Moved unused database at ${altDbDir} to ${backup}`,
+      )
     } else if (altHasData && correctHasData) {
       // Both have real data — don't touch either, warn the user
       console.warn(

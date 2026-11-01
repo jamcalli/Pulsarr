@@ -3482,15 +3482,15 @@ export interface components {
         ApprovalExpirationAction: "expire" | "auto_approve";
         /** @description Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one. */
         ApprovalExpirationPayload: {
-            enabled?: boolean;
-            defaultExpirationHours?: number;
-            expirationAction?: components["schemas"]["ApprovalExpirationAction"];
-            autoApproveOnQuotaAvailable?: boolean;
+            enabled: boolean;
+            defaultExpirationHours: number;
+            expirationAction: components["schemas"]["ApprovalExpirationAction"];
+            autoApproveOnQuotaAvailable: boolean;
             quotaExceededExpirationHours?: number;
             routerRuleExpirationHours?: number;
             manualFlagExpirationHours?: number;
             contentCriteriaExpirationHours?: number;
-            cleanupExpiredDays?: number;
+            cleanupExpiredDays: number;
         };
         /**
          * @description Expiry state computed from the current expiration config
@@ -3799,13 +3799,7 @@ export interface components {
             updated_at: string;
             baseUrl?: string;
             port?: number;
-            dbPath?: string;
-            cookieSecured: boolean;
             logLevel?: components["schemas"]["ConfigLogLevel"];
-            /** @description Shutdown grace period in milliseconds */
-            closeGraceDelay?: number;
-            rateLimitMax?: number;
-            queueProcessDelaySeconds: number;
             maintainerrEnabled: boolean;
             maintainerrUrl?: string;
             maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
@@ -3917,12 +3911,7 @@ export interface components {
         ConfigUpdatePayload: {
             baseUrl?: string | "";
             port?: number;
-            dbPath?: string;
-            cookieSecured?: boolean;
             logLevel?: components["schemas"]["ConfigLogLevel"];
-            closeGraceDelay?: number;
-            rateLimitMax?: number;
-            queueProcessDelaySeconds?: number;
             maintainerrEnabled?: boolean;
             maintainerrUrl?: string | "";
             maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
@@ -3933,12 +3922,12 @@ export interface components {
             appriseEmailSender?: string;
             publicContentNotifications?: {
                 enabled: boolean;
-                discordWebhookUrls?: string;
-                discordWebhookUrlsMovies?: string;
-                discordWebhookUrlsShows?: string;
-                appriseUrls?: string;
-                appriseUrlsMovies?: string;
-                appriseUrlsShows?: string;
+                discordWebhookUrls: string;
+                discordWebhookUrlsMovies: string;
+                discordWebhookUrlsShows: string;
+                appriseUrls: string;
+                appriseUrlsMovies: string;
+                appriseUrlsShows: string;
             };
             plexMobileEnabled?: boolean;
             queueWaitTime?: number;

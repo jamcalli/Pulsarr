@@ -12,6 +12,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { patchConfigSettings } from '../../helpers/config-settings.js'
 import {
   getTestDatabase,
   initializeTestDatabase,
@@ -45,7 +46,7 @@ describe('watchlist workflow boot auto-start', { timeout: 30_000 }, () => {
   async function seedWithReady(isReady: boolean) {
     const knex = getTestDatabase()
     await seedConfig(knex)
-    await knex('configs').where({ id: 1 }).update({ _isReady: isReady })
+    await patchConfigSettings(knex, { _isReady: isReady })
   }
 
   it('starts the workflow at boot when _isReady was persisted true', async () => {
@@ -108,7 +109,7 @@ describe('watchlist workflow full reconcile', { timeout: 30_000 }, () => {
   it('advances the last successful sync time', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)
-    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+    await patchConfigSettings(knex, { _isReady: false })
 
     useArrHandlers()
 
@@ -159,7 +160,7 @@ describe('watchlist workflow rss mode', { timeout: 30_000 }, () => {
   it('primes the feed, then persists and routes an item the interval finds', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)
-    await knex('configs').where({ id: 1 }).update({
+    await patchConfigSettings(knex, {
       _isReady: false,
       selfRss: 'https://rss.test/self',
       friendsRss: 'https://rss.test/friends',

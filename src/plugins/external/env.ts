@@ -3,33 +3,26 @@ import { resolve } from 'node:path'
 import env from '@fastify/env'
 import {
   ConfigLogLevelSchema,
-  DEFAULT_LOG_LEVEL,
   DEFAULT_PULSARR_PORT,
   DELETE_SYNC_NOTIFY_OPTIONS,
   DELETION_MODES,
-  MAINTAINERR_EXCLUSION_MODE_DEFAULT,
   MAINTAINERR_EXCLUSION_MODES,
-  NEW_EPISODE_THRESHOLD_MS,
-  NOTIFY_DEFAULTS,
   NOTIFY_OPTIONS,
   PLEX_SERVER_URL_DEFAULT,
-  QUEUE_WAIT_TIME_MS,
 } from '@root/schemas/config/config.schema.js'
 import {
-  PLEX_EXISTENCE_SCOPE_DEFAULT,
-  PLEX_EXISTENCE_SCOPES,
-} from '@root/schemas/plex/existence-scope.schema.js'
+  DEFAULT_APPROVAL_EXPIRATION,
+  DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
+  DEFAULT_QUOTA_SETTINGS,
+  type PublicConfigPatch,
+  STORED_CONFIG_DEFAULTS,
+} from '@root/schemas/config/config-defaults.js'
+import { PLEX_EXISTENCE_SCOPES } from '@root/schemas/plex/existence-scope.schema.js'
 import {
   PLEX_LABEL_SYNC_DEFAULTS,
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema.js'
 import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
-import {
-  MAX_DELETION_PREVENTION,
-  PLEX_PROTECTION_PLAYLIST_DEFAULT,
-} from '@root/schemas/shared/delete-sync-limits.js'
-import { TAG_PREFIX_DEFAULTS } from '@root/schemas/shared/prefix-validation.schema.js'
-import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
 import { parseAllowedHosts } from '@utils/allowed-hosts.js'
@@ -45,38 +38,6 @@ const generateSecret = () => crypto.randomBytes(32).toString('hex')
 // or fall back to project-relative paths (Linux/Docker)
 const dataDir = resolveDataDir()
 
-const DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS = {
-  enabled: false,
-  discordWebhookUrls: '',
-  discordWebhookUrlsMovies: '',
-  discordWebhookUrlsShows: '',
-  appriseUrls: '',
-  appriseUrlsMovies: '',
-  appriseUrlsShows: '',
-}
-
-const DEFAULT_QUOTA_SETTINGS = {
-  cleanup: {
-    enabled: true,
-    retentionDays: 90,
-  },
-  weeklyRolling: {
-    resetDays: 7,
-  },
-  monthly: {
-    resetDay: 1,
-    handleMonthEnd: 'last-day' as const,
-  },
-}
-
-const DEFAULT_APPROVAL_EXPIRATION = {
-  enabled: false,
-  defaultExpirationHours: 72,
-  expirationAction: 'expire' as const,
-  autoApproveOnQuotaAvailable: false,
-  cleanupExpiredDays: 30,
-}
-
 const schema = {
   type: 'object',
   required: ['port'],
@@ -91,7 +52,7 @@ const schema = {
     },
     port: {
       type: 'number',
-      default: DEFAULT_PULSARR_PORT,
+      default: STORED_CONFIG_DEFAULTS.port,
     },
     listenPort: {
       type: 'number',
@@ -153,11 +114,11 @@ const schema = {
     },
     maintainerrEnabled: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.maintainerrEnabled,
     },
     maintainerrUrl: {
       type: 'string',
-      default: '',
+      default: STORED_CONFIG_DEFAULTS.maintainerrUrl,
     },
     maintainerrWebhookSecret: {
       type: 'string',
@@ -167,12 +128,12 @@ const schema = {
     maintainerrExclusionMode: {
       type: 'string',
       enum: MAINTAINERR_EXCLUSION_MODES,
-      default: MAINTAINERR_EXCLUSION_MODE_DEFAULT,
+      default: STORED_CONFIG_DEFAULTS.maintainerrExclusionMode,
     },
     logLevel: {
       type: 'string',
       enum: ConfigLogLevelSchema.options,
-      default: DEFAULT_LOG_LEVEL,
+      default: STORED_CONFIG_DEFAULTS.logLevel,
     },
     closeGraceDelay: {
       type: 'number',
@@ -195,10 +156,6 @@ const schema = {
       type: 'string',
       default: '',
     },
-    queueProcessDelaySeconds: {
-      type: 'number',
-      default: 60,
-    },
     discordWebhookUrl: {
       type: 'string',
       default: '',
@@ -213,11 +170,11 @@ const schema = {
     },
     enableApprise: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.enableApprise,
     },
     appriseUrl: {
       type: 'string',
-      default: '',
+      default: STORED_CONFIG_DEFAULTS.appriseUrl,
     },
     systemAppriseUrl: {
       type: 'string',
@@ -230,31 +187,33 @@ const schema = {
     // Public Content Notifications
     publicContentNotifications: {
       type: 'string',
-      default: JSON.stringify(DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS),
+      default: JSON.stringify(
+        STORED_CONFIG_DEFAULTS.publicContentNotifications,
+      ),
     },
     queueWaitTime: {
       type: 'number',
-      default: QUEUE_WAIT_TIME_MS.default,
+      default: STORED_CONFIG_DEFAULTS.queueWaitTime,
     },
     newEpisodeThreshold: {
       type: 'number',
-      default: NEW_EPISODE_THRESHOLD_MS.default,
+      default: STORED_CONFIG_DEFAULTS.newEpisodeThreshold,
     },
     plexMobileEnabled: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.plexMobileEnabled,
     },
     pendingWebhookRetryInterval: {
       type: 'number',
-      default: 20,
+      default: STORED_CONFIG_DEFAULTS.pendingWebhookRetryInterval,
     },
     pendingWebhookMaxAge: {
       type: 'number',
-      default: 10,
+      default: STORED_CONFIG_DEFAULTS.pendingWebhookMaxAge,
     },
     pendingWebhookCleanupInterval: {
       type: 'number',
-      default: 60,
+      default: STORED_CONFIG_DEFAULTS.pendingWebhookCleanupInterval,
     },
     sonarrBaseUrl: {
       type: 'string',
@@ -324,15 +283,15 @@ const schema = {
     },
     tmdbRegion: {
       type: 'string',
-      default: 'US',
+      default: STORED_CONFIG_DEFAULTS.tmdbRegion,
     },
     plexTokens: {
       type: 'string',
-      default: '[]',
+      default: JSON.stringify(STORED_CONFIG_DEFAULTS.plexTokens),
     },
     skipFriendSync: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.skipFriendSync,
     },
     plexServerUrl: {
       type: 'string',
@@ -340,32 +299,32 @@ const schema = {
     },
     skipIfExistsOnPlex: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.skipIfExistsOnPlex,
     },
     plexExistenceScope: {
       type: 'string',
       enum: PLEX_EXISTENCE_SCOPES,
-      default: PLEX_EXISTENCE_SCOPE_DEFAULT,
+      default: STORED_CONFIG_DEFAULTS.plexExistenceScope,
     },
     enablePlexPlaylistProtection: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.enablePlexPlaylistProtection,
     },
     plexProtectionPlaylistName: {
       type: 'string',
-      default: PLEX_PROTECTION_PLAYLIST_DEFAULT,
+      default: STORED_CONFIG_DEFAULTS.plexProtectionPlaylistName,
     },
     deleteMovie: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.deleteMovie,
     },
     deleteEndedShow: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.deleteEndedShow,
     },
     deleteContinuingShow: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.deleteContinuingShow,
     },
     deleteFiles: {
       type: 'boolean',
@@ -378,19 +337,19 @@ const schema = {
     deleteSyncNotify: {
       type: 'string',
       enum: DELETE_SYNC_NOTIFY_OPTIONS,
-      default: NOTIFY_DEFAULTS.deleteSyncNotify,
+      default: STORED_CONFIG_DEFAULTS.deleteSyncNotify,
     },
     deleteSyncNotifyOnlyOnDeletion: {
       type: 'boolean',
-      default: NOTIFY_DEFAULTS.deleteSyncNotifyOnlyOnDeletion,
+      default: STORED_CONFIG_DEFAULTS.deleteSyncNotifyOnlyOnDeletion,
     },
     deleteSyncTrackedOnly: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.deleteSyncTrackedOnly,
     },
     deleteSyncCleanupApprovals: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.deleteSyncCleanupApprovals,
     },
     deleteSyncRequiredTagRegex: {
       type: 'string',
@@ -398,11 +357,11 @@ const schema = {
     approvalNotify: {
       type: 'string',
       enum: NOTIFY_OPTIONS,
-      default: NOTIFY_DEFAULTS.approvalNotify,
+      default: STORED_CONFIG_DEFAULTS.approvalNotify,
     },
     maxDeletionPrevention: {
       type: 'number',
-      default: MAX_DELETION_PREVENTION.default,
+      default: STORED_CONFIG_DEFAULTS.maxDeletionPrevention,
     },
     selfRss: {
       type: 'string',
@@ -412,11 +371,11 @@ const schema = {
     },
     tagUsersInSonarr: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.tagUsersInSonarr,
     },
     tagUsersInRadarr: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.tagUsersInRadarr,
     },
     cleanupOrphanedTags: {
       type: 'boolean',
@@ -424,26 +383,26 @@ const schema = {
     },
     tagPrefix: {
       type: 'string',
-      default: TAG_PREFIX_DEFAULTS.tagPrefix,
+      default: STORED_CONFIG_DEFAULTS.tagPrefix,
     },
     tagNamingSource: {
       type: 'string',
       enum: ['username', 'alias'],
-      default: 'username',
+      default: STORED_CONFIG_DEFAULTS.tagNamingSource,
     },
     removedTagMode: {
       type: 'string',
       enum: ['remove', 'keep', 'special-tag'],
-      default: 'remove',
+      default: STORED_CONFIG_DEFAULTS.removedTagMode,
     },
     removedTagPrefix: {
       type: 'string',
-      default: TAG_PREFIX_DEFAULTS.removedTagPrefix,
+      default: STORED_CONFIG_DEFAULTS.removedTagPrefix,
     },
     deletionMode: {
       type: 'string',
       enum: DELETION_MODES,
-      default: 'watchlist',
+      default: STORED_CONFIG_DEFAULTS.deletionMode,
     },
     plexSessionMonitoring: {
       type: 'string',
@@ -451,45 +410,45 @@ const schema = {
     },
     newUserDefaultCanSync: {
       type: 'boolean',
-      default: true,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultCanSync,
     },
     newUserDefaultRequiresApproval: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultRequiresApproval,
     },
     newUserDefaultMovieQuotaEnabled: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultMovieQuotaEnabled,
     },
     newUserDefaultMovieQuotaType: {
       type: 'string',
       enum: QuotaTypeSchema.options,
-      default: QUOTA_DEFAULTS.quotaType,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultMovieQuotaType,
     },
     newUserDefaultMovieQuotaLimit: {
       type: 'number',
-      default: QUOTA_DEFAULTS.limit,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultMovieQuotaLimit,
     },
     newUserDefaultMovieBypassApproval: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultMovieBypassApproval,
     },
     newUserDefaultShowQuotaEnabled: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultShowQuotaEnabled,
     },
     newUserDefaultShowQuotaType: {
       type: 'string',
       enum: QuotaTypeSchema.options,
-      default: QUOTA_DEFAULTS.quotaType,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultShowQuotaType,
     },
     newUserDefaultShowQuotaLimit: {
       type: 'number',
-      default: QUOTA_DEFAULTS.limit,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultShowQuotaLimit,
     },
     newUserDefaultShowBypassApproval: {
       type: 'boolean',
-      default: false,
+      default: STORED_CONFIG_DEFAULTS.newUserDefaultShowBypassApproval,
     },
     allowIframes: {
       type: 'boolean',
@@ -498,17 +457,17 @@ const schema = {
     // Quota System Configuration
     quotaSettings: {
       type: 'string',
-      default: JSON.stringify(DEFAULT_QUOTA_SETTINGS),
+      default: JSON.stringify(STORED_CONFIG_DEFAULTS.quotaSettings),
     },
     // Approval System Configuration
     approvalExpiration: {
       type: 'string',
-      default: JSON.stringify(DEFAULT_APPROVAL_EXPIRATION),
+      default: JSON.stringify(STORED_CONFIG_DEFAULTS.approvalExpiration),
     },
     // Plex Label Sync Configuration - nested object following complex config pattern
     plexLabelSync: {
       type: 'string',
-      default: JSON.stringify(PLEX_LABEL_SYNC_DEFAULTS),
+      default: JSON.stringify(STORED_CONFIG_DEFAULTS.plexLabelSync),
     },
   },
 }
@@ -517,7 +476,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     config: Config
     updateConfig(config: Partial<Config>): Promise<Config>
-    updateConfigAndPersist(config: Partial<Config>): Promise<Config>
+    updateConfigAndPersist(config: PublicConfigPatch): Promise<Config>
   }
 }
 
@@ -532,7 +491,7 @@ export default fp(
       data: process.env,
     })
 
-    const rawConfig = fastify.config as unknown as RawConfig
+    const rawConfig = fastify.getEnvs<RawConfig>()
 
     const parsedConfig = {
       ...rawConfig,
@@ -704,7 +663,7 @@ export default fp(
     // updateConfig is a plain merge and cannot fail
     fastify.decorate(
       'updateConfigAndPersist',
-      async (newConfig: Partial<Config>) => {
+      async (newConfig: PublicConfigPatch) => {
         const dbUpdated = await fastify.db.updateConfig(newConfig)
         if (!dbUpdated) {
           throw new Error('Failed to persist config update to database')
