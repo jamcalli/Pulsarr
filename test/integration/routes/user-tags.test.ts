@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { readConfigSettings } from '../../helpers/config-settings.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedAll } from '../../helpers/seeds/index.js'
 
@@ -124,8 +125,8 @@ describe('user tag status and prefix lock', () => {
       message:
         'Remove existing user tags before changing the tag prefix, removed tag label or naming source',
     })
-    const row = await getTestDatabase()('configs').where({ id: 1 }).first()
-    expect(row?.tagPrefix).toBe('pulsarr:user')
+    const settings = await readConfigSettings(getTestDatabase())
+    expect(settings.tagPrefix).toBe('pulsarr:user')
   })
 
   it('PUT /v1/config returns 409 when the naming source changes while tags exist', async () => {

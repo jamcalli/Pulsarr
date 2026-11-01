@@ -23,17 +23,15 @@ describe('Config nested payloads', () => {
   })
 
   it('rejects a partial approvalExpiration and keeps the stored value', async () => {
-    await getTestDatabase()('configs')
-      .where({ id: 1 })
-      .update({
-        approvalExpiration: JSON.stringify({
-          enabled: false,
-          defaultExpirationHours: 48,
-          expirationAction: 'expire',
-          autoApproveOnQuotaAvailable: false,
-          cleanupExpiredDays: 30,
-        }),
-      })
+    await app.db.updateConfig({
+      approvalExpiration: {
+        enabled: false,
+        defaultExpirationHours: 48,
+        expirationAction: 'expire',
+        autoApproveOnQuotaAvailable: false,
+        cleanupExpiredDays: 30,
+      },
+    })
 
     const putRes = await app.inject({
       method: 'PUT',
@@ -49,19 +47,17 @@ describe('Config nested payloads', () => {
 
   it('rejects a partial publicContentNotifications and keeps the stored value', async () => {
     const webhook = 'https://discord.com/api/webhooks/123/abc'
-    await getTestDatabase()('configs')
-      .where({ id: 1 })
-      .update({
-        publicContentNotifications: JSON.stringify({
-          enabled: false,
-          discordWebhookUrls: webhook,
-          discordWebhookUrlsMovies: '',
-          discordWebhookUrlsShows: '',
-          appriseUrls: '',
-          appriseUrlsMovies: '',
-          appriseUrlsShows: '',
-        }),
-      })
+    await app.db.updateConfig({
+      publicContentNotifications: {
+        enabled: false,
+        discordWebhookUrls: webhook,
+        discordWebhookUrlsMovies: '',
+        discordWebhookUrlsShows: '',
+        appriseUrls: '',
+        appriseUrlsMovies: '',
+        appriseUrlsShows: '',
+      },
+    })
 
     const putRes = await app.inject({
       method: 'PUT',

@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { readConfigSettings } from '../../helpers/config-settings.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedAll } from '../../helpers/seeds/index.js'
 import { server } from '../../setup/msw-setup.js'
@@ -41,7 +42,7 @@ describe('Config Plex token changes and watchlist feeds', () => {
     app.config.authenticationMethod = 'disabled'
     vi.spyOn(app.plexServerService, 'connectSSE').mockResolvedValue(undefined)
     vi.spyOn(app.plexServerService, 'disconnectSSE').mockReturnValue(undefined)
-    await getTestDatabase()('configs').where({ id: 1 }).update(FEEDS)
+    await app.db.updateConfig(FEEDS)
     pings = []
     server.use(
       http.get('https://plex.tv/api/v2/ping', ({ request }) => {
@@ -57,13 +58,12 @@ describe('Config Plex token changes and watchlist feeds', () => {
   })
 
   async function savedTokens() {
-    const row = await getTestDatabase()('configs').where({ id: 1 }).first()
-    return JSON.parse(row?.plexTokens ?? '[]')
+    return (await readConfigSettings(getTestDatabase())).plexTokens ?? []
   }
 
   async function savedFeeds() {
-    const row = await getTestDatabase()('configs').where({ id: 1 }).first()
-    return { selfRss: row?.selfRss, friendsRss: row?.friendsRss }
+    const { selfRss, friendsRss } = await readConfigSettings(getTestDatabase())
+    return { selfRss, friendsRss }
   }
 
   function putConfig(payload: Record<string, unknown>) {

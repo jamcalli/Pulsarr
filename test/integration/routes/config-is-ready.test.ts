@@ -9,6 +9,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { readConfigSettings } from '../../helpers/config-settings.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedAll } from '../../helpers/seeds/index.js'
 
@@ -58,10 +59,8 @@ describe('Config _isReady persistence', () => {
     expect(body.config._isReady).toBe(false)
     expect(app.config._isReady).toBe(false)
 
-    const knex = getTestDatabase()
-    const row = await knex('configs').where({ id: 1 }).first()
-    expect(row).toBeDefined()
-    expect(Boolean(row?._isReady)).toBe(false)
+    const settings = await readConfigSettings(getTestDatabase())
+    expect(settings._isReady).toBe(false)
     expect(app.watchlistWorkflow.startWorkflow).not.toHaveBeenCalled()
   })
 
@@ -86,10 +85,8 @@ describe('Config _isReady persistence', () => {
     expect(app.watchlistWorkflow.startWorkflow).toHaveBeenCalledTimes(1)
     expect(app.config._isReady).toBe(false)
 
-    const knex = getTestDatabase()
-    const row = await knex('configs').where({ id: 1 }).first()
-    expect(row).toBeDefined()
-    expect(Boolean(row?._isReady)).toBe(false)
+    const settings = await readConfigSettings(getTestDatabase())
+    expect(settings._isReady).toBe(false)
   })
 
   it('persists _isReady: true when starting with autoStart: true', async () => {
@@ -113,10 +110,8 @@ describe('Config _isReady persistence', () => {
     expect(app.watchlistWorkflow.startWorkflow).toHaveBeenCalledTimes(1)
     expect(app.config._isReady).toBe(true)
 
-    const knex = getTestDatabase()
-    const row = await knex('configs').where({ id: 1 }).first()
-    expect(row).toBeDefined()
-    expect(Boolean(row?._isReady)).toBe(true)
+    const settings = await readConfigSettings(getTestDatabase())
+    expect(settings._isReady).toBe(true)
   })
 
   it('leaves _isReady unchanged when starting without autoStart', async () => {
@@ -140,9 +135,7 @@ describe('Config _isReady persistence', () => {
     expect(app.watchlistWorkflow.startWorkflow).toHaveBeenCalledTimes(1)
     expect(app.config._isReady).toBe(false)
 
-    const knex = getTestDatabase()
-    const row = await knex('configs').where({ id: 1 }).first()
-    expect(row).toBeDefined()
-    expect(Boolean(row?._isReady)).toBe(false)
+    const settings = await readConfigSettings(getTestDatabase())
+    expect(settings._isReady).toBe(false)
   })
 })
