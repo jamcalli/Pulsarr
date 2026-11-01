@@ -104,14 +104,21 @@ function queryDbRichness(
   try {
     const db = new Database(dbPath, { readonly: true })
     try {
+      const columns = db
+        .prepare("SELECT name FROM pragma_table_info('configs')")
+        .all() as { name: string }[]
+      // SQLite reads a double-quoted unknown column as a string literal, so pick the column that exists
+      const readyExpr = columns.some((column) => column.name === 'settings')
+        ? "json_extract(settings, '$._isReady')"
+        : '_isReady'
       const configRow = db
-        .prepare('SELECT "_isReady" FROM configs WHERE id = 1')
-        .get() as { _isReady: number | boolean } | undefined
+        .prepare(`SELECT ${readyExpr} AS isReady FROM configs WHERE id = 1`)
+        .get() as { isReady: number | boolean | null } | undefined
       const countRow = db
-        .prepare('SELECT COUNT(*) as count FROM users')
+        .prepare('SELECT COUNT(*) as count FROM users WHERE id != 0')
         .get() as { count: number } | undefined
       return {
-        isReady: configRow ? Boolean(configRow._isReady) : false,
+        isReady: Boolean(configRow?.isReady),
         userCount: countRow?.count ?? 0,
       }
     } finally {
