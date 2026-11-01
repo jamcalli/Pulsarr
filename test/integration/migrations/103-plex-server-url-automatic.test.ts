@@ -1,5 +1,6 @@
-import knex, { type Knex } from 'knex'
+import type { Knex } from 'knex'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createInMemoryDb, migrateThrough } from '../../helpers/migration-db.js'
 
 const LEGACY_AUTOMATIC_URL = 'http://localhost:32400'
 
@@ -8,33 +9,8 @@ describe('migration 103_plex_server_url_automatic', () => {
   let db: Knex
 
   beforeAll(async () => {
-    db = knex({
-      client: 'better-sqlite3',
-      connection: { filename: ':memory:' },
-      useNullAsDefault: true,
-      migrations: { directory: './migrations/migrations' },
-      pool: {
-        min: 1,
-        max: 1,
-        afterCreate: (
-          conn: unknown,
-          done: (err: Error | null, conn: unknown) => void,
-        ): void => {
-          const sqliteConn = conn as { exec: (sql: string) => void }
-          sqliteConn.exec('PRAGMA foreign_keys = ON;')
-          done(null, conn)
-        },
-      },
-    })
-
-    let applied: string[]
-    do {
-      const [, files] = (await db.migrate.up()) as [number, string[]]
-      if (files.length === 0) {
-        throw new Error('Ran out of migrations before reaching 102')
-      }
-      applied = files
-    } while (!applied[0]?.startsWith('102'))
+    db = createInMemoryDb()
+    await migrateThrough(db, '102')
 
     await db('configs').insert([
       { id: 1, plexServerUrl: LEGACY_AUTOMATIC_URL },
