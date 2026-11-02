@@ -9,7 +9,7 @@ import {
   seasonLabel,
 } from '@/features/library/lib/session-monitoring/rolling-shows'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
-import { formatCount, formatRelative } from '@/lib/format'
+import { formatCount, formatTimestamp } from '@/lib/format'
 
 function ViewersCell({ row }: { row: RollingShowRow }) {
   const { lookup } = useUserDirectory()
@@ -34,7 +34,7 @@ function ViewersCell({ row }: { row: RollingShowRow }) {
 function LastActivityCell({ row }: { row: RollingShowRow }) {
   const last = lastSession(row)
   const when = last ? (
-    <span>{formatRelative(new Date(last))}</span>
+    <span>{formatTimestamp(new Date(last))}</span>
   ) : (
     <span className="text-muted-foreground">None yet</span>
   )

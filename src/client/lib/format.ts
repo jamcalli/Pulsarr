@@ -96,6 +96,24 @@ export function formatDateTime(value: Date | number): string {
   }).format(value)
 }
 
+/** Month, day and clock time, with the year only when it is not the year of `now`. */
+export function formatTimestamp(
+  value: Date | number,
+  now: number = Date.now(),
+): string {
+  const date = new Date(value)
+  return new Intl.DateTimeFormat(locale, {
+    year:
+      date.getFullYear() === new Date(now).getFullYear()
+        ? undefined
+        : 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+}
+
 /** A log line's clock time in the browser time zone, 24-hour, with milliseconds unless turned off. */
 export function formatLogTime(
   value: Date | number,

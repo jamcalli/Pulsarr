@@ -5,7 +5,7 @@ import { HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import ApprovalSettingsPage from '@/features/requests/pages/approval-settings'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
-import { setFormatLocale } from '@/lib/format'
+import { formatTimestamp, setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 import { server } from '../../../setup.js'
@@ -23,6 +23,9 @@ const savedConfig = {
   },
 }
 
+const LAST_RUN = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+const NEXT_RUN = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+
 function makeSchedule(
   overrides: Partial<Pick<ScheduleStatus, 'enabled' | 'last_run'>> = {},
 ): ScheduleStatus {
@@ -33,11 +36,11 @@ function makeSchedule(
     config: { expression: '0 */4 * * *' },
     enabled: true,
     last_run: {
-      time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      time: LAST_RUN,
       status: 'completed',
     },
     next_run: {
-      time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+      time: NEXT_RUN,
       status: 'pending',
     },
     created_at: '2026-01-01T00:00:00.000Z',
@@ -112,8 +115,12 @@ describe('ApprovalSettingsPage', () => {
 
     expect(await screen.findByText('Approval maintenance')).toBeInTheDocument()
     expect(screen.getByText('Enabled')).toBeInTheDocument()
-    expect(screen.getByText('2 hours ago')).toBeInTheDocument()
-    expect(screen.getByText('in 2 hours')).toBeInTheDocument()
+    expect(
+      screen.getByText(formatTimestamp(new Date(LAST_RUN))),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(formatTimestamp(new Date(NEXT_RUN))),
+    ).toBeInTheDocument()
     expect(
       screen.getByRole('switch', { name: 'Run on a schedule' }),
     ).toBeChecked()
@@ -138,7 +145,7 @@ describe('ApprovalSettingsPage', () => {
     mockEndpoints({
       schedule: makeSchedule({
         last_run: {
-          time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          time: LAST_RUN,
           status: 'failed',
           error: 'Database is locked',
         },
@@ -147,7 +154,9 @@ describe('ApprovalSettingsPage', () => {
     renderPage()
 
     expect(await screen.findByText('Last run failed')).toBeInTheDocument()
-    expect(screen.getByText('Failed 2 hours ago')).toBeInTheDocument()
+    expect(
+      screen.getByText(`Failed ${formatTimestamp(new Date(LAST_RUN))}`),
+    ).toBeInTheDocument()
     expect(screen.getByText('Database is locked')).toBeInTheDocument()
   })
 

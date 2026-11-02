@@ -9,7 +9,7 @@ import { SettingsSection } from '@/components/settings/settings-section'
 import { StatusPill, type StatusPillView } from '@/components/status-pill'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
 import type { ActionState } from '@/lib/action-state'
-import { formatRelative } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 import { UNSAVED_CHANGES_REASON } from '@/lib/settings'
 
 interface ScheduledRun {
@@ -70,11 +70,11 @@ export function ScheduledJobPanel({
   const lastRun = schedule.last_run
   const lastRunFailed = lastRun?.status === 'failed'
   const lastRunText = lastRun
-    ? `${lastRunFailed ? 'Failed ' : ''}${formatRelative(new Date(lastRun.time))}`
+    ? `${lastRunFailed ? 'Failed ' : ''}${formatTimestamp(new Date(lastRun.time))}`
     : 'Never'
   const nextRunText =
     schedule.enabled && schedule.next_run
-      ? formatRelative(new Date(schedule.next_run.time))
+      ? formatTimestamp(new Date(schedule.next_run.time))
       : 'Not scheduled'
   const errorMessage =
     run.errorMessage ?? (lastRunFailed ? (lastRun.error ?? null) : null)

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { MediaDetail } from '@/components/media-detail/media-detail'
-import { setFormatLocale } from '@/lib/format'
+import { formatTimestamp, setFormatLocale } from '@/lib/format'
 import type { MediaItem, RecentRequest } from '@/lib/media-item'
 import { queryClient } from '@/lib/queryClient'
 import { makeApproval, mockApprovalEndpoints } from '../../approval-fixtures.js'
@@ -155,13 +155,14 @@ function renderDetail(
 }
 
 const TWO_DAYS = 2 * 24 * 60 * 60 * 1000
+const DUNE_EXPIRES_AT = new Date(Date.now() + TWO_DAYS + 60_000).toISOString()
 
 function pendingDune() {
   return makeApproval({
     id: 11,
     contentType: 'movie',
     contentTitle: 'Dune',
-    expiresAt: new Date(Date.now() + TWO_DAYS + 60_000).toISOString(),
+    expiresAt: DUNE_EXPIRES_AT,
     timeUntilExpiration: TWO_DAYS,
   })
 }
@@ -266,7 +267,11 @@ describe('MediaDetail', () => {
     expect(grid).not.toContainElement(
       screen.getByRole('heading', { name: 'About' }),
     )
-    expect(within(journey).getByText('Expires in 2 days')).toBeInTheDocument()
+    expect(
+      within(journey).getByText(
+        `Expires ${formatTimestamp(new Date(DUNE_EXPIRES_AT))}`,
+      ),
+    ).toBeInTheDocument()
 
     const approve = screen.getByRole('button', { name: 'Approve' })
     await vi.waitFor(() => expect(approve).toBeEnabled())

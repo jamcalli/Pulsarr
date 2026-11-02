@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { ItemContent, ItemDescription, ItemTitle } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRevokeApiKey } from '@/features/system/hooks/api-keys/useApiKeys'
-import { formatRelative } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
 type ApiKey = components['schemas']['ApiKey']
@@ -37,7 +37,7 @@ function KeyRow({
       <ItemContent className={CONTENT_CLASS}>
         <ItemTitle className="break-all">{apiKey.name}</ItemTitle>
         <ItemDescription>
-          Created {formatRelative(new Date(apiKey.created_at))}
+          Created {formatTimestamp(new Date(apiKey.created_at))}
         </ItemDescription>
       </ItemContent>
       <SecretCopyInput

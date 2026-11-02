@@ -11,7 +11,7 @@ import {
   formatCount,
   formatDateTime,
   formatList,
-  formatRelative,
+  formatTimestamp,
   pluralize,
 } from '@/lib/format'
 import {
@@ -217,7 +217,7 @@ export function expiryLine(
 ): { text: string; soon: boolean } | null {
   if (approval.timeUntilExpiration == null || !approval.expiresAt) return null
   return {
-    text: `Expires ${formatRelative(new Date(approval.expiresAt), now)}`,
+    text: `Expires ${formatTimestamp(new Date(approval.expiresAt), now)}`,
     soon: approval.expirationStatus === 'expiring_soon',
   }
 }
@@ -298,7 +298,7 @@ export function requestedLineParts(
 ): { before: string; after: string } {
   return {
     before: `${CONTENT_TYPE_LABELS[approval.contentType]}, requested by `,
-    after: `, ${formatRelative(new Date(approval.createdAt), now)}`,
+    after: `, ${formatTimestamp(new Date(approval.createdAt), now)}`,
   }
 }
 

@@ -12,7 +12,7 @@ import {
 import type { SingleTarget } from '@/features/library/hooks/exclusions/useExclusionActions'
 import { lastExcludedAt } from '@/features/library/lib/exclusions/exclusion-rows'
 import { CONTENT_TYPE_LABELS } from '@/lib/content-type'
-import { formatNumber, formatRelative } from '@/lib/format'
+import { formatNumber, formatTimestamp } from '@/lib/format'
 import type { components } from '@/types/api.js'
 
 type ExclusionItem = components['schemas']['WatchlistExclusionItem']
@@ -44,7 +44,7 @@ function ExcludedCell({ item }: { item: ExclusionItem }) {
 function LastExcludedCell({ item }: { item: ExclusionItem }) {
   const last = lastExcludedAt(item)
   if (last === null) return <span className="text-muted-foreground">Never</span>
-  return formatRelative(new Date(last))
+  return formatTimestamp(new Date(last))
 }
 
 interface RowMenuProps {

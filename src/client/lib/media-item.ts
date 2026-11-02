@@ -38,6 +38,19 @@ export function metadataGuid(
   return (item.type === 'show' ? (tvdb ?? tmdb) : (tmdb ?? tvdb)) ?? null
 }
 
+/** When the request reached the status it shows, its creation time when that status has no record. */
+export function requestStatusTime(request: RecentRequest): string {
+  switch (request.status) {
+    case 'requested':
+    case 'grabbed':
+    case 'notified':
+      return request.statusTimes[request.status] ?? request.createdAt
+    case 'pending_approval':
+    case 'pending':
+      return request.createdAt
+  }
+}
+
 export function recentRequestItem(request: RecentRequest): MediaItem {
   return {
     title: request.title,
