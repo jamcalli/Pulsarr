@@ -30,6 +30,15 @@ function driverMessage(error: unknown): string {
   return separator === -1 ? message : message.slice(separator + 3)
 }
 
+async function assertUnusedTarget(db: Knex | Knex.Transaction): Promise<void> {
+  const [usedConfig] = await db('configs').select('id').limit(1)
+  if (usedConfig) {
+    throw new Error(
+      'Target database has already been used by Pulsarr. Create an empty database and run the setup step again.',
+    )
+  }
+}
+
 class SQLiteToPostgresMigration {
   private sourceDb: Knex
   private targetDb: Knex
@@ -299,12 +308,7 @@ class SQLiteToPostgresMigration {
       }
       this.log(`Found ${tables.length} tables to migrate`)
 
-      const [usedConfig] = await this.targetDb('configs').select('id').limit(1)
-      if (usedConfig) {
-        throw new Error(
-          'Target database has already been used by Pulsarr. Create an empty database and run the setup step again.',
-        )
-      }
+      await assertUnusedTarget(this.targetDb)
 
       const orderedTables = await this.determineMigrationOrder(tables)
       const sequences = await this.getSequences()
@@ -324,6 +328,8 @@ class SQLiteToPostgresMigration {
       await this.targetDb.transaction(async (trx) => {
         // SQLite CURRENT_TIMESTAMP values are UTC with no zone suffix
         await trx.raw("SET LOCAL TIME ZONE 'UTC'")
+        await trx.raw('LOCK TABLE configs IN ACCESS EXCLUSIVE MODE')
+        await assertUnusedTarget(trx)
         const targetTables: string[] = await trx('pg_tables')
           .where('schemaname', 'public')
           .whereIn('tablename', orderedTables)
