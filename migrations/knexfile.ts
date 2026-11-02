@@ -29,6 +29,11 @@ function resolveDbPath(root: string): string {
   return dir ? resolve(dir, 'db') : resolve(root, 'data', 'db')
 }
 
+export function resolveBackupDir(): string {
+  const dir = resolveDataDir()
+  return dir ? resolve(dir, 'backups') : resolve(projectRoot, 'data', 'backups')
+}
+
 function resolveEnvPath(root: string): string {
   const dir = resolveDataDir()
   return dir ? resolve(dir, '.env') : resolve(root, '.env')
@@ -271,7 +276,7 @@ function ensureDbDirectory() {
 const dbType = process.env.dbType || 'sqlite'
 const isPostgres = dbType === 'postgres'
 
-const getPostgresConnection = () => {
+export const getPostgresConnection = () => {
   if (process.env.dbConnectionString) {
     return process.env.dbConnectionString
   }
@@ -290,7 +295,7 @@ const getPostgresConnection = () => {
   }
 }
 
-const getSqliteConnection = () => ({
+export const getSqliteConnection = () => ({
   filename: process.env.dbPath || resolve(ensureDbDirectory(), 'pulsarr.db'),
 })
 
