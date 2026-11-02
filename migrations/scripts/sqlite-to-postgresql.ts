@@ -292,6 +292,11 @@ class SQLiteToPostgresMigration {
       await this.verifyConnections()
 
       const tables = await this.getTables()
+      if (tables.length === 0) {
+        throw new Error(
+          `No tables found in the SQLite database at ${this.config.sqlitePath}`,
+        )
+      }
       this.log(`Found ${tables.length} tables to migrate`)
 
       const orderedTables = await this.determineMigrationOrder(tables)
@@ -299,7 +304,7 @@ class SQLiteToPostgresMigration {
       const backupPath = await this.createBackup()
 
       const proceed = await this.prompt(
-        `\nThis will migrate all data from SQLite to PostgreSQL.\nTables to migrate: ${orderedTables.length}\nBackup created at: ${backupPath}\nDo you want to proceed?`,
+        `\nThis will migrate all data from SQLite to PostgreSQL. Existing rows in the PostgreSQL tables will be replaced.\nTables to migrate: ${orderedTables.length}\nBackup created at: ${backupPath}\nDo you want to proceed?`,
       )
 
       if (!proceed) {
@@ -321,7 +326,7 @@ class SQLiteToPostgresMigration {
         await trx.raw("SET LOCAL TIME ZONE 'UTC'")
         const targetTables: string[] = await trx('pg_tables')
           .where('schemaname', 'public')
-          .whereNotIn('tablename', ['knex_migrations', 'knex_migrations_lock'])
+          .whereIn('tablename', orderedTables)
           .pluck('tablename')
         if (targetTables.length > 0) {
           await trx.raw(
