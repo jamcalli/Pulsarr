@@ -32,7 +32,7 @@ import {
   RELATIONSHIP_MEANING,
   RELATIONSHIP_TONES,
 } from '@/features/users/lib/relationship'
-import { formatRelative } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 import type { paths } from '@/types/api.js'
 
 type UntrackedUser =
@@ -60,7 +60,7 @@ const ACTIONS: Partial<
 function meaningLine(account: UntrackedUser): string {
   const meaning = RELATIONSHIP_MEANING[account.status]
   if (account.status !== 'pending_sent' || !account.pendingSince) return meaning
-  return `${meaning} Request sent ${formatRelative(new Date(account.pendingSince))}.`
+  return `${meaning} Request sent ${formatTimestamp(new Date(account.pendingSince))}.`
 }
 
 function FriendRows({ accounts }: { accounts: UntrackedUser[] }) {

@@ -1,4 +1,4 @@
-import { formatDateTime, setFormatLocale } from '@/lib/format'
+import { formatTimestamp, setFormatLocale } from '@/lib/format'
 import { mediaContext } from '@/lib/media-context'
 import type { RecentRequest } from '@/lib/media-item'
 import type { components } from '@/types/api.js'
@@ -93,12 +93,12 @@ describe('mediaContext', () => {
       {
         label: 'Requested',
         detail: 'by jamie',
-        time: formatDateTime(new Date(twoHoursAgo)),
+        time: formatTimestamp(new Date(twoHoursAgo)),
         state: 'done',
       },
       {
         label: 'Awaiting approval',
-        detail: 'Expires in 2 days',
+        detail: `Expires ${formatTimestamp(new Date(inTwoDays), now)}`,
         time: null,
         state: 'waiting',
       },
@@ -249,10 +249,10 @@ describe('mediaContext', () => {
     })
 
     expect(context.journey?.map((step) => step.time)).toEqual([
-      formatDateTime(new Date(twoHoursAgo)),
-      formatDateTime(new Date(twoHoursAgo)),
-      formatDateTime(new Date(oneHourAgo)),
-      formatDateTime(new Date(thirtyMinutesAgo)),
+      formatTimestamp(new Date(twoHoursAgo)),
+      formatTimestamp(new Date(twoHoursAgo)),
+      formatTimestamp(new Date(oneHourAgo)),
+      formatTimestamp(new Date(thirtyMinutesAgo)),
     ])
     expect(context.journey?.slice(1).map((step) => step.detail)).toEqual([
       null,

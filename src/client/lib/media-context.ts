@@ -1,6 +1,6 @@
 import { expiryLine } from '@/lib/approval'
 import { ARR_TYPE_LABELS, arrTypeOf } from '@/lib/arr-labels'
-import { formatDateTime } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 import type { RecentRequest } from '@/lib/media-item'
 import type { components } from '@/types/api.js'
 
@@ -54,7 +54,7 @@ function furthestInstance(request: RecentRequest): MediaInstance | null {
 }
 
 function at(time: string | null): string | null {
-  return time ? formatDateTime(new Date(time)) : null
+  return time ? formatTimestamp(new Date(time)) : null
 }
 
 function sentStep(request: RecentRequest): JourneyStep {

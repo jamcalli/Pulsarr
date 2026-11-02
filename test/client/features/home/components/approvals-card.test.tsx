@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { MemoryRouter } from 'react-router-dom'
 import { ApprovalsCard } from '@/features/home/components/approvals-card'
-import { setFormatLocale } from '@/lib/format'
+import { formatTimestamp, setFormatLocale } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { queryClient } from '@/lib/queryClient'
 import type { components } from '@/types/api.js'
@@ -66,8 +66,9 @@ describe('ApprovalsCard', () => {
   })
 
   it('lists rows with the trigger, a count badge and no inline decisions', async () => {
+    const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
     const approval = makeApproval({
-      expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+      expiresAt,
       timeUntilExpiration: 3 * 60 * 60 * 1000,
       expirationStatus: 'expiring_soon',
     })
@@ -78,12 +79,16 @@ describe('ApprovalsCard', () => {
     const row = await screen.findByRole('button', { name: 'Review Severance' })
     expect(within(row).getByText('Severance')).toBeInTheDocument()
     expect(
-      within(row).getByText('Show, requested by sarah, 2 hours ago'),
+      within(row).getByText(
+        `Show, requested by sarah, ${formatTimestamp(new Date(approval.createdAt))}`,
+      ),
     ).toBeInTheDocument()
     expect(
       within(row).getByText('Weekly rolling quota: 5 of 5 shows used'),
     ).toBeInTheDocument()
-    expect(within(row).getByText('Expires in 3 hours')).toBeInTheDocument()
+    expect(
+      within(row).getByText(`Expires ${formatTimestamp(new Date(expiresAt))}`),
+    ).toBeInTheDocument()
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: /^(Approve|Deny)$/ }),

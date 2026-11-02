@@ -15,7 +15,12 @@ import {
   triggerSummary,
   withRouting,
 } from '@/lib/approval'
-import { formatDate, formatTime, setFormatLocale } from '@/lib/format'
+import {
+  formatDate,
+  formatTime,
+  formatTimestamp,
+  setFormatLocale,
+} from '@/lib/format'
 import type { components } from '@/types/api.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
@@ -337,7 +342,7 @@ describe('expiryLine', () => {
     expect(expiryLine(makeRequest(), now)).toBeNull()
   })
 
-  it('formats the time left relative to now', () => {
+  it('stamps when the request expires', () => {
     expect(
       expiryLine(
         makeRequest({
@@ -347,7 +352,10 @@ describe('expiryLine', () => {
         }),
         now,
       ),
-    ).toEqual({ text: 'Expires in 2 days', soon: false })
+    ).toEqual({
+      text: `Expires ${formatTimestamp(Date.parse('2026-10-07T12:00:00.000Z'), now)}`,
+      soon: false,
+    })
   })
 
   it('flags requests expiring soon', () => {
@@ -360,7 +368,10 @@ describe('expiryLine', () => {
         }),
         now,
       ),
-    ).toEqual({ text: 'Expires in 3 hours', soon: true })
+    ).toEqual({
+      text: `Expires ${formatTimestamp(Date.parse('2026-10-05T15:00:00.000Z'), now)}`,
+      soon: true,
+    })
   })
 })
 
@@ -541,10 +552,10 @@ describe('requestedLine', () => {
   beforeEach(() => setFormatLocale('en-US'))
   afterEach(() => setFormatLocale(undefined))
 
-  it('names the type, requester and age', () => {
+  it('names the type, requester and request time', () => {
     const now = new Date('2026-10-01T12:00:00.000Z').getTime()
     expect(requestedLine(makeRequest(), 'Sarah B', now)).toBe(
-      'Show, requested by Sarah B, 2 hours ago',
+      `Show, requested by Sarah B, ${formatTimestamp(Date.parse('2026-10-01T10:00:00.000Z'), now)}`,
     )
   })
 })

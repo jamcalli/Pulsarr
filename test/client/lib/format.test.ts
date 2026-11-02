@@ -17,6 +17,7 @@ import {
   formatRuntime,
   formatTime,
   formatTimeOfDay,
+  formatTimestamp,
   formatWeekday,
   formatYear,
   pluralize,
@@ -89,6 +90,24 @@ describe('format', () => {
     expect(formatRelative(now - 5 * minute, now)).toBe('5 minutes ago')
     expect(formatRelative(now - day, now)).toBe('yesterday')
     expect(formatRelative(new Date(now - 2 * day), now)).toBe('2 days ago')
+  })
+
+  it('stamps a moment with its date and clock, adding the year only outside the current one', () => {
+    setFormatLocale('en-US')
+    const now = new Date(2026, 9, 4, 14, 0, 0).getTime()
+    expect(formatTimestamp(new Date(2026, 9, 30, 21, 14, 59), now)).toMatch(
+      /^Oct 30, 9:14\sPM$/,
+    )
+    expect(
+      formatTimestamp(new Date(2025, 11, 31, 8, 5).getTime(), now),
+    ).toMatch(/^Dec 31, 2025, 8:05\sAM$/)
+    expect(formatTimestamp(new Date(2027, 0, 2, 0, 30), now)).toMatch(
+      /^Jan 2, 2027, 12:30\sAM$/,
+    )
+    setFormatLocale('en-GB')
+    expect(formatTimestamp(new Date(2026, 9, 30, 21, 14), now)).toBe(
+      '30 Oct, 21:14',
+    )
   })
 
   it('names a time of day in the locale clock', () => {
@@ -218,6 +237,9 @@ describe('resolveFormatLocale', () => {
     setFormatLocale(resolveFormatLocale('en', ['fi-FI']))
     const now = new Date(2026, 9, 4, 14, 0, 0).getTime()
     expect(formatRelative(now - 3 * 60 * 60 * 1000, now)).toBe('3 hours ago')
+    expect(formatTimestamp(new Date(2026, 9, 4, 14, 5, 9), now)).toBe(
+      '4 Oct, 14.05',
+    )
     expect(formatDateTime(new Date(2026, 9, 4, 14, 5, 9))).toBe(
       '4 Oct 2026, 14.05.09',
     )

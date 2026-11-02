@@ -14,11 +14,11 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
-import { formatList, formatRelative } from '@/lib/format'
-import type { RecentRequest } from '@/lib/media-item'
+import { formatList, formatTimestamp } from '@/lib/format'
+import { type RecentRequest, requestStatusTime } from '@/lib/media-item'
 
 function requestedBy(item: RecentRequest, userName: string): string {
-  return `${userName}, ${formatRelative(new Date(item.createdAt))}`
+  return `${userName}, ${formatTimestamp(new Date(requestStatusTime(item)))}`
 }
 
 interface RequestViewProps {

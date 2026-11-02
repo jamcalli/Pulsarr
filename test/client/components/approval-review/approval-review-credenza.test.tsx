@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
-import { setFormatLocale } from '@/lib/format'
+import { formatTimestamp, setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
 import type { components } from '@/types/api.js'
 import {
@@ -83,7 +83,8 @@ describe('ApprovalReviewCredenza', () => {
   })
 
   it('shows a pending request read only with its notes field', async () => {
-    renderReview(makeApproval())
+    const approval = makeApproval()
+    renderReview(approval)
     const dialog = await findDialog()
 
     expect(
@@ -91,7 +92,9 @@ describe('ApprovalReviewCredenza', () => {
     ).toBeInTheDocument()
     expect(within(dialog).getByText('Pending approval')).toBeInTheDocument()
     expect(
-      within(dialog).getByText('Show, requested by sarah, 2 hours ago'),
+      within(dialog).getByText(
+        `Show, requested by sarah, ${formatTimestamp(new Date(approval.createdAt))}`,
+      ),
     ).toBeInTheDocument()
     expect(
       within(dialog).getByText('Weekly rolling quota: 5 of 5 shows used'),
@@ -472,15 +475,20 @@ describe('ApprovalReviewCredenza', () => {
   })
 
   it('flags a request that expires soon', async () => {
+    const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
     renderReview(
       makeApproval({
-        expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+        expiresAt,
         timeUntilExpiration: 3 * 60 * 60 * 1000,
         expirationStatus: 'expiring_soon',
       }),
     )
     const dialog = await findDialog()
 
-    expect(within(dialog).getByText('Expires in 3 hours')).toBeInTheDocument()
+    expect(
+      within(dialog).getByText(
+        `Expires ${formatTimestamp(new Date(expiresAt))}`,
+      ),
+    ).toBeInTheDocument()
   })
 })
