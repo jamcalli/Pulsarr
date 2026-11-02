@@ -1,9 +1,3 @@
-vi.mock('@services/notifications/channels/native-webhook.js', () => ({
-  dispatchWebhooks: vi
-    .fn()
-    .mockResolvedValue({ dispatched: 0, succeeded: 0, failed: 0, results: [] }),
-}))
-
 import type { NotifyOption } from '@root/types/config.types.js'
 import type { Friend } from '@root/types/plex.types.js'
 import {
@@ -16,6 +10,12 @@ import {
   createNotificationDeps,
 } from '../../../../mocks/notification-deps.js'
 import { createMockUser } from '../../../../mocks/user.js'
+
+vi.mock('@services/notifications/channels/native-webhook.js', () => ({
+  dispatchWebhooks: vi
+    .fn()
+    .mockResolvedValue({ dispatched: 0, succeeded: 0, failed: 0, results: [] }),
+}))
 
 function createDeps(watchlistAddNotify: NotifyOption) {
   const fakes = createNotificationDeps({ watchlistAddNotify })
