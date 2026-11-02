@@ -299,24 +299,24 @@ class SQLiteToPostgresMigration {
       }
       this.log(`Found ${tables.length} tables to migrate`)
 
-      const orderedTables = await this.determineMigrationOrder(tables)
-      const sequences = await this.getSequences()
-      const backupPath = await this.createBackup()
-
-      const proceed = await this.prompt(
-        `\nThis will migrate all data from SQLite to PostgreSQL. Existing rows in the PostgreSQL tables will be replaced.\nTables to migrate: ${orderedTables.length}\nBackup created at: ${backupPath}\nDo you want to proceed?`,
-      )
-
-      if (!proceed) {
-        this.log('Migration cancelled by user')
-        return
-      }
-
       const [usedConfig] = await this.targetDb('configs').select('id').limit(1)
       if (usedConfig) {
         throw new Error(
           'Target database has already been used by Pulsarr. Create an empty database and run the setup step again.',
         )
+      }
+
+      const orderedTables = await this.determineMigrationOrder(tables)
+      const sequences = await this.getSequences()
+      const backupPath = await this.createBackup()
+
+      const proceed = await this.prompt(
+        `\nThis will migrate all data from SQLite to PostgreSQL. The default rows the setup step created in PostgreSQL will be replaced.\nTables to migrate: ${orderedTables.length}\nBackup created at: ${backupPath}\nDo you want to proceed?`,
+      )
+
+      if (!proceed) {
+        this.log('Migration cancelled by user')
+        return
       }
 
       let totalMigrated = 0
