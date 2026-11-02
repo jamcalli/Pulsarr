@@ -319,6 +319,13 @@
             "maximum": 365
           }
         },
+        "required": [
+          "enabled",
+          "defaultExpirationHours",
+          "expirationAction",
+          "autoApproveOnQuotaAvailable",
+          "cleanupExpiredDays"
+        ],
         "description": "Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one."
       },
       "ApprovalExpirationStatus": {
@@ -1345,39 +1352,6 @@
         ],
         "description": "Shows to enroll in or switch between rolling monitoring types"
       },
-      "CleanupOrphanedTagRefsResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          },
-          "radarr": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "$ref": "#/components/schemas/OrphanedTagRefInstanceResult"
-            }
-          },
-          "sonarr": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "$ref": "#/components/schemas/OrphanedTagRefInstanceResult"
-            }
-          }
-        },
-        "required": [
-          "success",
-          "message",
-          "radarr",
-          "sonarr"
-        ],
-        "additionalProperties": false,
-        "description": "Result of removing references to deleted tags, keyed by instance"
-      },
       "CleanupPlexLabelsResponse": {
         "type": "object",
         "properties": {
@@ -1533,24 +1507,8 @@
             "minimum": 1,
             "maximum": 65535
           },
-          "dbPath": {
-            "type": "string"
-          },
-          "cookieSecured": {
-            "type": "boolean"
-          },
           "logLevel": {
             "$ref": "#/components/schemas/ConfigLogLevel"
-          },
-          "closeGraceDelay": {
-            "type": "number",
-            "description": "Shutdown grace period in milliseconds"
-          },
-          "rateLimitMax": {
-            "type": "number"
-          },
-          "queueProcessDelaySeconds": {
-            "type": "number"
           },
           "maintainerrEnabled": {
             "type": "boolean"
@@ -1669,6 +1627,9 @@
           "skipIfExistsOnPlex": {
             "type": "boolean"
           },
+          "plexExistenceScope": {
+            "$ref": "#/components/schemas/PlexExistenceScope"
+          },
           "deleteMovie": {
             "type": "boolean"
           },
@@ -1750,9 +1711,6 @@
           "removedTagPrefix": {
             "type": "string"
           },
-          "tagMigration": {
-            "$ref": "#/components/schemas/TagMigrationOutput"
-          },
           "plexSessionMonitoring": {
             "$ref": "#/components/schemas/PlexSessionMonitoringConfig"
           },
@@ -1813,8 +1771,6 @@
           "id",
           "created_at",
           "updated_at",
-          "cookieSecured",
-          "queueProcessDelaySeconds",
           "maintainerrEnabled",
           "enableApprise",
           "appriseUrl",
@@ -1832,6 +1788,7 @@
           "plexTokens",
           "skipFriendSync",
           "skipIfExistsOnPlex",
+          "plexExistenceScope",
           "deleteMovie",
           "deleteEndedShow",
           "deleteContinuingShow",
@@ -1956,23 +1913,8 @@
             "minimum": 1,
             "maximum": 65535
           },
-          "dbPath": {
-            "type": "string"
-          },
-          "cookieSecured": {
-            "type": "boolean"
-          },
           "logLevel": {
             "$ref": "#/components/schemas/ConfigLogLevel"
-          },
-          "closeGraceDelay": {
-            "type": "number"
-          },
-          "rateLimitMax": {
-            "type": "number"
-          },
-          "queueProcessDelaySeconds": {
-            "type": "number"
           },
           "maintainerrEnabled": {
             "type": "boolean"
@@ -2032,7 +1974,13 @@
               }
             },
             "required": [
-              "enabled"
+              "enabled",
+              "discordWebhookUrls",
+              "discordWebhookUrlsMovies",
+              "discordWebhookUrlsShows",
+              "appriseUrls",
+              "appriseUrlsMovies",
+              "appriseUrlsShows"
             ]
           },
           "plexMobileEnabled": {
@@ -2151,6 +2099,9 @@
           },
           "skipIfExistsOnPlex": {
             "type": "boolean"
+          },
+          "plexExistenceScope": {
+            "$ref": "#/components/schemas/PlexExistenceScope"
           },
           "plexLabelSync": {
             "$ref": "#/components/schemas/PlexLabelSyncConfigPayload"
@@ -2293,9 +2244,6 @@
           },
           "tagNamingSource": {
             "$ref": "#/components/schemas/UserNamingSource"
-          },
-          "tagMigration": {
-            "$ref": "#/components/schemas/TagMigration"
           }
         },
         "additionalProperties": false,
@@ -3514,33 +3462,13 @@
         ],
         "description": "Channels an admin notification goes to, legacy aliases included"
       },
-      "OrphanedTagRefInstanceResult": {
-        "type": "object",
-        "properties": {
-          "instanceName": {
-            "type": "string"
-          },
-          "itemsScanned": {
-            "type": "number"
-          },
-          "orphanedTagsFound": {
-            "type": "number"
-          },
-          "itemsUpdated": {
-            "type": "number"
-          },
-          "error": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "instanceName",
-          "itemsScanned",
-          "orphanedTagsFound",
-          "itemsUpdated"
+      "PlexExistenceScope": {
+        "type": "string",
+        "enum": [
+          "owned",
+          "owned-and-shared"
         ],
-        "additionalProperties": false,
-        "description": "Orphaned tag reference cleanup result for one instance"
+        "description": "Which Plex servers the existence check covers, the owned server alone or also the servers shared with the account"
       },
       "PlexFriendStatus": {
         "type": "string",
@@ -6769,104 +6697,6 @@
         ],
         "additionalProperties": false,
         "description": "User tag creation counts for one arr type"
-      },
-      "TagMigration": {
-        "type": "object",
-        "properties": {
-          "radarr": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "$ref": "#/components/schemas/TagMigrationEntry"
-            }
-          },
-          "sonarr": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "$ref": "#/components/schemas/TagMigrationEntry"
-            }
-          }
-        },
-        "required": [
-          "radarr",
-          "sonarr"
-        ],
-        "description": "Tag format migration status per Radarr/Sonarr instance"
-      },
-      "TagMigrationEntry": {
-        "type": "object",
-        "properties": {
-          "completed": {
-            "type": "boolean"
-          },
-          "migratedAt": {
-            "type": "string"
-          },
-          "tagsMigrated": {
-            "type": "number"
-          },
-          "contentUpdated": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "completed",
-          "migratedAt",
-          "tagsMigrated",
-          "contentUpdated"
-        ],
-        "description": "Migration result for a single instance"
-      },
-      "TagMigrationEntryOutput": {
-        "type": "object",
-        "properties": {
-          "completed": {
-            "type": "boolean"
-          },
-          "migratedAt": {
-            "type": "string"
-          },
-          "tagsMigrated": {
-            "type": "number"
-          },
-          "contentUpdated": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "completed",
-          "migratedAt",
-          "tagsMigrated",
-          "contentUpdated"
-        ],
-        "additionalProperties": false,
-        "description": "Migration result for a single instance"
-      },
-      "TagMigrationOutput": {
-        "type": "object",
-        "properties": {
-          "radarr": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "$ref": "#/components/schemas/TagMigrationEntryOutput"
-            }
-          },
-          "sonarr": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "$ref": "#/components/schemas/TagMigrationEntryOutput"
-            }
-          }
-        },
-        "required": [
-          "radarr",
-          "sonarr"
-        ],
-        "additionalProperties": false,
-        "description": "Tag format migration status per Radarr/Sonarr instance"
       },
       "TagStatus": {
         "type": "object",
@@ -19526,48 +19356,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TagCleanupResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tags/cleanup-orphaned-refs": {
-      "post": {
-        "operationId": "cleanupOrphanedTagReferences",
-        "summary": "Cleanup orphaned tag references",
-        "tags": [
-          "Tags"
-        ],
-        "description": "Remove references to non-existent tags from movies and series",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CleanupOrphanedTagRefsResponse"
                 }
               }
             }

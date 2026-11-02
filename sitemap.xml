@@ -424,9 +424,6 @@
 <loc>https://jamcalli.github.io/Pulsarr/api/system/getUpdateStatus/</loc>
 </url>
 <url>
-<loc>https://jamcalli.github.io/Pulsarr/api/tags/cleanupOrphanedTagReferences/</loc>
-</url>
-<url>
 <loc>https://jamcalli.github.io/Pulsarr/api/tags/cleanupOrphanedTags/</loc>
 </url>
 <url>

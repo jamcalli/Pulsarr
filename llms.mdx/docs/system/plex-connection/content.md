@@ -12,7 +12,7 @@ Pulsarr reads watchlists through the Plex account that owns your server. To link
 
 **Connection** starts on **Automatic**, which lets Pulsarr pick the best connection to your server. Choose **Address** to enter it yourself. **Test connection** checks it.
 
-**Skip content already on Plex** skips requests for titles your server already has. Servers shared with you count only for the admin's own watchlist.
+**Skip content already on Plex** skips requests for titles already on Plex. **Servers to check** sets where Pulsarr looks, **Your server** or **Your server and shared servers**. Shared servers count only for the admin's own watchlist. If your server can't be checked, Pulsarr holds the request and tries again later instead of sending it.
 
 **Plex live connection** shows whether Pulsarr is getting live updates from your server. While it's down, Pulsarr polls Plex instead.
 

@@ -49,7 +49,7 @@ These steps use Docker and the [`docker-compose.migration.yml`](https://github.c
    docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data
    ```
 
-   It checks both connections, backs up the SQLite database to `./data/backups/`, copies every table and checks that the row counts match. After the copy it moves each PostgreSQL ID sequence up to the highest copied ID, so new rows don't collide. It refuses a table that already has rows and stops at the first table that fails. After a failed run, recreate the database and run step 4 again.
+   It checks both connections, backs up the SQLite database to `./data/backups/`, copies every table and checks that the row counts match. After the copy it moves each PostgreSQL ID sequence up to the highest copied ID, so new rows don't collide. The copy is all or nothing. If it fails, nothing is left behind, so you can fix the problem and run step 5 again. It refuses a database that Pulsarr has already used.
 
 6. Start Pulsarr with `docker compose up -d`.
 

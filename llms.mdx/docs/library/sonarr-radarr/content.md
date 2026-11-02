@@ -38,7 +38,7 @@ For Radarr:
 
 Before sending, Pulsarr checks only the instances the request is routed to. A title already on some other instance is still sent.
 
-**Skip content already on Plex**, under [Plex connection](/system/plex-connection), checks Plex servers, not Sonarr or Radarr. Shared servers count only for the admin's own watchlist.
+**Skip content already on Plex**, under [Plex connection](/system/plex-connection), checks Plex servers, not Sonarr or Radarr. **Servers to check** there sets whether shared servers count, and they only count for the admin's own watchlist.
 
 ## Behavior [#behavior]
 
