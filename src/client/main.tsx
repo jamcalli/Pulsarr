@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { resolveFormatLocale, setFormatLocale } from '@/lib/format'
 import { configureOperationToasts } from '@/lib/operation-toasts'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router/router'
@@ -30,6 +31,13 @@ function RootLayout() {
     </QueryClientProvider>
   )
 }
+
+setFormatLocale(
+  resolveFormatLocale(
+    'en',
+    navigator.languages.length > 0 ? navigator.languages : [navigator.language],
+  ),
+)
 
 configureOperationToasts({
   pathname: () => router.state.location.pathname,

@@ -23,7 +23,7 @@ describe('Arr instance delete', () => {
     await seedConfig(knex)
     await seedInstances(knex)
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   const createRule = async (targetType: 'radarr' | 'sonarr') => {

@@ -71,7 +71,7 @@ export interface SonarrShowWithEnrollmentStatus {
 export type WatchlistItemUpdate = Partial<
   Omit<
     DatabaseWatchlistItem,
-    'id' | 'user_id' | 'type' | 'key' | 'created_at' | 'updated_at'
+    'id' | 'user_id' | 'type' | 'key' | 'guids' | 'created_at' | 'updated_at'
   >
 > & {
   radarr_instance_id?: number | null

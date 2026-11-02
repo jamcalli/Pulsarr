@@ -8,7 +8,11 @@ import {
 import { addressError } from '@/lib/plex/server-form.schema'
 
 function config(plexServerUrl: string | undefined) {
-  return { plexServerUrl, skipIfExistsOnPlex: true }
+  return {
+    plexServerUrl,
+    skipIfExistsOnPlex: true,
+    plexExistenceScope: 'owned-and-shared' as const,
+  }
 }
 
 describe('isAutomaticAddress', () => {
@@ -28,6 +32,7 @@ describe('toServerValues and toServerPayload', () => {
       connection: 'auto',
       address: '',
       skipIfExistsOnPlex: true,
+      plexExistenceScope: 'owned-and-shared',
     })
   })
 
@@ -36,6 +41,7 @@ describe('toServerValues and toServerPayload', () => {
       connection: 'address',
       address: 'http://localhost:32400',
       skipIfExistsOnPlex: true,
+      plexExistenceScope: 'owned-and-shared',
     })
   })
 
@@ -45,8 +51,13 @@ describe('toServerValues and toServerPayload', () => {
         connection: 'auto',
         address: 'http://leftover:32400',
         skipIfExistsOnPlex: false,
+        plexExistenceScope: 'owned',
       }),
-    ).toEqual({ plexServerUrl: '', skipIfExistsOnPlex: false })
+    ).toEqual({
+      plexServerUrl: '',
+      skipIfExistsOnPlex: false,
+      plexExistenceScope: 'owned',
+    })
   })
 
   it('saves a trimmed address', () => {
@@ -55,10 +66,12 @@ describe('toServerValues and toServerPayload', () => {
         connection: 'address',
         address: ' https://plex.lan:32400 ',
         skipIfExistsOnPlex: true,
+        plexExistenceScope: 'owned-and-shared',
       }),
     ).toEqual({
       plexServerUrl: 'https://plex.lan:32400',
       skipIfExistsOnPlex: true,
+      plexExistenceScope: 'owned-and-shared',
     })
   })
 })
@@ -68,6 +81,7 @@ describe('addressError', () => {
     connection: 'address' as const,
     address,
     skipIfExistsOnPlex: true,
+    plexExistenceScope: 'owned-and-shared' as const,
   })
 
   it('needs an address in address mode only', () => {

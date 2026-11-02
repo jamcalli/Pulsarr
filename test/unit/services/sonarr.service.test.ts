@@ -3,6 +3,8 @@ import {
   WebhookCallbackError,
 } from '@root/types/arr-connection.types.js'
 import type { SonarrInstance, SonarrPost } from '@root/types/sonarr.types.js'
+import { createArrCaches } from '@services/arr/arr-caches.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
@@ -51,12 +53,16 @@ function serveExclusions(
 describe('SonarrService.isTvdbIdExcluded', () => {
   let service: SonarrService
 
+  let now: number
+
   beforeEach(async () => {
+    now = 1
     service = new SonarrService(
       createMockLogger(),
       'http://localhost',
       3003,
       {} as FastifyInstance,
+      createArrCaches(new CacheRegistry({ now: () => now })),
     )
     await service.initialize(INSTANCE)
   })
@@ -88,19 +94,13 @@ describe('SonarrService.isTvdbIdExcluded', () => {
   it('shares a pending fetch that outlives the TTL', async () => {
     const gate = Promise.withResolvers<void>()
     const counter = serveExclusions([123], gate.promise)
-    const now = Date.now()
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
-    try {
-      const first = service.isTvdbIdExcluded(123)
-      clock.mockReturnValue(now + 31_000)
-      const second = service.isTvdbIdExcluded(123)
-      gate.resolve()
+    const first = service.isTvdbIdExcluded(123)
+    now += 31_000
+    const second = service.isTvdbIdExcluded(123)
+    gate.resolve()
 
-      await expect(Promise.all([first, second])).resolves.toEqual([true, true])
-      expect(counter.calls).toBe(1)
-    } finally {
-      clock.mockRestore()
-    }
+    await expect(Promise.all([first, second])).resolves.toEqual([true, true])
+    expect(counter.calls).toBe(1)
   })
 
   it('serves a second call within the TTL from cache', async () => {
@@ -113,25 +113,23 @@ describe('SonarrService.isTvdbIdExcluded', () => {
   })
 
   it('re-reads the list once the TTL has passed', async () => {
-    vi.useFakeTimers()
-    try {
-      const counter = serveExclusions([123])
+    const counter = serveExclusions([123])
 
-      await service.isTvdbIdExcluded(123)
-      vi.advanceTimersByTime(30_001)
-      await service.isTvdbIdExcluded(123)
+    await service.isTvdbIdExcluded(123)
+    now += 30_001
+    await service.isTvdbIdExcluded(123)
 
-      expect(counter.calls).toBe(2)
-    } finally {
-      vi.useRealTimers()
-    }
+    expect(counter.calls).toBe(2)
   })
 
   it('recovers after a failed fetch', async () => {
     server.use(
       http.get(EXCLUSIONS_URL, () => new HttpResponse(null, { status: 500 })),
     )
-    await expect(service.isTvdbIdExcluded(123)).rejects.toThrow()
+    await expect(service.isTvdbIdExcluded(123)).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 500,
+    })
 
     serveExclusions([123])
 
@@ -143,7 +141,10 @@ describe('SonarrService.isTvdbIdExcluded', () => {
       http.get(EXCLUSIONS_URL, () => new HttpResponse(null, { status: 500 })),
     )
 
-    await expect(service.isTvdbIdExcluded(123)).rejects.toThrow()
+    await expect(service.isTvdbIdExcluded(123)).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 500,
+    })
   })
 })
 
@@ -158,6 +159,7 @@ describe('SonarrService.addToSonarr', () => {
       'http://localhost',
       3003,
       {} as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     await service.initialize({ ...INSTANCE, tags: ['5'] })
     server.use(
@@ -280,6 +282,7 @@ describe('SonarrService webhook setup', () => {
       'http://localhost',
       3003,
       fastify as unknown as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
   })
 
@@ -510,6 +513,7 @@ describe('SonarrService webhook definition', () => {
       'http://localhost',
       3003,
       fastify,
+      createArrCaches(new CacheRegistry()),
     )
     const result = await tester.testConnection('http://sonarr.test', 'key')
     expect(result).toEqual({
@@ -523,6 +527,7 @@ describe('SonarrService webhook definition', () => {
       'http://localhost',
       3003,
       fastify,
+      createArrCaches(new CacheRegistry()),
     )
     await registrar.initialize({ ...INSTANCE, apiKey: 'key' })
 
@@ -553,6 +558,7 @@ describe('SonarrService webhook definition', () => {
       'http://localhost',
       3003,
       fastify,
+      createArrCaches(new CacheRegistry()),
     )
 
     const result = await tester.testConnection('http://sonarr.test', 'key')
@@ -593,6 +599,7 @@ describe('SonarrService webhook definition', () => {
       'http://localhost',
       3003,
       fastify,
+      createArrCaches(new CacheRegistry()),
     )
 
     try {
@@ -636,6 +643,7 @@ describe('SonarrService webhook definition', () => {
       'http://localhost',
       3003,
       fastify,
+      createArrCaches(new CacheRegistry()),
     )
 
     try {
@@ -667,6 +675,7 @@ describe('SonarrService webhook definition', () => {
       'http://localhost',
       3003,
       fastify,
+      createArrCaches(new CacheRegistry()),
     )
 
     const result = await tester.testConnection('http://sonarr.test', 'key')
@@ -717,6 +726,7 @@ describe('SonarrService webhook definition', () => {
       'http://localhost',
       3003,
       fastify,
+      createArrCaches(new CacheRegistry()),
     )
 
     await tester.testConnection('http://sonarr.test', 'key')
@@ -743,6 +753,7 @@ describe('SonarrService.probe', () => {
       'http://localhost',
       3003,
       {} as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     const initialize = vi.spyOn(service, 'initialize')
 

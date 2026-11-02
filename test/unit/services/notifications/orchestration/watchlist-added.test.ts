@@ -1,22 +1,21 @@
-vi.mock('@services/notifications/channels/native-webhook.js', () => ({
-  dispatchWebhooks: vi
-    .fn()
-    .mockResolvedValue({ dispatched: 0, succeeded: 0, failed: 0, results: [] }),
-}))
-
 import type { NotifyOption } from '@root/types/config.types.js'
 import type { Friend } from '@root/types/plex.types.js'
 import {
   sendWatchlistAdded,
   type WatchlistItemInfo,
 } from '@services/notifications/orchestration/watchlist-added.js'
-import { clearUserCanSyncCache } from '@services/plex-watchlist/users/permissions.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   ADMIN_DISCORD_ID,
   createNotificationDeps,
 } from '../../../../mocks/notification-deps.js'
 import { createMockUser } from '../../../../mocks/user.js'
+
+vi.mock('@services/notifications/channels/native-webhook.js', () => ({
+  dispatchWebhooks: vi
+    .fn()
+    .mockResolvedValue({ dispatched: 0, succeeded: 0, failed: 0, results: [] }),
+}))
 
 function createDeps(watchlistAddNotify: NotifyOption) {
   const fakes = createNotificationDeps({ watchlistAddNotify })
@@ -38,10 +37,6 @@ const ITEM: WatchlistItemInfo = {
 }
 
 describe('sendWatchlistAdded channel gating', () => {
-  beforeEach(() => {
-    clearUserCanSyncCache()
-  })
-
   it('sends only the webhook when set to webhook-only', async () => {
     const { deps, discordWebhook, discordBot, apprise } =
       createDeps('webhook-only')
@@ -129,5 +124,29 @@ describe('sendWatchlistAdded channel gating', () => {
         sent_to_discord: true,
       }),
     )
+  })
+
+  it('applies a sync toggle on the next notification', async () => {
+    const { deps, db, discordWebhook } = createDeps('webhook-only')
+
+    await expect(sendWatchlistAdded(deps, USER, ITEM)).resolves.toBe(true)
+
+    db.getUser.mockResolvedValue(
+      createMockUser(1, 'alice', { can_sync: false }),
+    )
+    await expect(sendWatchlistAdded(deps, USER, ITEM)).resolves.toBe(false)
+
+    db.getUser.mockResolvedValue(createMockUser(1, 'alice'))
+    await expect(sendWatchlistAdded(deps, USER, ITEM)).resolves.toBe(true)
+
+    expect(discordWebhook.sendNotification).toHaveBeenCalledTimes(2)
+  })
+
+  it('skips an unknown user', async () => {
+    const { deps, db, discordWebhook } = createDeps('webhook-only')
+    db.getUser.mockResolvedValue(undefined)
+
+    await expect(sendWatchlistAdded(deps, USER, ITEM)).resolves.toBe(false)
+    expect(discordWebhook.sendNotification).not.toHaveBeenCalled()
   })
 })

@@ -1,3 +1,4 @@
+import { PlexExistenceScopeSchema } from '@root/schemas/plex/existence-scope.schema'
 import type {
   ConnectionTestFailure,
   ConnectionTestStatus,
@@ -8,6 +9,7 @@ type Config = components['schemas']['Config']
 type ConfigUpdate = components['schemas']['ConfigUpdatePayload']
 type ServerConnection = components['schemas']['PlexServer']
 type ConnectionTest = components['schemas']['PlexTestConnectionResponse']
+type PlexExistenceScope = components['schemas']['PlexExistenceScope']
 
 export const CONNECTION_MODES = ['auto', 'address'] as const
 
@@ -17,6 +19,7 @@ export interface ServerFormValues {
   connection: ConnectionMode
   address: string
   skipIfExistsOnPlex: boolean
+  plexExistenceScope: PlexExistenceScope
 }
 
 export const CONNECTION_OPTIONS: ReadonlyArray<{
@@ -26,6 +29,17 @@ export const CONNECTION_OPTIONS: ReadonlyArray<{
   { value: 'auto', label: 'Automatic' },
   { value: 'address', label: 'Address' },
 ]
+
+export const PLEX_EXISTENCE_SCOPE_LABELS: Record<PlexExistenceScope, string> = {
+  owned: 'Your server',
+  'owned-and-shared': 'Your server and shared servers',
+}
+
+export const PLEX_EXISTENCE_SCOPE_OPTIONS =
+  PlexExistenceScopeSchema.options.map((value) => ({
+    value,
+    label: PLEX_EXISTENCE_SCOPE_LABELS[value],
+  }))
 
 export const PLEX_SERVER_DESCRIPTION =
   'Used for sessions, labels, playlists and existence checks.'
@@ -40,13 +54,17 @@ export function isAutomaticAddress(url: string | undefined): boolean {
 }
 
 export function toServerValues(
-  config: Pick<Config, 'plexServerUrl' | 'skipIfExistsOnPlex'>,
+  config: Pick<
+    Config,
+    'plexServerUrl' | 'skipIfExistsOnPlex' | 'plexExistenceScope'
+  >,
 ): ServerFormValues {
   const automatic = isAutomaticAddress(config.plexServerUrl)
   return {
     connection: automatic ? 'auto' : 'address',
     address: automatic ? '' : (config.plexServerUrl ?? ''),
     skipIfExistsOnPlex: config.skipIfExistsOnPlex,
+    plexExistenceScope: config.plexExistenceScope,
   }
 }
 
@@ -54,6 +72,7 @@ export function toServerPayload(values: ServerFormValues): ConfigUpdate {
   return {
     plexServerUrl: values.connection === 'auto' ? '' : values.address.trim(),
     skipIfExistsOnPlex: values.skipIfExistsOnPlex,
+    plexExistenceScope: values.plexExistenceScope,
   }
 }
 

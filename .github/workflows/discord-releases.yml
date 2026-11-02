@@ -2,7 +2,7 @@ name: Discord Release Notifications (Stable)
 
 on:
   release:
-    types: [published]  # Stable releases only
+    types: [published] # Stable releases only
 
 permissions:
   contents: read

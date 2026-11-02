@@ -1,4 +1,7 @@
-import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
+import {
+  USER_NAMING_SOURCE_DEFAULT,
+  UserNamingSourceSchema,
+} from '@root/schemas/common/user-naming-source.schema.js'
 import { z } from 'zod'
 
 const LabelPrefixSchema = z
@@ -64,7 +67,7 @@ export type PlexLabelSyncConfig = z.infer<typeof PlexLabelSyncConfigSchema>
 export const PLEX_LABEL_SYNC_DEFAULTS: PlexLabelSyncConfig = {
   enabled: false,
   labelPrefix: 'pulsarr',
-  labelNamingSource: 'username',
+  labelNamingSource: USER_NAMING_SOURCE_DEFAULT,
   cleanupOrphanedLabels: false,
   removedLabelMode: 'remove',
   removedLabelPrefix: 'pulsarr:removed',

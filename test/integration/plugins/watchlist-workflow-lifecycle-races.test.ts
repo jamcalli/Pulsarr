@@ -12,6 +12,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { patchConfigSettings } from '../../helpers/config-settings.js'
 import {
   getTestDatabase,
   initializeTestDatabase,
@@ -46,7 +47,7 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
   async function bootInEtagMode(): Promise<FastifyInstance> {
     const knex = getTestDatabase()
     await seedAll(knex)
-    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+    await patchConfigSettings(knex, { _isReady: false })
 
     useArrHandlers()
 

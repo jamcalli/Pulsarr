@@ -1,3 +1,4 @@
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
@@ -10,7 +11,6 @@ import {
   type RemoveResults,
   type UserTagDeps,
 } from '../types.js'
-import { ensureMigrationComplete } from './migration-gate.js'
 import { withProgress } from './progress.js'
 
 const emptyResults = (): RemoveResults => ({
@@ -36,8 +36,6 @@ export async function removeUserTags(
   const results = emptyResults()
 
   // Removal runs even when tagging is off, since leftover tags block prefix changes.
-  await ensureMigrationComplete(type, deps)
-
   const settings = getTagSettings(deps.config)
 
   return withProgress(
@@ -154,7 +152,7 @@ export async function removeAllUserTags(
   )
 
   try {
-    const [sonarr, radarr] = await Promise.all([
+    const [sonarr, radarr] = await allSettledOrThrow([
       removeUserTags({ type: 'sonarr', deleteTagDefinitions }, deps),
       removeUserTags({ type: 'radarr', deleteTagDefinitions }, deps),
     ])

@@ -1,8 +1,8 @@
-import { probeConnections } from '@services/plex-server/existence-check/connection-cache.js'
 import { getAllPlexResources } from '@services/plex-server/resources/resource-operations.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { serverCandidates, warnCandidateFallback } from './candidates.js'
 import { discoveryOptions } from './discovery-options.js'
+import { probeConnections } from './probe.js'
 import { connectionTestResult } from './probe-result.js'
 import { rankProbedConnections } from './ranking.js'
 

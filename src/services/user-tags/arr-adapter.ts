@@ -52,14 +52,7 @@ function sonarrAdapter(
       })),
     createTag: (label) => service.createTag(label),
     deleteTag: (id) => service.deleteTag(id),
-    bulkUpdateTags: (updates, mode) =>
-      service.bulkUpdateSeriesTags(
-        updates.map((update) => ({
-          seriesId: update.itemId,
-          tagIds: update.tagIds,
-        })),
-        mode,
-      ),
+    bulkUpdateTags: (updates, mode) => service.bulkUpdateTags(updates, mode),
     extractItemId: extractSonarrId,
     usersWithItems: () => db.getUsersWithSonarrItems(instance.id),
   }
@@ -83,14 +76,7 @@ function radarrAdapter(
       })),
     createTag: (label) => service.createTag(label),
     deleteTag: (id) => service.deleteTag(id),
-    bulkUpdateTags: (updates, mode) =>
-      service.bulkUpdateMovieTags(
-        updates.map((update) => ({
-          movieId: update.itemId,
-          tagIds: update.tagIds,
-        })),
-        mode,
-      ),
+    bulkUpdateTags: (updates, mode) => service.bulkUpdateTags(updates, mode),
     extractItemId: extractRadarrId,
     usersWithItems: () => db.getUsersWithRadarrItems(instance.id),
   }

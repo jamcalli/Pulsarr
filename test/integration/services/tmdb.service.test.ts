@@ -39,7 +39,7 @@ describe('TmdbService Integration', () => {
   beforeEach(async () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
-    fastify.tmdb.clearProviderCache()
+    fastify.caches.clear()
   })
 
   describe('getMovieMetadata', () => {

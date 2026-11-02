@@ -25,7 +25,7 @@ function createDeps(watchlistItems: TokenWatchlistItem[]) {
     db: {
       getWatchlistItemsByGuid: vi.fn().mockResolvedValue(watchlistItems),
       getUsersByIds: vi.fn().mockResolvedValue([]),
-      updateWatchlistItem: vi.fn().mockResolvedValue(undefined),
+      updateWatchlistItem: vi.fn().mockResolvedValue(true),
     },
     logger: createMockLogger(),
     config: { notifyOnAvailability: false },

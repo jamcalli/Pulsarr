@@ -16,7 +16,7 @@ type ShallowPartial<T> = { [K in keyof T]?: Partial<T[K]> }
 export function createUserTagDeps(
   overrides: ShallowPartial<Omit<UserTagDeps, 'logger'>> = {},
 ): UserTagDeps {
-  const { config, progress, migration, ...rest } = overrides
+  const { config, progress, ...rest } = overrides
 
   // the only place tests widen partial fakes into the real dependency types
   return {
@@ -39,12 +39,6 @@ export function createUserTagDeps(
     },
     sonarrManager: {},
     radarrManager: {},
-    migration: {
-      checkAllInstancesMigrated: vi.fn(async () => true),
-      migrateInstanceTags: vi.fn(async () => undefined),
-      cleanupMigrationFileIfComplete: vi.fn(async () => undefined),
-      ...migration,
-    },
     ...rest,
   } as unknown as UserTagDeps
 }

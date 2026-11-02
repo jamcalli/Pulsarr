@@ -7,7 +7,11 @@ import type {
   WatchlistExclusionScope,
   WatchlistExclusionUser,
 } from '@root/schemas/watchlist-exclusions/watchlist-exclusions.schema.js'
-import type { WatchlistExclusion } from '@root/types/watchlist-exclusion.types.js'
+import type {
+  ExclusionDrivenGuids,
+  WatchlistExclusion,
+} from '@root/types/watchlist-exclusion.types.js'
+import { orderNullsLast } from '@services/database/ordering.js'
 import { applySearchFilter } from '@services/database/search-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { toContentType } from '@utils/content-type.js'
@@ -15,17 +19,10 @@ import { errorMessage } from '@utils/error-message.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { Knex } from 'knex'
 
-/**
- * Sentinel user id representing a global exclusion that vetoes routing for the
- * matching key for all users.
- */
+/** User id of a global exclusion, which vetoes routing of the key for every user. */
 export const SYSTEM_USER_ID = 0
 
-/**
- * Inserts an exclusion row for each user, skipping duplicates.
- *
- * @returns Number of rows inserted (excludes duplicates)
- */
+/** Returns the rows inserted, skipping duplicates. */
 export async function excludeWatchlistItem(
   this: DatabaseService,
   key: string,
@@ -116,11 +113,6 @@ export async function bulkExcludeWatchlistItems(
   return result
 }
 
-/**
- * Removes exclusion rows for the user across the given keys.
- *
- * @returns Number of rows deleted
- */
 export async function clearExclusions(
   this: DatabaseService,
   userId: number,
@@ -134,9 +126,6 @@ export async function clearExclusions(
     .delete()
 }
 
-/**
- * Returns a map of key → set of user ids that have excluded that key.
- */
 export async function getExclusionMap(
   this: DatabaseService,
 ): Promise<Map<string, Set<number>>> {
@@ -156,9 +145,7 @@ export async function getExclusionMap(
   return map
 }
 
-/**
- * Returns all exclusions for a user, most recent first.
- */
+/** Most recent first. */
 export async function getExclusionsForUser(
   this: DatabaseService,
   userId: number,
@@ -171,9 +158,6 @@ export async function getExclusionsForUser(
   return rows.map((row) => ({ ...row, guids: parseGuids(row.guids) }))
 }
 
-/**
- * Returns all exclusions joined with the owning user's name.
- */
 export async function getAllExclusions(
   this: DatabaseService,
 ): Promise<Array<WatchlistExclusion & { username: string }>> {
@@ -409,17 +393,6 @@ function groupedExclusionItems(
   return query
 }
 
-// SQLite sorts NULL first ascending and Postgres sorts it last, so null placement is explicit
-function orderNullsLast(
-  query: Knex.QueryBuilder,
-  column: string,
-  direction: 'asc' | 'desc',
-): Knex.QueryBuilder {
-  return query
-    .orderByRaw('CASE WHEN ?? IS NULL THEN 1 ELSE 0 END', [column])
-    .orderBy(column, direction)
-}
-
 /** One row per title with its users attached, plus exclusions whose watchlist item is gone. */
 export async function getWatchlistExclusionItems(
   this: DatabaseService,
@@ -524,11 +497,6 @@ export async function bulkRemoveExclusions(
   })
 }
 
-/**
- * Removes a single exclusion by id.
- *
- * @returns True if a row was deleted
- */
 export async function removeExclusion(
   this: DatabaseService,
   id: number,
@@ -539,28 +507,13 @@ export async function removeExclusion(
   return deleted > 0
 }
 
-/**
- * Returns the union of GUIDs across keys that exclusions say should be deleted
- * right now. A key qualifies when, after subtracting per-user excluders from
- * the set of users currently watchlisting it (status != 'pending'), no
- * non-excluded user remains — i.e., every watchlister is also an excluder for
- * that key. A global exclusion (user_id = SYSTEM_USER_ID) covers every user
- * and short-circuits the check, so any item with a global exclusion qualifies.
- *
- * Watchlist mode applies the same rule as a read-side filter, so tag-based
- * delete sync can consult it without mutating watchlist_items.
- *
- * @returns Set of GUIDs covered by exclusion-driven deletion candidates
- */
+/** GUIDs of keys where every non-pending watchlister has a per-user or global exclusion, read without mutating watchlist_items. */
 export async function getExclusionDrivenDeletionGuids(
   this: DatabaseService,
-): Promise<Set<string>> {
-  // Per-exclusion-row: keep the row iff no watchlister exists for this key
-  // who isn't covered by either a per-user exclusion (matching user_id) or a
-  // global exclusion. Expressed as raw SQL because the doubly-nested
-  // correlated subquery doesn't fit knex's nested-`this` typing cleanly.
-  const result = await this.knex.raw<Array<{ guids: string }>>(
-    `SELECT DISTINCT we.key AS key, we.guids AS guids
+): Promise<ExclusionDrivenGuids> {
+  // Raw SQL for the nested correlated subquery, and no DISTINCT because Postgres json has no equality operator
+  const result = await this.knex.raw<Array<{ type: string; guids: string }>>(
+    `SELECT we.type AS type, we.guids AS guids
      FROM watchlist_exclusions we
      WHERE NOT EXISTS (
        SELECT 1 FROM watchlist_items wi
@@ -575,12 +528,13 @@ export async function getExclusionDrivenDeletionGuids(
     [SYSTEM_USER_ID],
   )
 
-  const rows = this.extractRawQueryRows<{ guids: string }>(result)
+  const rows = this.extractRawQueryRows<{ type: string; guids: string }>(result)
 
-  const guids = new Set<string>()
+  const guids: ExclusionDrivenGuids = { movie: new Set(), show: new Set() }
   for (const row of rows) {
+    const bucket = guids[toContentType(row.type)]
     for (const guid of parseGuids(row.guids)) {
-      guids.add(guid)
+      bucket.add(guid)
     }
   }
   return guids

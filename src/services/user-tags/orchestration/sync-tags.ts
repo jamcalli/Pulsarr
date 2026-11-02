@@ -1,3 +1,4 @@
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import {
   fetchLibrary,
   getAdapters,
@@ -29,13 +30,13 @@ import {
 } from '../types.js'
 import { cleanupOrphanedUserTags } from './cleanup-orphans.js'
 import { ensureUserTags } from './create-tags.js'
-import { ensureMigrationComplete } from './migration-gate.js'
 import { withProgress } from './progress.js'
 
 const emptyResults = (): TaggingResults => ({
   tagged: 0,
   skipped: 0,
   failed: 0,
+  failedInstances: 0,
 })
 
 async function ensureRemovedTag(
@@ -76,7 +77,18 @@ async function tagInstance(
   const { adapter, items, guidIndex, settings } = params
   const { logger } = deps
   const users = await adapter.usersWithItems()
-  const { tagLabelMap, tagIdMap } = await ensureUserTags(adapter, users, deps)
+  const { tagLabelMap, tagIdMap, failedCount } = await ensureUserTags(
+    adapter,
+    users,
+    deps,
+  )
+  // A user without a tag makes their items look unowned, so tagging would mark them for removal
+  if (failedCount > 0) {
+    logger.error(
+      `Skipping ${adapter.type} instance ${adapter.name} because ${failedCount} user tag(s) could not be created`,
+    )
+    return { ...emptyResults(), failedInstances: 1 }
+  }
 
   const userTagIdByUser = new Map<number, number>()
   for (const user of users) {
@@ -224,7 +236,7 @@ export async function tagContentWithData(
             { error: instanceError },
             `Error processing ${displayName} instance ${adapter.name} for tagging:`,
           )
-          return emptyResults()
+          return { ...emptyResults(), failedInstances: 1 }
         }
       }),
     )
@@ -234,6 +246,7 @@ export async function tagContentWithData(
         tagged: total.tagged + result.tagged,
         skipped: total.skipped + result.skipped,
         failed: total.failed + result.failed,
+        failedInstances: total.failedInstances + result.failedInstances,
       }),
       emptyResults(),
     )
@@ -255,7 +268,7 @@ export async function syncTags(
     return emptyResults()
   }
 
-  const results = await withProgress<TaggingResults>(
+  return withProgress<TaggingResults>(
     {
       type: `${type}-tagging`,
       start: `Starting ${displayName} tag synchronization...`,
@@ -265,9 +278,6 @@ export async function syncTags(
       deps,
     },
     async (phase) => {
-      // The migration rewrites tag ids on arr items, so the library must be read after it.
-      await ensureMigrationComplete(type, deps)
-
       const library = await fetchLibrary(type, deps)
       const watchlistItems = await watchlistItemsForType(type, deps)
 
@@ -288,16 +298,13 @@ export async function syncTags(
       return results
     },
   )
-
-  await deps.migration.cleanupMigrationFileIfComplete()
-  return results
 }
 
 export async function syncAllTags(deps: UserTagDeps): Promise<SyncAllResults> {
   deps.logger.debug('Starting complete user tag synchronization')
 
   try {
-    const [sonarr, radarr] = await Promise.all([
+    const [sonarr, radarr] = await allSettledOrThrow([
       syncTags('sonarr', deps),
       syncTags('radarr', deps),
     ])

@@ -135,23 +135,25 @@ describe('plex notifications across Radarr and Sonarr', () => {
     )
   })
 
-  it('fails an instance that takes too long to configure', async () => {
+  it('reports the outcome of a slow configure instead of a timeout', async () => {
     vi.useFakeTimers()
     try {
       const pending = configurePlexNotifications(
         deps({
           radarrService: fakeService({
-            configurePlexNotification: vi.fn(() => new Promise<void>(() => {})),
+            configurePlexNotification: vi.fn(
+              () => new Promise<void>((resolve) => setTimeout(resolve, 6000)),
+            ),
           }),
         }),
         { plexToken: 't', plexHost: 'h', plexPort: 1, useSsl: false },
       )
-      await vi.advanceTimersByTimeAsync(5000)
+      await vi.advanceTimersByTimeAsync(6000)
       const run = doneRun(await pending)
 
       expect(run.results.radarr[0]).toMatchObject({
-        success: false,
-        message: 'Timeout configuring Plex notification',
+        success: true,
+        message: 'Plex notification configured successfully',
       })
     } finally {
       vi.useRealTimers()

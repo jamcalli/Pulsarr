@@ -1,3 +1,4 @@
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
@@ -12,7 +13,6 @@ import {
   type TagCleanupResults,
   type UserTagDeps,
 } from '../types.js'
-import { ensureMigrationComplete } from './migration-gate.js'
 
 const emptyResults = (instances = 0): TagCleanupResults => ({
   removed: 0,
@@ -106,9 +106,6 @@ export async function cleanupOrphanedUserTags(
   }
 
   try {
-    await ensureMigrationComplete('radarr', deps)
-    await ensureMigrationComplete('sonarr', deps)
-
     const { tagPrefix, tagNamingSource } = getTagSettings(deps.config)
     const users = (await deps.db.getAllUsers()).filter((user) => user.can_sync)
     const validUserTagLabels = new Set(
@@ -117,7 +114,7 @@ export async function cleanupOrphanedUserTags(
       ),
     )
 
-    const [radarr, sonarr] = await Promise.all([
+    const [radarr, sonarr] = await allSettledOrThrow([
       cleanupOrphanedTagsForType({ type: 'radarr', validUserTagLabels }, deps),
       cleanupOrphanedTagsForType({ type: 'sonarr', validUserTagLabels }, deps),
     ])

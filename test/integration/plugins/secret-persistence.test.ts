@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { readConfigSettings } from '../../helpers/config-settings.js'
 import {
   getTestDatabase,
   initializeTestDatabase,
 } from '../../helpers/database.js'
-import { seedConfig } from '../../helpers/seeds/config.js'
+import { SEED_CONFIG_SETTINGS } from '../../helpers/seeds/config.js'
 
 // @fastify/session requires cookie secrets of 32+ chars
 const STORED_COOKIE_SECRET = 'stored-cookie-secret-0123456789abcdef'
@@ -35,28 +36,28 @@ describe('secret persistence across restarts', { timeout: 30_000 }, () => {
   async function seedStoredSecrets(
     secrets: { cookieSecret?: string; webhookSecret?: string | null } = {},
   ) {
-    const knex = getTestDatabase()
-    await seedConfig(knex)
-    await knex('configs')
-      .where({ id: 1 })
-      .update({
-        cookieSecret: secrets.cookieSecret ?? STORED_COOKIE_SECRET,
-        webhookSecret:
-          secrets.webhookSecret === undefined
-            ? STORED_WEBHOOK_SECRET
-            : secrets.webhookSecret,
-        // keep boot light - no service initialization
-        _isReady: false,
-      })
+    const webhookSecret =
+      secrets.webhookSecret === undefined
+        ? STORED_WEBHOOK_SECRET
+        : secrets.webhookSecret
+    const settings = {
+      ...SEED_CONFIG_SETTINGS,
+      cookieSecret: secrets.cookieSecret ?? STORED_COOKIE_SECRET,
+      ...(webhookSecret !== null && { webhookSecret }),
+      // keep boot light - no service initialization
+      _isReady: false,
+    }
+    await getTestDatabase()('configs').insert({
+      id: 1,
+      settings: JSON.stringify(settings),
+    })
   }
 
   async function getStoredSecrets() {
-    const knex = getTestDatabase()
-    const row = await knex('configs').where({ id: 1 }).first()
-    return {
-      cookieSecret: row?.cookieSecret as string | null,
-      webhookSecret: row?.webhookSecret as string | null,
-    }
+    const { cookieSecret, webhookSecret } = await readConfigSettings(
+      getTestDatabase(),
+    )
+    return { cookieSecret, webhookSecret }
   }
 
   it('persists generated secrets on fresh install', async () => {

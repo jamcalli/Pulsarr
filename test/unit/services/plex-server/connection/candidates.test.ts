@@ -1,4 +1,7 @@
-import { serverCandidates } from '@services/plex-server/connection/candidates.js'
+import {
+  serverCandidates,
+  sharedServerCandidates,
+} from '@services/plex-server/connection/candidates.js'
 import { describe, expect, it } from 'vitest'
 import {
   plexConnection,
@@ -78,5 +81,22 @@ describe('serverCandidates', () => {
 
     expect(server?.connections).toEqual([])
     expect(server?.fallback).toBe('https-required')
+  })
+})
+
+describe('sharedServerCandidates', () => {
+  it('keeps only shared Plex Media Servers with connections', () => {
+    const candidates = sharedServerCandidates([
+      plexResource({ name: 'Mine' }),
+      plexResource({ name: 'Shared', owned: false }),
+      plexResource({
+        name: 'Shared player',
+        owned: false,
+        product: 'Plex for Android',
+      }),
+      plexResource({ name: 'Shared empty', owned: false, connections: [] }),
+    ])
+
+    expect(candidates.map(({ resource }) => resource.name)).toEqual(['Shared'])
   })
 })

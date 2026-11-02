@@ -1,64 +1,64 @@
-name-template: 'v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
 categories:
-  - title: '🔄 Dependencies'
+  - title: "🔄 Dependencies"
     exclusive: true
     when:
       labels:
-        - 'dependencies'
-        - 'deps'
-  - title: '🚀 Features'
+        - "dependencies"
+        - "deps"
+  - title: "🚀 Features"
     exclusive: true
     semver-increment: minor
     when:
       labels:
-        - 'feature'
-        - 'enhancement'
-  - title: '🐛 Bug Fixes'
+        - "feature"
+        - "enhancement"
+  - title: "🐛 Bug Fixes"
     exclusive: true
     when:
       labels:
-        - 'fix'
-        - 'bugfix'
-        - 'bug'
-  - title: '⚡ Performance'
+        - "fix"
+        - "bugfix"
+        - "bug"
+  - title: "⚡ Performance"
     exclusive: true
     when:
       labels:
-        - 'performance'
-        - 'optimization'
-  - title: '🧰 Maintenance'
+        - "performance"
+        - "optimization"
+  - title: "🧰 Maintenance"
     exclusive: true
     when:
       labels:
-        - 'chore'
-        - 'maintenance'
-        - 'documentation'
+        - "chore"
+        - "maintenance"
+        - "documentation"
   - type: version-resolver
     semver-increment: major
     when:
       labels:
-        - 'major'
-        - 'breaking'
+        - "major"
+        - "breaking"
   - type: version-resolver
     semver-increment: minor
     when:
-      label: 'minor'
+      label: "minor"
   - type: version-resolver
     semver-increment: patch
 
 autolabeler:
-  - label: 'feature'
+  - label: "feature"
     title:
       - '/^feat(ure)?(\(.+\))?[:/]/i'
     branch:
       - '/^feat(ure)?\//'
-  - label: 'fix'
+  - label: "fix"
     title:
       - '/^fix(\(.+\))?[:/]/i'
     branch:
       - '/^fix\//'
-  - label: 'chore'
+  - label: "chore"
     title:
       - '/^chore(?!\(deps?\))(\(.+\))?[:/]/i'
       - '/^refactor(\(.+\))?[:/]/i'
@@ -67,17 +67,17 @@ autolabeler:
       - '/^chore\//'
       - '/^refactor\//'
       - '/^ci\//'
-  - label: 'documentation'
+  - label: "documentation"
     title:
       - '/^docs?(\(.+\))?[:/]/i'
     branch:
       - '/^docs?\//'
-  - label: 'performance'
+  - label: "performance"
     title:
       - '/^perf(ormance)?(\(.+\))?[:/]/i'
     branch:
       - '/^perf(ormance)?\//'
-  - label: 'dependencies'
+  - label: "dependencies"
     title:
       - '/^chore\(deps\)/i'
       - '/^fix\(deps\)/i'

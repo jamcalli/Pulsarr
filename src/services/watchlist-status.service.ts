@@ -5,7 +5,6 @@ import type {
   JunctionUpdateResult,
   StatusUpdateResult,
 } from '@root/types/watchlist-status.types.js'
-import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -223,18 +222,6 @@ export class StatusService {
     )
   }
 
-  private findMatch<T extends SonarrItem | RadarrItem>(
-    items: T[],
-    itemGuids: string[] | string | undefined,
-  ): T | undefined {
-    if (!itemGuids) return undefined
-    // Use parseGuids utility function
-    const guids = parseGuids(itemGuids)
-    return items.find((item) =>
-      item.guids.some((itemGuid) => guids.includes(itemGuid)),
-    )
-  }
-
   async syncInstance(
     instanceId: number,
     instanceType: 'radarr' | 'sonarr',
@@ -249,7 +236,11 @@ export class StatusService {
         `Syncing statuses for ${instanceType} instance ${instanceId}`,
       )
 
-      await this.syncAllStatuses()
+      const { userIds } =
+        instanceType === 'radarr'
+          ? await this.syncRadarrStatuses()
+          : await this.syncSonarrStatuses()
+      emitWatchlistChange(this.fastify.progress, 'status', userIds)
 
       this.log.debug(
         `Completed sync for ${instanceType} instance ${instanceId}: ${itemsCopied} items copied and statuses updated`,
@@ -344,11 +335,7 @@ export class StatusService {
 
   async syncRadarrInstance(instanceId: number): Promise<number> {
     const emitProgress = this.hasActiveProgressConnections()
-    const config = createRadarrSyncConfig(
-      this.dbService,
-      this.radarrManager,
-      (items, guids) => this.findMatch(items, guids ?? undefined) ?? null,
-    )
+    const config = createRadarrSyncConfig(this.dbService, this.radarrManager)
 
     return syncInstance(
       {
@@ -364,11 +351,7 @@ export class StatusService {
 
   async syncSonarrInstance(instanceId: number): Promise<number> {
     const emitProgress = this.hasActiveProgressConnections()
-    const config = createSonarrSyncConfig(
-      this.dbService,
-      this.sonarrManager,
-      (items, guids) => this.findMatch(items, guids ?? undefined) ?? null,
-    )
+    const config = createSonarrSyncConfig(this.dbService, this.sonarrManager)
 
     return syncInstance(
       {

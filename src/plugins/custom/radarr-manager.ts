@@ -23,6 +23,6 @@ export default fp(
   },
   {
     name: 'radarr-manager',
-    dependencies: ['database'],
+    dependencies: ['database', 'caches'],
   },
 )

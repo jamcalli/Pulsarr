@@ -36,6 +36,7 @@ export default fp(
   {
     name: 'webhook-queue',
     dependencies: [
+      'caches',
       'database',
       'notification-service',
       'plex-label-sync',

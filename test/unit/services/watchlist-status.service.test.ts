@@ -210,3 +210,74 @@ describe('StatusService import-list exclusions', () => {
     expect(arrGuids(vi.mocked(processJunctionUpdates))).toEqual([['tmdb:300']])
   })
 })
+
+describe('StatusService.syncInstance', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function createInstanceSync() {
+    const emit = vi.fn()
+    const db = {
+      getAllShowWatchlistItems: vi.fn(async () => rows([1])),
+      getAllMovieWatchlistItems: vi.fn(async () => rows([2])),
+      bulkUpdateWatchlistItems: vi.fn(
+        async (updates: unknown[]) => updates.length,
+      ),
+    }
+    const sonarrManager = { fetchAllSeries: vi.fn(async () => []) }
+    const radarrManager = { fetchAllMovies: vi.fn(async () => []) }
+    const service = new StatusService(
+      createMockLogger(),
+      db as unknown as FastifyInstance['db'],
+      sonarrManager as unknown as FastifyInstance['sonarrManager'],
+      radarrManager as unknown as FastifyInstance['radarrManager'],
+      {
+        config: {},
+        progress: { emit, hasActiveConnections: () => false },
+      } as unknown as FastifyInstance,
+    )
+    return { service, emit, db, sonarrManager, radarrManager }
+  }
+
+  it('syncs only Radarr statuses after a Radarr copy and emits its users', async () => {
+    const { service, emit, sonarrManager, radarrManager } = createInstanceSync()
+    vi.spyOn(service, 'syncRadarrInstance').mockResolvedValue(3)
+
+    await expect(service.syncInstance(1, 'radarr')).resolves.toBe(3)
+
+    expect(radarrManager.fetchAllMovies).toHaveBeenCalledTimes(1)
+    expect(sonarrManager.fetchAllSeries).not.toHaveBeenCalled()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { action: 'status', userIds: [2] },
+      }),
+    )
+  })
+
+  it('syncs only Sonarr statuses after a Sonarr copy and emits its users', async () => {
+    const { service, emit, sonarrManager, radarrManager } = createInstanceSync()
+    vi.spyOn(service, 'syncSonarrInstance').mockResolvedValue(4)
+
+    await expect(service.syncInstance(1, 'sonarr')).resolves.toBe(4)
+
+    expect(sonarrManager.fetchAllSeries).toHaveBeenCalledTimes(1)
+    expect(radarrManager.fetchAllMovies).not.toHaveBeenCalled()
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { action: 'status', userIds: [1] },
+      }),
+    )
+  })
+
+  it('rejects when the status sync fails', async () => {
+    const { service, radarrManager } = createInstanceSync()
+    vi.spyOn(service, 'syncRadarrInstance').mockResolvedValue(1)
+    radarrManager.fetchAllMovies.mockRejectedValueOnce(new Error('radarr down'))
+
+    await expect(service.syncInstance(1, 'radarr')).rejects.toThrow(
+      'radarr down',
+    )
+  })
+})

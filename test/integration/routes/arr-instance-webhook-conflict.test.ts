@@ -69,7 +69,7 @@ describe('Arr instance webhook conflict', () => {
     await resetDatabase()
     await seedAll(knex)
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   const REJECTIONS = [

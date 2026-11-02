@@ -1,28 +1,42 @@
-import { existsSync, readFileSync } from 'node:fs'
 import fs from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import readline from 'node:readline'
-import { fileURLToPath } from 'node:url'
-import { parseEnv } from 'node:util'
 import knex, { type Knex } from 'knex'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const projectRoot = resolve(__dirname, '..', '..')
-
-const envFilePath = resolve(projectRoot, '.env')
-if (existsSync(envFilePath)) {
-  const parsed = parseEnv(readFileSync(envFilePath, 'utf-8'))
-  for (const [key, value] of Object.entries(parsed)) {
-    process.env[key] ??= value
-  }
-}
+import {
+  getPostgresConnection,
+  getSqliteConnection,
+  resolveBackupDir,
+} from '../knexfile.js'
 
 interface MigrationConfig {
   source: Knex.Config
   target: Knex.Config
+  sqlitePath: string
   batchSize: number
   verbose: boolean
+}
+
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error)
+  return error.cause === undefined
+    ? error.message
+    : `${error.message} (${describeError(error.cause)})`
+}
+
+function driverMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  // knex prefixes driver errors with the full SQL and bindings, joined by ' - '
+  const separator = message.lastIndexOf(' - ')
+  return separator === -1 ? message : message.slice(separator + 3)
+}
+
+async function assertUnusedTarget(db: Knex | Knex.Transaction): Promise<void> {
+  const [usedConfig] = await db('configs').select('id').limit(1)
+  if (usedConfig) {
+    throw new Error(
+      'Target database has already been used by Pulsarr. Create an empty database and run the setup step again.',
+    )
+  }
 }
 
 class SQLiteToPostgresMigration {
@@ -38,13 +52,7 @@ class SQLiteToPostgresMigration {
 
   private log(message: string, level: 'info' | 'warn' | 'error' = 'info') {
     const timestamp = new Date().toISOString()
-    const prefix = {
-      info: '✓',
-      warn: '⚠',
-      error: '✗',
-    }[level]
-
-    console.log(`[${timestamp}] ${prefix} ${message}`)
+    console.log(`[${timestamp}] ${level.toUpperCase()} ${message}`)
   }
 
   private async prompt(question: string): Promise<boolean> {
@@ -71,10 +79,7 @@ class SQLiteToPostgresMigration {
       await this.targetDb.raw('SELECT 1')
       this.log('PostgreSQL connection verified')
     } catch (error) {
-      this.log(`Connection error details: ${error}`)
-      throw new Error(
-        `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      )
+      throw new Error('Database connection failed', { cause: error })
     }
   }
 
@@ -215,19 +220,11 @@ class SQLiteToPostgresMigration {
     return transformed
   }
 
-  async migrateTable(tableName: string): Promise<number> {
+  async migrateTable(
+    trx: Knex.Transaction,
+    tableName: string,
+  ): Promise<number> {
     try {
-      // Fail-fast: target must be empty (fresh PG install only)
-      const [{ count: targetCount }] =
-        await this.targetDb(tableName).count('* as count')
-      if (Number(targetCount) > 0) {
-        throw new Error(
-          `Target table ${tableName} is not empty (${targetCount} rows). ` +
-            'This migration is designed for fresh PostgreSQL installations only. ' +
-            'Please ensure you have a clean PostgreSQL database with only schema (no data).',
-        )
-      }
-
       const [{ count }] = await this.sourceDb(tableName).count('* as count')
       const totalRows = Number(count)
 
@@ -249,6 +246,7 @@ class SQLiteToPostgresMigration {
       while (offset < totalRows) {
         const batch = await this.sourceDb(tableName)
           .select('*')
+          .orderBy('rowid')
           .limit(this.config.batchSize)
           .offset(offset)
 
@@ -258,7 +256,13 @@ class SQLiteToPostgresMigration {
           this.transformRow(row, booleanColumns),
         )
 
-        await this.targetDb(tableName).insert(transformedBatch)
+        try {
+          await trx(tableName).insert(transformedBatch)
+        } catch (error) {
+          throw new Error(
+            `rows ${offset + 1}-${offset + batch.length} were rejected. ${driverMessage(error)}`,
+          )
+        }
 
         migrated += batch.length
         offset += this.config.batchSize
@@ -272,27 +276,19 @@ class SQLiteToPostgresMigration {
 
       return migrated
     } catch (error) {
-      throw new Error(`Failed to migrate ${tableName}: ${error}`)
+      throw new Error(`Failed to migrate ${tableName}`, { cause: error })
     }
   }
 
   async createBackup(): Promise<string> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const backupPath = resolve(
-      projectRoot,
-      `data/backups/pulsarr-backup-${timestamp}.db`,
-    )
+    const backupDir = resolveBackupDir()
+    const backupPath = resolve(backupDir, `pulsarr-backup-${timestamp}.db`)
 
     this.log('Creating SQLite backup...')
 
-    await fs.mkdir(resolve(projectRoot, 'data/backups'), { recursive: true })
-
-    const connection = this.config.source.connection
-    const sourcePath =
-      typeof connection === 'object' && connection && 'filename' in connection
-        ? (connection.filename as string)
-        : resolve(projectRoot, 'data/db/pulsarr.db')
-    await fs.copyFile(sourcePath, backupPath)
+    await fs.mkdir(backupDir, { recursive: true })
+    await fs.copyFile(this.config.sqlitePath, backupPath)
 
     this.log(`Backup created at: ${backupPath}`)
     return backupPath
@@ -305,14 +301,21 @@ class SQLiteToPostgresMigration {
       await this.verifyConnections()
 
       const tables = await this.getTables()
+      if (tables.length === 0) {
+        throw new Error(
+          `No tables found in the SQLite database at ${this.config.sqlitePath}`,
+        )
+      }
       this.log(`Found ${tables.length} tables to migrate`)
+
+      await assertUnusedTarget(this.targetDb)
 
       const orderedTables = await this.determineMigrationOrder(tables)
       const sequences = await this.getSequences()
       const backupPath = await this.createBackup()
 
       const proceed = await this.prompt(
-        `\nThis will migrate all data from SQLite to PostgreSQL.\nTables to migrate: ${orderedTables.length}\nBackup created at: ${backupPath}\nDo you want to proceed?`,
+        `\nThis will migrate all data from SQLite to PostgreSQL. The default rows the setup step created in PostgreSQL will be replaced.\nTables to migrate: ${orderedTables.length}\nBackup created at: ${backupPath}\nDo you want to proceed?`,
       )
 
       if (!proceed) {
@@ -320,59 +323,65 @@ class SQLiteToPostgresMigration {
         return
       }
 
-      const stats: { [table: string]: number } = {}
       let totalMigrated = 0
 
-      for (const table of orderedTables) {
-        this.log(`Migrating ${table}...`)
-        const count = await this.migrateTable(table)
-        stats[table] = count
-        totalMigrated += count
-        this.log(`✓ ${table}: ${count} rows`)
-      }
-
-      // Reset PG sequences to match migrated max IDs
-      for (const [table, sequence] of sequences) {
-        const result = await this.targetDb(table).max('id as max_id')
-        const maxId = result[0]?.max_id
-
-        if (maxId) {
-          await this.targetDb.raw('SELECT setval(?, ?)', [sequence, maxId])
-        }
-      }
-
-      this.log('\nVerifying migration...')
-      let allMatch = true
-
-      for (const table of orderedTables) {
-        const [sourceCount] = await this.sourceDb(table).count('* as count')
-        const [targetCount] = await this.targetDb(table).count('* as count')
-
-        if (Number(sourceCount.count) !== Number(targetCount.count)) {
-          this.log(
-            `${table}: count mismatch! Source: ${sourceCount.count}, Target: ${targetCount.count}`,
-            'warn',
+      await this.targetDb.transaction(async (trx) => {
+        // SQLite CURRENT_TIMESTAMP values are UTC with no zone suffix
+        await trx.raw("SET LOCAL TIME ZONE 'UTC'")
+        await trx.raw('LOCK TABLE configs IN ACCESS EXCLUSIVE MODE')
+        await assertUnusedTarget(trx)
+        const targetTables: string[] = await trx('pg_tables')
+          .where('schemaname', 'public')
+          .whereIn('tablename', orderedTables)
+          .pluck('tablename')
+        if (targetTables.length > 0) {
+          await trx.raw(
+            `TRUNCATE ${targetTables.map(() => '??').join(', ')} RESTART IDENTITY CASCADE`,
+            targetTables,
           )
-          allMatch = false
         }
-      }
 
-      if (allMatch) {
-        this.log('✓ All row counts match!')
-      }
+        for (const table of orderedTables) {
+          this.log(`Migrating ${table}...`)
+          const count = await this.migrateTable(trx, table)
+          totalMigrated += count
+          this.log(`${table}: ${count} rows`)
+        }
 
+        for (const [table, sequence] of sequences) {
+          const result = await trx(table).max('id as max_id')
+          const maxId = result[0]?.max_id
+
+          if (maxId) {
+            await trx.raw('SELECT setval(?, ?)', [sequence, maxId])
+          }
+        }
+
+        this.log('\nVerifying migration...')
+
+        for (const table of orderedTables) {
+          const [sourceCount] = await this.sourceDb(table).count('* as count')
+          const [targetCount] = await trx(table).count('* as count')
+
+          if (Number(sourceCount.count) !== Number(targetCount.count)) {
+            throw new Error(
+              `Row count mismatch in ${table}. Source has ${sourceCount.count}, target has ${targetCount.count}.`,
+            )
+          }
+        }
+      })
+
+      this.log('All row counts match')
       this.log(
         `\nMigration complete! Migrated ${totalMigrated} total rows across ${orderedTables.length} tables.`,
       )
       this.log('\nNext steps:')
-      this.log('1. Update your .env file to use PostgreSQL settings')
-      this.log('2. Set dbType=postgres')
-      this.log('3. Restart your application')
+      this.log('1. Start Pulsarr')
       this.log(
-        `4. Keep the backup at ${backupPath} until you verify everything works`,
+        `2. Keep the backup at ${backupPath} until you have checked everything works`,
       )
     } catch (error) {
-      this.log(`Migration failed: ${error}`, 'error')
+      this.log(`Migration failed. ${describeError(error)}`, 'error')
       throw error
     } finally {
       await this.cleanup()
@@ -403,7 +412,7 @@ async function main() {
     console.log(`
 SQLite to PostgreSQL Migration Script
 
-Usage: bun migrate-to-postgres.ts [OPTIONS]
+Usage: bun run migrate:sqlite-to-postgres [OPTIONS]
 
 Options:
   --verbose, -v      Enable verbose output
@@ -417,25 +426,18 @@ Prerequisites:
     process.exit(0)
   }
 
+  const sqliteConnection = getSqliteConnection()
   const config: MigrationConfig = {
     source: {
       client: 'better-sqlite3',
-      connection: {
-        filename:
-          process.env.dbPath || resolve(projectRoot, 'data/db/pulsarr.db'),
-      },
+      connection: sqliteConnection,
       useNullAsDefault: true,
     },
     target: {
       client: 'pg',
-      connection: process.env.dbConnectionString || {
-        host: process.env.dbHost || 'localhost',
-        port: Number.parseInt(process.env.dbPort || '5432', 10),
-        user: process.env.dbUser || 'postgres',
-        password: process.env.dbPassword || '',
-        database: process.env.dbName || 'pulsarr',
-      },
+      connection: getPostgresConnection(),
     },
+    sqlitePath: sqliteConnection.filename,
     batchSize,
     verbose,
   }
@@ -445,8 +447,7 @@ Prerequisites:
   try {
     await migration.migrate()
     process.exit(0)
-  } catch (error) {
-    console.error('Migration failed:', error)
+  } catch {
     process.exit(1)
   }
 }

@@ -1,7 +1,6 @@
 import type { Friend } from '@root/types/plex.types.js'
 import type { RoutingDetails } from '@root/types/router.types.js'
 import { getTmdbUrl, parseGuids } from '@root/utils/guid-handler.js'
-import { getUserCanSync } from '@services/plex-watchlist/users/permissions.js'
 import { toContentType } from '@utils/content-type.js'
 import { toItemId } from '@utils/item-id.js'
 import { recipientLabel } from '@utils/recipient-label.js'
@@ -33,8 +32,8 @@ export async function sendWatchlistAdded(
 ): Promise<boolean> {
   const { db, logger } = deps
 
-  const canSync = await getUserCanSync(user.userId, { db, logger })
-  if (!canSync) {
+  const dbUser = await db.getUser(user.userId)
+  if (!dbUser?.can_sync) {
     logger.debug(
       { userId: user.userId },
       `Skipping watchlist add notification for ${user.username}, sync disabled`,
@@ -43,7 +42,7 @@ export async function sendWatchlistAdded(
   }
 
   const username = user.username || 'Unknown User'
-  const alias = (await db.getUser(user.userId))?.alias
+  const alias = dbUser.alias
   const mediaType = toContentType(item.type)
   const guids = parseGuids(item.guids)
   const { posterUrl, ...content } = buildContentPayload({

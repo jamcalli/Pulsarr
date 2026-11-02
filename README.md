@@ -3,13 +3,13 @@
   <h1>Pulsarr</h1>
   <p>Pulsarr turns Plex watchlists into Sonarr and Radarr requests</p>
 
-  ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
-  ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Bun](https://img.shields.io/badge/bun-%3E%3D1.4-green?style=flat-square&logo=bun&logoColor=white)
-  [![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
-  ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
-  ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr/latest?style=flat-square)
-  ![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
+![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
+![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
+![Bun](https://img.shields.io/badge/bun-%3E%3D1.4-green?style=flat-square&logo=bun&logoColor=white)
+[![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
+![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
+![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr/latest?style=flat-square)
+![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
 </div>
 
 ---

@@ -4,15 +4,15 @@ on:
   push:
     branches: [master, develop]
     paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
+      - "**/*.md"
+      - "docs/**"
   pull_request:
     branches: [master, develop]
     paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
+      - "**/*.md"
+      - "docs/**"
   schedule:
-    - cron: '50 7 * * 5'
+    - cron: "50 7 * * 5"
   workflow_dispatch:
 
 permissions:

@@ -79,34 +79,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const userId = request.params.id
-
       try {
-        const existingUser = await fastify.db.getUser(userId)
-        if (!existingUser) {
-          return reply.notFound('User not found')
-        }
-
-        if (request.body.name && request.body.name !== existingUser.name) {
-          const nameExists = await fastify.db.getUser(request.body.name)
-          if (nameExists) {
-            return reply.conflict('User with this name already exists')
-          }
-        }
-
-        const updated = await fastify.db.updateUser(userId, request.body)
-        if (!updated) {
-          throw new Error('Failed to update user')
-        }
-
-        const updatedUser = await fastify.db.getUser(userId)
-        if (!updatedUser) {
-          throw new Error('Failed to fetch updated user')
-        }
-
-        const [user] = await fastify.plexWatchlist.withFriendStatus([
-          updatedUser,
-        ])
+        const user = await fastify.plexWatchlist.updateUser(
+          request.params.id,
+          request.body,
+        )
 
         return {
           success: true,
@@ -114,8 +91,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           user,
         }
       } catch (error) {
-        if (isUniqueViolation(error)) {
-          return reply.conflict('User with this name already exists')
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
         }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to update user',

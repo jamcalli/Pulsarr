@@ -1,5 +1,4 @@
 import {
-  CleanupOrphanedRefsResponseSchema,
   CleanupResponseSchema,
   CreateTaggingResponseSchema,
   ErrorSchema,
@@ -8,6 +7,7 @@ import {
   SyncTaggingResponseSchema,
   TagStatusResponseSchema,
 } from '@schemas/tags/user-tags.schema.js'
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -97,7 +97,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               message: 'Radarr user tagging is disabled in configuration',
             })
 
-        const [sonarrTagResults, radarrTagResults] = await Promise.all([
+        const [sonarrTagResults, radarrTagResults] = await allSettledOrThrow([
           sonarrPromise,
           radarrPromise,
         ])
@@ -301,65 +301,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Failed to cleanup orphaned tags',
         })
         return reply.internalServerError('Unable to clean up orphaned tags')
-      }
-    },
-  )
-
-  // Clean up orphaned tag references
-  fastify.post(
-    '/cleanup-orphaned-refs',
-    {
-      schema: {
-        summary: 'Cleanup orphaned tag references',
-        operationId: 'cleanupOrphanedTagReferences',
-        description:
-          'Remove references to non-existent tags from movies and series',
-        response: {
-          200: CleanupOrphanedRefsResponseSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Tags'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const results = await fastify.userTags.cleanupOrphanedTagReferences()
-
-        let totalItemsScanned = 0
-        let totalOrphanedFound = 0
-        let totalItemsUpdated = 0
-
-        for (const result of Object.values(results.radarr)) {
-          totalItemsScanned += result.itemsScanned
-          totalOrphanedFound += result.orphanedTagsFound
-          totalItemsUpdated += result.itemsUpdated
-        }
-        for (const result of Object.values(results.sonarr)) {
-          totalItemsScanned += result.itemsScanned
-          totalOrphanedFound += result.orphanedTagsFound
-          totalItemsUpdated += result.itemsUpdated
-        }
-
-        let message: string
-        if (totalOrphanedFound === 0) {
-          message = `Scanned ${totalItemsScanned} items, no orphaned tag references found`
-        } else {
-          message = `Found ${totalOrphanedFound} orphaned tag references across ${totalItemsUpdated} items and removed them`
-        }
-
-        return {
-          success: true,
-          message,
-          radarr: results.radarr,
-          sonarr: results.sonarr,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to cleanup orphaned tag references',
-        })
-        return reply.internalServerError(
-          'Unable to clean up orphaned tag references',
-        )
       }
     },
   )

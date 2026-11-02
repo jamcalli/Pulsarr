@@ -14,7 +14,7 @@ import {
   triggerSummary,
 } from '@/lib/approval'
 import { CONTENT_TYPE_LABELS } from '@/lib/content-type'
-import { formatDate, formatRelative } from '@/lib/format'
+import { formatDate, formatTimestamp } from '@/lib/format'
 import { userPageHref } from '@/lib/navigation'
 import type { components } from '@/types/api.js'
 
@@ -94,15 +94,15 @@ const trigger: ColumnDef<ApprovalRequest> = {
   cell: ({ row }) => <TriggerCell approval={row.original} />,
 }
 
-const requestedAgo: ColumnDef<ApprovalRequest> = {
+const requestedAt: ColumnDef<ApprovalRequest> = {
   id: 'requested',
   header: 'Requested',
   accessorFn: (row) => row.createdAt,
-  cell: ({ row }) => formatRelative(new Date(row.original.createdAt)),
+  cell: ({ row }) => formatTimestamp(new Date(row.original.createdAt)),
 }
 
 const requestedOn: ColumnDef<ApprovalRequest> = {
-  ...requestedAgo,
+  ...requestedAt,
   cell: ({ row }) => formatDate(new Date(row.original.createdAt)),
 }
 
@@ -132,7 +132,7 @@ const decided: ColumnDef<ApprovalRequest> = {
   cell: ({ row }) => formatDate(new Date(row.original.updatedAt)),
 }
 
-const PENDING_COLUMNS = [title, requester, trigger, requestedAgo]
+const PENDING_COLUMNS = [title, requester, trigger, requestedAt]
 const PENDING_COLUMNS_WITH_EXPIRES = [...PENDING_COLUMNS, expires]
 const HISTORY_COLUMNS = [
   title,

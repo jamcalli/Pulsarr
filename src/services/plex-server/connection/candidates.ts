@@ -23,11 +23,25 @@ const CANDIDATE_FALLBACK_WARNINGS: Record<CandidateFallback, string> = {
 export function serverCandidates(
   resources: PlexResource[],
 ): ServerCandidates[] {
+  return mediaServerCandidates(resources, true)
+}
+
+/** Plex Media Servers shared with the account, with their usable connections, in plex.tv order. */
+export function sharedServerCandidates(
+  resources: PlexResource[],
+): ServerCandidates[] {
+  return mediaServerCandidates(resources, false)
+}
+
+function mediaServerCandidates(
+  resources: PlexResource[],
+  owned: boolean,
+): ServerCandidates[] {
   return resources
     .filter(
       (resource) =>
         resource.product === 'Plex Media Server' &&
-        resource.owned === true &&
+        resource.owned === owned &&
         (resource.connections?.length ?? 0) > 0,
     )
     .map(resourceCandidates)

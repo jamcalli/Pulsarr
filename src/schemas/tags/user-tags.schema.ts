@@ -112,28 +112,6 @@ export const CleanupResponseSchema = BaseResponseSchema.extend({
   description: 'Result of cleaning up orphaned user tags',
 })
 
-const OrphanedRefInstanceResultSchema = z
-  .object({
-    instanceName: z.string(),
-    itemsScanned: z.number(),
-    orphanedTagsFound: z.number(),
-    itemsUpdated: z.number(),
-    error: z.string().optional(),
-  })
-  .meta({
-    id: 'OrphanedTagRefInstanceResult',
-    description: 'Orphaned tag reference cleanup result for one instance',
-  })
-
-export const CleanupOrphanedRefsResponseSchema = BaseResponseSchema.extend({
-  radarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
-  sonarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
-}).meta({
-  id: 'CleanupOrphanedTagRefsResponse',
-  description:
-    'Result of removing references to deleted tags, keyed by instance',
-})
-
 const TagStatusInstanceSchema = z
   .object({
     type: InstanceTypeSchema,
@@ -174,6 +152,3 @@ export type TaggingOperationResponse = z.infer<
   typeof TaggingOperationResponseSchema
 >
 export type CleanupResponse = z.infer<typeof CleanupResponseSchema>
-export type CleanupOrphanedRefsResponse = z.infer<
-  typeof CleanupOrphanedRefsResponseSchema
->

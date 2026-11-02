@@ -1,10 +1,14 @@
 import { PLEX_LABEL_CONCURRENCY } from '@root/schemas/plex/label-sync-config.schema.js'
-import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import type {
+  TemptRssWatchlistItem,
+  TokenWatchlistItem,
+} from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import { errorMessage } from '@utils/error-message.js'
 import {
+  buildGuidIndex,
   extractTmdbId,
   extractTvdbId,
   parseGenres,
@@ -18,6 +22,7 @@ import {
   routeMovie,
   routeShow,
 } from '../routing/content-router.js'
+import { queueForDeferredRouting } from '../routing/health-checker.js'
 import type { WorkflowDeps } from '../types.js'
 
 export interface SyncResult {
@@ -34,6 +39,8 @@ export interface SyncResult {
   skippedDueToWatchlistCap: number
   skippedDueToExclusion: number
   skippedDueToRouting: number
+  /** Left unrouted because the owner Plex server could not be checked, and queued for deferred routing. */
+  skippedPlexUnreachable: number
 }
 
 export async function syncWatchlistItems(
@@ -70,6 +77,7 @@ export async function syncWatchlistItems(
         skippedDueToWatchlistCap: 0,
         skippedDueToExclusion: 0,
         skippedDueToRouting: 0,
+        skippedPlexUnreachable: 0,
       }
     }
 
@@ -92,10 +100,11 @@ export async function syncWatchlistItems(
         skippedDueToWatchlistCap: 0,
         skippedDueToExclusion: 0,
         skippedDueToRouting: 0,
+        skippedPlexUnreachable: 0,
       }
     }
 
-    // With skipIfExistsOnPlex on, an unreachable Plex answers not-found for everything and mass-routes
+    // An unreachable Plex answers unknown for every item, so the pass is skipped instead
     if (deps.config.skipIfExistsOnPlex) {
       const plexHealth =
         await deps.fastify.plexServerService.checkPlexServerHealth()
@@ -113,6 +122,7 @@ export async function syncWatchlistItems(
           skippedDueToWatchlistCap: 0,
           skippedDueToExclusion: 0,
           skippedDueToRouting: 0,
+          skippedPlexUnreachable: 0,
         }
       }
     }
@@ -176,6 +186,8 @@ export async function syncWatchlistItems(
       deps.radarrManager.getAllInstances(),
     ])
     const approvedRecords = indexApprovedRecords(approvedRequests)
+    const seriesIndex = buildGuidIndex(existingSeries)
+    const movieIndex = buildGuidIndex(existingMovies)
     const sonarrInstanceIds = new Set(sonarrInstances.map((i) => i.id))
     const radarrInstanceIds = new Set(radarrInstances.map((i) => i.id))
 
@@ -188,6 +200,8 @@ export async function syncWatchlistItems(
     let skippedDueToWatchlistCap = 0
     let skippedDueToExclusion = 0
     let skippedDueToRouting = 0
+    let skippedPlexUnreachable = 0
+    const plexUnreachableByUser = new Map<number, TokenWatchlistItem[]>()
     const skippedItems: { shows: string[]; movies: string[] } = {
       shows: [],
       movies: [],
@@ -317,7 +331,7 @@ export async function syncWatchlistItems(
                   userName: user?.name,
                   userAlias: user?.alias,
                   sonarrItem,
-                  existingSeries,
+                  seriesIndex,
                   approvedRecords,
                   arrInstanceIds: sonarrInstanceIds,
                   arrInstances: sonarrInstances,
@@ -331,6 +345,7 @@ export async function syncWatchlistItems(
                 type: 'show',
                 added: result.routed,
                 skippedReason: result.skippedReason,
+                item,
               }
             }
             if (item.type === 'movie') {
@@ -365,7 +380,7 @@ export async function syncWatchlistItems(
                   userName: user?.name,
                   userAlias: user?.alias,
                   radarrItem,
-                  existingMovies,
+                  movieIndex,
                   approvedRecords,
                   arrInstanceIds: radarrInstanceIds,
                   arrInstances: radarrInstances,
@@ -379,6 +394,7 @@ export async function syncWatchlistItems(
                 type: 'movie',
                 added: result.routed,
                 skippedReason: result.skippedReason,
+                item,
               }
             }
 
@@ -409,6 +425,14 @@ export async function syncWatchlistItems(
             value.skippedReason === 'excluded')
         ) {
           skippedDueToRouting++
+        } else if (
+          (value.type === 'show' || value.type === 'movie') &&
+          value.skippedReason === 'plex-unreachable'
+        ) {
+          skippedPlexUnreachable++
+          const userItems = plexUnreachableByUser.get(value.item.user_id)
+          if (userItems) userItems.push(value.item)
+          else plexUnreachableByUser.set(value.item.user_id, [value.item])
         } else if (value.type === 'skipped') {
           if (value.reason === 'user_setting') {
             skippedDueToUserSetting++
@@ -443,6 +467,19 @@ export async function syncWatchlistItems(
       }
     }
 
+    if (!signal.aborted) {
+      for (const [userId, items] of plexUnreachableByUser) {
+        queueForDeferredRouting(
+          {
+            deferredRoutingQueue: deps.state.deferredRoutingQueue,
+            logger: deps.logger,
+          },
+          { type: 'items', userId, items },
+          'plex-unreachable',
+        )
+      }
+    }
+
     const summary: SyncResult = {
       added: {
         shows: showsAdded,
@@ -457,6 +494,7 @@ export async function syncWatchlistItems(
       skippedDueToWatchlistCap,
       skippedDueToExclusion,
       skippedDueToRouting,
+      skippedPlexUnreachable,
     }
 
     deps.logger.info(
@@ -468,6 +506,7 @@ export async function syncWatchlistItems(
         skippedDueToWatchlistCap: summary.skippedDueToWatchlistCap,
         skippedDueToExclusion: summary.skippedDueToExclusion,
         skippedDueToRouting: summary.skippedDueToRouting,
+        skippedPlexUnreachable: summary.skippedPlexUnreachable,
       },
       'Watchlist sync completed',
     )

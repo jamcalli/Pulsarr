@@ -48,6 +48,7 @@ describe('allowed hosts', () => {
       await resetDatabase()
       await seedAll(getTestDatabase())
       app.config.authenticationMethod = 'required'
+      app.caches.clear()
     })
 
     it.each([

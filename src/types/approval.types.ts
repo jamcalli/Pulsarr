@@ -176,13 +176,6 @@ export interface QuotaStatus {
   watchlistCapExceeded: boolean
 }
 
-export interface QuotaExceeded {
-  type: QuotaType
-  limit: number
-  usage: number
-  exceeded: true
-}
-
 // Request/Response types for API
 export interface CreateApprovalRequestData {
   userId: number
@@ -261,17 +254,4 @@ export interface ApprovalStats {
   expired: number
   auto_approved: number
   totalRequests: number
-}
-
-export interface UserApprovalStats {
-  userId: number
-  userName: string
-  totalRequests: number
-  approvedRequests: number
-  rejectedRequests: number
-  pendingRequests: number
-  currentQuotaUsage: number
-  quotaLimit: number
-  quotaType: QuotaType
-  bypassApproval: boolean
 }

@@ -1,7 +1,7 @@
 export interface PlexPlaylistResponse {
   MediaContainer: {
     size?: number
-    Metadata: Array<{
+    Metadata?: Array<{
       ratingKey: string
       key: string
       guid: string
@@ -14,9 +14,6 @@ export interface PlexPlaylistResponse {
   }
 }
 
-/**
- * Specialized Plex playlist items response structure
- */
 export interface PlexPlaylistItemsResponse {
   MediaContainer: {
     size: number
@@ -37,29 +34,21 @@ export interface PlexPlaylistItemsResponse {
   }
 }
 
-/**
- * Simplified Plex playlist item for protection checks
- */
 export interface PlexPlaylistItem {
-  guid: string // Full format: "plex://movie/5d776832a091de001f2e780f" or "plex://episode/5ea3e26f382f910042f103d0"
-  grandparentGuid?: string // For TV shows: "plex://show/5eb6b5ffac1f29003f4a737b"
-  parentGuid?: string // For TV episodes: "plex://season/602e7aa091bd55002cf9cc73"
+  guid: string // plex://movie/<id> or plex://episode/<id>
+  grandparentGuid?: string // The show guid when the item is an episode
+  parentGuid?: string // The season guid when the item is an episode
   type: 'movie' | 'show' | 'episode'
   title: string // For logging only
 }
 
-/**
- * Connection details for a Plex server
- */
 export interface PlexServerConnectionInfo {
   url: string
   local: boolean
   relay: boolean
 }
 
-/**
- * Plex user information from the /api/users XML endpoint
- */
+/** A user from the plex.tv /api/users XML endpoint. */
 export interface PlexUser {
   id: string
   username: string
@@ -82,9 +71,7 @@ export interface PlexUser {
   Server?: PlexUserServer[]
 }
 
-/**
- * Server access entry nested within a PlexUser XML response
- */
+/** A server access entry nested in a PlexUser XML response. */
 export interface PlexUserServer {
   id: string
   serverId: string
@@ -97,22 +84,15 @@ export interface PlexUserServer {
   pending: boolean
 }
 
-/**
- * Plex shared server information with user access tokens
- */
 export interface PlexSharedServerInfo {
   id: string
   username: string
   email: string
   userID: string
   accessToken: string
-  // Other fields available but not needed for our primary use case
 }
 
-/**
- * Plex API Resource interface for server identification
- * Based on the actual response from /api/v2/resources endpoint
- */
+/** A server or client entry from plex.tv /api/v2/resources. */
 export interface PlexResource {
   name: string
   product: string
@@ -148,9 +128,6 @@ export interface PlexResource {
   }>
 }
 
-/**
- * Plex metadata item structure
- */
 export interface PlexMetadata {
   ratingKey: string
   key: string
@@ -174,22 +151,17 @@ export interface PlexMetadata {
   Guid?: Array<{ id: string }>
   Genre?: Array<{ tag: string }>
   Label?: Array<{ tag: string }>
-  // Media information for movies and shows
   Media?: Array<{
     Part?: Array<{
       file?: string
     }>
   }>
-  // Location information for shows/movies
   Location?: Array<{
     path: string
   }>
-  // Add other fields as needed
 }
 
-/**
- * Plex search response structure for /library/all endpoint
- */
+/** Response from the /library/all endpoint. */
 export interface PlexSearchResponse {
   MediaContainer: {
     size?: number
@@ -199,9 +171,7 @@ export interface PlexSearchResponse {
   }
 }
 
-/**
- * Plex metadata response structure for /library/metadata/{ratingKey} endpoint
- */
+/** Response from the /library/metadata/{ratingKey} endpoint. */
 export interface PlexMetadataResponse {
   MediaContainer: {
     size: number

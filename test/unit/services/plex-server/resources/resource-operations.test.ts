@@ -72,6 +72,8 @@ describe('getAllPlexResources', () => {
   it('throws when plex.tv cannot be reached', async () => {
     serveResources(() => HttpResponse.error())
 
-    await expect(getAllPlexResources('token')).rejects.toThrow()
+    await expect(getAllPlexResources('token')).rejects.toThrow(
+      'Failed to fetch',
+    )
   })
 })

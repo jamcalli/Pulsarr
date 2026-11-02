@@ -98,6 +98,38 @@ describe('routeEnrichedItemsForUser exclusion gate', () => {
   })
 })
 
+describe('routeEnrichedItemsForUser when Plex cannot be checked', () => {
+  it('queues only the items Plex could not answer for', async () => {
+    const enqueue = vi.fn()
+    const deps = createWorkflowDeps({
+      db: {
+        getUser: vi.fn(async () => USER),
+        getPrimaryUser: vi.fn(async () => PRIMARY_USER),
+        getExclusionMap: vi.fn(async () => new Map()),
+      },
+      state: { deferredRoutingQueue: { enqueue } },
+    })
+    const unknown = movieItem('unknown', 'Unknown')
+    vi.mocked(routeMovie).mockImplementation(async ({ tempItem }) =>
+      tempItem.key === 'unknown'
+        ? { routed: false, skippedReason: 'plex-unreachable' }
+        : { routed: true },
+    )
+
+    await routeEnrichedItemsForUser(
+      USER_ID,
+      [movieItem('routed', 'Routed'), unknown],
+      deps,
+    )
+
+    expect(enqueue).toHaveBeenCalledExactlyOnceWith({
+      type: 'items',
+      userId: USER_ID,
+      items: [unknown],
+    })
+  })
+})
+
 describe('routing after the run has ended', () => {
   const pollChange: EtagPollResult = {
     changed: true,

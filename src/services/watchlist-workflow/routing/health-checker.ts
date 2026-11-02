@@ -35,7 +35,7 @@ export async function checkInstanceHealth(
 }
 
 export function queueForDeferredRouting(
-  deps: HealthCheckDeps,
+  deps: Pick<HealthCheckDeps, 'deferredRoutingQueue' | 'logger'>,
   entry: DeferredEntry,
   context: string,
 ): boolean {

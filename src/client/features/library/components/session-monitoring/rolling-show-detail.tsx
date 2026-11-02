@@ -13,7 +13,7 @@ import {
   viewerProgress,
 } from '@/features/library/lib/session-monitoring/session-monitoring-copy'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
-import { formatRelative } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 
 const VIEWER_COLUMNS = [
   { label: 'Viewer' },
@@ -46,7 +46,7 @@ function ViewerTable({
           const username = viewer.plex_username ?? ''
           const { name } = lookup(username)
           const when = viewer.last_session_date
-            ? formatRelative(new Date(viewer.last_session_date))
+            ? formatTimestamp(new Date(viewer.last_session_date))
             : null
           const progress = seasonProgress(row.record, viewer, remainingEpisodes)
           const position = progress ? (

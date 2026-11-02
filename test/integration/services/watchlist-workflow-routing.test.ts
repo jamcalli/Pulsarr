@@ -10,6 +10,7 @@ import {
 } from '@services/watchlist-workflow/routing/content-router.js'
 import { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { ContentRoutingDeps } from '@services/watchlist-workflow/types.js'
+import { buildGuidIndex } from '@utils/guid-handler.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -80,7 +81,7 @@ describe('routeMovie with an approval record as the truth', () => {
         userId: 1,
         userName: undefined,
         radarrItem,
-        existingMovies,
+        movieIndex: buildGuidIndex(existingMovies),
         approvedRecords,
         primaryUser: null,
       },
@@ -204,7 +205,7 @@ describe('routeMovie with an approval record as the truth', () => {
     await insertRadarrInstance(2)
     await seedComedyRule(50, 1)
     await seedComedyRule(51, 2)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
 
     routeItemToRadarr = vi.fn(echoAppliedRadarr())
     fastify.radarrManager.routeItemToRadarr =
@@ -306,7 +307,7 @@ describe('routeMovie with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(true)
+    ).mockResolvedValue('found')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({
@@ -327,11 +328,25 @@ describe('routeMovie with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(false)
+    ).mockResolvedValue('missing')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({ routed: true })
     expect(routedInstanceIds()).toEqual([2])
+  })
+
+  it('leaves an item unrouted when Plex could not be checked', async () => {
+    vi.spyOn(
+      fastify.plexServerService,
+      'checkExistenceAcrossServers',
+    ).mockResolvedValue('unknown')
+    deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
+
+    expect(await route(presentIn())).toEqual({
+      routed: false,
+      skippedReason: 'plex-unreachable',
+    })
+    expect(routedInstanceIds()).toEqual([])
   })
 
   it('completes a record destination outside the current targets when every target has it', async () => {
@@ -430,7 +445,7 @@ describe('routeShow with an approval record as the truth', () => {
         userId: 1,
         userName: undefined,
         sonarrItem,
-        existingSeries,
+        seriesIndex: buildGuidIndex(existingSeries),
         primaryUser: null,
       },
       deps,
@@ -504,7 +519,7 @@ describe('routeShow with an approval record as the truth', () => {
     await seedUsers(knex)
     await seedInstances(knex)
     await insertSonarrInstance(2)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
 
     routeItemToSonarr = vi.fn(echoAppliedSonarr())
     fastify.sonarrManager.routeItemToSonarr =
@@ -525,7 +540,7 @@ describe('routeShow with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(true)
+    ).mockResolvedValue('found')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({
@@ -546,10 +561,192 @@ describe('routeShow with an approval record as the truth', () => {
     vi.spyOn(
       fastify.plexServerService,
       'checkExistenceAcrossServers',
-    ).mockResolvedValue(false)
+    ).mockResolvedValue('missing')
     deps.config = { ...fastify.config, skipIfExistsOnPlex: true }
 
     expect(await route(presentIn(1))).toEqual({ routed: true })
     expect(routedInstanceIds()).toEqual([2])
   })
 })
+
+const OLD_TIMESTAMP = '2020-01-01 00:00:00'
+
+const churnCases = [
+  {
+    kind: 'routeMovie',
+    type: 'movie',
+    junctionTable: 'watchlist_radarr_instances',
+    instanceColumn: 'radarr_instance_id',
+    guids: ['imdb:tt7777777', 'tmdb:77777'],
+    route: (key: string, guids: string[]) => (deps: ContentRoutingDeps) => {
+      const radarrItem: RadarrItem = {
+        title: 'Churn Movie',
+        type: 'movie',
+        guids,
+        genres: [],
+      }
+      return routeMovie(
+        {
+          tempItem: { title: radarrItem.title, key, type: 'movie', guids },
+          userId: 1,
+          userName: undefined,
+          radarrItem,
+          movieIndex: buildGuidIndex([
+            { ...radarrItem, radarr_instance_id: 1 },
+          ]),
+          primaryUser: null,
+        },
+        deps,
+      )
+    },
+  },
+  {
+    kind: 'routeShow',
+    type: 'show',
+    junctionTable: 'watchlist_sonarr_instances',
+    instanceColumn: 'sonarr_instance_id',
+    guids: ['tvdb:77777', 'tmdb:66666'],
+    route: (key: string, guids: string[]) => (deps: ContentRoutingDeps) => {
+      const sonarrItem: SonarrItem = {
+        title: 'Churn Show',
+        type: 'show',
+        guids,
+        genres: [],
+      }
+      return routeShow(
+        {
+          tempItem: { title: sonarrItem.title, key, type: 'show', guids },
+          userId: 1,
+          userName: undefined,
+          sonarrItem,
+          seriesIndex: buildGuidIndex([
+            { ...sonarrItem, sonarr_instance_id: 1 },
+          ]),
+          primaryUser: null,
+        },
+        deps,
+      )
+    },
+  },
+] as const
+
+describe.each(churnCases)(
+  '$kind reconciling an item already in its arr',
+  ({ type, junctionTable, instanceColumn, guids, route }) => {
+    let fastify: FastifyInstance
+    let deps: ContentRoutingDeps
+    let emit: ReturnType<typeof vi.spyOn>
+
+    const key = `churn-${type}-key`
+    const routeOnce = route(key, [...guids])
+
+    const itemRow = () =>
+      getTestDatabase()('watchlist_items').where({ user_id: 1, key }).first()
+
+    const junctionRow = async () => {
+      const item = await itemRow()
+      return getTestDatabase()(junctionTable)
+        .where({ watchlist_id: item.id, [instanceColumn]: 1 })
+        .first()
+    }
+
+    const seedItem = async (status: 'pending' | 'requested') => {
+      const [id] = await getTestDatabase()('watchlist_items').insert({
+        user_id: 1,
+        key,
+        title: `Churn ${type}`,
+        type,
+        guids: JSON.stringify(guids),
+        genres: JSON.stringify([]),
+        status,
+        created_at: OLD_TIMESTAMP,
+        updated_at: OLD_TIMESTAMP,
+      })
+      await getTestDatabase()(junctionTable).insert({
+        watchlist_id: id,
+        [instanceColumn]: 1,
+        status: 'requested',
+        is_primary: false,
+        syncing: false,
+        created_at: OLD_TIMESTAMP,
+        updated_at: OLD_TIMESTAMP,
+      })
+    }
+
+    const expectJunctionUntouched = async () => {
+      const junction = await junctionRow()
+      expect(junction.updated_at).toBe(OLD_TIMESTAMP)
+      expect(junction.status).toBe('requested')
+      expect(Boolean(junction.is_primary)).toBe(false)
+    }
+
+    const watchlistEvents = () =>
+      emit.mock.calls.filter(
+        ([event]: [{ type: string }]) => event.type === 'watchlist',
+      )
+
+    beforeAll(async () => {
+      fastify = await build()
+      await fastify.ready()
+    })
+
+    afterAll(async () => {
+      await fastify.close()
+    })
+
+    beforeEach(async () => {
+      const knex = getTestDatabase()
+      await resetDatabase()
+      await seedConfig(knex)
+      await seedUsers(knex)
+      await seedInstances(knex)
+      fastify.caches.clear()
+
+      fastify.notifications.sendWatchlistCapReached = vi.fn()
+      emit = vi.spyOn(fastify.progress, 'emit')
+
+      deps = routingDeps(fastify)
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('writes and emits nothing for an item already requested', async () => {
+      await seedItem('requested')
+
+      for (const _pass of [1, 2]) {
+        expect(await routeOnce(deps)).toEqual({
+          routed: false,
+          skippedReason: 'exists-in-target',
+        })
+      }
+
+      await expectJunctionUntouched()
+      expect((await itemRow()).updated_at).toBe(OLD_TIMESTAMP)
+      expect(watchlistEvents()).toHaveLength(0)
+    })
+
+    it('marks a pending item requested once and then stays quiet', async () => {
+      await seedItem('pending')
+
+      expect(await routeOnce(deps)).toEqual({
+        routed: false,
+        skippedReason: 'exists-in-target',
+      })
+      const afterFirst = await itemRow()
+      expect(afterFirst.status).toBe('requested')
+      expect(watchlistEvents()).toHaveLength(1)
+      await expectJunctionUntouched()
+
+      emit.mockClear()
+      expect(await routeOnce(deps)).toEqual({
+        routed: false,
+        skippedReason: 'exists-in-target',
+      })
+      expect((await itemRow()).updated_at).toBe(afterFirst.updated_at)
+      expect(watchlistEvents()).toHaveLength(0)
+      await expectJunctionUntouched()
+    })
+  },
+)

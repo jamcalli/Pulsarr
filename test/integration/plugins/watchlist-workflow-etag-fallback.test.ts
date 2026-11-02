@@ -14,6 +14,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { patchConfigSettings } from '../../helpers/config-settings.js'
 import {
   getTestDatabase,
   initializeTestDatabase,
@@ -45,7 +46,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
   it('falls back to the real poller and reconciles on the scheduled tick', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)
-    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+    await patchConfigSettings(knex, { _isReady: false })
 
     useArrHandlers()
 
@@ -92,7 +93,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
   it('releases the schedule and queue when startup fails, and can start again', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)
-    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+    await patchConfigSettings(knex, { _isReady: false })
 
     useArrHandlers()
 
@@ -127,7 +128,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
   it('drops an in-flight etag reconcile when the service stops mid-poll', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)
-    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+    await patchConfigSettings(knex, { _isReady: false })
 
     useArrHandlers()
     server.use(
@@ -147,7 +148,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
             },
           }),
       ),
-      http.get('http://test-radarr:7878/api/v3/movie/lookup', () =>
+      http.get('http://test-radarr:7878/api/v3/movie', () =>
         HttpResponse.json([]),
       ),
     )
@@ -201,7 +202,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
   it('drains queued etag changes once Sonarr recovers', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)
-    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+    await patchConfigSettings(knex, { _isReady: false })
 
     useArrHandlers()
     server.use(
@@ -221,7 +222,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
             },
           }),
       ),
-      http.get('http://test-radarr:7878/api/v3/movie/lookup', () =>
+      http.get('http://test-radarr:7878/api/v3/movie', () =>
         HttpResponse.json([]),
       ),
     )

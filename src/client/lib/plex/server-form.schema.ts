@@ -1,4 +1,5 @@
 import { HttpUrlSchema } from '@root/schemas/common/url.schema'
+import { PlexExistenceScopeSchema } from '@root/schemas/plex/existence-scope.schema'
 import { z } from 'zod'
 import {
   CONNECTION_MODES,
@@ -21,6 +22,7 @@ const ServerSettingsSchema = z
     connection: z.enum(CONNECTION_MODES),
     address: z.string(),
     skipIfExistsOnPlex: z.boolean(),
+    plexExistenceScope: PlexExistenceScopeSchema,
   })
   .superRefine((values, ctx) => {
     const message = addressError(values)

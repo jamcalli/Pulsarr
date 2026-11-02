@@ -66,7 +66,7 @@ describe('Arr instance placeholder reset', () => {
     await resetDatabase()
     await seedAll(knex)
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   const linkInstance = async (arr: (typeof ARRS)[number], id: number) => {

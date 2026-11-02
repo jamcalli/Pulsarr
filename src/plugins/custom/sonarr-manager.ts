@@ -23,6 +23,6 @@ export default fp(
   },
   {
     name: 'sonarr-manager',
-    dependencies: ['database'],
+    dependencies: ['database', 'caches'],
   },
 )

@@ -7,3 +7,8 @@ export interface WatchlistExclusion {
   guids: string[]
   excluded_at: string
 }
+
+export interface ExclusionDrivenGuids {
+  movie: Set<string>
+  show: Set<string>
+}

@@ -5,10 +5,9 @@ import type {
   WebhookEventType,
 } from '@root/types/webhook-endpoint.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseJsonOr } from '@utils/json.js'
+import { toBoolean } from '@utils/to-boolean.js'
 
-/**
- * Database row representation for webhook_endpoints table
- */
 interface WebhookEndpointRow {
   id: number
   name: string
@@ -21,9 +20,6 @@ interface WebhookEndpointRow {
   updated_at: string
 }
 
-/**
- * Converts a database row to a WebhookEndpoint object
- */
 function rowToEndpoint(
   this: DatabaseService,
   row: WebhookEndpointRow,
@@ -34,23 +30,19 @@ function rowToEndpoint(
     url: row.url,
     auth_header_name: row.auth_header_name,
     auth_header_value: row.auth_header_value,
-    event_types: this.safeJsonParse<WebhookEventType[]>(
+    event_types: parseJsonOr<WebhookEventType[]>(
       row.event_types,
       [],
+      this.log,
       'webhook_endpoint.event_types',
     ),
-    enabled: this.toBoolean(row.enabled, true),
+    enabled: toBoolean(row.enabled, true),
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
 }
 
-/**
- * Retrieves all enabled webhook endpoints that subscribe to a specific event type.
- *
- * @param eventType - The event type to filter by
- * @returns Array of webhook endpoints subscribed to the event
- */
+/** Enabled endpoints only. */
 export async function getWebhookEndpointsForEvent(
   this: DatabaseService,
   eventType: WebhookEventType,
@@ -59,17 +51,11 @@ export async function getWebhookEndpointsForEvent(
     .where('enabled', true)
     .select('*')
 
-  // Parse and filter by event type (JSON array contains check)
   return rows
     .map((row) => rowToEndpoint.call(this, row))
     .filter((endpoint) => endpoint.event_types.includes(eventType))
 }
 
-/**
- * Retrieves all webhook endpoints ordered by creation date.
- *
- * @returns Array of all webhook endpoints
- */
 export async function getAllWebhookEndpoints(
   this: DatabaseService,
 ): Promise<WebhookEndpoint[]> {
@@ -80,12 +66,6 @@ export async function getAllWebhookEndpoints(
   return rows.map((row) => rowToEndpoint.call(this, row))
 }
 
-/**
- * Retrieves a single webhook endpoint by ID.
- *
- * @param id - The endpoint ID
- * @returns The webhook endpoint or null if not found
- */
 export async function getWebhookEndpointById(
   this: DatabaseService,
   id: number,
@@ -101,12 +81,6 @@ export async function getWebhookEndpointById(
   return rowToEndpoint.call(this, row)
 }
 
-/**
- * Creates a new webhook endpoint.
- *
- * @param endpoint - The endpoint data to create
- * @returns The created webhook endpoint
- */
 export async function createWebhookEndpoint(
   this: DatabaseService,
   endpoint: CreateWebhookEndpoint,
@@ -129,13 +103,6 @@ export async function createWebhookEndpoint(
   return rowToEndpoint.call(this, row)
 }
 
-/**
- * Updates an existing webhook endpoint.
- *
- * @param id - The endpoint ID to update
- * @param updates - The fields to update
- * @returns The updated webhook endpoint or null if not found
- */
 export async function updateWebhookEndpoint(
   this: DatabaseService,
   id: number,
@@ -176,12 +143,6 @@ export async function updateWebhookEndpoint(
   return rowToEndpoint.call(this, row)
 }
 
-/**
- * Deletes a webhook endpoint by ID.
- *
- * @param id - The endpoint ID to delete
- * @returns True if the endpoint was deleted, false if not found
- */
 export async function deleteWebhookEndpoint(
   this: DatabaseService,
   id: number,

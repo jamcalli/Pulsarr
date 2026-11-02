@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
+import { readConfigSettings } from '../../helpers/config-settings.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedAll } from '../../helpers/seeds/index.js'
 import { server } from '../../setup/msw-setup.js'
@@ -41,7 +42,7 @@ describe('Config Plex token changes and watchlist feeds', () => {
     app.config.authenticationMethod = 'disabled'
     vi.spyOn(app.plexServerService, 'connectSSE').mockResolvedValue(undefined)
     vi.spyOn(app.plexServerService, 'disconnectSSE').mockReturnValue(undefined)
-    await getTestDatabase()('configs').where({ id: 1 }).update(FEEDS)
+    await app.db.updateConfig(FEEDS)
     pings = []
     server.use(
       http.get('https://plex.tv/api/v2/ping', ({ request }) => {
@@ -57,13 +58,12 @@ describe('Config Plex token changes and watchlist feeds', () => {
   })
 
   async function savedTokens() {
-    const row = await getTestDatabase()('configs').where({ id: 1 }).first()
-    return JSON.parse(row?.plexTokens ?? '[]')
+    return (await readConfigSettings(getTestDatabase())).plexTokens ?? []
   }
 
   async function savedFeeds() {
-    const row = await getTestDatabase()('configs').where({ id: 1 }).first()
-    return { selfRss: row?.selfRss, friendsRss: row?.friendsRss }
+    const { selfRss, friendsRss } = await readConfigSettings(getTestDatabase())
+    return { selfRss, friendsRss }
   }
 
   function putConfig(payload: Record<string, unknown>) {
@@ -91,6 +91,24 @@ describe('Config Plex token changes and watchlist feeds', () => {
 
     expect(res.statusCode).toBe(200)
     expect(await savedFeeds()).toEqual(FEEDS)
+  })
+
+  it('saves which servers the existence check covers', async () => {
+    const before = await app.inject({ method: 'GET', url: '/v1/config' })
+    expect(before.json().config.plexExistenceScope).toBe('owned-and-shared')
+
+    const res = await putConfig({ plexExistenceScope: 'owned' })
+
+    expect(res.statusCode).toBe(200)
+    const after = await app.inject({ method: 'GET', url: '/v1/config' })
+    expect(after.json().config.plexExistenceScope).toBe('owned')
+    expect(app.config.plexExistenceScope).toBe('owned')
+  })
+
+  it('refuses an unknown existence check scope', async () => {
+    const res = await putConfig({ plexExistenceScope: 'everyone' })
+
+    expect(res.statusCode).toBe(400)
   })
 
   it('keeps the feeds when the same token is saved again', async () => {

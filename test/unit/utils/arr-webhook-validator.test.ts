@@ -1,6 +1,9 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import {
+  createWebhookDedupeCache,
   isWebhookProcessable,
+  WEBHOOK_CACHE_TTL_MS,
   type WebhookDedupeCache,
 } from '@utils/arr-webhook-validator.js'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -9,10 +12,12 @@ import { createMockLogger } from '../../mocks/logger.js'
 describe('arr-webhook-validator', () => {
   const mockLogger = createMockLogger()
 
+  let now: number
   let cache: WebhookDedupeCache
 
   beforeEach(() => {
-    cache = new Map()
+    now = 1
+    cache = createWebhookDedupeCache(new CacheRegistry({ now: () => now }))
   })
 
   describe('isWebhookProcessable', () => {
@@ -239,6 +244,36 @@ describe('arr-webhook-validator', () => {
 
         const secondResult = isWebhookProcessable(payload, cache, mockLogger)
         expect(secondResult).toBe(false)
+      })
+
+      it('measures the window from the first webhook and allows one after it', () => {
+        const payload = {
+          eventType: 'Download',
+          instanceName: 'Radarr',
+          movie: { title: 'Window Movie', tmdbId: 88885 },
+        } as unknown as WebhookPayload
+
+        expect(isWebhookProcessable(payload, cache, mockLogger)).toBe(true)
+        now += WEBHOOK_CACHE_TTL_MS / 2
+        expect(isWebhookProcessable(payload, cache, mockLogger)).toBe(false)
+        now += WEBHOOK_CACHE_TTL_MS / 2
+        expect(isWebhookProcessable(payload, cache, mockLogger)).toBe(false)
+        now += 1
+        expect(isWebhookProcessable(payload, cache, mockLogger)).toBe(true)
+      })
+
+      it('allows a webhook again once the registry is cleared', () => {
+        const registry = new CacheRegistry()
+        const cleared = createWebhookDedupeCache(registry)
+        const payload = {
+          eventType: 'Download',
+          instanceName: 'Radarr',
+          movie: { title: 'Cleared Movie', tmdbId: 88886 },
+        } as unknown as WebhookPayload
+
+        expect(isWebhookProcessable(payload, cleared, mockLogger)).toBe(true)
+        registry.clear()
+        expect(isWebhookProcessable(payload, cleared, mockLogger)).toBe(true)
       })
 
       it('should generate different hashes for different episodes', () => {

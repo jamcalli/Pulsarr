@@ -11,6 +11,30 @@ export function formatLocale(): string | undefined {
   return locale
 }
 
+/** Words in `language` with the browser region's formats, or day-first `en-150`/`en-001` keeping the browser's clock when the region has no `language` data. */
+export function resolveFormatLocale(
+  language: string,
+  browserLocales: readonly string[],
+): string {
+  for (const browserLocale of browserLocales) {
+    const region = new Intl.Locale(browserLocale).maximize().region
+    if (!region) continue
+    const candidate = `${language}-${region}`
+    // supportedLocalesOf accepts regions it silently formats as plain `language`
+    if (
+      new Intl.DateTimeFormat(candidate).resolvedOptions().locale === candidate
+    ) {
+      return candidate
+    }
+  }
+  const [first] = browserLocales
+  if (language !== 'en' || first === undefined) return language
+  const { hourCycle } = new Intl.DateTimeFormat(first, {
+    hour: 'numeric',
+  }).resolvedOptions()
+  return hourCycle === 'h11' || hourCycle === 'h12' ? 'en-001' : 'en-150'
+}
+
 export function formatTime(value: Date | number): string {
   return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(value)
 }
@@ -70,6 +94,24 @@ export function formatDateTime(value: Date | number): string {
     dateStyle: 'medium',
     timeStyle: 'medium',
   }).format(value)
+}
+
+/** Month, day and clock time, with the year only when it is not the year of `now`. */
+export function formatTimestamp(
+  value: Date | number,
+  now: number = Date.now(),
+): string {
+  const date = new Date(value)
+  return new Intl.DateTimeFormat(locale, {
+    year:
+      date.getFullYear() === new Date(now).getFullYear()
+        ? undefined
+        : 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
 }
 
 /** A log line's clock time in the browser time zone, 24-hour, with milliseconds unless turned off. */

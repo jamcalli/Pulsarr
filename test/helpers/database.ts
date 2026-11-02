@@ -1,5 +1,5 @@
 import type { Knex } from 'knex'
-import knex from 'knex'
+import { createInMemoryDb } from './migration-db.js'
 
 // Use globalThis to ensure connection is shared across module instances
 // (vitest may load this module multiple times with different identities)
@@ -17,28 +17,7 @@ export async function initializeTestDatabase(): Promise<Knex> {
     return globalThis.__testDbConnection
   }
 
-  globalThis.__testDbConnection = knex({
-    client: 'better-sqlite3',
-    connection: {
-      filename: ':memory:',
-    },
-    useNullAsDefault: true,
-    migrations: {
-      directory: './migrations/migrations',
-    },
-    pool: {
-      min: 1,
-      max: 1,
-      afterCreate: (
-        conn: unknown,
-        done: (err: Error | null, conn: unknown) => void,
-      ): void => {
-        const sqliteConn = conn as { exec: (sql: string) => void }
-        sqliteConn.exec('PRAGMA foreign_keys = ON;')
-        done(null, conn)
-      },
-    },
-  })
+  globalThis.__testDbConnection = createInMemoryDb()
 
   await globalThis.__testDbConnection.migrate.latest()
 

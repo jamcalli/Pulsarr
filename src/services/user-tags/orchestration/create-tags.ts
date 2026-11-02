@@ -12,7 +12,6 @@ import {
   type CreateResults,
   type UserTagDeps,
 } from '../types.js'
-import { ensureMigrationComplete } from './migration-gate.js'
 
 export interface InstanceTagMaps {
   /** Lowercased label to tag id. */
@@ -98,8 +97,6 @@ export async function createUserTags(
   }
 
   try {
-    await ensureMigrationComplete(type, deps)
-
     const { adapters, instanceCount } = await getAdapters(
       type,
       deps,
@@ -140,7 +137,6 @@ export async function createUserTags(
       }
     }
 
-    await deps.migration.cleanupMigrationFileIfComplete()
     return results
   } catch (error) {
     deps.logger.error({ error }, `Error creating ${displayName} user tags:`)

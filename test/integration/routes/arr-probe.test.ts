@@ -27,7 +27,7 @@ describe('arr probe routes', () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'
-    app.contentRouter.clearRouterRulesCache()
+    app.caches.clear()
   })
 
   const probe = (arr: (typeof ARRS)[number]) =>

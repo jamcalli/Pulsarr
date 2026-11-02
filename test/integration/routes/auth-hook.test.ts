@@ -73,6 +73,7 @@ describe('auth hook', () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'required'
+    app.caches.clear()
   })
 
   it('marks only the known routes as public', () => {

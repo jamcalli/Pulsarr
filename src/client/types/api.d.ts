@@ -2400,26 +2400,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/tags/cleanup-orphaned-refs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cleanup orphaned tag references
-         * @description Remove references to non-existent tags from movies and series
-         */
-        post: operations["cleanupOrphanedTagReferences"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/tags/create": {
         parameters: {
             query?: never;
@@ -3502,15 +3482,15 @@ export interface components {
         ApprovalExpirationAction: "expire" | "auto_approve";
         /** @description Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one. */
         ApprovalExpirationPayload: {
-            enabled?: boolean;
-            defaultExpirationHours?: number;
-            expirationAction?: components["schemas"]["ApprovalExpirationAction"];
-            autoApproveOnQuotaAvailable?: boolean;
+            enabled: boolean;
+            defaultExpirationHours: number;
+            expirationAction: components["schemas"]["ApprovalExpirationAction"];
+            autoApproveOnQuotaAvailable: boolean;
             quotaExceededExpirationHours?: number;
             routerRuleExpirationHours?: number;
             manualFlagExpirationHours?: number;
             contentCriteriaExpirationHours?: number;
-            cleanupExpiredDays?: number;
+            cleanupExpiredDays: number;
         };
         /**
          * @description Expiry state computed from the current expiration config
@@ -3782,17 +3762,6 @@ export interface components {
             monitoringType: components["schemas"]["SonarrRollingMonitoring"];
             resetMonitoring?: boolean;
         };
-        /** @description Result of removing references to deleted tags, keyed by instance */
-        CleanupOrphanedTagRefsResponse: {
-            success: boolean;
-            message: string;
-            radarr: {
-                [key: string]: components["schemas"]["OrphanedTagRefInstanceResult"];
-            };
-            sonarr: {
-                [key: string]: components["schemas"]["OrphanedTagRefInstanceResult"];
-            };
-        };
         /** @description Result of a label cleanup: expired pending syncs and orphaned labels removed */
         CleanupPlexLabelsResponse: {
             success: boolean;
@@ -3830,13 +3799,7 @@ export interface components {
             updated_at: string;
             baseUrl?: string;
             port?: number;
-            dbPath?: string;
-            cookieSecured: boolean;
             logLevel?: components["schemas"]["ConfigLogLevel"];
-            /** @description Shutdown grace period in milliseconds */
-            closeGraceDelay?: number;
-            rateLimitMax?: number;
-            queueProcessDelaySeconds: number;
             maintainerrEnabled: boolean;
             maintainerrUrl?: string;
             maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
@@ -3876,6 +3839,7 @@ export interface components {
             skipFriendSync: boolean;
             plexServerUrl?: string;
             skipIfExistsOnPlex: boolean;
+            plexExistenceScope: components["schemas"]["PlexExistenceScope"];
             deleteMovie: boolean;
             deleteEndedShow: boolean;
             deleteContinuingShow: boolean;
@@ -3903,7 +3867,6 @@ export interface components {
             tagNamingSource: components["schemas"]["UserNamingSource"];
             removedTagMode: components["schemas"]["RemovedTagMode"];
             removedTagPrefix: string;
-            tagMigration?: components["schemas"]["TagMigrationOutput"];
             plexSessionMonitoring?: components["schemas"]["PlexSessionMonitoringConfig"];
             newUserDefaultCanSync: boolean;
             newUserDefaultRequiresApproval: boolean;
@@ -3948,12 +3911,7 @@ export interface components {
         ConfigUpdatePayload: {
             baseUrl?: string | "";
             port?: number;
-            dbPath?: string;
-            cookieSecured?: boolean;
             logLevel?: components["schemas"]["ConfigLogLevel"];
-            closeGraceDelay?: number;
-            rateLimitMax?: number;
-            queueProcessDelaySeconds?: number;
             maintainerrEnabled?: boolean;
             maintainerrUrl?: string | "";
             maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
@@ -3964,12 +3922,12 @@ export interface components {
             appriseEmailSender?: string;
             publicContentNotifications?: {
                 enabled: boolean;
-                discordWebhookUrls?: string;
-                discordWebhookUrlsMovies?: string;
-                discordWebhookUrlsShows?: string;
-                appriseUrls?: string;
-                appriseUrlsMovies?: string;
-                appriseUrlsShows?: string;
+                discordWebhookUrls: string;
+                discordWebhookUrlsMovies: string;
+                discordWebhookUrlsShows: string;
+                appriseUrls: string;
+                appriseUrlsMovies: string;
+                appriseUrlsShows: string;
             };
             plexMobileEnabled?: boolean;
             queueWaitTime?: number;
@@ -4004,6 +3962,7 @@ export interface components {
             plexProtectionPlaylistName?: string;
             plexServerUrl?: string | "";
             skipIfExistsOnPlex?: boolean;
+            plexExistenceScope?: components["schemas"]["PlexExistenceScope"];
             plexLabelSync?: components["schemas"]["PlexLabelSyncConfigPayload"];
             selfRss?: string;
             friendsRss?: string;
@@ -4038,7 +3997,6 @@ export interface components {
             cleanupOrphanedTags?: boolean;
             tagPrefix?: string;
             tagNamingSource?: components["schemas"]["UserNamingSource"];
-            tagMigration?: components["schemas"]["TagMigration"];
         };
         /** @description A watchlisted title with its watchlist count and identifiers. */
         ContentStat: {
@@ -4361,14 +4319,11 @@ export interface components {
          * @enum {string}
          */
         NotifyOption: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-        /** @description Orphaned tag reference cleanup result for one instance */
-        OrphanedTagRefInstanceResult: {
-            instanceName: string;
-            itemsScanned: number;
-            orphanedTagsFound: number;
-            itemsUpdated: number;
-            error?: string;
-        };
+        /**
+         * @description Which Plex servers the existence check covers, the owned server alone or also the servers shared with the account
+         * @enum {string}
+         */
+        PlexExistenceScope: "owned" | "owned-and-shared";
         /**
          * @description Plex relationship of a user to the server owner, from friends, server shares and pending requests
          * @enum {string}
@@ -5185,38 +5140,6 @@ export interface components {
             skipped: number;
             failed: number;
             instances: number;
-        };
-        /** @description Tag format migration status per Radarr/Sonarr instance */
-        TagMigration: {
-            radarr: {
-                [key: string]: components["schemas"]["TagMigrationEntry"];
-            };
-            sonarr: {
-                [key: string]: components["schemas"]["TagMigrationEntry"];
-            };
-        };
-        /** @description Migration result for a single instance */
-        TagMigrationEntry: {
-            completed: boolean;
-            migratedAt: string;
-            tagsMigrated: number;
-            contentUpdated: number;
-        };
-        /** @description Migration result for a single instance */
-        TagMigrationEntryOutput: {
-            completed: boolean;
-            migratedAt: string;
-            tagsMigrated: number;
-            contentUpdated: number;
-        };
-        /** @description Tag format migration status per Radarr/Sonarr instance */
-        TagMigrationOutput: {
-            radarr: {
-                [key: string]: components["schemas"]["TagMigrationEntryOutput"];
-            };
-            sonarr: {
-                [key: string]: components["schemas"]["TagMigrationEntryOutput"];
-            };
         };
         /** @description Whether user tags exist on any instance with tagging enabled, with per-instance counts */
         TagStatus: {
@@ -12853,44 +12776,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagCleanupResponse"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    cleanupOrphanedTagReferences: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CleanupOrphanedTagRefsResponse"];
                 };
             };
             /** @description Rate limit exceeded */

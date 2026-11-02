@@ -21,6 +21,7 @@ export async function getTargetInstances(
     | 'rules'
     | 'radarrManager'
     | 'sonarrManager'
+    | 'userLists'
   >,
 ): Promise<TargetInstancesResult> {
   const { logger } = deps

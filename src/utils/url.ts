@@ -12,6 +12,11 @@ export function normalizeBasePath(basePath?: string): string {
   return `/${basePath.replace(/^\/+|\/+$/g, '')}`
 }
 
+/** Prefixes http:// unless the URL already starts with http:// or https://. */
+export function ensureHttpScheme(url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `http://${url}`
+}
+
 /**
  * Waits min(baseDelayMs * 2^attempt, maxDelayMs) plus up to 10% random
  * jitter before resolving.

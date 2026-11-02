@@ -93,8 +93,8 @@ function createDeps() {
   const services = {
     db: {
       getUser: vi.fn(
-        async (userId: number): Promise<User | undefined> =>
-          [...USERS.values()].find((user) => user.id === userId),
+        async (identifier: number | string): Promise<User | undefined> =>
+          [...USERS.values()].find((user) => user.id === identifier),
       ),
     },
   }

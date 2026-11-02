@@ -4,6 +4,8 @@ import type {
   RadarrInstance,
   Item as RadarrItem,
 } from '@root/types/radarr.types.js'
+import { createArrCaches } from '@services/arr/arr-caches.js'
+import { CacheRegistry } from '@services/cache-registry.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { RadarrManagerService } from '@services/radarr-manager.service.js'
@@ -45,23 +47,27 @@ describe('RadarrManagerService.movieExistsByTmdbId', () => {
       async () => INSTANCE,
     )
     const db: Partial<DatabaseService> = { getRadarrInstance }
-    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    const fastify: Partial<FastifyInstance> = {
+      db: db as DatabaseService,
+      caches: new CacheRegistry(),
+    }
     service = new RadarrService(
       createMockLogger(),
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     manager = new RadarrManagerService(
       createMockLogger(),
       fastify as FastifyInstance,
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, service)
+    manager['services'].set(1, service)
   })
 
   function lookupReturns(found: boolean, checked = true) {
-    vi.spyOn(service, 'movieExistsByTmdbId').mockResolvedValue({
+    vi.spyOn(service, 'existsInLibrary').mockResolvedValue({
       found,
       checked,
       serviceName: 'Radarr',
@@ -157,10 +163,11 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
         }),
       ),
       updateWatchlistItem: vi.fn<DatabaseService['updateWatchlistItem']>(
-        async () => undefined,
+        async () => true,
       ),
     }
     const fastify: Partial<FastifyInstance> = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       progress: { emit } as unknown as FastifyInstance['progress'],
     }
@@ -169,6 +176,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     addToRadarr = vi.spyOn(service, 'addToRadarr').mockResolvedValue(ADDED)
     manager = new RadarrManagerService(
@@ -176,7 +184,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       fastify as FastifyInstance,
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, service)
+    manager['services'].set(1, service)
   })
 
   it('emits a watchlist status event for the routed user', async () => {
@@ -300,9 +308,10 @@ describe('RadarrManagerService.resyncWebhooks', () => {
       appBaseUrl,
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, oldService)
+    manager['services'].set(1, oldService)
     return vi.spyOn(oldService, 'removeWebhook').mockResolvedValue()
   }
 
@@ -313,6 +322,7 @@ describe('RadarrManagerService.resyncWebhooks', () => {
       ),
     }
     fastify = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       config: {
         baseUrl: 'http://localhost',
@@ -349,7 +359,7 @@ describe('RadarrManagerService.resyncWebhooks', () => {
   it('keeps the old hook and service when the new one is rejected', async () => {
     const removeWebhook = seedOldService('http://old-host')
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    const oldService = manager['radarrServices'].get(1)
+    const oldService = manager['services'].get(1)
     initialize.mockRejectedValue(
       new WebhookCallbackError(
         'Failed to create webhook: Unable to send test message',
@@ -409,6 +419,7 @@ describe('RadarrManagerService.testWebhookAddress', () => {
       ),
     }
     fastify = {
+      caches: new CacheRegistry(),
       db: db as DatabaseService,
       config: {
         baseUrl: 'http://localhost',
@@ -471,9 +482,10 @@ describe('RadarrManagerService.testWebhookAddress', () => {
       'http://localhost',
       3003,
       fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
     )
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    manager['radarrServices'].set(1, existing)
+    manager['services'].set(1, existing)
 
     await manager.testWebhookAddress('http://new-host', 4004)
 

@@ -6,6 +6,7 @@ import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { SyncResult } from '@services/watchlist-workflow/orchestration/sync-engine.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
+import { buildGuidIndex } from '@utils/guid-handler.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockUser } from '../../../../mocks/user.js'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
@@ -90,6 +91,7 @@ function zeroResult(): SyncResult {
     skippedDueToWatchlistCap: 0,
     skippedDueToExclusion: 0,
     skippedDueToRouting: 0,
+    skippedPlexUnreachable: 0,
   }
 }
 
@@ -162,16 +164,22 @@ function createDeps() {
   }
 
   const config = { skipIfExistsOnPlex: false }
+  const enqueue = vi.fn()
 
-  const deps = createWorkflowDeps({ ...parts, config })
+  const deps = createWorkflowDeps({
+    ...parts,
+    config,
+    state: { deferredRoutingQueue: { enqueue } },
+  })
 
-  return { deps, parts, config }
+  return { deps, parts, config, enqueue }
 }
 
 describe('syncWatchlistItems', () => {
   let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
   let config: ReturnType<typeof createDeps>['config']
+  let enqueue: ReturnType<typeof createDeps>['enqueue']
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -188,6 +196,7 @@ describe('syncWatchlistItems', () => {
     deps = created.deps
     parts = created.parts
     config = created.config
+    enqueue = created.enqueue
   })
 
   it('returns an empty result when no instances are configured', async () => {
@@ -269,7 +278,7 @@ describe('syncWatchlistItems', () => {
     expect(vi.mocked(routeShow).mock.calls[0][0]).toMatchObject({
       userId: PRIMARY_USER.id,
       userName: PRIMARY_USER.name,
-      existingSeries,
+      seriesIndex: buildGuidIndex(existingSeries),
       approvedRecords,
       arrInstanceIds: new Set([1]),
       primaryUser: PRIMARY_USER,
@@ -277,7 +286,7 @@ describe('syncWatchlistItems', () => {
     expect(vi.mocked(routeMovie).mock.calls[0][0]).toMatchObject({
       userId: PRIMARY_USER.id,
       userName: PRIMARY_USER.name,
-      existingMovies,
+      movieIndex: buildGuidIndex(existingMovies),
       approvedRecords,
       arrInstanceIds: new Set([1]),
       primaryUser: PRIMARY_USER,
@@ -435,6 +444,66 @@ describe('syncWatchlistItems', () => {
       expect(result.added.shows).toBe(0)
     },
   )
+
+  it('counts an item the owner Plex server could not check as unreachable', async () => {
+    vi.mocked(routeShow).mockResolvedValue({
+      routed: false,
+      skippedReason: 'plex-unreachable',
+    })
+    parts.db.getAllShowWatchlistItems.mockResolvedValue([showItem()])
+
+    const result = await syncWatchlistItems(deps)
+
+    expect(result.skippedPlexUnreachable).toBe(1)
+    expect(result.skippedDueToRouting).toBe(0)
+  })
+
+  it('queues the unreachable items for deferred routing, one entry per user', async () => {
+    vi.mocked(routeShow).mockResolvedValue({
+      routed: false,
+      skippedReason: 'plex-unreachable',
+    })
+    vi.mocked(routeMovie).mockResolvedValue({
+      routed: false,
+      skippedReason: 'plex-unreachable',
+    })
+    const primaryShow = showItem()
+    const primaryMovie = movieItem()
+    const secondShow = showItem({ id: 'show-2', user_id: SECOND_USER.id })
+    parts.db.getAllShowWatchlistItems.mockResolvedValue([
+      primaryShow,
+      secondShow,
+    ])
+    parts.db.getAllMovieWatchlistItems.mockResolvedValue([primaryMovie])
+
+    const result = await syncWatchlistItems(deps)
+
+    expect(result.skippedPlexUnreachable).toBe(3)
+    expect(enqueue).toHaveBeenCalledTimes(2)
+    expect(enqueue).toHaveBeenCalledWith({
+      type: 'items',
+      userId: PRIMARY_USER.id,
+      items: [primaryShow, primaryMovie],
+    })
+    expect(enqueue).toHaveBeenCalledWith({
+      type: 'items',
+      userId: SECOND_USER.id,
+      items: [secondShow],
+    })
+  })
+
+  it('queues nothing for deferred routing when the run ends during routing', async () => {
+    vi.mocked(routeShow).mockImplementation(async () => {
+      deps.state.endRun()
+      return { routed: false, skippedReason: 'plex-unreachable' }
+    })
+    parts.db.getAllShowWatchlistItems.mockResolvedValue([showItem()])
+
+    const result = await syncWatchlistItems(deps)
+
+    expect(result.skippedPlexUnreachable).toBe(1)
+    expect(enqueue).not.toHaveBeenCalled()
+  })
 
   it('counts sonarr series that match no watchlist item as unmatched', async () => {
     parts.sonarrManager.fetchAllSeries.mockResolvedValue([

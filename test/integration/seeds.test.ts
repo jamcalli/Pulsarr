@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { readConfigSettings } from '../helpers/config-settings.js'
 import {
   getTestDatabase,
   initializeTestDatabase,
@@ -92,11 +93,9 @@ describe('Database Seeds', () => {
     const knex = getTestDatabase()
     await seedAll(knex)
 
-    const config = await knex('configs').where({ id: 1 }).first()
-    expect(config).toBeDefined()
-    // SQLite returns 1/0 for booleans
-    expect(Boolean(config._isReady)).toBe(true)
-    expect(config.logLevel).toBe('silent')
+    const settings = await readConfigSettings(knex)
+    expect(settings._isReady).toBe(true)
+    expect(settings.logLevel).toBe('silent')
   })
 
   it('should seed watchlist items with correct data', async () => {

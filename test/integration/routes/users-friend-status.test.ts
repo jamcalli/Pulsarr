@@ -1,4 +1,3 @@
-import { USER_STATUS_CACHE_MS } from '@services/plex-watchlist.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
 import {
@@ -37,7 +36,7 @@ describe('users friend status', () => {
     const knex = getTestDatabase()
     await seedAll(knex)
     app.config.authenticationMethod = 'disabled'
-    app.plexWatchlist.clearClassifiedUsersCache()
+    app.caches.clear()
 
     await knex('users').where('id', 2).update({ plex_uuid: FRIEND_UUID })
     await knex('users').where('id', 3).update({ plex_uuid: UNKNOWN_UUID })
@@ -239,21 +238,6 @@ describe('users friend status', () => {
       expect(changes.added.map((user) => user.username)).toEqual(['new-friend'])
 
       expect((await list()).statusCode).toBe(200)
-      expect(serverUsers).toHaveBeenCalledTimes(2)
-    })
-
-    it('refetches once the cache window has passed', async () => {
-      const serverUsers = spyServerUsers()
-      const now = Date.now()
-      const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
-
-      await app.plexWatchlist.getClassifiedUsers()
-      clock.mockReturnValue(now + USER_STATUS_CACHE_MS - 1)
-      await app.plexWatchlist.getClassifiedUsers()
-      expect(serverUsers).toHaveBeenCalledTimes(1)
-
-      clock.mockReturnValue(now + USER_STATUS_CACHE_MS)
-      await app.plexWatchlist.getClassifiedUsers()
       expect(serverUsers).toHaveBeenCalledTimes(2)
     })
   })

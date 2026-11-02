@@ -49,7 +49,7 @@ describe('quota database methods', () => {
     await seedConfig(knex)
     await seedInstances(knex)
     await seedUsers(knex)
-    fastify.contentRouter.clearRouterRulesCache()
+    fastify.caches.clear()
   })
 
   describe('weekly_rolling', () => {
@@ -139,6 +139,65 @@ describe('quota database methods', () => {
 
       expect(status?.currentUsage).toBe(2)
       expect(status?.resetDate).toBe(nextReset.toISOString())
+    })
+  })
+
+  describe('bulkDeleteQuotas', () => {
+    it('counts a user with movie and show quotas once', async () => {
+      const knex = getTestDatabase()
+      await seedUserQuota(knex, {
+        user_id: 1,
+        content_type: 'movie',
+        quota_type: 'monthly',
+        quota_limit: 5,
+      })
+      await seedUserQuota(knex, {
+        user_id: 1,
+        content_type: 'show',
+        quota_type: 'monthly',
+        quota_limit: 5,
+      })
+
+      const result = await fastify.db.bulkDeleteQuotas([1])
+
+      expect(result).toEqual({ processedCount: 1, failedIds: [] })
+      expect(await knex('user_quotas').where('user_id', 1)).toHaveLength(0)
+    })
+  })
+
+  describe('getQuotaUsageHistory', () => {
+    it('pages same-day usage newest id first without skipping or repeating rows', async () => {
+      const day = localDate(daysFromToday(0))
+      await getTestDatabase()('quota_usage').insert(
+        ['movie', 'show'].map((contentType) => ({
+          user_id: 1,
+          content_type: contentType,
+          request_date: day,
+          created_at: new Date().toISOString(),
+        })),
+      )
+
+      const page1 = await fastify.db.getQuotaUsageHistory(
+        1,
+        undefined,
+        undefined,
+        undefined,
+        1,
+        0,
+      )
+      const page2 = await fastify.db.getQuotaUsageHistory(
+        1,
+        undefined,
+        undefined,
+        undefined,
+        1,
+        1,
+      )
+
+      expect([...page1, ...page2].map((row) => row.contentType)).toEqual([
+        'show',
+        'movie',
+      ])
     })
   })
 })

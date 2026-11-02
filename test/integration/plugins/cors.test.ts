@@ -28,6 +28,7 @@ describe('cors with allowedOrigins', () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'requiredExceptLocal'
+    app.caches.clear()
   })
 
   it('parses and normalizes the configured origins', () => {

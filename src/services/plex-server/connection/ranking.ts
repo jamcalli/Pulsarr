@@ -1,3 +1,6 @@
+import type { FastifyBaseLogger } from 'fastify'
+import type { PlexResourceConnection, ServerCandidates } from './candidates.js'
+import { probeConnections } from './probe.js'
 import type { ProbedConnection, ProbeOutcome } from './probe-result.js'
 
 export interface RankableConnection {
@@ -15,6 +18,22 @@ export function rankProbedConnections<C extends RankableConnection>(
       Number(b.connection.local) - Number(a.connection.local) ||
       Number(isHttps(b.connection.uri)) - Number(isHttps(a.connection.uri)) ||
       elapsedMs(a.outcome) - elapsedMs(b.outcome),
+  )
+}
+
+/** Probes a server's candidate connections against its machine id and ranks them. */
+export async function rankServerConnections(
+  server: ServerCandidates,
+  log: FastifyBaseLogger,
+): Promise<ProbedConnection<PlexResourceConnection>[]> {
+  return rankProbedConnections(
+    await probeConnections(
+      server.connections.map((connection) => ({
+        ...connection,
+        machineId: server.resource.clientIdentifier,
+      })),
+      log,
+    ),
   )
 }
 
