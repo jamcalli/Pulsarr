@@ -20,8 +20,9 @@ export default fp(
     fastify.decorate('sync', service)
   },
   {
-    name: 'sync',
+    name: 'status-sync',
     dependencies: [
+      'config',
       'content-router',
       'database',
       'progress',

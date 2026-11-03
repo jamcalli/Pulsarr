@@ -62,12 +62,12 @@ export default fp(
     })
   },
   {
-    name: 'watchlist-workflow-service',
+    name: 'watchlist-workflow',
     dependencies: [
       'config',
       'content-router',
       'database',
-      'notification-service',
+      'notifications',
       'plex-label-sync',
       'plex-server',
       'plex-watchlist',
@@ -75,7 +75,7 @@ export default fp(
       'radarr-manager',
       'scheduler',
       'sonarr-manager',
-      'sync',
+      'status-sync',
       'tmdb',
     ],
   },

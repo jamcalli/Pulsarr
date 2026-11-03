@@ -63,12 +63,12 @@ export default fp(
     })
   },
   {
-    name: 'delete-sync-service',
+    name: 'delete-sync',
     dependencies: [
       'approval',
       'config',
       'database',
-      'notification-service',
+      'notifications',
       'plex-server',
       'plex-watchlist',
       'progress',
