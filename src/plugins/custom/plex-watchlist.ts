@@ -32,7 +32,7 @@ export default fp(
       'config',
       'content-router',
       'database',
-      'notification-service',
+      'notifications',
       'plex-label-sync',
       'plex-server',
       'progress',

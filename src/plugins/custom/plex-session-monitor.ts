@@ -240,6 +240,12 @@ export default fp(
   },
   {
     name: 'plex-session-monitor',
-    dependencies: ['database', 'plex-server', 'scheduler', 'sonarr-manager'],
+    dependencies: [
+      'config',
+      'database',
+      'plex-server',
+      'scheduler',
+      'sonarr-manager',
+    ],
   },
 )
