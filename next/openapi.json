@@ -510,57 +510,6 @@
         "additionalProperties": false,
         "description": "An approval request with its proposed routing and expiry"
       },
-      "ApprovalRequestCreatePayload": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "number"
-          },
-          "contentType": {
-            "$ref": "#/components/schemas/ContentType"
-          },
-          "contentTitle": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
-          "contentKey": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
-          "contentGuids": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "routerDecision": {
-            "$ref": "#/components/schemas/RouterDecision"
-          },
-          "routerRuleId": {
-            "type": "number"
-          },
-          "approvalReason": {
-            "type": "string"
-          },
-          "triggeredBy": {
-            "$ref": "#/components/schemas/ApprovalTrigger"
-          },
-          "expiresAt": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "userId",
-          "contentType",
-          "contentTitle",
-          "contentKey",
-          "routerDecision",
-          "triggeredBy"
-        ],
-        "description": "Fields for creating an approval request"
-      },
       "ApprovalRequestListResponse": {
         "type": "object",
         "properties": {
@@ -621,16 +570,13 @@
       "ApprovalRequestUpdatePayload": {
         "type": "object",
         "properties": {
-          "status": {
-            "$ref": "#/components/schemas/ApprovalStatus"
-          },
-          "approvalNotes": {
-            "type": "string"
-          },
           "proposedRouterDecision": {
             "$ref": "#/components/schemas/RouterDecision"
           }
         },
+        "required": [
+          "proposedRouterDecision"
+        ],
         "description": "Fields to change on an approval request"
       },
       "ApprovalRouting": {
@@ -9605,77 +9551,6 @@
       }
     },
     "/v1/approval/requests": {
-      "post": {
-        "operationId": "createApprovalRequest",
-        "summary": "Create approval request",
-        "tags": [
-          "Approval"
-        ],
-        "description": "Create a new approval request for content routing",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalRequestCreatePayload"
-              }
-            }
-          },
-          "description": "Fields for creating an approval request"
-        },
-        "responses": {
-          "201": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
       "get": {
         "operationId": "getApprovalRequests",
         "summary": "Get approval requests",
@@ -10105,11 +9980,11 @@
       },
       "patch": {
         "operationId": "updateApprovalRequest",
-        "summary": "Update approval request",
+        "summary": "Update approval request routing",
         "tags": [
           "Approval"
         ],
-        "description": "Update an approval request (approve, reject, or modify)",
+        "description": "Change the proposed routing on an editable approval request",
         "requestBody": {
           "required": true,
           "content": {
@@ -10193,16 +10068,6 @@
             }
           },
           "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
