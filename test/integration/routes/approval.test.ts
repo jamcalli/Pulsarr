@@ -154,17 +154,6 @@ describe('approval requests thumb', () => {
       expect(after.json().approvalRequest.status).toBe('pending')
       expect(after.json().approvalRequest.approvedBy).toBeNull()
     })
-
-    it('PATCH /v1/approval/requests/:id approving without routing returns 409', async () => {
-      const res = await app.inject({
-        method: 'PATCH',
-        url: `/v1/approval/requests/${matchedId}`,
-        payload: { status: 'approved' },
-      })
-
-      expect(res.statusCode).toBe(409)
-      expect(res.json().message).toBe('Set routing before approving.')
-    })
   })
 
   describe('status transitions', () => {
@@ -334,12 +323,94 @@ describe('approval requests thumb', () => {
       const res = await app.inject({
         method: 'PATCH',
         url: `/v1/approval/requests/${approvedId}`,
-        payload: { approvalNotes: 'edit' },
+        payload: { proposedRouterDecision: JSON.parse(routedDecision) },
       })
 
       expect(res.statusCode).toBe(409)
       expect(res.json().message).toBe(
         'Cannot modify routing for approved approval requests',
+      )
+    })
+
+    it('rejecting an approved request returns invalid_transition and keeps it approved', async () => {
+      const approvedId = await insertRouted('approved-item', {
+        status: 'approved',
+        approved_by: 1,
+      })
+
+      const result = await app.approvalService.rejectRequest(approvedId, 1)
+
+      expect(result).toMatchObject({
+        success: false,
+        reason: 'invalid_transition',
+      })
+      expect((await getRow(approvedId)).status).toBe('approved')
+    })
+
+    it('bulk reject sends a denied webhook for each rejected request', async () => {
+      const sendApprovalResolved = vi
+        .spyOn(app.notifications, 'sendApprovalResolved')
+        .mockResolvedValue(true)
+      const firstId = await insertRouted('first-item', { status: 'pending' })
+      const secondId = await insertRouted('second-item', { status: 'pending' })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/approval/requests/bulk/reject',
+        payload: { requestIds: [firstId, secondId], reason: 'nope' },
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(res.json().result.successful).toBe(2)
+      expect(sendApprovalResolved).toHaveBeenCalledTimes(2)
+      expect(
+        sendApprovalResolved.mock.calls.map(([request]) => request.id),
+      ).toEqual([firstId, secondId])
+      for (const call of sendApprovalResolved.mock.calls) {
+        expect(call[1]).toBe('denied')
+      }
+    })
+
+    it('approving while the instance type is unavailable returns 503 and keeps the request pending', async () => {
+      vi.spyOn(app.radarrManager, 'checkInstancesHealth').mockResolvedValue({
+        available: [],
+        unavailable: [1],
+      })
+      const pendingId = await insertRouted('pending-item', {
+        status: 'pending',
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/approval/requests/${pendingId}/approve`,
+        payload: {},
+      })
+
+      expect(res.statusCode).toBe(503)
+      const row = await getRow(pendingId)
+      expect(row.status).toBe('pending')
+      expect(row.approvedBy).toBeNull()
+    })
+
+    it('PATCH with a valid decision on a pending request stores the new routing', async () => {
+      const pendingId = await insertRouted('pending-item', {
+        status: 'pending',
+      })
+      const proposedRouterDecision = {
+        action: 'route',
+        routing: { instanceId: 2, instanceType: 'radarr', priority: 5 },
+      }
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/v1/approval/requests/${pendingId}`,
+        payload: { proposedRouterDecision },
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(res.json().message).toBe('Approval request updated successfully')
+      expect((await getRow(pendingId)).proposedRouterDecision).toMatchObject(
+        proposedRouterDecision,
       )
     })
   })

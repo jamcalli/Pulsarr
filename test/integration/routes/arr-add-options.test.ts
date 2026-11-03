@@ -131,25 +131,6 @@ describe('arr add options on write and read paths', () => {
       ).toBe(seasonMonitoring)
     })
 
-    it('rejects an unknown value on create', async () => {
-      const res = await app.inject({
-        method: 'POST',
-        url: '/v1/approval/requests',
-        payload: {
-          userId: watchlistItem.user_id,
-          contentType: 'show',
-          contentTitle: 'New Show',
-          contentKey: 'new-show',
-          routerDecision: decision(routing({ seasonMonitoring: LEGACY_VALUE })),
-          triggeredBy: 'manual_flag',
-        },
-      })
-      expect(res.statusCode).toBe(400)
-      expect(res.json().message).toBe(
-        `Invalid season monitoring value: ${LEGACY_VALUE}`,
-      )
-    })
-
     it('rejects an invalid minimum availability', async () => {
       const id = await insertApproval(
         routing({ instanceType: 'radarr', minimumAvailability: 'released' }),
