@@ -1,3 +1,4 @@
+import type { ApprovalActionResult } from '@root/types/approval.types.js'
 import {
   ApprovalErrorSchema,
   ApprovalIdParamsSchema,
@@ -9,158 +10,39 @@ import {
   BulkDeleteRequestSchema,
   BulkOperationResponseSchema,
   BulkRejectRequestSchema,
-  CreateApprovalRequestSchema,
-  canTransitionApproval,
   GetApprovalRequestsQuerySchema,
-  isApprovalEditable,
   UpdateApprovalRequestSchema,
 } from '@schemas/approval/approval.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import {
-  invalidSeasonMonitoringMessage,
-  rejectedDecisionSeasonMonitoring,
-} from '@utils/season-monitoring.js'
+import type { FastifyReply } from 'fastify'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
-  /**
-   * Calculates dynamic expiration info based on current config settings
-   */
-  const getExpirationInfo = (
-    request: { expiresAt?: string | null },
-    currentConfig: { approvalExpiration?: { enabled?: boolean } },
-  ): {
-    expiresAt: string | null
-    isExpired: boolean
-    timeUntilExpiration: number | null
-    expirationStatus: 'active' | 'expiring_soon' | 'expired'
-    displayText: string
-  } => {
-    const config = currentConfig?.approvalExpiration
-
-    // If expiration is disabled, return null values
-    if (!config?.enabled || !request.expiresAt) {
-      return {
-        expiresAt: request.expiresAt ?? null,
-        isExpired: false,
-        timeUntilExpiration: null,
-        expirationStatus: 'active',
-        displayText: request.expiresAt
-          ? new Date(request.expiresAt).toLocaleString()
-          : 'No expiration',
-      }
-    }
-
-    const now = new Date()
-    const expiresAt = new Date(request.expiresAt)
-    if (Number.isNaN(expiresAt.getTime())) {
-      return {
-        expiresAt: null,
-        isExpired: false,
-        timeUntilExpiration: null,
-        expirationStatus: 'active',
-        displayText: 'No expiration',
-      }
-    }
-
-    const timeUntilExpiration = expiresAt.getTime() - now.getTime()
-    const hoursUntilExpiration = timeUntilExpiration / (1000 * 60 * 60)
-
-    const isExpired = timeUntilExpiration <= 0
-    let expirationStatus: 'active' | 'expiring_soon' | 'expired' = 'active'
-
-    if (isExpired) {
-      expirationStatus = 'expired'
-    } else if (hoursUntilExpiration <= 24) {
-      expirationStatus = 'expiring_soon'
-    }
-
-    const displayText = isExpired
-      ? `Expired ${Math.abs(Math.floor(hoursUntilExpiration))} hours ago`
-      : `Expires: ${expiresAt.toLocaleDateString()}, ${expiresAt.toLocaleTimeString()}`
-
-    return {
-      expiresAt: expiresAt.toISOString(),
-      isExpired,
-      timeUntilExpiration,
-      expirationStatus,
-      displayText,
-    }
-  }
-  // Create approval request
-  fastify.post(
-    '/requests',
-    {
-      schema: {
-        summary: 'Create approval request',
-        operationId: 'createApprovalRequest',
-        description: 'Create a new approval request for content routing',
-        body: CreateApprovalRequestSchema,
-        response: {
-          201: ApprovalRequestResultSchema,
-          400: ApprovalErrorSchema,
-          409: ApprovalErrorSchema,
-          500: ApprovalErrorSchema,
-        },
-        tags: ['Approval'],
-      },
-    },
-    async (request, reply) => {
-      const rejected = rejectedDecisionSeasonMonitoring(
-        request.body.routerDecision,
+function replyActionFailure(
+  reply: FastifyReply,
+  result: Extract<ApprovalActionResult, { success: false }>,
+) {
+  switch (result.reason) {
+    case 'not_found':
+      return reply.notFound(result.error)
+    case 'invalid_decision':
+      return reply.badRequest(result.error)
+    case 'invalid_transition':
+    case 'no_routing':
+    case 'routing_failed':
+      return reply.conflict(result.error)
+    case 'unavailable':
+      return reply.serviceUnavailable(result.error)
+    case 'rollback_failed':
+      return reply.internalServerError(
+        'Routing failed and rollback failed - request may be in inconsistent state',
       )
-      if (rejected !== undefined) {
-        return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
-      }
-      try {
-        const existingRequest = await fastify.db.getApprovalRequestByContent(
-          request.body.userId,
-          request.body.contentKey,
-        )
+    case 'error':
+      return reply.internalServerError(result.error)
+  }
+}
 
-        if (existingRequest && existingRequest.status === 'pending') {
-          return reply.conflict(
-            'Approval request already exists for this content',
-          )
-        }
-
-        const approvalRequest = await fastify.db.createApprovalRequest({
-          userId: request.body.userId,
-          contentType: request.body.contentType,
-          contentTitle: request.body.contentTitle,
-          contentKey: request.body.contentKey,
-          contentGuids: request.body.contentGuids || [],
-          routerDecision: request.body.routerDecision,
-          routerRuleId: request.body.routerRuleId,
-          approvalReason: request.body.approvalReason,
-          triggeredBy: request.body.triggeredBy,
-          expiresAt: request.body.expiresAt || null,
-        })
-
-        return reply.code(201).send({
-          success: true,
-          message: 'Approval request created successfully',
-          approvalRequest: {
-            ...approvalRequest,
-            routerRuleId: approvalRequest.routerRuleId ?? null,
-            approvedBy: approvalRequest.approvedBy ?? null,
-            approvalNotes: approvalRequest.approvalNotes ?? null,
-            approvalReason: approvalRequest.approvalReason ?? null,
-            expiresAt: approvalRequest.expiresAt ?? null,
-          },
-        })
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to create approval request',
-          userId: request.body.userId,
-          contentKey: request.body.contentKey,
-        })
-        return reply.internalServerError('Failed to create approval request')
-      }
-    },
-  )
-
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get approval requests (with filtering)
   fastify.get(
     '/requests',
@@ -216,7 +98,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: true,
           message: 'Approval requests retrieved successfully',
           approvalRequests: requests.map((request) => {
-            const expirationInfo = getExpirationInfo(request, fastify.config)
+            const expirationInfo = fastify.approvalService.expirationInfo(
+              request.expiresAt,
+            )
             return {
               ...request,
               routerRuleId: request.routerRuleId ?? null,
@@ -270,9 +154,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('Approval request not found')
         }
 
-        const expirationInfo = getExpirationInfo(
-          approvalRequest,
-          fastify.config,
+        const expirationInfo = fastify.approvalService.expirationInfo(
+          approvalRequest.expiresAt,
         )
 
         return {
@@ -301,14 +184,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Update approval request (approve/reject/modify)
+  // Update approval request routing
   fastify.patch(
     '/requests/:id',
     {
       schema: {
-        summary: 'Update approval request',
+        summary: 'Update approval request routing',
         operationId: 'updateApprovalRequest',
-        description: 'Update an approval request (approve, reject, or modify)',
+        description:
+          'Change the proposed routing on an editable approval request',
         params: ApprovalIdParamsSchema,
         body: UpdateApprovalRequestSchema,
         response: {
@@ -318,124 +202,21 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
           500: ApprovalErrorSchema,
-          503: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
     },
     async (request, reply) => {
       try {
-        const actorId = request.user?.id
-        if (!actorId) {
-          return reply.unauthorized('User not authenticated')
-        }
-
-        const requestId = request.params.id
-
-        const existingRequest = await fastify.db.getApprovalRequest(requestId)
-        if (!existingRequest) {
-          return reply.notFound('Approval request not found')
-        }
-
-        const rejected = rejectedDecisionSeasonMonitoring(
+        const result = await fastify.approvalService.updateRouting(
+          request.params.id,
           request.body.proposedRouterDecision,
-          existingRequest.proposedRouterDecision,
         )
-        if (rejected !== undefined) {
-          return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+        if (!result.success) {
+          return replyActionFailure(reply, result)
         }
 
-        const targetStatus = request.body.status
-        const currentStatus = existingRequest.status
-
-        if (!isApprovalEditable(currentStatus)) {
-          return reply.conflict(
-            targetStatus
-              ? `Cannot update ${currentStatus} approval requests`
-              : `Cannot modify routing for ${currentStatus} approval requests`,
-          )
-        }
-
-        if (
-          targetStatus &&
-          !canTransitionApproval(currentStatus, targetStatus)
-        ) {
-          return reply.conflict(
-            `Invalid state transition from ${currentStatus} to ${targetStatus}`,
-          )
-        }
-
-        if (targetStatus === 'approved') {
-          const healthCheck = await fastify.approvalService.checkInstanceHealth(
-            existingRequest.contentType,
-          )
-          if (!healthCheck.available) {
-            return reply.serviceUnavailable(
-              `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
-            )
-          }
-        }
-
-        // If approving, use approveAndRoute() for atomic approval + routing
-        if (targetStatus === 'approved') {
-          if (request.body.proposedRouterDecision) {
-            await fastify.db.updateApprovalRequest(requestId, {
-              proposedRouterDecision: request.body.proposedRouterDecision,
-            })
-          }
-
-          const result = await fastify.approvalService.approveAndRoute(
-            requestId,
-            actorId,
-            request.body.approvalNotes,
-          )
-
-          if (!result.success) {
-            if (result.rollbackFailed) {
-              return reply.internalServerError(
-                'Routing failed and rollback failed - request may be in inconsistent state',
-              )
-            }
-            return reply.conflict(
-              result.error || 'Failed to process approved request',
-            )
-          }
-
-          // Request is guaranteed to exist when success is true
-          const approvedRequest = result.request
-          if (!approvedRequest) {
-            return reply.internalServerError(
-              'Approval succeeded but request not returned',
-            )
-          }
-
-          return {
-            success: true,
-            message: 'Approval request approved and executed successfully',
-            approvalRequest: {
-              ...approvedRequest,
-              routerRuleId: approvedRequest.routerRuleId ?? null,
-              approvedBy: approvedRequest.approvedBy ?? null,
-              approvalNotes: approvedRequest.approvalNotes ?? null,
-              approvalReason: approvedRequest.approvalReason ?? null,
-              expiresAt: approvedRequest.expiresAt ?? null,
-            },
-          }
-        }
-
-        const updatedRequest = await fastify.db.updateApprovalRequest(
-          requestId,
-          {
-            status: request.body.status,
-            approvalNotes: request.body.approvalNotes,
-            proposedRouterDecision: request.body.proposedRouterDecision,
-          },
-        )
-
-        if (!updatedRequest) {
-          throw new Error('Failed to update approval request')
-        }
-
+        const updatedRequest = result.request
         return {
           success: true,
           message: 'Approval request updated successfully',
@@ -532,25 +313,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('User not authenticated')
         }
 
-        const existingRequest = await fastify.db.getApprovalRequest(requestId)
-        if (!existingRequest) {
-          return reply.notFound('Approval request not found')
-        }
-
-        if (!canTransitionApproval(existingRequest.status, 'rejected')) {
-          return reply.conflict(
-            `Cannot reject request that is already ${existingRequest.status}`,
-          )
-        }
-
-        const rejectedRequest = await fastify.approvalService.rejectRequest(
+        const result = await fastify.approvalService.rejectRequest(
           requestId,
           rejectedBy,
           reason,
         )
-
-        if (!rejectedRequest) {
-          throw new Error('Failed to reject request')
+        if (!result.success) {
+          return replyActionFailure(reply, result)
         }
 
         return {
@@ -635,41 +404,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('User not authenticated')
         }
 
-        const existingRequest = await fastify.db.getApprovalRequest(requestId)
-        if (!existingRequest) {
-          return reply.notFound('Approval request not found')
-        }
-
-        if (!canTransitionApproval(existingRequest.status, 'approved')) {
-          return reply.conflict(
-            `Cannot approve request that is already ${existingRequest.status}`,
-          )
-        }
-
-        const healthCheck = await fastify.approvalService.checkInstanceHealth(
-          existingRequest.contentType,
-        )
-        if (!healthCheck.available) {
-          return reply.serviceUnavailable(
-            `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
-          )
-        }
-
         const result = await fastify.approvalService.approveAndRoute(
           requestId,
           approvedBy,
           notes,
+          { checkHealth: true },
         )
-
         if (!result.success) {
-          if (result.rollbackFailed) {
-            return reply.internalServerError(
-              'Routing failed and rollback failed - request may be in inconsistent state',
-            )
-          }
-          return reply.conflict(
-            result.error || 'Failed to process approved request',
-          )
+          return replyActionFailure(reply, result)
         }
 
         return {

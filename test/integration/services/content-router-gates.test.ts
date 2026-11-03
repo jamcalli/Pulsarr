@@ -886,8 +886,11 @@ describe('routeContent gates', () => {
         'looks good',
       )
 
-      expect(approval).toMatchObject({ success: false, rolledBack: true })
-      expect(approval.error).toContain('Second Radarr (id 2)')
+      expect(approval).toMatchObject({
+        success: false,
+        reason: 'routing_failed',
+        error: expect.stringContaining('Second Radarr (id 2)'),
+      })
       const [rolledBack] = await getApprovalRequests()
       expect(rolledBack.status).toBe('pending')
       expect(rolledBack.approval_notes).toBeNull()

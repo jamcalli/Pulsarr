@@ -1,8 +1,8 @@
 import type {
+  ApprovalActionResult,
   ApprovalContext,
   ApprovalRequest,
   ApprovalTrigger,
-  ApproveAndRouteResult,
   CreateApprovalRequestData,
   RouterDecision,
 } from '@root/types/approval.types.js'
@@ -10,12 +10,19 @@ import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ContentItem, RouteSettings } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
-import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
+import {
+  canTransitionApproval,
+  isApprovalEditable,
+} from '@schemas/approval/approval.schema.js'
 import { settingsFromRouting } from '@services/content-router/approved-routing.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { errorMessage } from '@utils/error-message.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import {
+  invalidSeasonMonitoringMessage,
+  rejectedDecisionSeasonMonitoring,
+} from '@utils/season-monitoring.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 function routingFor(decision: RouterDecision): RouterDecision['routing'] {
@@ -788,52 +795,46 @@ export class ApprovalService {
     }
   }
 
-  /**
-   * Checks if a duplicate approval request already exists
-   */
-  async isDuplicateRequest(
-    userId: number,
-    contentKey: string,
-  ): Promise<boolean> {
-    const existing = await this.fastify.db.getApprovalRequestByContent(
-      userId,
-      contentKey,
-    )
-    return existing !== null && existing.status === 'pending'
-  }
-
-  /**
-   * Approves a request and routes it to Radarr/Sonarr atomically.
-   *
-   * This method encapsulates the entire approval workflow:
-   * 1. Updates the request status to "approved" in the database
-   * 2. Attempts to route the content to Radarr/Sonarr
-   * 3. On success: emits SSE events and sends notifications
-   * 4. On failure: restores the previous status, approver and notes
-   *
-   * @param requestId - The approval request ID
-   * @param approvedBy - User ID of the approver (null for system/auto-approval)
-   * @param notes - Optional approval notes
-   * @returns Result object indicating success/failure with details
-   */
+  /** Pass `checkHealth` to fail with `unavailable` before approving when the target instance type is down. */
   async approveAndRoute(
     requestId: number,
     approvedBy: number | null,
     notes?: string,
-  ): Promise<ApproveAndRouteResult> {
+    options?: { checkHealth?: boolean },
+  ): Promise<ApprovalActionResult> {
     try {
       const current = await this.fastify.db.getApprovalRequest(requestId)
       if (!current) {
-        return { success: false, error: `Request ${requestId} not found` }
+        return {
+          success: false,
+          reason: 'not_found',
+          error: `Request ${requestId} not found`,
+        }
       }
       if (!canTransitionApproval(current.status, 'approved')) {
         return {
           success: false,
+          reason: 'invalid_transition',
           error: `Cannot approve request that is already ${current.status}`,
         }
       }
       if (!routingFor(current.proposedRouterDecision)) {
-        return { success: false, error: 'Set routing before approving.' }
+        return {
+          success: false,
+          reason: 'no_routing',
+          error: 'Set routing before approving.',
+        }
+      }
+
+      if (options?.checkHealth) {
+        const health = await this.checkInstanceHealth(current.contentType)
+        if (!health.available) {
+          return {
+            success: false,
+            reason: 'unavailable',
+            error: `Cannot process approval: ${health.unavailableType} instances are unavailable`,
+          }
+        }
       }
 
       // Step 1: Update DB to "approved" WITHOUT emitting events yet
@@ -846,6 +847,7 @@ export class ApprovalService {
       if (!approvedRequest) {
         return {
           success: false,
+          reason: 'not_found',
           error: `Request ${requestId} not found`,
         }
       }
@@ -868,9 +870,8 @@ export class ApprovalService {
           )
           return {
             success: false,
+            reason: 'rollback_failed',
             error: routingResult.error || 'Routing failed',
-            rolledBack: false,
-            rollbackFailed: true,
           }
         }
 
@@ -881,8 +882,8 @@ export class ApprovalService {
 
         return {
           success: false,
+          reason: 'routing_failed',
           error: routingResult.error || 'Routing failed',
-          rolledBack: true,
         }
       }
 
@@ -907,6 +908,7 @@ export class ApprovalService {
       this.log.error({ error, requestId }, 'Error in approveAndRoute')
       return {
         success: false,
+        reason: 'error',
         error: errorMessage(error),
       }
     }
@@ -919,31 +921,156 @@ export class ApprovalService {
     requestId: number,
     rejectedBy: number,
     reason?: string,
-  ): Promise<ApprovalRequest | null> {
+  ): Promise<ApprovalActionResult> {
     try {
+      const current = await this.fastify.db.getApprovalRequest(requestId)
+      if (!current) {
+        return {
+          success: false,
+          reason: 'not_found',
+          error: 'Approval request not found',
+        }
+      }
+      if (!canTransitionApproval(current.status, 'rejected')) {
+        return {
+          success: false,
+          reason: 'invalid_transition',
+          error: `Cannot reject request that is already ${current.status}`,
+        }
+      }
+
       const result = await this.fastify.db.rejectRequest(
         requestId,
         rejectedBy,
         reason,
       )
-
-      if (result) {
-        // Emit SSE event for rejected request
-        this.emitApprovalEvent('rejected', result, result.userName)
-
-        // Send native webhook notification (fire-and-forget)
-        void this.fastify.notifications.sendApprovalResolved(
-          result,
-          'denied',
-          rejectedBy,
-          reason,
-        )
+      if (!result) {
+        return {
+          success: false,
+          reason: 'not_found',
+          error: 'Approval request not found',
+        }
       }
 
-      return result
+      // Emit SSE event for rejected request
+      this.emitApprovalEvent('rejected', result, result.userName)
+
+      // Send native webhook notification (fire-and-forget)
+      void this.fastify.notifications.sendApprovalResolved(
+        result,
+        'denied',
+        rejectedBy,
+        reason,
+      )
+
+      return { success: true, request: result }
     } catch (error) {
       this.log.error({ error }, `Error rejecting request ${requestId}:`)
-      return null
+      return { success: false, reason: 'error', error: errorMessage(error) }
+    }
+  }
+
+  async updateRouting(
+    requestId: number,
+    proposedRouterDecision: RouterDecision,
+  ): Promise<ApprovalActionResult> {
+    const existing = await this.fastify.db.getApprovalRequest(requestId)
+    if (!existing) {
+      return {
+        success: false,
+        reason: 'not_found',
+        error: 'Approval request not found',
+      }
+    }
+
+    const rejected = rejectedDecisionSeasonMonitoring(
+      proposedRouterDecision,
+      existing.proposedRouterDecision,
+    )
+    if (rejected !== undefined) {
+      return {
+        success: false,
+        reason: 'invalid_decision',
+        error: invalidSeasonMonitoringMessage(rejected),
+      }
+    }
+
+    if (!isApprovalEditable(existing.status)) {
+      return {
+        success: false,
+        reason: 'invalid_transition',
+        error: `Cannot modify routing for ${existing.status} approval requests`,
+      }
+    }
+
+    const updated = await this.fastify.db.updateApprovalRequest(requestId, {
+      proposedRouterDecision,
+    })
+    if (!updated) {
+      return {
+        success: false,
+        reason: 'not_found',
+        error: 'Approval request not found',
+      }
+    }
+    return { success: true, request: updated }
+  }
+
+  expirationInfo(expiresAt: string | null | undefined): {
+    expiresAt: string | null
+    isExpired: boolean
+    timeUntilExpiration: number | null
+    expirationStatus: 'active' | 'expiring_soon' | 'expired'
+    displayText: string
+  } {
+    const config = this.fastify.config.approvalExpiration
+
+    if (!config?.enabled || !expiresAt) {
+      return {
+        expiresAt: expiresAt ?? null,
+        isExpired: false,
+        timeUntilExpiration: null,
+        expirationStatus: 'active',
+        displayText: expiresAt
+          ? new Date(expiresAt).toLocaleString()
+          : 'No expiration',
+      }
+    }
+
+    const now = new Date()
+    const expiry = new Date(expiresAt)
+    if (Number.isNaN(expiry.getTime())) {
+      return {
+        expiresAt: null,
+        isExpired: false,
+        timeUntilExpiration: null,
+        expirationStatus: 'active',
+        displayText: 'No expiration',
+      }
+    }
+
+    const timeUntilExpiration = expiry.getTime() - now.getTime()
+    const hoursUntilExpiration = timeUntilExpiration / (1000 * 60 * 60)
+
+    const isExpired = timeUntilExpiration <= 0
+    let expirationStatus: 'active' | 'expiring_soon' | 'expired' = 'active'
+
+    if (isExpired) {
+      expirationStatus = 'expired'
+    } else if (hoursUntilExpiration <= 24) {
+      expirationStatus = 'expiring_soon'
+    }
+
+    const displayText = isExpired
+      ? `Expired ${Math.abs(Math.floor(hoursUntilExpiration))} hours ago`
+      : `Expires: ${expiry.toLocaleDateString()}, ${expiry.toLocaleTimeString()}`
+
+    return {
+      expiresAt: expiry.toISOString(),
+      isExpired,
+      timeUntilExpiration,
+      expirationStatus,
+      displayText,
     }
   }
 
@@ -984,7 +1111,7 @@ export class ApprovalService {
         results.approved++
       } else {
         results.failed.push(id)
-        results.errors.push(`Request ${id}: ${result.error || 'Unknown error'}`)
+        results.errors.push(`Request ${id}: ${result.error}`)
       }
     }
 
@@ -1006,37 +1133,12 @@ export class ApprovalService {
     }
 
     for (const id of requestIds) {
-      try {
-        const current = await this.fastify.db.getApprovalRequest(id)
-        if (!current) {
-          results.failed.push(id)
-          results.errors.push(`Request ${id} not found`)
-          continue
-        }
-        if (!canTransitionApproval(current.status, 'rejected')) {
-          results.failed.push(id)
-          results.errors.push(
-            `Request ${id}: Cannot reject request that is already ${current.status}`,
-          )
-          continue
-        }
-        const result = await this.fastify.db.rejectRequest(
-          id,
-          rejectedBy,
-          reason,
-        )
-        if (result) {
-          results.rejected++
-
-          // Emit SSE event for rejected request
-          this.emitApprovalEvent('rejected', result, result.userName)
-        } else {
-          results.failed.push(id)
-          results.errors.push(`Request ${id} not found`)
-        }
-      } catch (error) {
+      const result = await this.rejectRequest(id, rejectedBy, reason)
+      if (result.success) {
+        results.rejected++
+      } else {
         results.failed.push(id)
-        results.errors.push(`Request ${id}: ${errorMessage(error)}`)
+        results.errors.push(`Request ${id}: ${result.error}`)
       }
     }
 

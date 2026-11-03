@@ -256,24 +256,19 @@ export async function handleApprovalAction(
     }
 
     if (action === 'approve') {
-      const healthCheck = await approvalService.checkInstanceHealth(
-        approval.contentType,
-      )
-      if (!healthCheck.available) {
-        await interaction.editReply(
-          `❌ Cannot process approval: ${healthCheck.unavailableType} instances are unavailable. Please try again later.`,
-        )
-        return
-      }
-
       const result = await approvalService.approveAndRoute(
         approvalId,
         adminUser.id,
         'Approved via Discord',
+        { checkHealth: true },
       )
 
       if (!result.success) {
-        if (result.rollbackFailed) {
+        if (result.reason === 'unavailable') {
+          await interaction.editReply(
+            `❌ ${result.error}. Please try again later.`,
+          )
+        } else if (result.reason === 'rollback_failed') {
           await interaction.editReply(
             '❌ Routing failed and so did the rollback, so this request may be in an inconsistent state',
           )
@@ -287,14 +282,16 @@ export async function handleApprovalAction(
 
       await showSuccessState(interaction, 'approve', approval)
     } else {
-      const rejectedRequest = await approvalService.rejectRequest(
+      const result = await approvalService.rejectRequest(
         approvalId,
         adminUser.id,
         'Rejected via Discord',
       )
 
-      if (!rejectedRequest) {
-        await interaction.editReply('❌ Failed to reject request')
+      if (!result.success) {
+        await interaction.editReply(
+          `❌ Failed to reject request: ${result.error}`,
+        )
         return
       }
 

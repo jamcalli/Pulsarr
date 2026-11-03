@@ -81,11 +81,7 @@ export interface paths {
          */
         get: operations["getApprovalRequests"];
         put?: never;
-        /**
-         * Create approval request
-         * @description Create a new approval request for content routing
-         */
-        post: operations["createApprovalRequest"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -174,8 +170,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update approval request
-         * @description Update an approval request (approve, reject, or modify)
+         * Update approval request routing
+         * @description Change the proposed routing on an editable approval request
          */
         patch: operations["updateApprovalRequest"];
         trace?: never;
@@ -3543,19 +3539,6 @@ export interface components {
             createdAt: string;
             updatedAt: string;
         };
-        /** @description Fields for creating an approval request */
-        ApprovalRequestCreatePayload: {
-            userId: number;
-            contentType: components["schemas"]["ContentType"];
-            contentTitle: string;
-            contentKey: string;
-            contentGuids?: string[];
-            routerDecision: components["schemas"]["RouterDecision"];
-            routerRuleId?: number;
-            approvalReason?: string;
-            triggeredBy: components["schemas"]["ApprovalTrigger"];
-            expiresAt?: string;
-        };
         /** @description One page of approval requests with the total match count */
         ApprovalRequestListResponse: {
             success: boolean;
@@ -3573,9 +3556,7 @@ export interface components {
         };
         /** @description Fields to change on an approval request */
         ApprovalRequestUpdatePayload: {
-            status?: components["schemas"]["ApprovalStatus"];
-            approvalNotes?: string;
-            proposedRouterDecision?: components["schemas"]["RouterDecision"];
+            proposedRouterDecision: components["schemas"]["RouterDecision"];
         };
         /** @description Target instance and arr settings used to add the content */
         ApprovalRouting: {
@@ -6028,67 +6009,6 @@ export interface operations {
             };
         };
     };
-    createApprovalRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Fields for creating an approval request */
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApprovalRequestCreatePayload"];
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApprovalRequestResult"];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     bulkApproveRequests: {
         parameters: {
             query?: never;
@@ -6460,15 +6380,6 @@ export interface operations {
             };
             /** @description Default Response */
             500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            503: {
                 headers: {
                     [name: string]: unknown;
                 };
