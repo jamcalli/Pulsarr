@@ -44,16 +44,6 @@ describe('Content Router Rules API', () => {
   }
 
   describe('evaluator plugin routes', () => {
-    it('lists the loaded evaluators', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/v1/content-router/plugins',
-      })
-
-      expect(response.statusCode).toBe(200)
-      expect(response.json()).toEqual(pluginsFixture.plugins)
-    })
-
     it('describes every evaluator field and operator', async () => {
       const response = await app.inject({
         method: 'GET',

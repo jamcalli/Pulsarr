@@ -17,14 +17,18 @@ describe('router-fields', () => {
     )
   })
 
-  it('lists the evaluators in the order the plugins route reports', () => {
+  it('lists the evaluators in priority order', () => {
     expect(
       ROUTER_EVALUATORS.map(({ name, description, priority }) => ({
         name,
         description,
         priority,
       })),
-    ).toEqual(pluginsFixture.plugins.plugins)
+    ).toEqual(
+      pluginsFixture.metadata.evaluators.map(
+        ({ name, description, priority }) => ({ name, description, priority }),
+      ),
+    )
   })
 
   it('keys the field table by exactly the field names', () => {
