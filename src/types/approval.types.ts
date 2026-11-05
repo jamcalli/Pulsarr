@@ -46,14 +46,6 @@ export interface ApprovalRequestRow {
   updated_at: string
 }
 
-export interface QuotaUsageRow {
-  id: number
-  user_id: number
-  content_type: 'movie' | 'show'
-  request_date: string // YYYY-MM-DD format
-  created_at: string
-}
-
 // Enums
 export type QuotaType = 'daily' | 'weekly_rolling' | 'monthly'
 export type ApprovalStatus =

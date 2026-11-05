@@ -22,50 +22,6 @@ describe('Quota limit and watchlist cap bounds', () => {
     app.config.authenticationMethod = 'disabled'
   })
 
-  it('rejects creating a quota with a limit above 1000', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/v1/quota/users',
-      payload: { userId: 1, quotaType: 'daily', quotaLimit: 1001 },
-    })
-
-    expect(res.statusCode).toBe(400)
-  })
-
-  it('rejects creating a quota with a watchlist cap above 10000', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/v1/quota/users',
-      payload: {
-        userId: 1,
-        quotaType: 'daily',
-        quotaLimit: 5,
-        watchlistCap: 10001,
-      },
-    })
-
-    expect(res.statusCode).toBe(400)
-  })
-
-  it('creates a quota at both upper bounds', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/v1/quota/users',
-      payload: {
-        userId: 1,
-        quotaType: 'daily',
-        quotaLimit: 1000,
-        watchlistCap: 10000,
-      },
-    })
-
-    expect(res.statusCode).toBe(201)
-    expect(res.json().userQuotas.movieQuota).toMatchObject({
-      quotaLimit: 1000,
-      watchlistCap: 10000,
-    })
-  })
-
   it('rejects updating separate quotas past either bound', async () => {
     const overLimit = await app.inject({
       method: 'PATCH',

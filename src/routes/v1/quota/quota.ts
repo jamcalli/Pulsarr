@@ -3,20 +3,12 @@ import {
   BulkQuotaOperationResponseSchema,
   BulkQuotaOperationSchema,
   BulkQuotaStatusResponseSchema,
-  CreateUserQuotaSchema,
-  DailyStatsListResponseSchema,
-  GetDailyStatsQuerySchema,
-  GetQuotaUsageQuerySchema,
-  GetUsersWithQuotasResponseSchema,
   PendingHeldCountResponseSchema,
   QuotaErrorSchema,
   QuotaStatusGetResponseSchema,
   QuotaSuccessResponseSchema,
-  QuotaUsageListResponseSchema,
   QuotaUserIdParamsSchema,
   UpdateSeparateQuotasSchema,
-  UpdateUserQuotaSchema,
-  UserQuotaCreateResponseSchema,
   UserQuotaGetResponseSchema,
   UserQuotaUpdateResponseSchema,
 } from '@schemas/quota/quota.schema.js'
@@ -31,53 +23,6 @@ function createQuotaSuccess(
 }
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
-  // Create user quota
-  fastify.post(
-    '/users',
-    {
-      schema: {
-        summary: 'Create user quota',
-        operationId: 'createUserQuota',
-        description: 'Create a quota configuration for a user',
-        body: CreateUserQuotaSchema,
-        response: {
-          201: UserQuotaCreateResponseSchema,
-          400: QuotaErrorSchema,
-          409: QuotaErrorSchema,
-        },
-        tags: ['Quota'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const userQuotas = await fastify.quotaService.createUserQuotas(
-          request.body.userId,
-          request.body.quotaType,
-          request.body.quotaLimit,
-          request.body.bypassApproval,
-          request.body.watchlistCap,
-        )
-
-        reply.status(201)
-        return {
-          success: true,
-          message: 'User quotas created successfully',
-          userQuotas,
-        }
-      } catch (error) {
-        // Rethrow service httpErrors so the global handler maps the 400/409
-        if (error instanceof Error && 'statusCode' in error) {
-          throw error
-        }
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to create user quota',
-          context: { userId: request.body.userId },
-        })
-        return reply.internalServerError('Failed to create user quota')
-      }
-    },
-  )
-
   // Get user quota by user ID
   fastify.get(
     '/users/:userId',
@@ -152,48 +97,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return reply.internalServerError(
           'Failed to retrieve pending held count',
         )
-      }
-    },
-  )
-
-  // Update user quota
-  fastify.patch(
-    '/users/:userId',
-    {
-      schema: {
-        summary: 'Update user quotas',
-        operationId: 'updateUserQuotas',
-        description: 'Update quota configurations for a specific user',
-        params: QuotaUserIdParamsSchema,
-        body: UpdateUserQuotaSchema,
-        response: {
-          200: UserQuotaUpdateResponseSchema,
-          404: QuotaErrorSchema,
-        },
-        tags: ['Quota'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const userQuotas = await fastify.quotaService.updateUserQuotas(
-          request.params.userId,
-          request.body,
-        )
-        if (!userQuotas) {
-          return reply.notFound('User quotas not found')
-        }
-
-        return {
-          success: true,
-          message: 'User quotas updated successfully',
-          userQuotas,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to update user quota',
-          context: { userId: request.params.userId },
-        })
-        return reply.internalServerError('Failed to update user quota')
       }
     },
   )
@@ -293,39 +196,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Get all users with quotas
-  fastify.get(
-    '/users',
-    {
-      schema: {
-        summary: 'Get all users with quotas',
-        operationId: 'getUsersWithQuotas',
-        description: 'Get all users that have quota configurations',
-        response: {
-          200: GetUsersWithQuotasResponseSchema,
-          500: QuotaErrorSchema,
-        },
-        tags: ['Quota'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const userQuotas = await fastify.db.getUsersWithQuotas()
-
-        return {
-          success: true,
-          message: 'Users with quotas retrieved successfully',
-          userQuotas,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to get users with quotas',
-        })
-        return reply.internalServerError('Failed to retrieve users with quotas')
-      }
-    },
-  )
-
   // Get quota status for a user
   fastify.get(
     '/users/:userId/status',
@@ -418,148 +288,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Record quota usage
-  fastify.post(
-    '/users/:userId/usage',
-    {
-      schema: {
-        summary: 'Record quota usage',
-        operationId: 'recordQuotaUsage',
-        description: 'Record quota usage for a user',
-        params: QuotaUserIdParamsSchema,
-        body: z.object({
-          contentType: ContentTypeSchema,
-          requestDate: z.iso.datetime().optional(),
-        }),
-        response: {
-          200: QuotaSuccessResponseSchema,
-          400: QuotaErrorSchema,
-        },
-        tags: ['Quota'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const userId = request.params.userId
-        const { contentType, requestDate } = request.body
-
-        await fastify.db.recordQuotaUsage(
-          userId,
-          contentType,
-          requestDate ? new Date(requestDate) : undefined,
-        )
-
-        return createQuotaSuccess('Quota usage recorded successfully')
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to record quota usage',
-          context: {
-            userId: request.params.userId,
-            contentType: request.body.contentType,
-          },
-        })
-        return reply.internalServerError('Failed to record quota usage')
-      }
-    },
-  )
-
-  // Get quota usage history
-  fastify.get(
-    '/usage',
-    {
-      schema: {
-        summary: 'Get quota usage history',
-        operationId: 'getQuotaUsageHistory',
-        description: 'Get quota usage history for a user',
-        querystring: GetQuotaUsageQuerySchema,
-        response: {
-          200: QuotaUsageListResponseSchema,
-          400: QuotaErrorSchema,
-        },
-        tags: ['Quota'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { userId, startDate, endDate, contentType, limit, offset } =
-          request.query
-
-        const [quotaUsage, total] = await Promise.all([
-          fastify.db.getQuotaUsageHistory(
-            userId,
-            startDate ? new Date(startDate) : undefined,
-            endDate ? new Date(endDate) : undefined,
-            contentType,
-            limit,
-            offset,
-          ),
-          fastify.db.getQuotaUsageHistoryCount(
-            userId,
-            startDate ? new Date(startDate) : undefined,
-            endDate ? new Date(endDate) : undefined,
-            contentType,
-          ),
-        ])
-
-        return {
-          success: true,
-          message: 'Quota usage history retrieved successfully',
-          quotaUsage,
-          total,
-          limit,
-          offset,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to get quota usage history',
-          context: { userId: request.query.userId },
-        })
-        return reply.internalServerError(
-          'Failed to retrieve quota usage history',
-        )
-      }
-    },
-  )
-
-  // Get daily usage statistics
-  fastify.get(
-    '/stats/daily',
-    {
-      schema: {
-        summary: 'Get daily usage statistics',
-        operationId: 'getDailyUsageStats',
-        description: 'Get daily usage statistics for a user',
-        querystring: GetDailyStatsQuerySchema,
-        response: {
-          200: DailyStatsListResponseSchema,
-          400: QuotaErrorSchema,
-        },
-        tags: ['Quota'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { userId, days } = request.query
-
-        const dailyStats = await fastify.db.getDailyUsageStats(userId, days)
-
-        return {
-          success: true,
-          message: 'Daily usage statistics retrieved successfully',
-          dailyStats,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to get daily usage stats',
-          context: { userId: request.query.userId },
-        })
-        return reply.internalServerError(
-          'Failed to retrieve daily usage statistics',
-        )
-      }
-    },
-  )
-
   // Bulk quota operations
   fastify.patch(
     '/users/bulk',
@@ -616,46 +344,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         })
         return reply.internalServerError(
           'Failed to perform bulk quota operation',
-        )
-      }
-    },
-  )
-
-  // Cleanup old quota usage records
-  fastify.delete(
-    '/usage/cleanup',
-    {
-      schema: {
-        summary: 'Cleanup old quota usage',
-        operationId: 'cleanupOldQuotaUsage',
-        description: 'Clean up old quota usage records',
-        querystring: z.object({
-          olderThanDays: z.coerce.number().min(1).default(90),
-        }),
-        response: {
-          200: QuotaSuccessResponseSchema,
-          500: QuotaErrorSchema,
-        },
-        tags: ['Quota'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { olderThanDays } = request.query
-
-        const deletedCount =
-          await fastify.db.cleanupOldQuotaUsage(olderThanDays)
-
-        return createQuotaSuccess(
-          `Cleaned up ${deletedCount} old quota usage records`,
-        )
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to cleanup quota usage',
-          context: { olderThanDays: request.query.olderThanDays },
-        })
-        return reply.internalServerError(
-          'Failed to cleanup quota usage records',
         )
       }
     },
