@@ -1194,90 +1194,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/quota/stats/daily": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get daily usage statistics
-         * @description Get daily usage statistics for a user
-         */
-        get: operations["getDailyUsageStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get quota usage history
-         * @description Get quota usage history for a user
-         */
-        get: operations["getQuotaUsageHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/usage/cleanup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Cleanup old quota usage
-         * @description Clean up old quota usage records
-         */
-        delete: operations["cleanupOldQuotaUsage"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get all users with quotas
-         * @description Get all users that have quota configurations
-         */
-        get: operations["getUsersWithQuotas"];
-        put?: never;
-        /**
-         * Create user quota
-         * @description Create a quota configuration for a user
-         */
-        post: operations["createUserQuota"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/quota/users/bulk": {
         parameters: {
             query?: never;
@@ -1339,11 +1255,7 @@ export interface paths {
         delete: operations["deleteUserQuota"];
         options?: never;
         head?: never;
-        /**
-         * Update user quotas
-         * @description Update quota configurations for a specific user
-         */
-        patch: operations["updateUserQuotas"];
+        patch?: never;
         trace?: never;
     };
     "/v1/quota/users/{userId}/pending-held-count": {
@@ -1400,26 +1312,6 @@ export interface paths {
         get: operations["getUserQuotaStatus"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/users/{userId}/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record quota usage
-         * @description Record quota usage for a user
-         */
-        post: operations["recordQuotaUsage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5401,13 +5293,6 @@ export interface components {
             movieQuota?: components["schemas"]["UserQuotaPayload"];
             showQuota?: components["schemas"]["UserQuotaPayload"];
         };
-        /** @description Requests counted against a user quota on one day */
-        UserQuotaDailyStats: {
-            date: string;
-            movies: number;
-            shows: number;
-            total: number;
-        };
         /** @description One content type quota for a user, switched on with its settings or switched off */
         UserQuotaPayload: {
             quotaType?: components["schemas"]["QuotaType"];
@@ -5427,13 +5312,6 @@ export interface components {
             watchlistCap: number | null;
             watchlistUsage: number | null;
             watchlistCapExceeded: boolean;
-        };
-        /** @description One request counted against a user quota */
-        UserQuotaUsage: {
-            userId: number;
-            contentType: components["schemas"]["ContentType"];
-            /** @description Date as YYYY-MM-DD */
-            requestDate: string;
         };
         /** @description A user's movie and show quotas, each absent when not set */
         UserQuotas: {
@@ -9220,250 +9098,6 @@ export interface operations {
             };
         };
     };
-    getDailyUsageStats: {
-        parameters: {
-            query: {
-                userId: number;
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        dailyStats: components["schemas"]["UserQuotaDailyStats"][];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getQuotaUsageHistory: {
-        parameters: {
-            query: {
-                userId: number;
-                startDate?: string;
-                endDate?: string;
-                contentType?: components["schemas"]["ContentType"];
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        quotaUsage: components["schemas"]["UserQuotaUsage"][];
-                        total: number;
-                        limit: number;
-                        offset: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    cleanupOldQuotaUsage: {
-        parameters: {
-            query?: {
-                olderThanDays?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getUsersWithQuotas: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        userQuotas: components["schemas"]["UserQuota"][];
-                    };
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    createUserQuota: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    userId: number;
-                    quotaType: components["schemas"]["QuotaType"];
-                    quotaLimit: number;
-                    /** @default false */
-                    bypassApproval?: boolean;
-                    watchlistCap?: number | null;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        userQuotas: components["schemas"]["UserQuotas"];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     bulkQuotaOperations: {
         parameters: {
             query?: never;
@@ -9671,59 +9305,6 @@ export interface operations {
             };
         };
     };
-    updateUserQuotas: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    quotaType?: components["schemas"]["QuotaType"];
-                    quotaLimit?: number;
-                    bypassApproval?: boolean;
-                    watchlistCap?: number | null;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        userQuotas: components["schemas"]["UserQuotas"];
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     getPendingHeldCount: {
         parameters: {
             query?: never;
@@ -9855,57 +9436,6 @@ export interface operations {
             };
             /** @description Default Response */
             500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    recordQuotaUsage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    contentType: components["schemas"]["ContentType"];
-                    /** Format: date-time */
-                    requestDate?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
                 headers: {
                     [name: string]: unknown;
                 };
