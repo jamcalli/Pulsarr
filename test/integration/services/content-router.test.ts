@@ -492,7 +492,13 @@ describe('ContentRouterService Integration', () => {
   describe('evaluator loading', () => {
     it('loads every evaluator in priority order', () => {
       expect(fastify.contentRouter.getLoadedEvaluators()).toEqual(
-        pluginsFixture.plugins.plugins,
+        pluginsFixture.metadata.evaluators.map(
+          ({ name, description, priority }) => ({
+            name,
+            description,
+            priority,
+          }),
+        ),
       )
     })
   })
