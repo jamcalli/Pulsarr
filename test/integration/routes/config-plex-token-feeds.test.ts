@@ -138,6 +138,29 @@ describe('Config Plex token changes and watchlist feeds', () => {
     expect(app.plexServerService.getHasPlexPass()).toBe(true)
   })
 
+  it('refuses Plex mobile without Plex Pass and changes nothing', async () => {
+    app.plexServerService.setHasPlexPass(false)
+
+    const res = await putConfig({ plexMobileEnabled: true })
+
+    expect(res.statusCode).toBe(400)
+    expect(Boolean((await app.db.getConfig())?.plexMobileEnabled)).toBe(false)
+  })
+
+  it('saves the server address when applying the connection fails', async () => {
+    vi.spyOn(
+      app.plexServerService,
+      'applyConnectionSettings',
+    ).mockRejectedValueOnce(new Error('connection failed'))
+
+    const res = await putConfig({ plexServerUrl: 'http://10.0.0.3:32400' })
+
+    expect(res.statusCode).toBe(200)
+    expect((await app.db.getConfig())?.plexServerUrl).toBe(
+      'http://10.0.0.3:32400',
+    )
+  })
+
   it('forgets Plex Pass when the token changes', async () => {
     app.plexServerService.setHasPlexPass(true)
 

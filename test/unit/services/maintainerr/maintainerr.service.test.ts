@@ -1,14 +1,16 @@
 import { MaintainerrService } from '@services/maintainerr/maintainerr.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
 const BASE = 'http://maintainerr.test:6246'
+const updateJobSchedule = vi.fn()
 
 function makeService(configOverrides: Record<string, unknown> = {}) {
   const fastify = {
+    scheduler: { updateJobSchedule },
     config: {
       maintainerrEnabled: true,
       maintainerrUrl: BASE,
@@ -102,6 +104,7 @@ describe('MaintainerrService.reconcile', () => {
 
   beforeEach(() => {
     service = makeService()
+    updateJobSchedule.mockReset().mockResolvedValue(true)
   })
 
   it('returns disabled when no url is configured', async () => {
@@ -124,7 +127,7 @@ describe('MaintainerrService.reconcile', () => {
     expect(addBody.enabled).toBe(false)
   })
 
-  it('disables the webhook on a previous instance by explicit url', async () => {
+  it('disables the previous instance when the url changes', async () => {
     const OLD_BASE = 'http://maintainerr-old.test:6246'
     const recorded: RecordedRequest[] = []
     server.use(
@@ -143,12 +146,35 @@ describe('MaintainerrService.reconcile', () => {
       ),
     )
 
-    await service.disableRemoteConfig(OLD_BASE)
+    await makeService({ maintainerrUrl: '' }).applyConfigChange(`${OLD_BASE}/`)
 
     const add = recorded.find((r) => r.path === '/configuration/add')
     const addBody = add?.body as { id?: number; enabled?: boolean }
     expect(addBody.id).toBe(7)
     expect(addBody.enabled).toBe(false)
+    expect(updateJobSchedule).toHaveBeenCalledWith(
+      'maintainerr-sync',
+      null,
+      false,
+    )
+  })
+
+  it('leaves the instance alone when only a trailing slash changes', async () => {
+    const recorded = stubMaintainerr({
+      configurations: [{ ...PULSARR_CONFIG, enabled: true }],
+    })
+
+    await makeService({ maintainerrEnabled: false }).applyConfigChange(
+      `${BASE}/`,
+    )
+
+    const adds = recorded.filter((r) => r.path === '/configuration/add')
+    expect(adds).toHaveLength(1)
+    expect(updateJobSchedule).toHaveBeenCalledWith(
+      'maintainerr-sync',
+      null,
+      false,
+    )
   })
 
   it('rejects versions below 3.23.0', async () => {
