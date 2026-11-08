@@ -1,3 +1,4 @@
+import { ApprovalViewToggleSkeleton } from '@/components/approval-review/approval-view-toggle'
 import { CredenzaTitle } from '@/components/credenza'
 import { FactListSkeleton } from '@/components/fact-list'
 import { PosterFrameSkeleton } from '@/components/poster-frame'
@@ -32,6 +33,7 @@ export function ApprovalReviewSkeleton({
               <Skeleton className="h-6 w-56 max-w-full" />
             </div>
           </div>
+          <ApprovalViewToggleSkeleton />
           <Separator />
         </>
       )}

@@ -1,5 +1,4 @@
 import { ApprovalDecision } from '@/components/approval-review/approval-decision'
-import { ApprovalIdentity } from '@/components/approval-review/approval-identity'
 import { ApprovalNotes } from '@/components/approval-review/approval-notes'
 import { ApprovalPrompt } from '@/components/approval-review/approval-prompt'
 import { ApprovalRoutingSummary } from '@/components/approval-review/approval-routing-summary'
@@ -14,22 +13,14 @@ type ApprovalRequest = components['schemas']['ApprovalRequest']
 interface ApprovalReviewPanelProps {
   approval: ApprovalRequest
   review: ApprovalReview
-  variant: 'standalone' | 'embedded'
 }
 
 export function ApprovalReviewPanel({
   approval,
   review,
-  variant,
 }: ApprovalReviewPanelProps) {
   return (
     <div className="flex flex-col gap-6">
-      {variant === 'standalone' && (
-        <>
-          <ApprovalIdentity approval={approval} />
-          <Separator />
-        </>
-      )}
       <ApprovalTrigger approval={approval} />
       <Separator />
       <ApprovalRoutingSummary approval={approval} review={review} />

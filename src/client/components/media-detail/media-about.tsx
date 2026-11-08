@@ -1,4 +1,6 @@
+import { SearchX } from 'lucide-react'
 import { CompactSelect } from '@/components/compact-select'
+import { EmptyState } from '@/components/empty-state'
 import { ErrorAlert } from '@/components/error-alert'
 import { FactList, FactListSkeleton } from '@/components/fact-list'
 import { Badge } from '@/components/ui/badge'
@@ -119,4 +121,28 @@ export function MediaAboutSkeleton() {
       </div>
     </div>
   )
+}
+
+function MediaAboutEmpty() {
+  return (
+    <EmptyState
+      icon={<SearchX />}
+      title="No details available"
+      description="TMDB doesn't have a single entry for this title, so ratings, synopsis and streaming info can't be shown."
+      className="p-6"
+    />
+  )
+}
+
+/** Covers the loaded, not-found and loading states, so callers render the error state themselves. */
+export function MediaAboutContent({
+  metadata,
+  notFound,
+}: {
+  metadata: MediaMetadata | undefined
+  notFound: boolean
+}) {
+  if (metadata) return <MediaAbout metadata={metadata} />
+  if (notFound) return <MediaAboutEmpty />
+  return <MediaAboutSkeleton />
 }
