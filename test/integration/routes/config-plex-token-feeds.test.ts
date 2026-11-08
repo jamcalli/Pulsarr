@@ -40,6 +40,7 @@ describe('Config Plex token changes and watchlist feeds', () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'
+    app.config.plexTokens = [SEEDED_TOKEN]
     vi.spyOn(app.plexServerService, 'connectSSE').mockResolvedValue(undefined)
     vi.spyOn(app.plexServerService, 'disconnectSSE').mockReturnValue(undefined)
     await app.db.updateConfig(FEEDS)

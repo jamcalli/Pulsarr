@@ -48,8 +48,9 @@ export class ConfigService {
       }
     }
 
-    const currentConfig = await fastify.db.getConfig()
-    const currentTokens = currentConfig?.plexTokens ?? []
+    // The stored row can lag env values until the first UI save, so read what is live
+    const currentTokens = fastify.config.plexTokens ?? []
+    const previousMaintainerrUrl = fastify.config.maintainerrUrl
 
     try {
       await fastify.userTags.assertPrefixChangeAllowed(patch)
@@ -80,7 +81,6 @@ export class ConfigService {
       throw error
     }
 
-    // The stored baseUrl can be unset while the env default is live, so compare against the runtime config
     const candidate = {
       baseUrl: patch.baseUrl ?? fastify.config.baseUrl,
       port: patch.port ?? fastify.config.port,
@@ -160,7 +160,7 @@ export class ConfigService {
 
     if ('maintainerrEnabled' in patch || 'maintainerrUrl' in patch) {
       void fastify.maintainerr
-        .applyConfigChange(currentConfig?.maintainerrUrl)
+        .applyConfigChange(previousMaintainerrUrl)
         .catch((error) => {
           this.log.error({ error }, 'Failed to apply Maintainerr config change')
         })
