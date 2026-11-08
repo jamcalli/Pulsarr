@@ -4,7 +4,6 @@ import {
   DeleteSyncDryRunStatusSchema,
   ErrorResponseSchema,
   JobStatusSchema,
-  ScheduleConfigSchema,
   type ScheduleUpdate,
   ScheduleUpdateSchema,
   SuccessResponseSchema,
@@ -14,33 +13,6 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
-  // Get all job schedules
-  fastify.get(
-    '/schedules',
-    {
-      schema: {
-        summary: 'Get all job schedules',
-        operationId: 'getAllSchedules',
-        description: 'Retrieve all configured job schedules and their status',
-        response: {
-          200: z.array(JobStatusSchema),
-          500: ErrorResponseSchema,
-        },
-        tags: ['Scheduler'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        return await fastify.scheduler.getSchedules()
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to fetch schedules',
-        })
-        return reply.internalServerError('Unable to fetch schedules')
-      }
-    },
-  )
-
   // Get a specific job schedule
   fastify.get<{
     Params: { name: string }
@@ -77,77 +49,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           scheduleName: request.params.name,
         })
         return reply.internalServerError('Unable to fetch schedule')
-      }
-    },
-  )
-
-  // Create or update a job schedule
-  fastify.post(
-    '/schedules',
-    {
-      schema: {
-        summary: 'Create job schedule',
-        operationId: 'createSchedule',
-        description: 'Create a new job schedule or update an existing one',
-        body: ScheduleConfigSchema,
-        response: {
-          200: SuccessResponseSchema,
-          500: ErrorResponseSchema,
-        },
-        tags: ['Scheduler'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const scheduleData = request.body
-        const existing = await fastify.db.getScheduleByName(scheduleData.name)
-
-        if (existing) {
-          const success = await fastify.scheduler.updateJobSchedule(
-            scheduleData.name,
-            scheduleData.config,
-            scheduleData.enabled,
-          )
-
-          if (!success) {
-            return reply.internalServerError(
-              `Failed to update schedule "${scheduleData.name}"`,
-            )
-          }
-
-          return {
-            success: true,
-            message: `Schedule "${scheduleData.name}" updated`,
-          }
-        }
-
-        try {
-          await fastify.db.createSchedule({
-            name: scheduleData.name,
-            type: scheduleData.type,
-            config: scheduleData.config,
-            enabled: scheduleData.enabled,
-            last_run: null,
-            next_run: null,
-          })
-          return {
-            success: true,
-            message: `Schedule "${scheduleData.name}" created`,
-          }
-        } catch (error) {
-          logRouteError(fastify.log, request, error, {
-            message: 'Failed to create schedule',
-            scheduleName: scheduleData.name,
-          })
-          return reply.internalServerError(
-            `Failed to create schedule "${scheduleData.name}"`,
-          )
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to process schedule request',
-        })
-        return reply.internalServerError('Unable to process schedule request')
       }
     },
   )
@@ -207,56 +108,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           scheduleName: request.params.name,
         })
         return reply.internalServerError('Unable to update schedule')
-      }
-    },
-  )
-
-  // Delete a job schedule
-  fastify.delete<{
-    Params: { name: string }
-    Reply:
-      | z.infer<typeof SuccessResponseSchema>
-      | z.infer<typeof ErrorResponseSchema>
-  }>(
-    '/schedules/:name',
-    {
-      schema: {
-        summary: 'Delete job schedule',
-        operationId: 'deleteSchedule',
-        description: 'Delete a job schedule by its name',
-        params: z.object({ name: z.string() }),
-        response: {
-          200: SuccessResponseSchema,
-          404: ErrorResponseSchema,
-          500: ErrorResponseSchema,
-        },
-        tags: ['Scheduler'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { name } = request.params
-
-        const existing = await fastify.db.getScheduleByName(name)
-        if (!existing) {
-          return reply.notFound(`Schedule "${name}" not found`)
-        }
-
-        await fastify.scheduler.unscheduleJob(name)
-        const deleted = await fastify.db.deleteSchedule(name)
-        if (!deleted) {
-          return reply.internalServerError(
-            `Failed to delete schedule "${name}"`,
-          )
-        }
-
-        return { success: true, message: `Schedule "${name}" deleted` }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to delete schedule',
-          scheduleName: request.params.name,
-        })
-        return reply.internalServerError('Unable to delete schedule')
       }
     },
   )
@@ -355,67 +206,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           jobName: request.params.name,
         })
         return reply.internalServerError('Unable to start job')
-      }
-    },
-  )
-
-  // Enable/disable a job
-  fastify.patch<{
-    Params: { name: string }
-    Body: { enabled: boolean }
-    Reply:
-      | z.infer<typeof SuccessResponseSchema>
-      | z.infer<typeof ErrorResponseSchema>
-  }>(
-    '/schedules/:name/toggle',
-    {
-      schema: {
-        summary: 'Toggle job schedule',
-        operationId: 'toggleSchedule',
-        description: 'Enable or disable a job schedule',
-        params: z.object({ name: z.string() }),
-        body: z.object({ enabled: z.boolean() }),
-        response: {
-          200: SuccessResponseSchema,
-          404: ErrorResponseSchema,
-          500: ErrorResponseSchema,
-        },
-        tags: ['Scheduler'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { name } = request.params
-        const { enabled } = request.body
-
-        const existing = await fastify.db.getScheduleByName(name)
-        if (!existing) {
-          return reply.notFound(`Schedule "${name}" not found`)
-        }
-
-        const success = await fastify.scheduler.updateJobSchedule(
-          name,
-          null,
-          enabled,
-        )
-
-        if (!success) {
-          return reply.internalServerError(
-            `Failed to ${enabled ? 'enable' : 'disable'} schedule "${name}"`,
-          )
-        }
-
-        return {
-          success: true,
-          message: `Schedule "${name}" ${enabled ? 'enabled' : 'disabled'}`,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to toggle schedule status',
-          scheduleName: request.params.name,
-          enabled: request.body.enabled,
-        })
-        return reply.internalServerError('Unable to toggle schedule status')
       }
     },
   )
