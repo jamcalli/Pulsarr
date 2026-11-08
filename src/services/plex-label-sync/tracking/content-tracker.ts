@@ -7,14 +7,38 @@
 
 import type { ContentWithUsers } from '@root/types/plex-label-sync.types.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
-import type {
-  TrackPlexLabelsOperation,
-  UntrackPlexLabelOperation,
+import {
+  normalizeTrackedGuids,
+  normalizeTrackedLabels,
+  type PlexLabelTracking,
+  type TrackPlexLabelsOperation,
+  type UntrackPlexLabelOperation,
 } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { includesLabelIgnoreCase } from '../label-operations/label-validator.js'
+
+function sameArray(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((value, i) => value === b[i])
+}
+
+function isAlreadyTracked(
+  operation: TrackPlexLabelsOperation,
+  existing: PlexLabelTracking[],
+): boolean {
+  // Stored GUID order matters because the Postgres conflict key hashes the JSON array
+  const guids = normalizeTrackedGuids(operation.contentGuids)
+  const labels = normalizeTrackedLabels(operation.labelsApplied)
+  return existing.some(
+    (row) =>
+      row.user_id === operation.userId &&
+      row.plex_rating_key === operation.plexRatingKey &&
+      row.content_type === operation.contentType &&
+      sameArray(row.content_guids, guids) &&
+      sameArray([...row.labels_applied].sort(), labels),
+  )
+}
 
 export interface ContentTrackerDeps {
   db: DatabaseService
@@ -58,6 +82,7 @@ export async function updateTrackingForContent(
     // Collect operations for bulk processing
     const untrackOperations: UntrackPlexLabelOperation[] = []
     const trackOperations: TrackPlexLabelsOperation[] = []
+    const trackingByRatingKey = new Map<string, PlexLabelTracking[]>()
 
     // Process each Plex item
     for (const plexItem of plexItems) {
@@ -65,6 +90,7 @@ export async function updateTrackingForContent(
       const currentTracking = await deps.db.getTrackedLabelsForRatingKey(
         plexItem.ratingKey,
       )
+      trackingByRatingKey.set(plexItem.ratingKey, currentTracking)
 
       // Determine which tracking records should exist
       const desiredTracking = new Set<string>()
@@ -180,13 +206,17 @@ export async function updateTrackingForContent(
 
         // Only queue tracking if there are labels to track
         if (userLabelsForContent.length > 0) {
-          trackOperations.push({
+          const operation: TrackPlexLabelsOperation = {
             contentGuids: content.allGuids,
             contentType: content.type as 'movie' | 'show',
             userId: user.user_id,
             plexRatingKey: plexItem.ratingKey,
             labelsApplied: userLabelsForContent,
-          })
+          }
+          if (isAlreadyTracked(operation, currentTracking)) {
+            continue
+          }
+          trackOperations.push(operation)
           deps.logger.debug(
             {
               watchlistId: user.watchlist_id,
@@ -202,13 +232,19 @@ export async function updateTrackingForContent(
 
     // Add system tracking operations for removed labels
     for (const [ratingKey, removedLabel] of appliedRemovedLabels) {
-      trackOperations.push({
+      const operation: TrackPlexLabelsOperation = {
         contentGuids: content.allGuids,
         contentType: content.type as 'movie' | 'show',
         userId: null, // System operation for removed labels
         plexRatingKey: ratingKey,
         labelsApplied: [removedLabel],
-      })
+      }
+      if (
+        isAlreadyTracked(operation, trackingByRatingKey.get(ratingKey) ?? [])
+      ) {
+        continue
+      }
+      trackOperations.push(operation)
       deps.logger.debug(
         {
           ratingKey,

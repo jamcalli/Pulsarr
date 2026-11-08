@@ -452,13 +452,193 @@ describe('content-tracker', () => {
         baseDeps,
       )
 
-      // Both should be tracked (user label + removed label)
-      expect(mockDb.trackPlexLabelsBulk).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ userId: 1 }),
-          expect.objectContaining({ userId: null }),
-        ]),
+      expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+      expect(mockDb.untrackPlexLabelBulk).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Unchanged tracking', () => {
+    const alice = { user_id: 1, username: 'alice', watchlist_id: 101 }
+    const bob = { user_id: 2, username: 'bob', watchlist_id: 102 }
+    const plexItems = [{ ratingKey: '12345', title: 'Test Movie' }]
+
+    beforeEach(() => {
+      vi.mocked(mockDb.trackPlexLabelsBulk).mockResolvedValue({
+        processedCount: 1,
+        failedIds: [],
+      })
+    })
+
+    it('should skip a user row that already matches', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['pulsarr:alice']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([alice]),
+        plexItems,
+        ['pulsarr:alice'],
+        [],
+        new Map(),
+        baseDeps,
       )
+
+      expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+    })
+
+    it('should skip a system row that already matches the removed label', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(null, '12345', ['pulsarr:removed']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([]),
+        plexItems,
+        [],
+        [],
+        new Map([['12345', 'pulsarr:removed']]),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+    })
+
+    it('should skip when only the label order differs', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['pulsarr:hd', 'pulsarr:alice']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([alice]),
+        plexItems,
+        ['pulsarr:alice'],
+        ['pulsarr:hd'],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+    })
+
+    it('should skip when the desired label differs only by case from the stored lowercase label', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['pulsarr:alice']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([{ ...alice, username: 'Alice' }]),
+        plexItems,
+        ['pulsarr:Alice'],
+        [],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+    })
+
+    it('should rewrite a stored label whose case differs from the normalized write', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['Pulsarr:Alice']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([alice]),
+        plexItems,
+        ['pulsarr:alice'],
+        [],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).toHaveBeenCalledWith([
+        {
+          contentGuids: ['imdb:tt0111161', 'tmdb:278'],
+          contentType: 'movie',
+          userId: 1,
+          plexRatingKey: '12345',
+          labelsApplied: ['pulsarr:alice'],
+        },
+      ])
+    })
+
+    it('should write when a label was added', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['pulsarr:alice']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([alice]),
+        plexItems,
+        ['pulsarr:alice'],
+        ['pulsarr:hd'],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).toHaveBeenCalledWith([
+        {
+          contentGuids: ['imdb:tt0111161', 'tmdb:278'],
+          contentType: 'movie',
+          userId: 1,
+          plexRatingKey: '12345',
+          labelsApplied: ['pulsarr:alice', 'pulsarr:hd'],
+        },
+      ])
+    })
+
+    it('should write when the stored GUID order differs', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        {
+          ...createMockTracking(1, '12345', ['pulsarr:alice']),
+          content_guids: ['tmdb:278', 'imdb:tt0111161'],
+        },
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([alice]),
+        plexItems,
+        ['pulsarr:alice'],
+        [],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).toHaveBeenCalledWith([
+        expect.objectContaining({
+          userId: 1,
+          contentGuids: ['imdb:tt0111161', 'tmdb:278'],
+        }),
+      ])
+    })
+
+    it('should write only the changed user when another user is unchanged', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['pulsarr:alice']),
+        {
+          ...createMockTracking(2, '12345', ['pulsarr:bob']),
+          content_guids: ['imdb:tt0111161'],
+        },
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([alice, bob]),
+        plexItems,
+        ['pulsarr:alice', 'pulsarr:bob'],
+        [],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).toHaveBeenCalledWith([
+        {
+          contentGuids: ['imdb:tt0111161', 'tmdb:278'],
+          contentType: 'movie',
+          userId: 2,
+          plexRatingKey: '12345',
+          labelsApplied: ['pulsarr:bob'],
+        },
+      ])
     })
   })
 
