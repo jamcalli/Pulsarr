@@ -592,7 +592,7 @@ describe('Label Reconciler → Content Tracker Integration', () => {
   })
 
   describe('Repeated reconciliation', () => {
-    it('should leave unchanged tracking rows untouched on a second run', async () => {
+    it('should skip the Plex write and leave tracking rows untouched on a second run', async () => {
       const knex = getTestDatabase()
 
       app.plexServerService.getMetadata = vi.fn().mockResolvedValue({
@@ -601,12 +601,11 @@ describe('Label Reconciler → Content Tracker Integration', () => {
         guid: 'plex://movie/test',
         type: 'movie',
         title: 'Test Movie',
-        Label: [
-          { tag: 'pulsarr:test-user-primary' },
-          { tag: 'pulsarr:test-user-discord-apprise' },
-        ],
+        Label: [{ tag: 'Pulsarr:test-user-primary' }],
+        Field: [{ name: 'label', locked: true }],
       })
-      app.plexServerService.updateLabels = vi.fn().mockResolvedValue(true)
+      const mockUpdateLabels = vi.fn().mockResolvedValue(true)
+      app.plexServerService.updateLabels = mockUpdateLabels
 
       const plexItems: PlexContentItems = {
         content: {
@@ -651,11 +650,26 @@ describe('Label Reconciler → Content Tracker Integration', () => {
         vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'))
         await reconcileLabelsForContent(plexItems, [], [], deps)
         const firstRows = await readRows()
+        expect(mockUpdateLabels).toHaveBeenCalledTimes(1)
+
+        vi.mocked(app.plexServerService.getMetadata).mockResolvedValue({
+          ratingKey: '12345',
+          key: '/library/metadata/12345',
+          guid: 'plex://movie/test',
+          type: 'movie',
+          title: 'Test Movie',
+          Label: [
+            { tag: 'Pulsarr:test-user-primary' },
+            { tag: 'Pulsarr:test-user-discord-apprise' },
+          ],
+          Field: [{ name: 'label', locked: true }],
+        })
 
         vi.setSystemTime(new Date('2026-01-02T00:00:00.000Z'))
         await reconcileLabelsForContent(plexItems, [], [], deps)
         const secondRows = await readRows()
 
+        expect(mockUpdateLabels).toHaveBeenCalledTimes(1)
         expect(firstRows).toHaveLength(2)
         expect(secondRows).toEqual(firstRows)
       } finally {

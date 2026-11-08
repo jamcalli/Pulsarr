@@ -151,6 +151,7 @@ export interface PlexMetadata {
   Guid?: Array<{ id: string }>
   Genre?: Array<{ tag: string }>
   Label?: Array<{ tag: string }>
+  Field?: Array<{ name: string; locked?: boolean }>
   Media?: Array<{
     Part?: Array<{
       file?: string
