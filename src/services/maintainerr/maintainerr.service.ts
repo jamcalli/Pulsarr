@@ -79,6 +79,8 @@ export class MaintainerrService {
     const previousBase = previousUrl ? trimTrailingSlashes(previousUrl) : ''
     const currentBase = trimTrailingSlashes(this.config.maintainerrUrl ?? '')
     if (previousBase && previousBase !== currentBase) {
+      // A run still in flight captured the old URL and would re-enable it after the disable
+      await this.inFlight
       await this.disableRemoteConfig(previousBase)
     }
     try {

@@ -159,6 +159,50 @@ describe('MaintainerrService.reconcile', () => {
     )
   })
 
+  it('keeps the previous instance disabled when a reconcile on it is in flight', async () => {
+    const NEW_BASE = 'http://maintainerr-new.test:6246'
+    const config = {
+      maintainerrEnabled: true,
+      maintainerrUrl: BASE,
+      maintainerrWebhookSecret: 'test-maintainerr-secret',
+      baseUrl: 'http://pulsarr.test',
+      basePath: '/',
+      port: 3003,
+    }
+    const racing = new MaintainerrService(createMockLogger(), {
+      scheduler: { updateJobSchedule },
+      config,
+    } as unknown as FastifyInstance)
+    const recorded = stubMaintainerr({
+      configurations: [{ ...PULSARR_CONFIG, enabled: true }],
+    })
+    let releaseVersion = () => {}
+    const versionGate = new Promise<void>((resolve) => {
+      releaseVersion = resolve
+    })
+    server.use(
+      http.get(`${BASE}/api/settings/version`, async () => {
+        await versionGate
+        return HttpResponse.text('3.23.0')
+      }),
+      http.get(`${BASE}/api/rules`, () => HttpResponse.json([])),
+      http.get(`${NEW_BASE}/api/notifications/configurations`, () =>
+        HttpResponse.json([]),
+      ),
+    )
+
+    const inFlight = racing.reconcile()
+    config.maintainerrUrl = NEW_BASE
+    config.maintainerrEnabled = false
+    const change = racing.applyConfigChange(BASE)
+    releaseVersion()
+    await Promise.all([inFlight, change])
+
+    const adds = recorded.filter((r) => r.path === '/configuration/add')
+    const lastAdd = adds.at(-1)?.body as { enabled?: boolean }
+    expect(lastAdd.enabled).toBe(false)
+  })
+
   it('leaves the instance alone when only a trailing slash changes', async () => {
     const recorded = stubMaintainerr({
       configurations: [{ ...PULSARR_CONFIG, enabled: true }],
