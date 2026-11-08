@@ -535,6 +535,71 @@ describe('content-tracker', () => {
       )
 
       expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+      expect(mockDb.untrackPlexLabelBulk).not.toHaveBeenCalled()
+    })
+
+    it('should not untrack a stored lowercase tag label when the desired tag is capitalized', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['pulsarr:alice', 'pulsarr:hd']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([{ ...alice, username: 'Alice' }]),
+        plexItems,
+        ['pulsarr:Alice'],
+        ['Pulsarr:HD'],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+      expect(mockDb.untrackPlexLabelBulk).not.toHaveBeenCalled()
+    })
+
+    it('should not untrack a stored lowercase system label when the removed label is capitalized', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(null, '12345', ['pulsarr:removed']),
+      ])
+
+      await updateTrackingForContent(
+        createMockContent([]),
+        plexItems,
+        [],
+        [],
+        new Map([['12345', 'Pulsarr:Removed']]),
+        baseDeps,
+      )
+
+      expect(mockDb.trackPlexLabelsBulk).not.toHaveBeenCalled()
+      expect(mockDb.untrackPlexLabelBulk).not.toHaveBeenCalled()
+    })
+
+    it('should still untrack an obsolete label for a capitalized username', async () => {
+      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([
+        createMockTracking(1, '12345', ['pulsarr:alice', 'pulsarr:hd']),
+      ])
+      vi.mocked(mockDb.untrackPlexLabelBulk).mockResolvedValue({
+        processedCount: 1,
+        failedIds: [],
+      })
+
+      await updateTrackingForContent(
+        createMockContent([{ ...alice, username: 'Alice' }]),
+        plexItems,
+        ['pulsarr:Alice'],
+        [],
+        new Map(),
+        baseDeps,
+      )
+
+      expect(mockDb.untrackPlexLabelBulk).toHaveBeenCalledWith([
+        {
+          contentGuids: ['imdb:tt0111161', 'tmdb:278'],
+          userId: 1,
+          plexRatingKey: '12345',
+          labelApplied: 'pulsarr:hd',
+        },
+      ])
     })
 
     it('should rewrite a stored label whose case differs from the normalized write', async () => {

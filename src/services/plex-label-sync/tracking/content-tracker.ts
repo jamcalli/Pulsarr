@@ -100,7 +100,7 @@ export async function updateTrackingForContent(
         const userLabel = `${deps.config.labelPrefix}:${user.username}`
         if (includesLabelIgnoreCase(finalUserLabels, userLabel)) {
           desiredTracking.add(
-            `${user.watchlist_id}:${plexItem.ratingKey}:${userLabel}`,
+            `${user.watchlist_id}:${plexItem.ratingKey}:${userLabel.toLowerCase()}`,
           )
         }
       }
@@ -111,7 +111,7 @@ export async function updateTrackingForContent(
           if (includesLabelIgnoreCase(allFinalLabels, tagLabel)) {
             for (const u of content.users) {
               desiredTracking.add(
-                `${u.watchlist_id}:${plexItem.ratingKey}:${tagLabel}`,
+                `${u.watchlist_id}:${plexItem.ratingKey}:${tagLabel.toLowerCase()}`,
               )
             }
           }
@@ -121,7 +121,7 @@ export async function updateTrackingForContent(
       // Track special removed label for this item (system user ID 0)
       const removedLabelForItem = appliedRemovedLabels.get(plexItem.ratingKey)
       if (removedLabelForItem) {
-        const systemTrackingKey = `__system__:${plexItem.ratingKey}:${removedLabelForItem}`
+        const systemTrackingKey = `__system__:${plexItem.ratingKey}:${removedLabelForItem.toLowerCase()}`
         desiredTracking.add(systemTrackingKey)
 
         deps.logger.debug(
@@ -142,7 +142,7 @@ export async function updateTrackingForContent(
 
           if (tracking.user_id === null) {
             // System tracking record for removed labels
-            trackingKey = `__system__:${tracking.plex_rating_key}:${label}`
+            trackingKey = `__system__:${tracking.plex_rating_key}:${label.toLowerCase()}`
           } else {
             // Regular user tracking record
             const matchingUser = content.users.find(
@@ -151,7 +151,7 @@ export async function updateTrackingForContent(
             // Use a sentinel value that cannot collide with a valid watchlist_id
             const ORPHAN_SENTINEL = `__orphaned_user_${tracking.user_id}__`
             const watchlistId = matchingUser?.watchlist_id ?? ORPHAN_SENTINEL
-            trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label}`
+            trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label.toLowerCase()}`
           }
 
           if (!desiredTracking.has(trackingKey)) {
