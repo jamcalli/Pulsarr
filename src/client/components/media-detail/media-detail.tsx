@@ -1,5 +1,4 @@
 import { cn } from 'cn'
-import { SearchX } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ApprovalReviewFooter } from '@/components/approval-review/approval-review-footer'
 import { ApprovalReviewPanel } from '@/components/approval-review/approval-review-panel'
@@ -8,13 +7,9 @@ import {
   ApprovalReviewSkeleton,
 } from '@/components/approval-review/approval-review-skeleton'
 import { Credenza, CredenzaContent, CredenzaTitle } from '@/components/credenza'
-import { EmptyState } from '@/components/empty-state'
 import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
-import {
-  MediaAbout,
-  MediaAboutSkeleton,
-} from '@/components/media-detail/media-about'
+import { MediaAboutContent } from '@/components/media-detail/media-about'
 import {
   MediaBackdrop,
   MediaHero,
@@ -45,17 +40,6 @@ interface MediaDetailProps {
   item: MediaItem
 }
 
-function NoDetails() {
-  return (
-    <EmptyState
-      icon={<SearchX />}
-      title="No details available"
-      description="TMDB doesn't have a single entry for this title, so ratings, synopsis and streaming info can't be shown."
-      className="p-6"
-    />
-  )
-}
-
 interface MediaBodyProps {
   item: MediaItem
   open: boolean
@@ -79,12 +63,8 @@ function MediaBody({ item, open, approval, panel }: MediaBodyProps) {
   })
   const journey = <PulsarrContext context={context} />
 
-  const about = errorMessage ? null : metadata ? (
-    <MediaAbout metadata={metadata} />
-  ) : notFound ? (
-    <NoDetails />
-  ) : (
-    <MediaAboutSkeleton />
+  const about = errorMessage ? null : (
+    <MediaAboutContent metadata={metadata} notFound={notFound} />
   )
 
   const details = panel ? (
@@ -148,13 +128,7 @@ function ReviewedMediaBody({
         item={item}
         open={open}
         approval={approval}
-        panel={
-          <ApprovalReviewPanel
-            approval={approval}
-            review={review}
-            variant="embedded"
-          />
-        }
+        panel={<ApprovalReviewPanel approval={approval} review={review} />}
       />
       {approval.status === 'pending' && (
         <ApprovalReviewFooter review={review} />

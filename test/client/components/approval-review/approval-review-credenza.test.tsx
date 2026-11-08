@@ -17,6 +17,87 @@ import { stubViewport } from '../../viewport.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
 type RouterRule = components['schemas']['RouterRule']
+type ShowDetails = components['schemas']['TmdbTvDetails']
+
+const severance: ShowDetails = {
+  adult: false,
+  backdrop_path: null,
+  created_by: [],
+  episode_run_time: [50],
+  first_air_date: '2022-02-18',
+  genres: [],
+  homepage: null,
+  id: 95396,
+  in_production: true,
+  languages: ['en'],
+  last_air_date: '2025-03-21',
+  last_episode_to_air: null,
+  name: 'Severance',
+  next_episode_to_air: null,
+  networks: [],
+  number_of_episodes: 30,
+  number_of_seasons: 3,
+  origin_country: ['US'],
+  original_language: 'en',
+  original_name: 'Severance',
+  overview: 'Office workers have their memories surgically divided.',
+  popularity: 1,
+  poster_path: null,
+  production_companies: [],
+  production_countries: [],
+  seasons: [],
+  spoken_languages: [],
+  status: 'Returning Series',
+  tagline: null,
+  type: 'Scripted',
+  vote_average: 8.4,
+  vote_count: 2000,
+}
+
+const severanceGuids = ['tmdb:95396', 'tvdb:371980']
+
+function mockMetadata(status: 200 | 404 = 200) {
+  const requested: string[] = []
+  server.use(
+    http.get('/v1/tmdb/regions', () =>
+      HttpResponse.json({
+        success: true,
+        message: 'ok',
+        regions: [{ code: 'US', name: 'United States' }],
+      }),
+    ),
+    http.get('/v1/tmdb/metadata/:id', ({ params }) => {
+      requested.push(String(params.id))
+      return status === 404
+        ? HttpResponse.json(
+            {
+              statusCode: 404,
+              error: 'Not Found',
+              message: 'No metadata found for tvdb:371980',
+            },
+            { status: 404 },
+          )
+        : HttpResponse.json({
+            success: true,
+            message: 'ok',
+            metadata: { details: severance, watchProviders: {} },
+          })
+    }),
+  )
+  return requested
+}
+
+function reviewElement(approvalId: number, open: boolean) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ApprovalReviewCredenza
+        approvalId={approvalId}
+        open={open}
+        onOpenChange={() => undefined}
+      />
+    </QueryClientProvider>
+  )
+}
 
 function renderReview(approval: ApprovalRequest) {
   mockApprovalEndpoints(approval)
@@ -490,5 +571,134 @@ describe('ApprovalReviewCredenza', () => {
         `Expires ${formatTimestamp(new Date(expiresAt))}`,
       ),
     ).toBeInTheDocument()
+  })
+  it.each([
+    ['show', 'Show info'],
+    ['movie', 'Movie info'],
+  ] as const)('labels the %s info toggle %s', async (contentType, label) => {
+    renderReview(makeApproval({ contentType }))
+    const dialog = await findDialog()
+
+    const toggle = within(dialog).getByRole('group', { name: 'View' })
+    expect(
+      within(toggle).getByRole('button', { name: 'Review' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(within(toggle).getByRole('button', { name: label })).toBeVisible()
+  })
+
+  it('loads the show facts only once info is selected and keeps the decision in reach', async () => {
+    const user = userEvent.setup()
+    const requested = mockMetadata()
+    renderReview(makeApproval({ contentGuids: severanceGuids }))
+    const dialog = await findDialog()
+    await within(dialog).findByText('Sonarr 4K')
+    expect(requested).toEqual([])
+
+    await user.click(within(dialog).getByRole('button', { name: 'Show info' }))
+
+    expect(await within(dialog).findByText('Seasons')).toBeInTheDocument()
+    expect(within(dialog).getByText('3')).toBeInTheDocument()
+    expect(
+      within(dialog).getByText('30, about 10 per season'),
+    ).toBeInTheDocument()
+    expect(requested).toEqual(['tvdb:371980'])
+    expect(
+      within(dialog).getByRole('heading', { name: 'Severance' }),
+    ).toBeInTheDocument()
+    expect(within(dialog).queryByText('Why it was held')).not.toBeVisible()
+    expect(
+      within(dialog).getByRole('button', { name: 'Approve' }),
+    ).toBeEnabled()
+  })
+
+  it('keeps typed notes when switching back to the review', async () => {
+    const user = userEvent.setup()
+    mockMetadata()
+    renderReview(makeApproval({ contentGuids: severanceGuids }))
+    const dialog = await findDialog()
+
+    await user.type(
+      within(dialog).getByLabelText(/Notes \(for your records\)/),
+      'Fine by me',
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'Show info' }))
+    await within(dialog).findByText('Seasons')
+    await user.click(within(dialog).getByRole('button', { name: 'Review' }))
+
+    expect(within(dialog).queryByText('Seasons')).not.toBeInTheDocument()
+    expect(within(dialog).getByText('Why it was held')).toBeVisible()
+    expect(
+      within(dialog).getByLabelText(/Notes \(for your records\)/),
+    ).toHaveValue('Fine by me')
+  })
+
+  it('shows the empty state when TMDB has no entry', async () => {
+    const user = userEvent.setup()
+    mockMetadata(404)
+    renderReview(makeApproval({ contentGuids: severanceGuids }))
+    const dialog = await findDialog()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Show info' }))
+
+    expect(
+      await within(dialog).findByText('No details available'),
+    ).toBeInTheDocument()
+  })
+
+  it('returns to the review when the dialog reopens', async () => {
+    const user = userEvent.setup()
+    mockMetadata()
+    const approval = makeApproval({ contentGuids: severanceGuids })
+    mockApprovalEndpoints(approval)
+    const { rerender } = render(reviewElement(approval.id, true))
+    const dialog = await findDialog()
+    await user.click(within(dialog).getByRole('button', { name: 'Show info' }))
+    await within(dialog).findByText('Seasons')
+
+    rerender(reviewElement(approval.id, false))
+    await vi.waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+    rerender(reviewElement(approval.id, true))
+
+    const reopened = await findDialog()
+    expect(within(reopened).getByText('Why it was held')).toBeVisible()
+    expect(within(reopened).queryByText('Seasons')).not.toBeInTheDocument()
+    expect(
+      within(reopened).getByRole('button', { name: 'Review' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('returns to the review when another approval loads', async () => {
+    const user = userEvent.setup()
+    mockMetadata()
+    const first = makeApproval({ contentGuids: severanceGuids })
+    const second = makeApproval({
+      id: 8,
+      contentTitle: 'Andor',
+      contentGuids: ['tvdb:393189'],
+    })
+    mockApprovalEndpoints(first)
+    server.use(
+      http.get('/v1/approval/requests/:id', ({ params }) =>
+        HttpResponse.json({
+          success: true,
+          message: 'ok',
+          approvalRequest: Number(params.id) === second.id ? second : first,
+        }),
+      ),
+    )
+    const { rerender } = render(reviewElement(first.id, true))
+    const dialog = await findDialog()
+    await user.click(within(dialog).getByRole('button', { name: 'Show info' }))
+    await within(dialog).findByText('Seasons')
+
+    rerender(reviewElement(second.id, true))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Andor' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Why it was held')).toBeVisible()
+    expect(screen.queryByText('Seasons')).not.toBeInTheDocument()
   })
 })
