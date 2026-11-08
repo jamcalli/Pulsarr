@@ -46,6 +46,16 @@ export interface BulkOperationResult {
   failedIds: string[]
 }
 
+/** The content_guids value trackPlexLabelsBulk stores for these GUIDs. */
+export function normalizeTrackedGuids(contentGuids: string[]): string[] {
+  return Array.from(new Set(contentGuids.map(normalizeGuid)))
+}
+
+/** The labels_applied value trackPlexLabelsBulk stores for these labels. */
+export function normalizeTrackedLabels(labels: string[]): string[] {
+  return Array.from(new Set(labels.map((l) => l.toLowerCase()))).sort()
+}
+
 /** Replaces the full label set per operation, and a transaction error reports every rating key as failed. */
 export async function trackPlexLabelsBulk(
   this: DatabaseService,
@@ -84,14 +94,11 @@ export async function trackPlexLabelsBulk(
                 throw new Error('Content GUIDs array cannot be empty')
               }
 
-              const normalizedGuids = Array.from(
-                new Set(contentGuids.map(normalizeGuid)),
+              const guidsJson = JSON.stringify(
+                normalizeTrackedGuids(contentGuids),
               )
-              const guidsJson = JSON.stringify(normalizedGuids)
               const labelsJson = JSON.stringify(
-                Array.from(
-                  new Set(labelsApplied.map((l) => l.toLowerCase())),
-                ).sort(),
+                normalizeTrackedLabels(labelsApplied),
               )
 
               this.log.debug(
@@ -201,14 +208,12 @@ export async function trackPlexLabelsBulk(
                 throw new Error('Content GUIDs array cannot be empty')
               }
 
-              const normalizedGuids = Array.from(
-                new Set(contentGuids.map(normalizeGuid)),
+              const guidsJson = JSON.stringify(
+                normalizeTrackedGuids(contentGuids),
               )
-              const guidsJson = JSON.stringify(normalizedGuids)
-              const normalizedLabels = Array.from(
-                new Set(labelsApplied.map((l) => l.toLowerCase())),
+              const labelsJson = JSON.stringify(
+                normalizeTrackedLabels(labelsApplied),
               )
-              const labelsJson = JSON.stringify(normalizedLabels.sort())
 
               const existing = await trx('plex_label_tracking')
                 .where('user_id', userId)

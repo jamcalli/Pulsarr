@@ -372,18 +372,6 @@ export const BaseRouterRuleSchema = z.object({
   exclude_from_routing: z.boolean().optional(),
 })
 
-// Plugin schema
-export const ContentRouterPluginsResponseSchema = z.object({
-  success: z.boolean(),
-  plugins: z.array(
-    z.object({
-      name: z.string(),
-      description: z.string(),
-      priority: z.number(),
-    }),
-  ),
-})
-
 function routerRulePayload<Order extends z.ZodType<number | undefined>>(
   order: Order,
 ) {
@@ -563,9 +551,6 @@ export type ConditionValue = z.infer<typeof ConditionValueSchema>
 export type Condition = z.infer<typeof ConditionSchema>
 export type ConditionGroup = z.infer<typeof ConditionGroupSchema>
 export type BaseRouterRule = z.infer<typeof BaseRouterRuleSchema>
-export type ContentRouterPluginsResponse = z.infer<
-  typeof ContentRouterPluginsResponseSchema
->
 export type ContentRouterRule = z.infer<typeof RouterRuleSchema>
 export type ContentRouterRuleUpdate = z.infer<
   typeof ContentRouterRuleUpdateSchema

@@ -46,14 +46,6 @@ export interface ApprovalRequestRow {
   updated_at: string
 }
 
-export interface QuotaUsageRow {
-  id: number
-  user_id: number
-  content_type: 'movie' | 'show'
-  request_date: string // YYYY-MM-DD format
-  created_at: string
-}
-
 // Enums
 export type QuotaType = 'daily' | 'weekly_rolling' | 'monthly'
 export type ApprovalStatus =
@@ -198,19 +190,19 @@ export interface UpdateApprovalRequestData {
   proposedRouterDecision?: RouterDecision
 }
 
-/**
- * Result of approving and routing a request.
- * Used by approveAndRoute() to communicate success/failure with details.
- */
-export interface ApproveAndRouteResult {
-  success: boolean
-  request?: ApprovalRequest
-  error?: string
-  /** True if routing failed and we had to rollback */
-  rolledBack?: boolean
-  /** True if rollback itself failed (critical error) */
-  rollbackFailed?: boolean
-}
+export type ApprovalActionFailure =
+  | 'not_found'
+  | 'invalid_transition'
+  | 'invalid_decision'
+  | 'no_routing'
+  | 'unavailable'
+  | 'routing_failed'
+  | 'rollback_failed'
+  | 'error'
+
+export type ApprovalActionResult =
+  | { success: true; request: ApprovalRequest }
+  | { success: false; reason: ApprovalActionFailure; error: string }
 
 export interface CreateUserQuotaData {
   userId: number

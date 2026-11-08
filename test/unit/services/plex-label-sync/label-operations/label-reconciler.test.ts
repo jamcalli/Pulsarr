@@ -673,6 +673,141 @@ describe('label-reconciler', () => {
     })
   })
 
+  describe('reconcileLabelsForSingleItem - unchanged labels', () => {
+    const lockedField = [{ name: 'label', locked: true }]
+
+    beforeEach(() => {
+      vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
+    })
+
+    it('should skip the write when labels match and the field is locked', async () => {
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
+        ...createMockPlexMetadata(['pulsarr:alice', 'other-label']),
+        Field: lockedField,
+      })
+
+      const result = await reconcileLabelsForSingleItem(
+        '123',
+        ['pulsarr:alice'],
+        [],
+        'Test Movie',
+        baseDeps,
+      )
+
+      expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
+      expect(result).toEqual({
+        success: true,
+        labelsAdded: 0,
+        labelsRemoved: 0,
+        specialRemovedLabel: undefined,
+      })
+    })
+
+    it('should return the same result as an unchanged write when skipping', async () => {
+      baseDeps.removedLabelMode = 'special-label'
+      const metadata = createMockPlexMetadata(['pulsarr:removed'])
+
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(metadata)
+      const written = await reconcileLabelsForSingleItem(
+        '123',
+        [],
+        [],
+        'Test Movie',
+        baseDeps,
+      )
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledTimes(1)
+
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
+        ...metadata,
+        Field: lockedField,
+      })
+      const skipped = await reconcileLabelsForSingleItem(
+        '123',
+        [],
+        [],
+        'Test Movie',
+        baseDeps,
+      )
+
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledTimes(1)
+      expect(skipped).toEqual(written)
+      expect(skipped.specialRemovedLabel).toBe('pulsarr:removed')
+    })
+
+    it('should write when labels match but the field is not locked', async () => {
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
+        ...createMockPlexMetadata(['pulsarr:alice']),
+        Field: [{ name: 'label', locked: false }],
+      })
+
+      await reconcileLabelsForSingleItem(
+        '123',
+        ['pulsarr:alice'],
+        [],
+        'Test Movie',
+        baseDeps,
+      )
+
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('123', [
+        'pulsarr:alice',
+      ])
+    })
+
+    it('should skip when labels differ only by Plex capitalization', async () => {
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
+        ...createMockPlexMetadata(['Pulsarr:Noah']),
+        Field: lockedField,
+      })
+
+      const result = await reconcileLabelsForSingleItem(
+        '123',
+        ['pulsarr:noah'],
+        [],
+        'Test Movie',
+        baseDeps,
+      )
+
+      expect(mockPlexServer.updateLabels).not.toHaveBeenCalled()
+      expect(result.success).toBe(true)
+    })
+
+    it('should write when labels differ even if the field is locked', async () => {
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
+        ...createMockPlexMetadata(['pulsarr:alice']),
+        Field: lockedField,
+      })
+
+      await reconcileLabelsForSingleItem(
+        '123',
+        ['pulsarr:alice', 'pulsarr:bob'],
+        [],
+        'Test Movie',
+        baseDeps,
+      )
+
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('123', [
+        'pulsarr:alice',
+        'pulsarr:bob',
+      ])
+    })
+
+    it('should write when the metadata has no Field entries', async () => {
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
+        createMockPlexMetadata(['pulsarr:alice']),
+      )
+
+      await reconcileLabelsForSingleItem(
+        '123',
+        ['pulsarr:alice'],
+        [],
+        'Test Movie',
+        baseDeps,
+      )
+
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('reconcileLabelsForSingleItem - error handling', () => {
     it('should return failure when getMetadata throws error', async () => {
       const content: ContentWithUsers = {

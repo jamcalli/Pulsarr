@@ -1,14 +1,16 @@
 import { MaintainerrService } from '@services/maintainerr/maintainerr.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
 const BASE = 'http://maintainerr.test:6246'
+const updateJobSchedule = vi.fn()
 
 function makeService(configOverrides: Record<string, unknown> = {}) {
   const fastify = {
+    scheduler: { updateJobSchedule },
     config: {
       maintainerrEnabled: true,
       maintainerrUrl: BASE,
@@ -102,6 +104,7 @@ describe('MaintainerrService.reconcile', () => {
 
   beforeEach(() => {
     service = makeService()
+    updateJobSchedule.mockReset().mockResolvedValue(true)
   })
 
   it('returns disabled when no url is configured', async () => {
@@ -124,7 +127,7 @@ describe('MaintainerrService.reconcile', () => {
     expect(addBody.enabled).toBe(false)
   })
 
-  it('disables the webhook on a previous instance by explicit url', async () => {
+  it('disables the previous instance when the url changes', async () => {
     const OLD_BASE = 'http://maintainerr-old.test:6246'
     const recorded: RecordedRequest[] = []
     server.use(
@@ -143,12 +146,79 @@ describe('MaintainerrService.reconcile', () => {
       ),
     )
 
-    await service.disableRemoteConfig(OLD_BASE)
+    await makeService({ maintainerrUrl: '' }).applyConfigChange(`${OLD_BASE}/`)
 
     const add = recorded.find((r) => r.path === '/configuration/add')
     const addBody = add?.body as { id?: number; enabled?: boolean }
     expect(addBody.id).toBe(7)
     expect(addBody.enabled).toBe(false)
+    expect(updateJobSchedule).toHaveBeenCalledWith(
+      'maintainerr-sync',
+      null,
+      false,
+    )
+  })
+
+  it('keeps the previous instance disabled when a reconcile on it is in flight', async () => {
+    const NEW_BASE = 'http://maintainerr-new.test:6246'
+    const config = {
+      maintainerrEnabled: true,
+      maintainerrUrl: BASE,
+      maintainerrWebhookSecret: 'test-maintainerr-secret',
+      baseUrl: 'http://pulsarr.test',
+      basePath: '/',
+      port: 3003,
+    }
+    const racing = new MaintainerrService(createMockLogger(), {
+      scheduler: { updateJobSchedule },
+      config,
+    } as unknown as FastifyInstance)
+    const recorded = stubMaintainerr({
+      configurations: [{ ...PULSARR_CONFIG, enabled: true }],
+    })
+    let releaseVersion = () => {}
+    const versionGate = new Promise<void>((resolve) => {
+      releaseVersion = resolve
+    })
+    server.use(
+      http.get(`${BASE}/api/settings/version`, async () => {
+        await versionGate
+        return HttpResponse.text('3.23.0')
+      }),
+      http.get(`${BASE}/api/rules`, () => HttpResponse.json([])),
+      http.get(`${NEW_BASE}/api/notifications/configurations`, () =>
+        HttpResponse.json([]),
+      ),
+    )
+
+    const inFlight = racing.reconcile()
+    config.maintainerrUrl = NEW_BASE
+    config.maintainerrEnabled = false
+    const change = racing.applyConfigChange(BASE)
+    releaseVersion()
+    await Promise.all([inFlight, change])
+
+    const adds = recorded.filter((r) => r.path === '/configuration/add')
+    const lastAdd = adds.at(-1)?.body as { enabled?: boolean }
+    expect(lastAdd.enabled).toBe(false)
+  })
+
+  it('leaves the instance alone when only a trailing slash changes', async () => {
+    const recorded = stubMaintainerr({
+      configurations: [{ ...PULSARR_CONFIG, enabled: true }],
+    })
+
+    await makeService({ maintainerrEnabled: false }).applyConfigChange(
+      `${BASE}/`,
+    )
+
+    const adds = recorded.filter((r) => r.path === '/configuration/add')
+    expect(adds).toHaveLength(1)
+    expect(updateJobSchedule).toHaveBeenCalledWith(
+      'maintainerr-sync',
+      null,
+      false,
+    )
   })
 
   it('rejects versions below 3.23.0', async () => {

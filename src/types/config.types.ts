@@ -1,4 +1,6 @@
 import type {
+  ArrWebhookResults,
+  ConfigFull,
   DELETE_SYNC_NOTIFY_OPTIONS,
   MAINTAINERR_EXCLUSION_MODES,
   NOTIFY_OPTIONS,
@@ -282,3 +284,19 @@ export type RawConfig = {
               ? string
               : Config[K]
 }
+
+export type ConfigUpdateFailure =
+  | 'plex_pass_required'
+  | 'tag_prefix_blocked'
+  | 'token_rejected'
+  | 'token_unreachable'
+  | 'webhook_unreachable'
+
+export type ConfigUpdateResult =
+  | { success: true; config: ConfigFull; webhooks?: ArrWebhookResults }
+  | {
+      success: false
+      reason: ConfigUpdateFailure
+      message: string
+      webhooks?: ArrWebhookResults
+    }

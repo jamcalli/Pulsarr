@@ -81,11 +81,7 @@ export interface paths {
          */
         get: operations["getApprovalRequests"];
         put?: never;
-        /**
-         * Create approval request
-         * @description Create a new approval request for content routing
-         */
-        post: operations["createApprovalRequest"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -174,8 +170,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update approval request
-         * @description Update an approval request (approve, reject, or modify)
+         * Update approval request routing
+         * @description Change the proposed routing on an editable approval request
          */
         patch: operations["updateApprovalRequest"];
         trace?: never;
@@ -264,26 +260,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/content-router/plugins": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get router plugins
-         * @description Retrieve information about available content router evaluator plugins
-         */
-        get: operations["getRouterPlugins"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/content-router/plugins/metadata": {
         parameters: {
             query?: never;
@@ -346,66 +322,6 @@ export interface paths {
          * @description Set the priority of several content router rules at once
          */
         patch: operations["reorderRouterRules"];
-        trace?: never;
-    };
-    "/v1/content-router/rules/target": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get router rules by target
-         * @description Retrieve content router rules for a specific target instance
-         */
-        get: operations["getRouterRulesByTarget"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/content-router/rules/target/{targetType}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get router rules by target type
-         * @description Retrieve content router rules filtered by target application type
-         */
-        get: operations["getRouterRulesByTargetType"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/content-router/rules/type/{type}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get router rules by type
-         * @description Retrieve content router rules filtered by specific type
-         */
-        get: operations["getRouterRulesByType"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/v1/content-router/rules/{id}": {
@@ -1198,90 +1114,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/quota/stats/daily": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get daily usage statistics
-         * @description Get daily usage statistics for a user
-         */
-        get: operations["getDailyUsageStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get quota usage history
-         * @description Get quota usage history for a user
-         */
-        get: operations["getQuotaUsageHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/usage/cleanup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Cleanup old quota usage
-         * @description Clean up old quota usage records
-         */
-        delete: operations["cleanupOldQuotaUsage"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get all users with quotas
-         * @description Get all users that have quota configurations
-         */
-        get: operations["getUsersWithQuotas"];
-        put?: never;
-        /**
-         * Create user quota
-         * @description Create a quota configuration for a user
-         */
-        post: operations["createUserQuota"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/quota/users/bulk": {
         parameters: {
             query?: never;
@@ -1343,11 +1175,7 @@ export interface paths {
         delete: operations["deleteUserQuota"];
         options?: never;
         head?: never;
-        /**
-         * Update user quotas
-         * @description Update quota configurations for a specific user
-         */
-        patch: operations["updateUserQuotas"];
+        patch?: never;
         trace?: never;
     };
     "/v1/quota/users/{userId}/pending-held-count": {
@@ -1404,26 +1232,6 @@ export interface paths {
         get: operations["getUserQuotaStatus"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/quota/users/{userId}/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record quota usage
-         * @description Record quota usage for a user
-         */
-        post: operations["recordQuotaUsage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1598,30 +1406,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/scheduler/schedules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get all job schedules
-         * @description Retrieve all configured job schedules and their status
-         */
-        get: operations["getAllSchedules"];
-        put?: never;
-        /**
-         * Create job schedule
-         * @description Create a new job schedule or update an existing one
-         */
-        post: operations["createSchedule"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/scheduler/schedules/delete-sync/dry-run": {
         parameters: {
             query?: never;
@@ -1701,11 +1485,7 @@ export interface paths {
          */
         put: operations["updateSchedule"];
         post?: never;
-        /**
-         * Delete job schedule
-         * @description Delete a job schedule by its name
-         */
-        delete: operations["deleteSchedule"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1750,26 +1530,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/v1/scheduler/schedules/{name}/toggle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Toggle job schedule
-         * @description Enable or disable a job schedule
-         */
-        patch: operations["toggleSchedule"];
         trace?: never;
     };
     "/v1/session-monitoring/rolling-monitored": {
@@ -3543,19 +3303,6 @@ export interface components {
             createdAt: string;
             updatedAt: string;
         };
-        /** @description Fields for creating an approval request */
-        ApprovalRequestCreatePayload: {
-            userId: number;
-            contentType: components["schemas"]["ContentType"];
-            contentTitle: string;
-            contentKey: string;
-            contentGuids?: string[];
-            routerDecision: components["schemas"]["RouterDecision"];
-            routerRuleId?: number;
-            approvalReason?: string;
-            triggeredBy: components["schemas"]["ApprovalTrigger"];
-            expiresAt?: string;
-        };
         /** @description One page of approval requests with the total match count */
         ApprovalRequestListResponse: {
             success: boolean;
@@ -3573,9 +3320,7 @@ export interface components {
         };
         /** @description Fields to change on an approval request */
         ApprovalRequestUpdatePayload: {
-            status?: components["schemas"]["ApprovalStatus"];
-            approvalNotes?: string;
-            proposedRouterDecision?: components["schemas"]["RouterDecision"];
+            proposedRouterDecision: components["schemas"]["RouterDecision"];
         };
         /** @description Target instance and arr settings used to add the content */
         ApprovalRouting: {
@@ -5420,13 +5165,6 @@ export interface components {
             movieQuota?: components["schemas"]["UserQuotaPayload"];
             showQuota?: components["schemas"]["UserQuotaPayload"];
         };
-        /** @description Requests counted against a user quota on one day */
-        UserQuotaDailyStats: {
-            date: string;
-            movies: number;
-            shows: number;
-            total: number;
-        };
         /** @description One content type quota for a user, switched on with its settings or switched off */
         UserQuotaPayload: {
             quotaType?: components["schemas"]["QuotaType"];
@@ -5446,13 +5184,6 @@ export interface components {
             watchlistCap: number | null;
             watchlistUsage: number | null;
             watchlistCapExceeded: boolean;
-        };
-        /** @description One request counted against a user quota */
-        UserQuotaUsage: {
-            userId: number;
-            contentType: components["schemas"]["ContentType"];
-            /** @description Date as YYYY-MM-DD */
-            requestDate: string;
         };
         /** @description A user's movie and show quotas, each absent when not set */
         UserQuotas: {
@@ -6028,67 +5759,6 @@ export interface operations {
             };
         };
     };
-    createApprovalRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Fields for creating an approval request */
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApprovalRequestCreatePayload"];
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApprovalRequestResult"];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     bulkApproveRequests: {
         parameters: {
             query?: never;
@@ -6467,15 +6137,6 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
         };
     };
     approveAndExecuteRequest: {
@@ -6806,51 +6467,6 @@ export interface operations {
             };
         };
     };
-    getRouterPlugins: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        plugins: {
-                            name: string;
-                            description: string;
-                            priority: number;
-                        }[];
-                    };
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     getPluginMetadata: {
         parameters: {
             query?: never;
@@ -7012,140 +6628,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getRouterRulesByTarget: {
-        parameters: {
-            query: {
-                /** @description Arr instance kind, radarr or sonarr */
-                targetType: components["schemas"]["InstanceType"];
-                instanceId: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RouterRuleListResponse"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getRouterRulesByTargetType: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Arr instance kind, radarr or sonarr */
-                targetType: components["schemas"]["InstanceType"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RouterRuleListResponse"];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getRouterRulesByType: {
-        parameters: {
-            query?: {
-                enabledOnly?: string;
-            };
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RouterRuleListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -9309,250 +8791,6 @@ export interface operations {
             };
         };
     };
-    getDailyUsageStats: {
-        parameters: {
-            query: {
-                userId: number;
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        dailyStats: components["schemas"]["UserQuotaDailyStats"][];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getQuotaUsageHistory: {
-        parameters: {
-            query: {
-                userId: number;
-                startDate?: string;
-                endDate?: string;
-                contentType?: components["schemas"]["ContentType"];
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        quotaUsage: components["schemas"]["UserQuotaUsage"][];
-                        total: number;
-                        limit: number;
-                        offset: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    cleanupOldQuotaUsage: {
-        parameters: {
-            query?: {
-                olderThanDays?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getUsersWithQuotas: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        userQuotas: components["schemas"]["UserQuota"][];
-                    };
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    createUserQuota: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    userId: number;
-                    quotaType: components["schemas"]["QuotaType"];
-                    quotaLimit: number;
-                    /** @default false */
-                    bypassApproval?: boolean;
-                    watchlistCap?: number | null;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        userQuotas: components["schemas"]["UserQuotas"];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     bulkQuotaOperations: {
         parameters: {
             query?: never;
@@ -9760,59 +8998,6 @@ export interface operations {
             };
         };
     };
-    updateUserQuotas: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    quotaType?: components["schemas"]["QuotaType"];
-                    quotaLimit?: number;
-                    bypassApproval?: boolean;
-                    watchlistCap?: number | null;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        userQuotas: components["schemas"]["UserQuotas"];
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     getPendingHeldCount: {
         parameters: {
             query?: never;
@@ -9944,57 +9129,6 @@ export interface operations {
             };
             /** @description Default Response */
             500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    recordQuotaUsage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    contentType: components["schemas"]["ContentType"];
-                    /** Format: date-time */
-                    requestDate?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10559,111 +9693,6 @@ export interface operations {
             };
         };
     };
-    getAllSchedules: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"][];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    createSchedule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @constant */
-                    type: "interval";
-                    name: string;
-                    config: {
-                        days?: number;
-                        hours?: number;
-                        minutes?: number;
-                        seconds?: number;
-                        runImmediately?: boolean;
-                    };
-                    /** @default true */
-                    enabled?: boolean;
-                } | {
-                    /** @constant */
-                    type: "cron";
-                    name: string;
-                    config: {
-                        expression: string;
-                    };
-                    /** @default true */
-                    enabled?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     dryRunDeleteSync: {
         parameters: {
             query?: never;
@@ -10928,58 +9957,6 @@ export interface operations {
             };
         };
     };
-    deleteSchedule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     runJobNow: {
         parameters: {
             query?: never;
@@ -11063,64 +10040,6 @@ export interface operations {
             };
             /** @description Default Response */
             409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    toggleSchedule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    enabled: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

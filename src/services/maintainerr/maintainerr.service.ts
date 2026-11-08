@@ -15,6 +15,10 @@ const MEDIA_HANDLED = 16
 
 const CONFIG_NAME = 'Pulsarr'
 
+function trimTrailingSlashes(url: string): string {
+  return url.replace(/\/+$/, '')
+}
+
 interface MaintainerrNotificationConfig {
   id: number
   name: string
@@ -66,6 +70,34 @@ export class MaintainerrService {
     return this.lastResult
   }
 
+  get isEnabled(): boolean {
+    return Boolean(this.config.maintainerrEnabled && this.config.maintainerrUrl)
+  }
+
+  /** Call after the new config is live, so the schedule and reconcile see it. */
+  async applyConfigChange(previousUrl: string | undefined): Promise<void> {
+    const previousBase = previousUrl ? trimTrailingSlashes(previousUrl) : ''
+    const currentBase = trimTrailingSlashes(this.config.maintainerrUrl ?? '')
+    if (previousBase && previousBase !== currentBase) {
+      // A run still in flight captured the old URL and would re-enable it after the disable
+      await this.inFlight
+      await this.disableRemoteConfig(previousBase)
+    }
+    try {
+      await this.fastify.scheduler.updateJobSchedule(
+        'maintainerr-sync',
+        null,
+        this.isEnabled,
+      )
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Failed to update maintainerr-sync schedule after config update',
+      )
+    }
+    await this.reconcile()
+  }
+
   private finish(
     result: MaintainerrReconcileResult,
   ): MaintainerrReconcileResult {
@@ -80,7 +112,7 @@ export class MaintainerrService {
 
   private captureRunConfig(url: string): RunConfig {
     return {
-      base: url.replace(/\/+$/, ''),
+      base: trimTrailingSlashes(url),
       secret: this.config.maintainerrWebhookSecret,
       receiverUrl: this.receiverUrl(),
     }
@@ -127,12 +159,7 @@ export class MaintainerrService {
     }
   }
 
-  /**
-   * Best-effort disable of the Pulsarr webhook config on a Maintainerr
-   * instance, so events stop at the source. Takes an explicit URL so the
-   * config route can clean up the previous instance when the URL changes.
-   */
-  async disableRemoteConfig(url: string): Promise<void> {
+  private async disableRemoteConfig(url: string): Promise<void> {
     const run = this.captureRunConfig(url)
     try {
       const configs = await this.api<MaintainerrNotificationConfig[]>(

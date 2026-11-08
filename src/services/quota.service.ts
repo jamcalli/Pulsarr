@@ -1,10 +1,10 @@
+import { DEFAULT_QUOTA_SETTINGS } from '@root/schemas/config/config-defaults.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type {
   CreateUserQuotaData,
   EnabledQuotaData,
   QuotaStatus,
   QuotaType,
-  UpdateUserQuotaData,
   UserQuotaConfig,
   UserQuotaConfigs,
 } from '@root/types/approval.types.js'
@@ -31,93 +31,6 @@ export class QuotaService {
       { jobName, action },
       action === 'start' ? 'Running scheduled job' : 'Completed scheduled job',
     )
-  }
-
-  /**
-   * Creates quotas for a user with specified settings (manual creation)
-   *
-   * @throws 400 if the user does not exist, 409 if quotas already exist
-   */
-  async createUserQuotas(
-    userId: number,
-    quotaType: QuotaType,
-    quotaLimit: number,
-    bypassApproval = false,
-    watchlistCap?: number | null,
-  ): Promise<UserQuotaConfigs> {
-    const user = await this.fastify.db.getUser(userId)
-    if (!user) {
-      throw this.fastify.httpErrors.badRequest('User not found')
-    }
-
-    const movieData: CreateUserQuotaData = {
-      userId,
-      contentType: 'movie',
-      quotaType,
-      quotaLimit,
-      bypassApproval,
-      watchlistCap: watchlistCap ?? null,
-    }
-
-    const showData: CreateUserQuotaData = {
-      userId,
-      contentType: 'show',
-      quotaType,
-      quotaLimit,
-      bypassApproval,
-      watchlistCap: watchlistCap ?? null,
-    }
-
-    try {
-      const [movieQuota, showQuota] = await this.fastify.db.createUserQuotas([
-        movieData,
-        showData,
-      ])
-      this.clearWatchlistCapNotices([userId])
-      return {
-        userId,
-        movieQuota: movieQuota || undefined,
-        showQuota: showQuota || undefined,
-      }
-    } catch (error) {
-      if (isUniqueViolation(error)) {
-        throw this.fastify.httpErrors.conflict(
-          'User already has quota configurations',
-        )
-      }
-      throw error
-    }
-  }
-
-  /** Returns null when the user has no quotas to update. */
-  async updateUserQuotas(
-    userId: number,
-    data: Omit<UpdateUserQuotaData, 'contentType'>,
-  ): Promise<UserQuotaConfigs | null> {
-    const existing = await this.fastify.db.getUserQuotas(userId)
-    if (!existing.movieQuota && !existing.showQuota) {
-      return null
-    }
-
-    const { movie: movieQuota, show: showQuota } =
-      await this.fastify.db.updateUserQuotas(
-        userId,
-        [existing.movieQuota, existing.showQuota].flatMap((quota) =>
-          quota ? [quota.contentType] : [],
-        ),
-        data,
-      )
-
-    if (!movieQuota && !showQuota) {
-      throw new Error('Failed to update user quotas')
-    }
-    this.clearWatchlistCapNotices([userId])
-
-    return {
-      userId,
-      ...(movieQuota && { movieQuota }),
-      ...(showQuota && { showQuota }),
-    }
   }
 
   /** Writes only the content types present in quotas, and a disabled type deletes that quota. */
@@ -367,7 +280,9 @@ export class QuotaService {
 
     // Cleanup old quota usage records based on configuration
     if (config?.cleanup.enabled !== false) {
-      const retentionDays = config?.cleanup.retentionDays ?? 90
+      const retentionDays =
+        config?.cleanup.retentionDays ??
+        DEFAULT_QUOTA_SETTINGS.cleanup.retentionDays
       const cleanedCount =
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
@@ -377,7 +292,9 @@ export class QuotaService {
         )
       }
     } else {
-      const retentionDays = config?.cleanup.retentionDays ?? 90
+      const retentionDays =
+        config?.cleanup.retentionDays ??
+        DEFAULT_QUOTA_SETTINGS.cleanup.retentionDays
       this.log.debug(
         { retentionDays },
         'Quota cleanup disabled by configuration',

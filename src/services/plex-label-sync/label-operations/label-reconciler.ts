@@ -23,6 +23,7 @@ import { updateTrackingForContent } from '../tracking/content-tracker.js'
 import {
   computeFinalLabels,
   filterAndFormatTagsAsLabels,
+  includesLabelIgnoreCase,
   isManagedLabel,
 } from './label-validator.js'
 
@@ -289,7 +290,16 @@ export async function reconcileLabelsForSingleItem(
       'Label reconciliation plan for Plex item',
     )
 
-    const success = await deps.plexServer.updateLabels(ratingKey, finalLabels)
+    const labelsUnchanged =
+      finalLabels.every((l) => includesLabelIgnoreCase(currentLabels, l)) &&
+      currentLabels.every((l) => includesLabelIgnoreCase(finalLabels, l))
+    const labelFieldLocked =
+      metadata.Field?.some((f) => f.name === 'label' && f.locked === true) ??
+      false
+
+    const success =
+      (labelsUnchanged && labelFieldLocked) ||
+      (await deps.plexServer.updateLabels(ratingKey, finalLabels))
 
     if (success) {
       const toLowerSet = (arr: string[]) =>

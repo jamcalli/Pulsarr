@@ -4,7 +4,6 @@ import type {
   QuotaStatus,
   QuotaType,
   QuotaUsage,
-  QuotaUsageRow,
   UpdateUserQuotaData,
   UserQuotaConfig,
   UserQuotaConfigs,
@@ -71,14 +70,6 @@ function mapRowToUserQuotaConfig(row: UserQuotaRow): UserQuotaConfig {
     quotaLimit: row.quota_limit,
     bypassApproval: Boolean(row.bypass_approval),
     watchlistCap: row.watchlist_cap ?? null,
-  }
-}
-
-function mapRowToQuotaUsage(row: QuotaUsageRow): QuotaUsage {
-  return {
-    userId: row.user_id,
-    contentType: row.content_type,
-    requestDate: row.request_date,
   }
 }
 
@@ -168,9 +159,8 @@ export async function getUserQuotas(
   }
 }
 
-async function updateQuotaRow(
+export async function updateUserQuota(
   this: DatabaseService,
-  executor: Knex | Knex.Transaction,
   userId: number,
   contentType: 'movie' | 'show',
   data: UpdateUserQuotaData,
@@ -187,45 +177,13 @@ async function updateQuotaRow(
   if (data.watchlistCap !== undefined)
     updateData.watchlist_cap = data.watchlistCap
 
-  const [row] = await executor('user_quotas')
+  const [row] = await this.knex('user_quotas')
     .where('user_id', userId)
     .where('content_type', contentType)
     .update(updateData)
     .returning('*')
 
   return row ? mapRowToUserQuotaConfig(row) : null
-}
-
-export async function updateUserQuota(
-  this: DatabaseService,
-  userId: number,
-  contentType: 'movie' | 'show',
-  data: UpdateUserQuotaData,
-): Promise<UserQuotaConfig | null> {
-  return updateQuotaRow.call(this, this.knex, userId, contentType, data)
-}
-
-/** Updates each listed content type in one transaction, keyed by the content type it was asked to update. */
-export async function updateUserQuotas(
-  this: DatabaseService,
-  userId: number,
-  contentTypes: ReadonlyArray<'movie' | 'show'>,
-  data: Omit<UpdateUserQuotaData, 'contentType'>,
-): Promise<Partial<Record<'movie' | 'show', UserQuotaConfig>>> {
-  return this.knex.transaction(async (trx) => {
-    const updated: Partial<Record<'movie' | 'show', UserQuotaConfig>> = {}
-    for (const contentType of contentTypes) {
-      const row = await updateQuotaRow.call(
-        this,
-        trx,
-        userId,
-        contentType,
-        data,
-      )
-      if (row) updated[contentType] = row
-    }
-    return updated
-  })
 }
 
 /** Returns false when no quota existed */
@@ -521,13 +479,6 @@ export async function getBulkQuotaStatus(
   return results
 }
 
-export async function getUsersWithQuotas(
-  this: DatabaseService,
-): Promise<UserQuotaConfig[]> {
-  const rows = await this.knex('user_quotas').select('*')
-  return rows.map(mapRowToUserQuotaConfig)
-}
-
 /** Skips bypass_approval users and caps that are null or zero */
 export async function getActiveWatchlistCaps(
   this: DatabaseService,
@@ -547,124 +498,9 @@ export async function getActiveWatchlistCaps(
   }))
 }
 
-export async function getQuotaUsageHistory(
-  this: DatabaseService,
-  userId: number,
-  startDate?: Date,
-  endDate?: Date,
-  contentType?: 'movie' | 'show',
-  limit = 50,
-  offset = 0,
-): Promise<QuotaUsage[]> {
-  let query = this.knex('quota_usage').where('user_id', userId)
-
-  if (startDate) {
-    query = query.where('request_date', '>=', toLocalDateString(startDate))
-  }
-
-  if (endDate) {
-    query = query.where('request_date', '<=', toLocalDateString(endDate))
-  }
-
-  if (contentType) {
-    query = query.where('content_type', contentType)
-  }
-
-  const rows = await query
-    .orderBy('request_date', 'desc')
-    .orderBy('id', 'desc')
-    .limit(limit)
-    .offset(offset)
-  return rows.map(mapRowToQuotaUsage)
-}
-
-export async function getQuotaUsageHistoryCount(
-  this: DatabaseService,
-  userId: number,
-  startDate?: Date,
-  endDate?: Date,
-  contentType?: 'movie' | 'show',
-): Promise<number> {
-  let query = this.knex('quota_usage').where('user_id', userId)
-
-  if (startDate) {
-    query = query.where('request_date', '>=', toLocalDateString(startDate))
-  }
-
-  if (endDate) {
-    query = query.where('request_date', '<=', toLocalDateString(endDate))
-  }
-
-  if (contentType) {
-    query = query.where('content_type', contentType)
-  }
-
-  const result = await query.count('* as count').first()
-  return Number.parseInt(result?.count as string, 10) || 0
-}
-
-/** Returns one zero-filled row per day for the last `days` days, newest first */
-export async function getDailyUsageStats(
-  this: DatabaseService,
-  userId: number,
-  days = 30,
-): Promise<{ date: string; movies: number; shows: number; total: number }[]> {
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setDate(endDate.getDate() - days)
-
-  const startDateString = toLocalDateString(startDate)
-  const endDateString = toLocalDateString(endDate)
-
-  const usage = await this.knex('quota_usage')
-    .select('request_date', 'content_type')
-    .count('* as count')
-    .where('user_id', userId)
-    .where('request_date', '>=', startDateString)
-    .where('request_date', '<=', endDateString)
-    .groupBy('request_date', 'content_type')
-    .orderBy('request_date', 'desc')
-
-  const statsMap = new Map<
-    string,
-    { date: string; movies: number; shows: number; total: number }
-  >()
-
-  for (let i = 0; i < days; i++) {
-    const date = new Date(endDate)
-    date.setDate(date.getDate() - i)
-    const dateString = toLocalDateString(date)
-    statsMap.set(dateString, {
-      date: dateString,
-      movies: 0,
-      shows: 0,
-      total: 0,
-    })
-  }
-
-  for (const row of usage) {
-    const date = String(row.request_date)
-    const count = Number(row.count)
-    const existing = statsMap.get(date)
-
-    if (existing) {
-      if (row.content_type === 'movie') {
-        existing.movies = count
-      } else if (row.content_type === 'show') {
-        existing.shows = count
-      }
-      existing.total = existing.movies + existing.shows
-    }
-  }
-
-  return Array.from(statsMap.values()).sort((a, b) =>
-    b.date.localeCompare(a.date),
-  )
-}
-
 export async function cleanupOldQuotaUsage(
   this: DatabaseService,
-  olderThanDays = 90,
+  olderThanDays: number,
 ): Promise<number> {
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)

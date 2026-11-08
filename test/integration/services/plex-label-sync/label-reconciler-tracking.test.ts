@@ -591,6 +591,154 @@ describe('Label Reconciler → Content Tracker Integration', () => {
     })
   })
 
+  describe('Repeated reconciliation', () => {
+    it('should skip the Plex write and leave tracking rows untouched on a second run', async () => {
+      const knex = getTestDatabase()
+
+      app.plexServerService.getMetadata = vi.fn().mockResolvedValue({
+        ratingKey: '12345',
+        key: '/library/metadata/12345',
+        guid: 'plex://movie/test',
+        type: 'movie',
+        title: 'Test Movie',
+        Label: [{ tag: 'Pulsarr:test-user-primary' }],
+        Field: [{ name: 'label', locked: true }],
+      })
+      const mockUpdateLabels = vi.fn().mockResolvedValue(true)
+      app.plexServerService.updateLabels = mockUpdateLabels
+
+      const plexItems: PlexContentItems = {
+        content: {
+          primaryGuid: 'imdb:tt0063350',
+          allGuids: ['imdb:tt0063350', 'tmdb:10331'],
+          type: 'movie',
+          title: 'Test Movie',
+          plexKey: null,
+          users: [
+            {
+              user_id: SEED_USERS[0].id,
+              username: SEED_USERS[0].name,
+              watchlist_id: 1,
+            },
+            {
+              user_id: SEED_USERS[1].id,
+              username: SEED_USERS[1].name,
+              watchlist_id: 2,
+            },
+          ],
+        },
+        plexItems: [{ ratingKey: '12345', title: 'Test Movie' }],
+      }
+      const deps = {
+        plexServer: app.plexServerService,
+        db: app.db,
+        logger: app.log,
+        config: app.config.plexLabelSync as PlexLabelSyncConfig,
+        removedLabelMode: 'remove' as const,
+        removedLabelPrefix: 'pulsarr:removed',
+        tagPrefix: 'pulsarr',
+        removedTagPrefix: 'pulsarr:removed',
+      }
+      const readRows = () =>
+        knex('plex_label_tracking')
+          .select('id', 'synced_at')
+          .where({ plex_rating_key: '12345' })
+          .orderBy('id')
+
+      vi.useFakeTimers({ toFake: ['Date'] })
+      try {
+        vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'))
+        await reconcileLabelsForContent(plexItems, [], [], deps)
+        const firstRows = await readRows()
+        expect(mockUpdateLabels).toHaveBeenCalledTimes(1)
+
+        vi.mocked(app.plexServerService.getMetadata).mockResolvedValue({
+          ratingKey: '12345',
+          key: '/library/metadata/12345',
+          guid: 'plex://movie/test',
+          type: 'movie',
+          title: 'Test Movie',
+          Label: [
+            { tag: 'Pulsarr:test-user-primary' },
+            { tag: 'Pulsarr:test-user-discord-apprise' },
+          ],
+          Field: [{ name: 'label', locked: true }],
+        })
+
+        vi.setSystemTime(new Date('2026-01-02T00:00:00.000Z'))
+        await reconcileLabelsForContent(plexItems, [], [], deps)
+        const secondRows = await readRows()
+
+        expect(mockUpdateLabels).toHaveBeenCalledTimes(1)
+        expect(firstRows).toHaveLength(2)
+        expect(secondRows).toEqual(firstRows)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('should keep tracking rows for a capitalized username across runs', async () => {
+      const knex = getTestDatabase()
+
+      app.plexServerService.getMetadata = vi.fn().mockResolvedValue({
+        ratingKey: '12345',
+        key: '/library/metadata/12345',
+        guid: 'plex://movie/test',
+        type: 'movie',
+        title: 'Test Movie',
+        Label: [{ tag: 'Pulsarr:Alice' }, { tag: 'Pulsarr:Bob' }],
+        Field: [{ name: 'label', locked: true }],
+      })
+      app.plexServerService.updateLabels = vi.fn().mockResolvedValue(true)
+
+      const plexItems: PlexContentItems = {
+        content: {
+          primaryGuid: 'imdb:tt0063350',
+          allGuids: ['imdb:tt0063350', 'tmdb:10331'],
+          type: 'movie',
+          title: 'Test Movie',
+          plexKey: null,
+          users: [
+            { user_id: SEED_USERS[0].id, username: 'Alice', watchlist_id: 1 },
+            { user_id: SEED_USERS[1].id, username: 'Bob', watchlist_id: 2 },
+          ],
+        },
+        plexItems: [{ ratingKey: '12345', title: 'Test Movie' }],
+      }
+      const deps = {
+        plexServer: app.plexServerService,
+        db: app.db,
+        logger: app.log,
+        config: app.config.plexLabelSync as PlexLabelSyncConfig,
+        removedLabelMode: 'remove' as const,
+        removedLabelPrefix: 'pulsarr:removed',
+        tagPrefix: 'pulsarr',
+        removedTagPrefix: 'pulsarr:removed',
+      }
+      const readRows = () =>
+        knex('plex_label_tracking')
+          .select('id', 'synced_at', 'labels_applied')
+          .where({ plex_rating_key: '12345' })
+          .orderBy('id')
+
+      vi.useFakeTimers({ toFake: ['Date'] })
+      try {
+        vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'))
+        await reconcileLabelsForContent(plexItems, [], [], deps)
+        const firstRows = await readRows()
+
+        vi.setSystemTime(new Date('2026-01-02T00:00:00.000Z'))
+        await reconcileLabelsForContent(plexItems, [], [], deps)
+        const secondRows = await readRows()
+
+        expect(firstRows).toHaveLength(2)
+        expect(secondRows).toEqual(firstRows)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
+
   describe('Multiple Plex items (editions)', () => {
     it('should handle multiple editions with separate tracking records', async () => {
       const knex = getTestDatabase()

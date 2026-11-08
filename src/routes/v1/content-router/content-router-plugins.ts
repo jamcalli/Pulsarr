@@ -1,8 +1,4 @@
 import {
-  ContentRouterPluginsResponseSchema,
-  ContentRouterRuleErrorSchema,
-} from '@schemas/content-router/content-router.schema.js'
-import {
   EvaluatorMetadataErrorSchema,
   EvaluatorMetadataResponseSchema,
 } from '@schemas/content-router/evaluator-metadata.schema.js'
@@ -10,39 +6,6 @@ import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
-  // Get router plugin information
-  fastify.get(
-    '/plugins',
-    {
-      schema: {
-        summary: 'Get router plugins',
-        operationId: 'getRouterPlugins',
-        description:
-          'Retrieve information about available content router evaluator plugins',
-        response: {
-          200: ContentRouterPluginsResponseSchema,
-          500: ContentRouterRuleErrorSchema,
-        },
-        tags: ['Content Router'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const plugins = fastify.contentRouter.getLoadedEvaluators()
-
-        return {
-          success: true,
-          plugins: plugins || [],
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to retrieve router plugins',
-        })
-        return reply.internalServerError('Unable to retrieve router plugins')
-      }
-    },
-  )
-
   fastify.get(
     '/plugins/metadata',
     {

@@ -1,4 +1,3 @@
-import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import {
   ContentRouterRuleErrorSchema,
   ContentRouterRuleListResponseSchema,
@@ -51,103 +50,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Get router rules by type
-  fastify.get(
-    '/rules/type/:type',
-    {
-      schema: {
-        summary: 'Get router rules by type',
-        operationId: 'getRouterRulesByType',
-        description: 'Retrieve content router rules filtered by specific type',
-        params: z.object({
-          type: z.string(),
-        }),
-        querystring: z.object({
-          enabledOnly: z
-            .string()
-            .transform((v) => v === 'true')
-            .pipe(z.boolean())
-            .optional()
-            .default(true),
-        }),
-        response: {
-          200: ContentRouterRuleListResponseSchema,
-          500: ContentRouterRuleErrorSchema,
-        },
-        tags: ['Content Router'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { type } = request.params
-        const { enabledOnly } = request.query
-
-        const rules = await fastify.db.getRouterRulesByType(type, enabledOnly)
-
-        const formattedRules = rules.map((rule) => formatRule(rule))
-
-        return {
-          success: true,
-          message: `Router rules of type '${type}' retrieved successfully`,
-          rules: formattedRules,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to retrieve router rules by type',
-          type: request.params.type,
-        })
-        return reply.internalServerError('Unable to retrieve router rules')
-      }
-    },
-  )
-
-  // Get router rules by target
-  fastify.get(
-    '/rules/target',
-    {
-      schema: {
-        summary: 'Get router rules by target',
-        operationId: 'getRouterRulesByTarget',
-        description:
-          'Retrieve content router rules for a specific target instance',
-        querystring: z.object({
-          targetType: InstanceTypeSchema,
-          instanceId: z.coerce.number(),
-        }),
-        response: {
-          200: ContentRouterRuleListResponseSchema,
-          500: ContentRouterRuleErrorSchema,
-        },
-        tags: ['Content Router'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { targetType, instanceId } = request.query
-
-        const rules = await fastify.db.getRouterRulesByTarget(
-          targetType,
-          instanceId,
-        )
-
-        const formattedRules = rules.map((rule) => formatRule(rule))
-
-        return {
-          success: true,
-          message: `Router rules for ${targetType} instance ${instanceId} retrieved successfully`,
-          rules: formattedRules,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to retrieve router rules by target',
-          targetType: request.query.targetType,
-          instanceId: request.query.instanceId,
-        })
-        return reply.internalServerError('Unable to retrieve router rules')
-      }
-    },
-  )
-
   // Get router rule by ID
   fastify.get(
     '/rules/:id',
@@ -190,49 +92,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           ruleId: request.params.id,
         })
         return reply.internalServerError('Unable to retrieve router rule')
-      }
-    },
-  )
-
-  // Get router rules by target type
-  fastify.get(
-    '/rules/target/:targetType',
-    {
-      schema: {
-        summary: 'Get router rules by target type',
-        operationId: 'getRouterRulesByTargetType',
-        description:
-          'Retrieve content router rules filtered by target application type',
-        params: z.object({
-          targetType: InstanceTypeSchema,
-        }),
-        response: {
-          200: ContentRouterRuleListResponseSchema,
-          400: ContentRouterRuleErrorSchema,
-          500: ContentRouterRuleErrorSchema,
-        },
-        tags: ['Content Router'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { targetType } = request.params
-
-        const rules = await fastify.db.getRouterRulesByTargetType(targetType)
-
-        const formattedRules = rules.map((rule) => formatRule(rule))
-
-        return {
-          success: true,
-          message: `Router rules for target type '${targetType}' retrieved successfully`,
-          rules: formattedRules,
-        }
-      } catch (error) {
-        logRouteError(fastify.log, request, error, {
-          message: 'Failed to retrieve router rules by target type',
-          targetType: request.params.targetType,
-        })
-        return reply.internalServerError('Unable to retrieve router rules')
       }
     },
   )

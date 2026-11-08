@@ -89,22 +89,6 @@ export async function getRouterRuleById(
   return formatRouterRule(this.log, rule)
 }
 
-export async function getRouterRulesByType(
-  this: DatabaseService,
-  type: string,
-  enabledOnly = true,
-): Promise<RouterRule[]> {
-  const query = this.knex('router_rules').select('*').where('type', type)
-
-  if (enabledOnly) {
-    query.where('enabled', true)
-  }
-
-  const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
-
-  return rules.map((rule) => formatRouterRule(this.log, rule))
-}
-
 export async function createRouterRule(
   this: DatabaseService,
   rule: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
@@ -236,49 +220,6 @@ export async function deleteRouterRule(
 ): Promise<boolean> {
   const deleted = await this.knex('router_rules').where('id', id).delete()
   return deleted > 0
-}
-
-export async function getRouterRulesByTarget(
-  this: DatabaseService,
-  targetType: 'sonarr' | 'radarr',
-  instanceId: number,
-): Promise<RouterRule[]> {
-  const rules = await this.knex('router_rules')
-    .select('*')
-    .where({
-      target_type: targetType,
-      target_instance_id: instanceId,
-      enabled: true,
-    })
-    .orderBy('order', 'desc')
-    .orderBy('id', 'asc')
-
-  return rules.map((rule) => formatRouterRule(this.log, rule))
-}
-
-export async function getRouterRulesByTargetType(
-  this: DatabaseService,
-  targetType: 'sonarr' | 'radarr',
-): Promise<RouterRule[]> {
-  try {
-    const rules = await this.knex('router_rules')
-      .select('*')
-      .where('target_type', targetType)
-      .orderBy('order', 'desc')
-      .orderBy('id', 'asc')
-
-    this.log.debug(
-      `Found ${rules.length} router rules for target type: ${targetType}`,
-    )
-
-    return rules.map((rule) => formatRouterRule(this.log, rule))
-  } catch (error) {
-    this.log.error(
-      { error },
-      `Error fetching router rules by target type ${targetType}`,
-    )
-    throw error
-  }
 }
 
 /** Throws when the rule does not exist */

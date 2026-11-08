@@ -499,14 +499,6 @@ export class SchedulerService {
     return schedule && { ...schedule, running: this.isJobRunning(name) }
   }
 
-  async getSchedules(): Promise<ScheduleWithRunState[]> {
-    const schedules = await this.fastify.db.getAllSchedules()
-    return schedules.map((schedule) => ({
-      ...schedule,
-      running: this.isJobRunning(schedule.name),
-    }))
-  }
-
   /** Holds the job in the running set until work settles, and work resolves whether it succeeded. */
   private async trackRun(
     name: string,

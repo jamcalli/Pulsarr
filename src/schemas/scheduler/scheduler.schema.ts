@@ -47,22 +47,6 @@ export const CronConfigSchema = z.object({
     ),
 })
 
-// Zod schema for job configuration
-export const ScheduleConfigSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('interval'),
-    name: z.string().min(1, { error: 'Name is required' }),
-    config: IntervalConfigSchema,
-    enabled: z.boolean().optional().default(true),
-  }),
-  z.object({
-    type: z.literal('cron'),
-    name: z.string().min(1, { error: 'Name is required' }),
-    config: CronConfigSchema,
-    enabled: z.boolean().optional().default(true),
-  }),
-])
-
 // Create schema for partial updates (without the name field)
 export const ScheduleUpdateSchema = z.discriminatedUnion('type', [
   z.object({
@@ -195,7 +179,6 @@ export const DeleteSyncDryRunStatusSchema = BackgroundRunStatusSchema.extend({
 // Inferred types for exports
 export type IntervalConfig = z.infer<typeof IntervalConfigSchema>
 export type CronConfig = z.infer<typeof CronConfigSchema>
-export type ScheduleConfig = z.infer<typeof ScheduleConfigSchema>
 export type ScheduleUpdate = z.infer<typeof ScheduleUpdateSchema>
 export type JobRunInfo = z.infer<typeof JobRunInfoSchema>
 export type JobStatus = z.infer<typeof JobStatusSchema>

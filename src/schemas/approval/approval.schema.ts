@@ -114,29 +114,9 @@ export const ApprovalIdParamsSchema = z.object({
   id: z.coerce.number(),
 })
 
-export const CreateApprovalRequestSchema = z
-  .object({
-    userId: z.number(),
-    contentType: ContentTypeSchema,
-    contentTitle: z.string().min(1).max(255),
-    contentKey: z.string().min(1).max(255),
-    contentGuids: z.array(z.string()).optional(),
-    routerDecision: RouterDecisionSchema,
-    routerRuleId: z.number().optional(),
-    approvalReason: z.string().optional(),
-    triggeredBy: ApprovalTriggerSchema,
-    expiresAt: z.string().optional(),
-  })
-  .meta({
-    id: 'ApprovalRequestCreatePayload',
-    description: 'Fields for creating an approval request',
-  })
-
 export const UpdateApprovalRequestSchema = z
   .object({
-    status: ApprovalStatusSchema.optional(),
-    approvalNotes: z.string().optional(),
-    proposedRouterDecision: RouterDecisionSchema.optional(),
+    proposedRouterDecision: RouterDecisionSchema,
   })
   .meta({
     id: 'ApprovalRequestUpdatePayload',
@@ -385,8 +365,6 @@ export type ProposedRouting = NonNullable<
   NonNullable<RouterDecision['approval']>['proposedRouting']
 >
 export type ApprovalIdParams = z.infer<typeof ApprovalIdParamsSchema>
-export type CreateApprovalRequest = z.infer<typeof CreateApprovalRequestSchema>
-export type UpdateApprovalRequest = z.infer<typeof UpdateApprovalRequestSchema>
 export type ApprovalRequestResponse = z.infer<
   typeof ApprovalRequestResponseSchema
 >

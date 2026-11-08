@@ -1,13 +1,20 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
+import { ApprovalIdentity } from '@/components/approval-review/approval-identity'
+import { ApprovalMediaInfo } from '@/components/approval-review/approval-media-info'
 import { ApprovalReviewFooter } from '@/components/approval-review/approval-review-footer'
 import { ApprovalReviewPanel } from '@/components/approval-review/approval-review-panel'
 import {
   ApprovalReviewFooterSkeleton,
   ApprovalReviewSkeleton,
 } from '@/components/approval-review/approval-review-skeleton'
+import {
+  type ApprovalView,
+  ApprovalViewToggle,
+} from '@/components/approval-review/approval-view-toggle'
 import { Credenza, CredenzaContent, CredenzaTitle } from '@/components/credenza'
 import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
+import { Separator } from '@/components/ui/separator'
 import { useApprovalRequest } from '@/hooks/useApprovalRequest'
 import { useApprovalReview } from '@/hooks/useApprovalReview'
 import { useGuardedClose } from '@/hooks/useGuardedClose'
@@ -40,14 +47,23 @@ function LoadedReview({
   onDirtyChange: (dirty: boolean) => void
 }) {
   const review = useApprovalReview(approval, { onDecided, onDirtyChange })
+  const [view, setView] = useState<ApprovalView>('review')
   return (
     <>
       <ReviewBody>
-        <ApprovalReviewPanel
-          approval={approval}
-          review={review}
-          variant="standalone"
-        />
+        <div className="flex flex-col gap-6">
+          <ApprovalIdentity approval={approval} />
+          <ApprovalViewToggle
+            type={approval.contentType}
+            value={view}
+            onValueChange={setView}
+          />
+          <Separator />
+          <div hidden={view !== 'review'}>
+            <ApprovalReviewPanel approval={approval} review={review} />
+          </div>
+          {view === 'info' && <ApprovalMediaInfo approval={approval} />}
+        </div>
       </ReviewBody>
       <ApprovalReviewFooter review={review} />
     </>

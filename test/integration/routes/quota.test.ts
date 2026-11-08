@@ -59,8 +59,8 @@ describe('Quota routes clear watchlist cap notices', () => {
 
     const res = await app.inject({
       method: 'PATCH',
-      url: '/v1/quota/users/1',
-      payload: { watchlistCap: null },
+      url: '/v1/quota/users/1/separate',
+      payload: { movieQuota: { enabled: true, watchlistCap: null } },
     })
 
     expect(res.statusCode).toBe(200)
