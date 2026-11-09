@@ -9,7 +9,7 @@ export async function cleanupWorkflow(
   state.endRun()
 
   if (state.rssCheckInterval) {
-    clearInterval(state.rssCheckInterval)
+    clearTimeout(state.rssCheckInterval)
     state.rssCheckInterval = null
   }
   if (state.statusSyncDebounceTimer) {

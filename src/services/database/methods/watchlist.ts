@@ -10,7 +10,7 @@ import type {
 import { whereGuidsContainAny } from '@services/database/guid-filter.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { chunkArray } from '@utils/chunk-array.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import { parseJsonOr } from '@utils/json.js'
 import {
   allowedStatusesUpTo,
@@ -596,6 +596,7 @@ export async function checkExistingWebhooks(
   return result
 }
 
+/** Full rebuild from every watchlist row, only for a genres table that has lost its seed. */
 export async function syncGenresFromWatchlist(
   this: DatabaseService,
 ): Promise<void> {
@@ -614,23 +615,47 @@ export async function syncGenresFromWatchlist(
       'watchlist_item.genres',
     )
     if (Array.isArray(parsedGenres)) {
-      for (const genre of parsedGenres) {
-        if (typeof genre === 'string' && genre.trim().length > 1) {
-          uniqueGenres.add(genre.trim())
-        }
-      }
+      addUsableGenres(uniqueGenres, parsedGenres)
     }
   }
 
-  const genresToInsert = Array.from(uniqueGenres).map((genre) => ({
+  await upsertGenres(this, uniqueGenres)
+}
+
+/** Upserts only the genres carried by the given items, without scanning watchlist_items. */
+export async function syncGenresFromItems(
+  this: DatabaseService,
+  items: ReadonlyArray<{ genres?: string[] | string }>,
+): Promise<void> {
+  const uniqueGenres = new Set<string>()
+  for (const item of items) {
+    addUsableGenres(uniqueGenres, parseGenres(item.genres))
+  }
+  await upsertGenres(this, uniqueGenres)
+}
+
+function addUsableGenres(target: Set<string>, genres: readonly string[]): void {
+  for (const genre of genres) {
+    if (typeof genre === 'string' && genre.trim().length > 1) {
+      target.add(genre.trim())
+    }
+  }
+}
+
+async function upsertGenres(
+  db: DatabaseService,
+  genres: Set<string>,
+): Promise<void> {
+  const genresToInsert = Array.from(genres).map((genre) => ({
     name: genre,
     is_custom: false,
-    created_at: this.timestamp,
-    updated_at: this.timestamp,
+    created_at: db.timestamp,
+    updated_at: db.timestamp,
   }))
 
   if (genresToInsert.length > 0) {
-    await this.knex('genres')
+    await db
+      .knex('genres')
       .insert(genresToInsert)
       .onConflict('name')
       .merge(['updated_at'])

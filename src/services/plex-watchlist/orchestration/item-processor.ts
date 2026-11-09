@@ -139,7 +139,7 @@ export async function processAndSaveNewItems(
         itemsToInsert,
         isMetadataRefresh ? { onConflict: 'merge' } : { onConflict: 'ignore' },
       )
-      await db.syncGenresFromWatchlist()
+      await db.syncGenresFromItems(itemsToInsert)
 
       emitWatchlistChange(
         fastify.progress,
@@ -259,7 +259,7 @@ export async function linkExistingItems(
       onConflict: 'merge',
     })
 
-    await db.syncGenresFromWatchlist()
+    await db.syncGenresFromItems(linkItems)
 
     logger.debug(
       `Successfully linked ${linkItems.length} existing items to new users`,

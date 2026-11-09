@@ -50,7 +50,7 @@ export async function generateAndSaveRssFeeds(
   }
 
   await fastify.updateConfigAndPersist(dbUrls)
-  logger.debug(dbUrls, 'RSS feed URLs saved to database and memory')
+  logger.debug('RSS feed URLs saved to database and memory')
 
   return {
     self: dbUrls.selfRss,

@@ -39,7 +39,7 @@ export const getPlexWatchlistUrls = async (
   log.debug(
     `Generated watchlist RSS feed for self: ${selfRss ? 'Success' : 'None'}`,
   )
-  log.debug(`Self watchlist RSS URL: ${selfRss}`)
+  log.debug('Self watchlist RSS URL obtained')
 
   const friendsRss = skipFriendSync
     ? null
@@ -47,7 +47,7 @@ export const getPlexWatchlistUrls = async (
   log.debug(
     `Generated watchlist RSS feed for friends: ${friendsRss ? 'Success' : 'None'}`,
   )
-  log.debug(`Friends watchlist RSS URL: ${friendsRss}`)
+  log.debug('Friends watchlist RSS URL obtained')
 
   if (!selfRss && !friendsRss) {
     log.warn('Missing RSS URL. Are you an active Plex Pass user?')
@@ -160,7 +160,7 @@ export const fetchWatchlistFromRss = async (
 /** Sends If-None-Match when etag is given, and a 304 comes back as success with notModified and no items. */
 export async function fetchRawRssFeed(
   url: string,
-  token: string,
+  _token: string,
   log: FastifyBaseLogger,
   etag?: string,
 ): Promise<RawRssFetchResult> {
@@ -168,10 +168,9 @@ export async function fetchRawRssFeed(
     const urlObj = new URL(url)
     urlObj.searchParams.set('format', 'json')
 
+    // The feed URL is a capability on its own, and the 302 to S3 would forward any token header
     const headers: Record<string, string> = {
       'User-Agent': USER_AGENT,
-      'X-Plex-Token': token,
-      'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       Accept: 'application/json',
     }
     if (etag) {

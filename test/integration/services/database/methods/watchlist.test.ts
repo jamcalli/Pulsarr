@@ -286,3 +286,47 @@ describe('createWatchlistItems', () => {
     ])
   })
 })
+
+describe('syncGenresFromItems', () => {
+  let fastify: FastifyInstance
+
+  beforeAll(async () => {
+    fastify = await build()
+    await fastify.ready()
+  })
+
+  afterAll(async () => {
+    await fastify.close()
+  })
+
+  beforeEach(async () => {
+    const knex = getTestDatabase()
+    await resetDatabase()
+    await seedConfig(knex)
+    await seedInstances(knex)
+    await seedUsers(knex)
+    fastify.caches.clear()
+  })
+
+  const syncedNames = async () =>
+    (await fastify.db.getAllGenres())
+      .map((genre) => genre.name)
+      .filter((name) => name.startsWith('Sync '))
+
+  it('upserts each genre once from the given items', async () => {
+    await fastify.db.syncGenresFromItems([
+      { genres: ['Sync Drama', 'Sync Noir'] },
+      { genres: '["Sync Drama"]' },
+    ])
+    expect(await syncedNames()).toEqual(['Sync Drama', 'Sync Noir'])
+
+    await fastify.db.syncGenresFromItems([
+      { genres: ['Sync Noir', 'Sync Western'] },
+    ])
+    expect(await syncedNames()).toEqual([
+      'Sync Drama',
+      'Sync Noir',
+      'Sync Western',
+    ])
+  })
+})
