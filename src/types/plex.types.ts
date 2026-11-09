@@ -260,6 +260,9 @@ export interface RawRssFetchResult {
   authError?: boolean
   notFound?: boolean
   error?: string
+  /** Set when the server returned 304, items is empty and the cache must be kept */
+  notModified?: boolean
+  etag?: string
 }
 
 /** Cached RSS item with stable key for diffing */
