@@ -6,17 +6,18 @@ import type {
 } from '@root/types/plex.types.js'
 import { collectGuidsFromMetadata } from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
-import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
+  discoverHeaders,
   hasValidPlexTokens,
   isRateLimitError,
   PLEX_API_TIMEOUT_MS,
+  parseRetryAfter,
   type RateLimitError,
 } from '../api/helpers.js'
 import { PlexRateLimiter } from '../api/rate-limiter.js'
 import type { WatchlistSyncProgress } from '../progress/sync-progress.js'
-import { parseRatings } from './rating-parser.js'
+import { imdbRatingCount, parseRatings } from './rating-parser.js'
 
 async function handleRateLimitAndRetry(
   config: Config,
@@ -29,15 +30,12 @@ async function handleRateLimitAndRetry(
   fromHttp429?: boolean,
   notFoundCollector?: string[],
 ): Promise<Set<Item>> {
-  // Set global rate limiter with the retry-after value
   const rateLimiter = PlexRateLimiter.getInstance()
   rateLimiter.setRateLimited(retryAfterSec, log)
 
   if (retryCount < maxRetries) {
-    // Wait for the cooldown period to expire
     await rateLimiter.waitIfLimited(log, progress?.rateLimited)
 
-    // Try again after waiting
     return toItemsSingle(
       config,
       log,
@@ -49,18 +47,15 @@ async function handleRateLimitAndRetry(
     )
   }
 
-  // Create rate limit error when retries are exhausted
   const rateLimitError = new Error(
     `Rate limit exceeded: Maximum retries (${maxRetries}) reached when processing item "${item.title}"`,
   ) as RateLimitError
   rateLimitError.isRateLimitExhausted = true
 
   if (!fromHttp429) {
-    // This is a caught error, not an HTTP 429
     throw rateLimitError
   }
 
-  // This is from an HTTP 429
   log.warn(
     `Maximum retries (${maxRetries}) reached for ${item.title} due to rate limiting. Skipping item.`,
   )
@@ -75,12 +70,10 @@ export const toItemsSingle = async (
   retryCount = 0,
   maxRetries = 3,
   progress?: WatchlistSyncProgress,
-  notFoundCollector?: string[], // Optional array to collect 404 items instead of logging
+  notFoundCollector?: string[],
 ): Promise<Set<Item>> => {
-  // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
 
-  // Wait if we're already rate limited before making any API call
   await rateLimiter.waitIfLimited(log, progress?.rateLimited)
 
   if (!hasValidPlexTokens(config)) {
@@ -94,33 +87,13 @@ export const toItemsSingle = async (
     )
 
     const response = await fetch(url.toString(), {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'application/json',
-        'X-Plex-Token': config.plexTokens[0],
-      },
+      headers: discoverHeaders(config.plexTokens[0]),
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
-    // Handle rate limiting specifically
     if (response.status === 429) {
-      // Parse Retry-After: supports both delay-seconds and HTTP-date formats
-      const retryAfterHeader = response.headers.get('Retry-After')
-      let retryAfterSec: number | undefined
-      if (retryAfterHeader) {
-        const asSeconds = Number.parseInt(retryAfterHeader, 10)
-        if (!Number.isNaN(asSeconds)) {
-          retryAfterSec = asSeconds
-        } else {
-          const asDateMs = Date.parse(retryAfterHeader)
-          if (!Number.isNaN(asDateMs)) {
-            const deltaMs = Math.max(0, asDateMs - Date.now())
-            retryAfterSec = Math.ceil(deltaMs / 1000)
-          }
-        }
-      }
+      const retryAfterSec = parseRetryAfter(response.headers.get('Retry-After'))
 
-      // Use the centralized helper to handle rate limiting and retries
       return handleRateLimitAndRetry(
         config,
         log,
@@ -129,19 +102,16 @@ export const toItemsSingle = async (
         maxRetries,
         progress,
         retryAfterSec,
-        true, // fromHttp429
+        true,
         notFoundCollector,
       )
     }
 
     if (!response.ok) {
-      // Check if it's a 404 error, which means the item doesn't exist in Plex
       if (response.status === 404) {
         if (notFoundCollector) {
-          // Collect for consolidated logging
           notFoundCollector.push(item.title)
         } else {
-          // Log immediately if no collector provided (backward compatibility)
           log.warn(
             `Item "${item.title}" not found in Plex database (HTTP 404) - skipping retries`,
           )
@@ -160,10 +130,7 @@ export const toItemsSingle = async (
     }
 
     const items = json.MediaContainer.Metadata.map((metadata) => {
-      // Parse ratings from Plex metadata
-      // imdbRatingCount can be at metadata level or container level
-      const imdbVotes =
-        metadata.imdbRatingCount ?? json.MediaContainer?.imdbRatingCount
+      const imdbVotes = imdbRatingCount(metadata, json.MediaContainer)
       const ratings = parseRatings(metadata.Rating, imdbVotes)
 
       return {
@@ -195,7 +162,6 @@ export const toItemsSingle = async (
       log.warn(
         `Found item ${item.title} but no GUIDs. Retry ${retryCount + 1}/${maxRetries}`,
       )
-      // Use exponential backoff
       const backoffDelay = Math.min(500 * 2 ** retryCount, 5000)
       await new Promise((resolve) => setTimeout(resolve, backoffDelay))
       return toItemsSingle(
@@ -217,7 +183,6 @@ export const toItemsSingle = async (
     const error = err as Error
     const errorStr = String(error)
 
-    // Check if this is already a rate limit exhaustion error
     if (isRateLimitError(error)) {
       log.warn(
         `Rate limit already exhausted for "${item.title}". Propagating error.`,
@@ -229,7 +194,6 @@ export const toItemsSingle = async (
       errorStr.includes('429') ||
       errorStr.toLowerCase().includes('rate limit')
     ) {
-      // Use the centralized helper function to handle rate limiting and retries
       return handleRateLimitAndRetry(
         config,
         log,
@@ -237,20 +201,17 @@ export const toItemsSingle = async (
         retryCount,
         maxRetries,
         progress,
-        undefined, // No retry-after header in this case
-        false, // fromHttp429 - this is a caught error
+        undefined,
+        false,
         notFoundCollector,
       )
     }
 
     if (error.message.includes('Plex API error')) {
-      // Check specifically for 404 errors and avoid retrying
       if (error.message.includes('HTTP 404')) {
         if (notFoundCollector) {
-          // Collect for consolidated logging
           notFoundCollector.push(item.title)
         } else {
-          // Log immediately if no collector provided (backward compatibility)
           log.warn(
             `Item "${item.title}" not found in Plex's database (404) - skipping retries`,
           )
@@ -262,7 +223,6 @@ export const toItemsSingle = async (
         log.warn(
           `Failed to find ${item.title} in Plex's database. Error: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,
         )
-        // Use exponential backoff
         const backoffDelay = Math.min(500 * 2 ** retryCount, 5000)
         await new Promise((resolve) => setTimeout(resolve, backoffDelay))
         return toItemsSingle(

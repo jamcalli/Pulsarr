@@ -37,7 +37,7 @@ function emitUsersEvent(
   })
 }
 
-/** Creates a DB user and default quotas per unstored friend; `added` holds only those new users. */
+/** Creates a DB user and default quotas per unstored friend, and `added` holds only those new users. */
 export async function ensureFriendUsers(
   friends: Set<[Friend, string]>,
   deps: FriendUsersDeps,
@@ -142,7 +142,7 @@ export async function ensureFriendUsers(
   return { userMap, added }
 }
 
-/** Deletes DB users who are no longer friends; never throws, and returns only rows actually deleted. */
+/** Deletes DB users who are no longer friends, never throws, and returns only rows actually deleted. */
 export async function checkForRemovedFriends(
   currentFriends: Set<[Friend, string]>,
   deps: FriendUsersDeps,
@@ -222,7 +222,6 @@ export async function checkForRemovedFriends(
       { error },
       'Error checking for and removing former friends:',
     )
-    // Don't throw - this is cleanup logic and shouldn't break the main flow
   }
 
   return removed

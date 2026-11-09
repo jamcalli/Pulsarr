@@ -7,6 +7,7 @@ import type {
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { toError } from '@utils/error-message.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -39,7 +40,7 @@ export interface PreparedItem {
   updated_at: string
 }
 
-/** Drops items for users with sync disabled; a user missing from the DB counts as sync enabled. */
+/** Drops items for users with sync disabled, and a user missing from the DB counts as sync enabled. */
 export async function prepareItemsForInsertion(
   processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
   deps: Pick<ItemProcessorDeps, 'db' | 'logger'>,
@@ -75,7 +76,6 @@ export async function prepareItemsForInsertion(
           : Number(user.userId)
         : Number(user.userId)
 
-    // During initial sync, assume syncing is enabled if user not found
     const canSync = userSyncPermissions.get(numericUserId) !== false
 
     if (!canSync) {
@@ -102,7 +102,7 @@ export async function prepareItemsForInsertion(
   })
 }
 
-/** Also inserts the items and triggers Plex label sync; the return includes rows the insert ignored. */
+/** Also inserts the items and triggers Plex label sync, and the return includes rows the insert ignored. */
 export async function processAndSaveNewItems(
   brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
   isMetadataRefresh: boolean,
@@ -267,7 +267,7 @@ export async function linkExistingItems(
 
     await handleLinkedItemsForLabelSync(linkItems)
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const err = toError(error)
     logger.error({ error: err }, 'Error linking existing items')
     throw error
   }
