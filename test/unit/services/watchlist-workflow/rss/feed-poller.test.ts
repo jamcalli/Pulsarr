@@ -1,6 +1,6 @@
 import type { CachedRssItem, RssDiffResult } from '@root/types/plex.types.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/watchlist-workflow/rss/self-processor.js', () => ({
@@ -11,7 +11,10 @@ vi.mock('@services/watchlist-workflow/rss/friends-processor.js', () => ({
   processRssFriendsItems: vi.fn(async () => {}),
 }))
 
-import { checkRssFeeds } from '@services/watchlist-workflow/rss/feed-poller.js'
+import {
+  checkRssFeeds,
+  scheduleRssCheck,
+} from '@services/watchlist-workflow/rss/feed-poller.js'
 import { processRssFriendsItems } from '@services/watchlist-workflow/rss/friends-processor.js'
 import { processRssSelfItems } from '@services/watchlist-workflow/rss/self-processor.js'
 
@@ -121,5 +124,64 @@ describe('checkRssFeeds', () => {
     expect(processRssSelfItems).not.toHaveBeenCalled()
     expect(checkFriendsFeed).not.toHaveBeenCalled()
     expect(processRssFriendsItems).not.toHaveBeenCalled()
+  })
+})
+
+describe('scheduleRssCheck', () => {
+  const INTERVAL_MS = 1_000
+  let deps: WorkflowDeps
+  let checkSelfFeed: ReturnType<typeof createDeps>['checkSelfFeed']
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    const created = createDeps()
+    deps = created.deps
+    checkSelfFeed = created.checkSelfFeed
+  })
+
+  afterEach(() => {
+    if (deps.state.rssCheckInterval) clearTimeout(deps.state.rssCheckInterval)
+    deps.state.rssCheckInterval = null
+    vi.useRealTimers()
+  })
+
+  it('fires the first tick after exactly one interval', async () => {
+    scheduleRssCheck(deps, INTERVAL_MS)
+
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS - 1)
+    expect(checkSelfFeed).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(checkSelfFeed).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not start a second tick while a slow tick is in flight', async () => {
+    checkSelfFeed.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS * 3))
+      return { feed: 'self', changed: false, newItems: [], totalItems: 0 }
+    })
+    scheduleRssCheck(deps, INTERVAL_MS)
+
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS)
+    expect(checkSelfFeed).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS * 3)
+    expect(checkSelfFeed).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS)
+    expect(checkSelfFeed).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not reschedule when the handle is cleared during a tick', async () => {
+    checkSelfFeed.mockImplementation(async () => {
+      deps.state.rssCheckInterval = null
+      return { feed: 'self', changed: false, newItems: [], totalItems: 0 }
+    })
+    scheduleRssCheck(deps, INTERVAL_MS)
+
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS * 5)
+
+    expect(checkSelfFeed).toHaveBeenCalledTimes(1)
+    expect(deps.state.rssCheckInterval).toBeNull()
   })
 })

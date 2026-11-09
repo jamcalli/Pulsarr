@@ -13,7 +13,7 @@ import { schedulePendingReconciliation } from './watchlist-workflow/lifecycle/sc
 import { initializeWorkflow } from './watchlist-workflow/lifecycle/workflow-starter.js'
 import { cleanupWorkflow } from './watchlist-workflow/lifecycle/workflow-stopper.js'
 import { reconcile as reconcileModule } from './watchlist-workflow/orchestration/reconciler.js'
-import { checkRssFeeds } from './watchlist-workflow/rss/feed-poller.js'
+import { scheduleRssCheck } from './watchlist-workflow/rss/feed-poller.js'
 import {
   WorkflowState,
   type WorkflowStatus,
@@ -195,12 +195,9 @@ export class WatchlistWorkflowService {
 
       if (this.state.rssMode) {
         if (this.state.rssCheckInterval) {
-          clearInterval(this.state.rssCheckInterval)
+          clearTimeout(this.state.rssCheckInterval)
         }
-        this.state.rssCheckInterval = setInterval(
-          () => void checkRssFeeds(this.deps),
-          this.rssCheckIntervalMs,
-        )
+        scheduleRssCheck(this.deps, this.rssCheckIntervalMs)
       } else {
         this.log.debug('Starting ETag staggered polling')
         await startStaggeredPolling(this.deps)
