@@ -36,7 +36,7 @@ function createDeps(inserted: { id: number; user_id: number; key: string }[]) {
     db: {
       getUser: vi.fn(async (id: number) => ({ id, can_sync: true })),
       createWatchlistItems: vi.fn(async () => inserted),
-      syncGenresFromWatchlist: vi.fn(async () => undefined),
+      syncGenresFromItems: vi.fn(async () => undefined),
     },
     logger: createMockLogger(),
     config: {},
