@@ -127,6 +127,22 @@ describe('RssFeedCacheManager', () => {
     expect(state.seen).toEqual([null, null])
   })
 
+  it('sends no Plex token on the raw feed fetch', async () => {
+    const tokens: Array<string | null> = []
+    server.use(
+      http.get(SELF_URL, ({ request }) => {
+        tokens.push(request.headers.get('x-plex-token'))
+        return HttpResponse.json(rssBody(baseItems))
+      }),
+    )
+    const manager = new RssFeedCacheManager(mockLogger)
+
+    await manager.primeCaches(SELF_URL, undefined, 'secret-token')
+    await manager.checkSelfFeed(SELF_URL, 'secret-token')
+
+    expect(tokens).toEqual([null, null])
+  })
+
   it('keeps self and friends caches independent on a friends 304', async () => {
     const selfState: FeedState = {
       tag: '"self-1"',
