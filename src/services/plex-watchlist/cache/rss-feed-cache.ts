@@ -1,19 +1,3 @@
-/**
- * RSS Feed Cache Manager
- *
- * Maintains separate caches for self and friends RSS feeds with stable key
- * (GUID) diffing to identify new items.
- *
- * Design:
- * - Dual independent caches (self feed and friends feed)
- * - Change detection via GUID comparison (not HTTP ETags)
- * - Diff logic identifies items new to each cache independently
- * - Max 50 items per cache (RSS feed limit)
- *
- * Note: HTTP ETag optimization removed due to Plex S3 migration (Jan 2026).
- * S3 generates different ETags and 302 redirects break If-None-Match.
- */
-
 import type {
   CachedRssItem,
   RssDiffResult,
@@ -24,20 +8,12 @@ import { normalizePosterPath } from '@utils/poster-url.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { fetchRawRssFeed, generateStableKey } from '../fetching/rss-fetcher.js'
 
-/**
- * Individual feed cache state
- */
 interface FeedCache {
   lastFetch: number
   items: Map<string, CachedRssItem>
+  etag?: string
 }
 
-/**
- * RSS Feed Cache Manager
- *
- * Manages separate caches for self and friends RSS feeds.
- * Each feed is polled and diffed independently.
- */
 export class RssFeedCacheManager {
   private selfCache: FeedCache = {
     lastFetch: 0,
@@ -55,28 +31,14 @@ export class RssFeedCacheManager {
     this.log = log
   }
 
-  /**
-   * Check self RSS feed for changes and return new items
-   */
   async checkSelfFeed(url: string, token: string): Promise<RssDiffResult> {
     return this.checkFeed('self', url, token, this.selfCache)
   }
 
-  /**
-   * Check friends RSS feed for changes and return new items
-   */
   async checkFriendsFeed(url: string, token: string): Promise<RssDiffResult> {
     return this.checkFeed('friends', url, token, this.friendsCache)
   }
 
-  /**
-   * Prime both RSS caches by fetching current feeds without reporting new items.
-   * Call this during startup to establish baselines before starting the polling interval.
-   *
-   * @param selfUrl - Self RSS feed URL
-   * @param friendsUrl - Friends RSS feed URL
-   * @param token - Plex token for authentication
-   */
   async primeCaches(
     selfUrl: string | undefined,
     friendsUrl: string | undefined,
@@ -107,16 +69,13 @@ export class RssFeedCacheManager {
     )
   }
 
-  /**
-   * Prime a single feed cache without reporting new items
-   */
   private async primeFeed(
     feedType: 'self' | 'friends',
     url: string,
     token: string,
     cache: FeedCache,
   ): Promise<void> {
-    const result = await fetchRawRssFeed(url, token, this.log)
+    const result = await fetchRawRssFeed(url, token, this.log, cache.etag)
 
     if (!result.success) {
       this.log.warn(
@@ -126,11 +85,20 @@ export class RssFeedCacheManager {
       return
     }
 
-    // Build cache without reporting items as new
+    if (result.notModified) {
+      cache.lastFetch = Date.now()
+      this.log.debug(
+        { feed: feedType },
+        'RSS feed cache primed, feed unchanged',
+      )
+      return
+    }
+
     const { newCache } = this.diffAndUpdateCache(feedType, result.items, cache)
 
     cache.lastFetch = Date.now()
     cache.items = newCache
+    cache.etag = result.etag
 
     this.log.debug(
       { feed: feedType, itemCount: newCache.size },
@@ -138,18 +106,12 @@ export class RssFeedCacheManager {
     )
   }
 
-  /**
-   * Clear both caches (used on workflow stop)
-   */
   clearCaches(): void {
     this.selfCache = { lastFetch: 0, items: new Map() }
     this.friendsCache = { lastFetch: 0, items: new Map() }
     this.log.debug('RSS feed caches cleared')
   }
 
-  /**
-   * Get cache statistics for debugging
-   */
   getCacheStats(): {
     self: { itemCount: number; lastFetch: number }
     friends: { itemCount: number; lastFetch: number }
@@ -166,18 +128,14 @@ export class RssFeedCacheManager {
     }
   }
 
-  /**
-   * Check a specific feed for changes and diff against cache
-   */
   private async checkFeed(
     feedType: 'self' | 'friends',
     url: string,
     token: string,
     cache: FeedCache,
   ): Promise<RssDiffResult> {
-    const result = await fetchRawRssFeed(url, token, this.log)
+    const result = await fetchRawRssFeed(url, token, this.log, cache.etag)
 
-    // Handle errors
     if (!result.success) {
       return {
         feed: feedType,
@@ -189,18 +147,26 @@ export class RssFeedCacheManager {
       }
     }
 
-    // Process items and diff against cache (stable key comparison)
+    if (result.notModified) {
+      cache.lastFetch = Date.now()
+      return {
+        feed: feedType,
+        changed: false,
+        newItems: [],
+        totalItems: cache.items.size,
+      }
+    }
+
     const { newItems, newCache } = this.diffAndUpdateCache(
       feedType,
       result.items,
       cache,
     )
 
-    // Update cache state
     cache.lastFetch = Date.now()
     cache.items = newCache
+    cache.etag = result.etag
 
-    // Only log if there are changes or on debug level
     if (newItems.length > 0) {
       this.log.debug(
         {
@@ -225,9 +191,6 @@ export class RssFeedCacheManager {
     }
   }
 
-  /**
-   * Diff fetched items against cache and return new items
-   */
   private diffAndUpdateCache(
     feedType: 'self' | 'friends',
     items: RssWatchlistItem[],
@@ -254,15 +217,13 @@ export class RssFeedCacheManager {
         type: contentType,
         guids: item.guids,
         thumb: normalizePosterPath(item.thumbnail?.url) ?? undefined,
-        // Normalize genres to title case for database consistency with API sources
+        // Title case keeps RSS genres consistent with the genres the API sources store
         genres: parseGenres(item.keywords).map(normalizeGenre).filter(Boolean),
         author: item.author ?? '',
       }
 
-      // Add to new cache
       newCache.set(stableKey, cachedItem)
 
-      // Check if this is a new item (not in previous cache)
       if (!cache.items.has(stableKey)) {
         this.log.debug(
           { feed: feedType, title: item.title, author: cachedItem.author },
@@ -275,9 +236,6 @@ export class RssFeedCacheManager {
     return { newItems, newCache }
   }
 
-  /**
-   * Parse RSS category to content type
-   */
   private parseCategory(category: string): 'movie' | 'show' | null {
     const normalized = category.toLowerCase().trim()
     if (normalized === 'movie' || normalized === 'movies') {

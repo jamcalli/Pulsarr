@@ -1,11 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify'
 
-/**
- * Global rate limiting control for Plex API requests.
- *
- * Using a singleton pattern to track and control rate limiting across all processes.
- * Implements exponential backoff with jitter to avoid thundering herd problems.
- */
 export class PlexRateLimiter {
   private static instance: PlexRateLimiter
   private isRateLimited = false
@@ -14,9 +8,8 @@ export class PlexRateLimiter {
   private baseMultiplier = 2 // seconds
   private maxCooldown = 30 // seconds
   private lastErrorTime = 0
-  private hasLoggedWait = false // Track if we've logged for current cooldown
+  private hasLoggedWait = false
 
-  // Singleton access
   public static getInstance(): PlexRateLimiter {
     if (!PlexRateLimiter.instance) {
       PlexRateLimiter.instance = new PlexRateLimiter()
@@ -24,30 +17,25 @@ export class PlexRateLimiter {
     return PlexRateLimiter.instance
   }
 
-  // Check if we're currently in a rate-limited state
   public isLimited(): boolean {
     const now = Date.now()
-    // Clear rate limited state if cooldown period has passed
     if (this.isRateLimited && now > this.cooldownEndTime) {
       this.isRateLimited = false
-      this.hasLoggedWait = false // Reset log flag when cooldown expires
+      this.hasLoggedWait = false
     }
     return this.isRateLimited
   }
 
-  // Get remaining cooldown time in ms
   public getRemainingCooldown(): number {
     if (!this.isRateLimited) return 0
     const remaining = this.cooldownEndTime - Date.now()
     return Math.max(remaining, 0)
   }
 
-  // Set rate limited state with a specific duration, or use default exponential backoff
   public setRateLimited(
     retryAfterSeconds?: number,
     log?: FastifyBaseLogger,
   ): number {
-    // Track consecutive rate limits if they happen close together (within 10 seconds)
     const now = Date.now()
     const wasAlreadyLimited = this.isRateLimited
 
@@ -58,28 +46,22 @@ export class PlexRateLimiter {
     }
     this.lastErrorTime = now
 
-    // Calculate cooldown time
     let cooldownSeconds = retryAfterSeconds || 0
 
     if (!cooldownSeconds) {
-      // Apply exponential backoff with consecutive failure tracking
       cooldownSeconds = Math.min(
         this.baseMultiplier * 1.5 ** (this.consecutiveRateLimits - 1),
         this.maxCooldown,
       )
     }
 
-    // Apply jitter (±10%) to avoid thundering herd
     const jitter = cooldownSeconds * 0.1
     cooldownSeconds += Math.random() * jitter * 2 - jitter
 
-    // Clamp to [0.1s, maxCooldown] after jitter
     cooldownSeconds = Math.min(Math.max(cooldownSeconds, 0.1), this.maxCooldown)
 
-    // Calculate end time of cooldown
     const newCooldownEnd = now + cooldownSeconds * 1000
 
-    // Only log if this is a NEW rate limit or significantly extends the cooldown
     const shouldLog =
       !wasAlreadyLimited || newCooldownEnd > this.cooldownEndTime + 1000
 
@@ -92,10 +74,9 @@ export class PlexRateLimiter {
       )
     }
 
-    return cooldownSeconds * 1000 // Return cooldown in ms
+    return cooldownSeconds * 1000
   }
 
-  // Wait for cooldown if currently rate limited
   public async waitIfLimited(
     log?: FastifyBaseLogger,
     onWait?: (remainingMs: number) => void,
@@ -105,7 +86,6 @@ export class PlexRateLimiter {
 
       if (remaining <= 0) return false
 
-      // Only log once per cooldown period (first caller logs)
       if (log && !this.hasLoggedWait) {
         log.info(
           `Waiting ${(remaining / 1000).toFixed(1)}s for Plex rate limit cooldown to expire`,
@@ -121,7 +101,6 @@ export class PlexRateLimiter {
     return false
   }
 
-  // Reset rate limited state (useful for testing)
   public reset(): void {
     this.isRateLimited = false
     this.cooldownEndTime = 0

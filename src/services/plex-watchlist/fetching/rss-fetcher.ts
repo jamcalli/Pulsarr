@@ -6,6 +6,7 @@ import type {
   RssResponse,
   RssWatchlistItem,
 } from '@root/types/plex.types.js'
+import { errorMessage } from '@utils/error-message.js'
 import {
   normalizeGenre,
   normalizeGuid,
@@ -17,34 +18,17 @@ import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
-/**
- * Generate a stable cache key from GUIDs.
- * Used for RSS feed diffing to detect new items consistently.
- *
- * @param guids - Array of GUID strings
- * @returns Stable key string (sorted, normalized, deduplicated, joined)
- */
 export function generateStableKey(guids: string[]): string {
   const normalized = guids.map((g) => g.toLowerCase().trim()).filter(Boolean)
 
-  // Deduplicate after normalization to keep keys stable
   return Array.from(new Set(normalized)).sort().join('|')
 }
 
-/**
- * Generates RSS feed URLs for the given Plex tokens.
- *
- * @param tokens - Set of Plex authentication tokens
- * @param skipFriendSync - Whether to skip generating friend watchlist RSS feeds
- * @param log - Fastify logger instance
- * @returns Promise resolving to an object with selfRss and friendsRss URLs
- */
 export const getPlexWatchlistUrls = async (
   tokens: Set<string>,
   skipFriendSync: boolean,
   log: FastifyBaseLogger,
 ): Promise<PlexWatchlistUrls> => {
-  // Use the first token (single-token design)
   const token = tokens.values().next().value as string | undefined
   if (!token) {
     log.warn('No Plex token provided')
@@ -73,14 +57,6 @@ export const getPlexWatchlistUrls = async (
   return { selfRss, friendsRss }
 }
 
-/**
- * Generates an RSS feed URL for a specific Plex token and feed type.
- *
- * @param token - The Plex authentication token
- * @param rssType - Type of RSS feed ('watchlist' or 'friendsWatchlist')
- * @param log - Fastify logger instance
- * @returns Promise resolving to the RSS feed URL or null on failure
- */
 export const getRssFromPlexToken = async (
   token: string,
   rssType: string,
@@ -120,14 +96,6 @@ export const getRssFromPlexToken = async (
   }
 }
 
-/**
- * Fetches and parses a watchlist from a Plex RSS feed.
- *
- * @param url - The RSS feed URL
- * @param userId - Internal user ID
- * @param log - Fastify logger instance
- * @returns Promise resolving to a Set of Items from the RSS feed
- */
 export const fetchWatchlistFromRss = async (
   url: string,
   userId: number,
@@ -162,7 +130,7 @@ export const fetchWatchlistFromRss = async (
 
           const item: Item = {
             title: metadata.title || 'Unknown Title',
-            // Use stable key from GUIDs - replaced with real Plex ratingKey during enrichment
+            // Placeholder key from the GUIDs until enrichment swaps in the real Plex ratingKey
             key: generateStableKey(normalizedGuids) || metadata.title || '',
             type: (metadata.category || 'unknown').toUpperCase(),
             thumb: normalizePosterPath(metadata.thumbnail?.url) || '',
@@ -189,46 +157,41 @@ export const fetchWatchlistFromRss = async (
   return items
 }
 
-/**
- * Fetch raw RSS feed content.
- * Used by the RSS feed cache for polling and diffing.
- *
- * Note: HTTP ETag optimization removed due to Plex S3 migration (Jan 2026).
- * S3 generates different ETags and 302 redirects break If-None-Match semantics.
- * Change detection now relies on stable key (GUID) diffing in RssFeedCacheManager.
- *
- * @param url - The RSS feed URL
- * @param token - Plex authentication token
- * @param log - Logger instance
- * @returns Raw RSS items with metadata
- */
+/** Sends If-None-Match when etag is given, and a 304 comes back as success with notModified and no items. */
 export async function fetchRawRssFeed(
   url: string,
   token: string,
   log: FastifyBaseLogger,
+  etag?: string,
 ): Promise<RawRssFetchResult> {
   try {
     const urlObj = new URL(url)
     urlObj.searchParams.set('format', 'json')
 
-    // Simple GET request - follows 302 redirects to S3 automatically
+    const headers: Record<string, string> = {
+      'User-Agent': USER_AGENT,
+      'X-Plex-Token': token,
+      'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+      Accept: 'application/json',
+    }
+    if (etag) {
+      headers['If-None-Match'] = etag
+    }
+
     const response = await fetch(urlObj.toString(), {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
-        Accept: 'application/json',
-      },
+      headers,
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
-    // Auth errors
+    if (response.status === 304) {
+      return { success: true, items: [], notModified: true, etag }
+    }
+
     if (response.status === 401 || response.status === 403) {
       log.warn('RSS feed auth error - user may lack RSS access')
       return { success: false, items: [], authError: true }
     }
 
-    // Not found
     if (response.status === 404) {
       log.warn('RSS feed not found')
       return { success: false, items: [], notFound: true }
@@ -247,7 +210,6 @@ export async function fetchRawRssFeed(
 
     if (json?.items && Array.isArray(json.items)) {
       for (const rawItem of json.items) {
-        // Validate required fields
         if (
           !rawItem.title ||
           !rawItem.category ||
@@ -258,7 +220,6 @@ export async function fetchRawRssFeed(
           continue
         }
 
-        // Normalize GUIDs
         const normalizedGuids = rawItem.guids
           .filter(
             (guid): guid is string =>
@@ -282,10 +243,14 @@ export async function fetchRawRssFeed(
     }
 
     log.debug({ itemCount: items.length }, 'RSS feed fetched')
-    return { success: true, items }
+    return {
+      success: true,
+      items,
+      etag: response.headers.get('etag') ?? undefined,
+    }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    log.error({ error: errorMessage }, 'Failed to fetch RSS feed')
-    return { success: false, items: [], error: errorMessage }
+    const message = errorMessage(error)
+    log.error({ error: message }, 'Failed to fetch RSS feed')
+    return { success: false, items: [], error: message }
   }
 }

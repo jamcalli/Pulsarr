@@ -1,23 +1,14 @@
-/**
- * Removal Handler Orchestration
- *
- * Functions for handling removed watchlist items and label sync cleanup.
- * Extracted from PlexWatchlistService to support thin orchestrator pattern.
- */
-
 import type {
   Friend,
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { toError } from '@utils/error-message.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from '../../plex-label-sync.service.js'
 
-/**
- * Dependencies for removal handler operations
- */
 export interface RemovalHandlerDeps {
   db: DatabaseService
   logger: FastifyBaseLogger
@@ -25,16 +16,6 @@ export interface RemovalHandlerDeps {
   fastify?: FastifyInstance
 }
 
-/**
- * Handles items that have been removed from a user's watchlist.
- * Cleans up labels if label sync is enabled, then deletes from database.
- *
- * @param userId - The user whose items were removed
- * @param username - The username of the user
- * @param currentKeys - Keys of items currently in the database
- * @param fetchedKeys - Keys of items currently in the user's watchlist
- * @param deps - Dependencies for database and label sync
- */
 export async function handleRemovedItems(
   userId: number,
   username: string,
@@ -53,14 +34,11 @@ export async function handleRemovedItems(
       `Detected ${removedKeys.length} removed items for user ${userId}`,
     )
 
-    // Get the watchlist items that will be deleted for label cleanup and webhook dispatch
     const itemsToDelete = await db.getWatchlistItemsByKeys(removedKeys)
-    // Filter to only items belonging to this user
     const userItemsToDelete = itemsToDelete.filter(
       (item) => item.user_id === userId,
     )
 
-    // Send native webhook notifications for each removed item (fire-and-forget)
     if (deps.fastify?.notifications) {
       for (const item of userItemsToDelete) {
         void deps.fastify.notifications.sendWatchlistRemoved(
@@ -71,7 +49,6 @@ export async function handleRemovedItems(
       }
     }
 
-    // Handle label sync cleanup if enabled
     if (plexLabelSyncService && userItemsToDelete.length > 0) {
       try {
         const labelCleanupItems = userItemsToDelete.map((item) => ({
@@ -88,7 +65,7 @@ export async function handleRemovedItems(
           labelCleanupItems,
         )
       } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error))
+        const err = toError(error)
         logger.error(
           {
             error: err,
@@ -98,7 +75,6 @@ export async function handleRemovedItems(
           },
           'Failed to cleanup labels for removed watchlist items:',
         )
-        // Continue with deletion even if label cleanup fails
       }
     }
 
@@ -113,14 +89,7 @@ export async function handleRemovedItems(
   await db.clearExclusions(userId, staleKeys)
 }
 
-/**
- * Handles items that were just linked to users by immediately syncing labels.
- * Groups items by content key so each unique content is synced once.
- * Falls back to pending queue if immediate sync fails.
- *
- * @param linkItems - The items that were linked to users
- * @param deps - Dependencies for database and label sync
- */
+/** Syncs labels once per content key, and queues the content for later when the immediate sync fails. */
 export async function handleLinkedItemsForLabelSync(
   linkItems: WatchlistItem[],
   deps: RemovalHandlerDeps,
@@ -135,7 +104,6 @@ export async function handleLinkedItemsForLabelSync(
     const keys = linkItems.map((item) => item.key)
     const dbItems = await db.getWatchlistItemsByKeys(keys)
 
-    // Create composite key index for O(1) lookups
     const byKeyUser = new Map<string, { id: number; title: string }>()
     for (const item of dbItems) {
       if (
@@ -150,7 +118,6 @@ export async function handleLinkedItemsForLabelSync(
       }
     }
 
-    // Group by unique content key so each content is synced once
     const contentMap = new Map<
       string,
       { title: string; watchlistIds: number[] }
@@ -182,7 +149,6 @@ export async function handleLinkedItemsForLabelSync(
       logger.debug(`Detected ${count} linked items for user ${userId}`)
     }
 
-    // Attempt immediate sync per unique content, queue on failure
     let synced = 0
     let queued = 0
     for (const [_contentKey, content] of contentMap.entries()) {
@@ -212,7 +178,7 @@ export async function handleLinkedItemsForLabelSync(
       )
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const err = toError(error)
     logger.error(
       {
         error: err,
@@ -230,13 +196,6 @@ export async function handleLinkedItemsForLabelSync(
   }
 }
 
-/**
- * Checks for removed items across all users in the watchlist map.
- * Compares current database items with fetched watchlist items.
- *
- * @param userWatchlistMap - Map of users to their current watchlist items
- * @param deps - Dependencies for database and label sync
- */
 export async function checkForRemovedItems(
   userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   deps: RemovalHandlerDeps,
@@ -245,7 +204,7 @@ export async function checkForRemovedItems(
   const { db } = deps
 
   for (const [user, items] of userWatchlistMap.entries()) {
-    // a fallback set is the stored rows, not Plex, so nothing can be judged removed from it
+    // A fallback set is the stored rows, not Plex, so nothing can be judged removed from it
     if (fallbackUserIds.has(user.userId)) continue
     const currentItems = await db.getAllWatchlistItemsForUser(user.userId)
 

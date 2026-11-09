@@ -7,17 +7,9 @@ import type {
   GraphQLQuery,
   PlexApiResponse,
 } from '@root/types/plex.types.js'
-import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
+import { communityHeaders, PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
-/**
- * Fetches the list of friends from the Plex API for all configured tokens.
- *
- * @param config - Application configuration containing Plex tokens
- * @param log - Fastify logger instance
- * @returns Promise resolving to a FriendsResult containing friend data and status
- */
 export const getFriends = async (
   config: Config,
   log: FastifyBaseLogger,
@@ -36,7 +28,6 @@ export const getFriends = async (
   }
 
   for (const token of config.plexTokens) {
-    // Skip falsy tokens to prevent predictable API failures
     if (!token) {
       continue
     }
@@ -59,11 +50,7 @@ export const getFriends = async (
       log.debug('Fetching friends with Plex token')
       const response = await fetch(url.toString(), {
         method: 'POST',
-        headers: {
-          'User-Agent': USER_AGENT,
-          'Content-Type': 'application/json',
-          'X-Plex-Token': token,
-        },
+        headers: communityHeaders(token),
         body: JSON.stringify(query),
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
@@ -107,18 +94,15 @@ export const getFriends = async (
 
         if (friends.length === 0) {
           log.warn('No friends found for Plex token')
-          // Note: Empty friends list is not an API error - user may legitimately have no friends
         }
 
         for (const friend of friends) {
-          // Use watchlistId as the unique key to deduplicate friends across tokens
           allFriends.set(friend[0].watchlistId, friend)
           log.debug(
             `Added friend: ${friend[0].username} (watchlistId: ${friend[0].watchlistId})`,
           )
         }
 
-        // Mark as successful if we got a valid response (even if empty)
         hasAnySuccess = true
       }
     } catch (err) {
@@ -127,7 +111,6 @@ export const getFriends = async (
     }
   }
 
-  // Convert Map to Set for return value to maintain API compatibility
   const friendsSet = new Set(allFriends.values())
 
   const result: FriendsResult = {
@@ -147,13 +130,6 @@ export const getFriends = async (
   return result
 }
 
-/**
- * Fetches sent and received friend requests from the Plex GraphQL API.
- *
- * @param config - Application configuration containing Plex tokens
- * @param log - Fastify logger instance
- * @returns Promise resolving to sent/received friend request lists
- */
 export const getFriendRequests = async (
   config: Config,
   log: FastifyBaseLogger,
@@ -186,11 +162,7 @@ export const getFriendRequests = async (
     log.debug('Fetching friend requests from Plex')
     const response = await fetch(url.toString(), {
       method: 'POST',
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Content-Type': 'application/json',
-        'X-Plex-Token': token,
-      },
+      headers: communityHeaders(token),
       body: JSON.stringify(query),
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
@@ -228,14 +200,6 @@ export const getFriendRequests = async (
   }
 }
 
-/**
- * Sends a friend request to a Plex user via the GraphQL API.
- *
- * @param config - Application configuration containing Plex tokens
- * @param log - Fastify logger instance
- * @param uuid - The Plex user UUID to send the friend request to
- * @returns Promise resolving to success status
- */
 export const sendFriendRequest = async (
   config: Config,
   log: FastifyBaseLogger,
@@ -259,11 +223,7 @@ export const sendFriendRequest = async (
     log.debug(`Sending friend request to user ${uuid}`)
     const response = await fetch(url.toString(), {
       method: 'POST',
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Content-Type': 'application/json',
-        'X-Plex-Token': token,
-      },
+      headers: communityHeaders(token),
       body: JSON.stringify(query),
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
@@ -293,15 +253,7 @@ export const sendFriendRequest = async (
   }
 }
 
-/**
- * Cancels a pending sent friend request via the Plex GraphQL API.
- * Uses the removeFriend mutation which works on both friends and pending requests.
- *
- * @param config - Application configuration containing Plex tokens
- * @param log - Fastify logger instance
- * @param uuid - The Plex user UUID to cancel the friend request for
- * @returns Promise resolving to success status
- */
+/** The removeFriend mutation also cancels a pending request. */
 export const cancelFriendRequest = async (
   config: Config,
   log: FastifyBaseLogger,
@@ -325,11 +277,7 @@ export const cancelFriendRequest = async (
     log.debug(`Canceling friend request for user ${uuid}`)
     const response = await fetch(url.toString(), {
       method: 'POST',
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Content-Type': 'application/json',
-        'X-Plex-Token': token,
-      },
+      headers: communityHeaders(token),
       body: JSON.stringify(query),
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })

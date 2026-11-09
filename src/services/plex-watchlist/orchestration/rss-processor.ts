@@ -20,7 +20,7 @@ export interface RssProcessorDeps {
   fastify: FastifyInstance
 }
 
-/** Persists the URLs to config and the DB; throws when no Plex token is configured. */
+/** Persists the URLs to config and the DB, and throws when no Plex token is configured. */
 export async function generateAndSaveRssFeeds(
   deps: RssProcessorDeps,
 ): Promise<RssFeedsSuccess> {
@@ -58,7 +58,7 @@ export async function generateAndSaveRssFeeds(
   }
 }
 
-/** Generates and saves the feed URLs when neither is configured; throws if none can be obtained. */
+/** Generates and saves the feed URLs when neither is configured, and throws if none can be obtained. */
 export async function ensureRssFeeds(
   deps: RssProcessorDeps,
 ): Promise<{ selfRss?: string; friendsRss?: string }> {
@@ -68,7 +68,6 @@ export async function ensureRssFeeds(
     logger.debug(
       'No RSS feeds found in configuration, attempting to generate...',
     )
-    // generateAndSaveRssFeeds handles both DB persistence and in-memory config sync
     await generateAndSaveRssFeeds(deps)
     const updatedConfig = await db.getConfig()
 
