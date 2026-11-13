@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
-    "@fumadocs/base-ui": "16.17.9",
+    "@fumadocs/base-ui": "16.19.0",
     "@tailwindcss/typography": "^0.5.20",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
-    "fumadocs-core": "16.17.9",
-    "fumadocs-mdx": "15.4.10",
-    "fumadocs-openapi": "12.5.6",
-    "fumadocs-ui": "npm:@fumadocs/base-ui@16.17.9",
+    "fumadocs-core": "16.19.0",
+    "fumadocs-mdx": "15.6.1",
+    "fumadocs-openapi": "12.6.3",
+    "fumadocs-ui": "npm:@fumadocs/base-ui@16.19.0",
     "lucide-react": "^1.0.0",
     "next": "16.4.3",
     "react": "^19.3.1",
@@ -28,7 +28,7 @@
     "tw-animate-css": "^1.3.6"
   },
   "devDependencies": {
-    "@fumadocs/cli": "1.7.6",
+    "@fumadocs/cli": "1.9.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/mdx": "^2.0.14",
     "@types/node": "^26.6.5",
