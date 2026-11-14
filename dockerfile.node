@@ -8,7 +8,7 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 # Rewrite the manifest for Node: real better-sqlite3 instead of the bun:sqlite shim, tsx for runtime TypeScript, npm scripts
 COPY package.json ./package.json.bak
 RUN cat package.json.bak \
-    | sed 's|"file:packages/better-sqlite3-bun"|"13.0.3"|' \
+    | sed 's|"file:packages/better-sqlite3-bun"|"13.2.0"|' \
     | sed '/"better-sqlite3":/a\    "tsx": "^4.23.15",' \
     | sed 's|bun run build:server|npm run build:server|g' \
     | sed 's|bun run clean:server|npm run clean:server|g' \
