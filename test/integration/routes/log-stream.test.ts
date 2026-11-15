@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { appendFile, mkdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { appendFile, mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { LogEntry } from '@root/types/logs.types.js'
-import { resolveLogPath } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
@@ -17,8 +17,6 @@ function logEntry(message: string): LogEntry {
   }
 }
 
-const logFile = resolve(resolveLogPath(), 'pulsarr-current.log')
-
 function pinoLine(msg: string): string {
   return `${JSON.stringify({ level: 30, time: Date.now(), msg })}\n`
 }
@@ -26,8 +24,15 @@ function pinoLine(msg: string): string {
 describe('log stream', { timeout: 30_000 }, () => {
   let app: FastifyInstance
   let baseUrl: string
+  let dataDir: string
+  let logFile: string
+  const previousDataDir = process.env.dataDir
 
   beforeAll(async () => {
+    dataDir = await mkdtemp(join(tmpdir(), 'log-stream-'))
+    process.env.dataDir = dataDir
+    await mkdir(join(dataDir, 'logs'))
+    logFile = join(dataDir, 'logs', 'pulsarr-current.log')
     app = await build()
     await app.ready()
     await app.listen({ port: 0, host: '127.0.0.1' })
@@ -40,6 +45,9 @@ describe('log stream', { timeout: 30_000 }, () => {
 
   afterAll(async () => {
     await app.close()
+    if (previousDataDir === undefined) delete process.env.dataDir
+    else process.env.dataDir = previousDataDir
+    await rm(dataDir, { recursive: true, force: true })
   })
 
   beforeEach(async () => {
@@ -141,7 +149,6 @@ describe('log stream', { timeout: 30_000 }, () => {
 
   it('ends the stream after replay when follow is false', async () => {
     const marker = `replay-${randomUUID()}`
-    await mkdir(resolveLogPath(), { recursive: true })
     await appendFile(logFile, pinoLine(`${marker} entry`))
 
     const controller = new AbortController()
@@ -176,7 +183,6 @@ describe('log stream', { timeout: 30_000 }, () => {
 
   it('applies the filter within the tail window without backfilling older matches', async () => {
     const marker = `tail-window-${randomUUID()}`
-    await mkdir(resolveLogPath(), { recursive: true })
     await appendFile(
       logFile,
       pinoLine(`${marker} target`) +
