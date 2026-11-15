@@ -2070,9 +2070,13 @@ If a title isn't in Plex yet when it's ready, Pulsarr keeps trying for about ten
 
 ## Mobile app setup [#mobile-app-setup]
 
-Users need push notifications turned on in the Plex app, under **Settings** > **Notifications**.
+Each user sets this up in their own Plex app.
 
-Plex can also notify about every new item in a library, under **New Content Added to Library**. With that on, users get two notifications for the same title. Unchecking all libraries there leaves only Pulsarr's, which only cover what's on their watchlist.
+1. Open the Plex Android or iOS app and go to **Settings** > **Notifications**.
+2. Enable **New Content Added to Library**.
+3. Uncheck all libraries for your server. Otherwise Plex also notifies about every new item, and users get two notifications for the same title.
+
+**Send a test push** from Pulsarr should then arrive.
 
 
 # Public content (/notifications/public-content)
