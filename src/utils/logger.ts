@@ -194,45 +194,48 @@ const SERIALIZERS = {
   err: errorSerializer,
 } as const
 
-/**
- * Build a Pulsarr log filename from a date (or return the current-log name).
- *
- * If `time` is falsy (null/undefined/0) the function returns `pulsarr-current.log`.
- * Otherwise it returns `pulsarr-YYYY-MM-DD[-index].log.gz` for rotated (compressed) logs.
- *
- * @param time - Date or timestamp to base the filename on; falsy returns the current log name.
- * @param index - Optional rotation index appended as `-index`; only included when a truthy number is provided.
- * @returns The generated log filename.
- */
-function filename(time: number | Date | null, index?: number): string {
-  if (!time) return 'pulsarr-current.log'
-  const date = typeof time === 'number' ? new Date(time) : time
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+function filename(args: rfs.GeneratorArguments | null): string {
+  if (!args) return 'pulsarr-current.log'
+  const { time, index } = args
+  const year = time.getFullYear()
+  const month = String(time.getMonth() + 1).padStart(2, '0')
+  const day = String(time.getDate()).padStart(2, '0')
   const indexStr = index ? `-${index}` : ''
   return `pulsarr-${year}-${month}-${day}${indexStr}.log.gz`
 }
 
-/**
- * Creates and returns a rotating file stream for logging, ensuring the log directory exists.
- *
- * If the log directory cannot be created or accessed, falls back to standard output.
- *
- * @returns A rotating file stream for logs, or {@link process.stdout} if setup fails.
- */
+function reportOnce(
+  stream: rfs.RotatingFileStream,
+  event: 'error' | 'warning',
+  label: string,
+): void {
+  let reported = false
+  stream.on(event, (err: Error) => {
+    if (reported) return
+    reported = true
+    console.error(label, err)
+  })
+}
+
 function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
   const logDirectory = resolveLogPath()
   try {
     if (!fs.existsSync(logDirectory)) {
       fs.mkdirSync(logDirectory, { recursive: true })
     }
-    return rfs.createStream(filename, {
+    const stream = rfs.createStream(filename, {
       size: '10M',
       path: logDirectory,
       compress: 'gzip',
       maxFiles: 7,
     })
+    reportOnce(
+      stream,
+      'error',
+      'Log file stream failed and file logging stopped:',
+    )
+    reportOnce(stream, 'warning', 'Log file stream warning:')
+    return stream
   } catch (err) {
     console.error('Failed to setup log directory:', err)
     return process.stdout

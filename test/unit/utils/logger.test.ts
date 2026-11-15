@@ -1,4 +1,9 @@
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { FastifyRequest } from 'fastify'
+import type * as rfsModule from 'rotating-file-stream'
+import { createStream } from 'rotating-file-stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
 
@@ -15,6 +20,7 @@ vi.mock('rotating-file-stream', () => ({
   createStream: vi.fn(() => ({
     write: vi.fn(),
     end: vi.fn(),
+    on: vi.fn(),
   })),
 }))
 
@@ -603,6 +609,83 @@ describe('logger', () => {
       const serializers = (config as LoggerConfigWithSerializers).serializers
       expect(serializers?.error).toBeTypeOf('function')
       expect(serializers?.req).toBeTypeOf('function')
+    })
+  })
+
+  describe('log file names', () => {
+    async function generator(): Promise<rfsModule.StandardGenerator> {
+      process.env.enableConsoleOutput = 'false'
+      const module = await import('@utils/logger.js')
+      module.createLoggerConfig()
+      delete process.env.enableConsoleOutput
+      const name = vi.mocked(createStream).mock.lastCall?.[0]
+      if (typeof name !== 'function') throw new Error('Expected a generator')
+      return name
+    }
+
+    it('names the live file without a date', async () => {
+      expect((await generator())(null)).toBe('pulsarr-current.log')
+    })
+
+    it('omits the index suffix for index 0', async () => {
+      const name = (await generator())({ index: 0, time: new Date(2026, 0, 5) })
+      expect(name).toBe('pulsarr-2026-01-05.log.gz')
+    })
+
+    it('appends a truthy index', async () => {
+      const make = await generator()
+      const time = new Date(2026, 10, 15)
+      expect(make({ index: 1, time })).toBe('pulsarr-2026-11-15-1.log.gz')
+      expect(make({ index: 3, time })).toBe('pulsarr-2026-11-15-3.log.gz')
+    })
+  })
+
+  describe('file stream failure', () => {
+    let dataDir: string
+    const previousDataDir = process.env.dataDir
+
+    beforeEach(async () => {
+      dataDir = await mkdtemp(join(tmpdir(), 'logger-'))
+      process.env.dataDir = dataDir
+      process.env.enableConsoleOutput = 'false'
+      await mkdir(join(dataDir, 'logs', 'pulsarr-current.log'), {
+        recursive: true,
+      })
+    })
+
+    afterEach(async () => {
+      delete process.env.enableConsoleOutput
+      if (previousDataDir === undefined) delete process.env.dataDir
+      else process.env.dataDir = previousDataDir
+      await rm(dataDir, { recursive: true, force: true })
+    })
+
+    it('survives an unopenable log file and keeps logging', async () => {
+      const actualRfs = await vi.importActual<typeof rfsModule>(
+        'rotating-file-stream',
+      )
+      const { default: actualPino } =
+        await vi.importActual<typeof import('pino')>('pino')
+      vi.mocked(createStream).mockImplementationOnce(actualRfs.createStream)
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const module = await import('@utils/logger.js')
+      const { stream } = module.createLoggerConfig()
+      if (!(stream instanceof actualRfs.RotatingFileStream)) {
+        throw new Error('Expected a rotating file stream')
+      }
+      await new Promise<void>((resolve) =>
+        stream.once('close', () => resolve()),
+      )
+
+      const logger = actualPino(
+        {},
+        actualPino.multistream([{ stream, level: 'trace' }]),
+      )
+      expect(() => logger.info('after the failure')).not.toThrow()
+      expect(() => logger.error('again')).not.toThrow()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(stream.destroyed).toBe(true)
     })
   })
 
