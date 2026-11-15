@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
-import { open, stat } from 'node:fs/promises'
+import { type FileHandle, open, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { StringDecoder } from 'node:string_decoder'
 import type { LogEntry, LogValue } from '@root/types/logs.types.js'
 import { resolveLogPath } from '@utils/data-dir.js'
 import {
@@ -8,7 +9,7 @@ import {
   parseModuleFromMsg,
   pinoLevelToName,
 } from '@utils/logger.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { FastifyBaseLogger } from 'fastify'
 
 export interface LogStreamingOptions {
   tail: number
@@ -16,7 +17,6 @@ export interface LogStreamingOptions {
   filter?: string
 }
 
-// Standard pino fields to exclude when collecting extra data
 const PINO_STANDARD_FIELDS = new Set([
   'level',
   'time',
@@ -26,39 +26,61 @@ const PINO_STANDARD_FIELDS = new Set([
   'v',
 ])
 
-export class LogStreamingService {
-  private static instance: LogStreamingService
-  private eventEmitter: EventEmitter
-  private activeConnections: Map<string, LogStreamingOptions> = new Map()
-  private watchedFiles: Map<
-    string,
-    { size: number; interval?: NodeJS.Timeout }
-  > = new Map()
-  private readonly logFilePath: string
-  private _watchTickInFlight = false
-  private _startingFileWatch = false
-  private partialLine = ''
-  private readonly log: FastifyBaseLogger
+const MAX_STREAM_LISTENERS = 100
+const WATCH_INTERVAL_MS = 1000
+const TAIL_READ_CHUNK_BYTES = 64 * 1024
+const TAIL_READ_MAX_BYTES = 4 * 1024 * 1024
+const LIVE_READ_CHUNK_BYTES = 64 * 1024
+const NEWLINE = 0x0a
 
-  private constructor(
-    readonly baseLog: FastifyBaseLogger,
-    readonly _fastify: FastifyInstance,
-  ) {
-    this.log = createServiceLogger(baseLog, 'LOG_STREAMING')
-    this.eventEmitter = new EventEmitter()
-    // Allow many concurrent SSE consumers without warnings
-    this.eventEmitter.setMaxListeners(100)
-    this.logFilePath = resolve(resolveLogPath(), 'pulsarr-current.log')
+interface WatchedFile {
+  phase: 'watching'
+  position: number
+  interval: NodeJS.Timeout
+  tickInFlight: boolean
+  partialLine: string
+  decoder: StringDecoder
+}
+
+type WatchState = { phase: 'idle' } | { phase: 'starting' } | WatchedFile
+
+const IDLE: WatchState = { phase: 'idle' }
+
+/** Returns undefined when there is no filter, so callers can skip filtering entirely. */
+export function createLogFilter(
+  filter?: string,
+): ((entry: LogEntry) => boolean) | undefined {
+  if (!filter) return undefined
+  const needle = filter.toLowerCase()
+  return (entry) => entry.message.toLowerCase().includes(needle)
+}
+
+function countNewlines(buffer: Buffer): number {
+  let count = 0
+  let index = buffer.indexOf(NEWLINE)
+  while (index !== -1) {
+    count++
+    index = buffer.indexOf(NEWLINE, index + 1)
   }
+  return count
+}
 
-  static getInstance(
-    baseLog: FastifyBaseLogger,
-    fastify: FastifyInstance,
-  ): LogStreamingService {
-    if (!LogStreamingService.instance) {
-      LogStreamingService.instance = new LogStreamingService(baseLog, fastify)
-    }
-    return LogStreamingService.instance
+function nonBlankLines(text: string, startsMidLine: boolean): string[] {
+  const lines = text.split('\n')
+  return (startsMidLine ? lines.slice(1) : lines).filter((line) => line.trim())
+}
+
+export class LogStreamingService {
+  private readonly eventEmitter = new EventEmitter()
+  private readonly activeConnections = new Map<string, LogStreamingOptions>()
+  private readonly logFilePath: string
+  private readonly log: FastifyBaseLogger
+  private watch: WatchState = IDLE
+
+  constructor(baseLog: FastifyBaseLogger) {
+    this.log = createServiceLogger(baseLog, 'LOG_STREAMING')
+    this.eventEmitter.setMaxListeners(MAX_STREAM_LISTENERS)
+    this.logFilePath = resolve(resolveLogPath(), 'pulsarr-current.log')
   }
 
   addConnection(id: string, options: LogStreamingOptions) {
@@ -67,10 +89,8 @@ export class LogStreamingService {
       { connectionId: id, options },
       'Adding log streaming connection',
     )
-
-    // Start watching if this is the first connection
     if (this.activeConnections.size === 1) {
-      this.startFileWatching()
+      void this.startFileWatching()
     }
   }
 
@@ -80,8 +100,6 @@ export class LogStreamingService {
     }
     this.activeConnections.delete(id)
     this.log.debug({ connectionId: id }, 'Removing log streaming connection')
-
-    // Stop watching if no connections remain
     if (this.activeConnections.size === 0) {
       this.stopFileWatching()
     }
@@ -91,81 +109,20 @@ export class LogStreamingService {
     return this.eventEmitter
   }
 
-  hasActiveConnections(): boolean {
-    return this.activeConnections.size > 0
-  }
-
   shutdown(): void {
-    for (const [_file, { interval }] of this.watchedFiles) {
-      if (interval) {
-        clearInterval(interval)
-      }
-    }
-    this.watchedFiles.clear()
+    this.stopFileWatching()
+    this.watch = IDLE
     this.activeConnections.clear()
     this.eventEmitter.removeAllListeners()
-    this.partialLine = ''
-    this._startingFileWatch = false
-    this._watchTickInFlight = false
   }
 
   async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {
     if (lines <= 0) return []
+    let found: string[]
     try {
       const fileHandle = await open(this.logFilePath, 'r')
-      const stats = await fileHandle.stat()
-
       try {
-        // Start with a reasonable chunk size (64KB) and grow if needed
-        const maxChunkSize = 256 * 1024 // 256KB max
-        let chunkSize = Math.min(64 * 1024, stats.size)
-        let foundLines: string[] = []
-
-        // Always read at least once, then continue if needed
-        do {
-          const start = Math.max(0, stats.size - chunkSize)
-          const buffer = Buffer.alloc(chunkSize)
-          const { bytesRead } = await fileHandle.read(
-            buffer,
-            0,
-            chunkSize,
-            start,
-          )
-
-          const content = buffer.subarray(0, bytesRead).toString('utf-8')
-          const allLines = content
-            .trim()
-            .split('\n')
-            .filter((line) => line.trim())
-
-          foundLines = allLines
-
-          // If we have enough lines or read the whole file, break
-          if (
-            foundLines.length >= lines ||
-            chunkSize >= stats.size ||
-            chunkSize >= maxChunkSize
-          ) {
-            break
-          }
-
-          // Double chunk size for next attempt, up to max
-          const next = Math.min(chunkSize * 2, stats.size, maxChunkSize)
-          if (next === chunkSize) break
-          chunkSize = next
-        } while (foundLines.length < lines && chunkSize < maxChunkSize)
-
-        // filter on parsed message so replay matches live-entry filtering
-        const entries = foundLines
-          .slice(-lines)
-          .map((line) => this.parseLogLine(line))
-        if (!filter) {
-          return entries
-        }
-        const needle = filter.toLowerCase()
-        return entries.filter((entry) =>
-          entry.message.toLowerCase().includes(needle),
-        )
+        found = await this.readTail(fileHandle, lines)
       } finally {
         await fileHandle.close()
       }
@@ -173,6 +130,42 @@ export class LogStreamingService {
       this.log.warn({ error }, 'Failed to read log file for tail')
       return []
     }
+
+    const entries = found.slice(-lines).map((line) => this.parseLogLine(line))
+    const matches = createLogFilter(filter)
+    return matches ? entries.filter(matches) : entries
+  }
+
+  private async readTail(
+    fileHandle: FileHandle,
+    lines: number,
+  ): Promise<string[]> {
+    const { size } = await fileHandle.stat()
+    const floor = Math.max(0, size - TAIL_READ_MAX_BYTES)
+    const chunks: Buffer[] = []
+    let start = size
+    let newlines = 0
+
+    while (start > floor) {
+      const length = Math.min(TAIL_READ_CHUNK_BYTES, start - floor)
+      start -= length
+      const chunk = Buffer.allocUnsafe(length)
+      const { bytesRead } = await fileHandle.read(chunk, 0, length, start)
+      const read = chunk.subarray(0, bytesRead)
+      chunks.unshift(read)
+      newlines += countNewlines(read)
+
+      // Blank lines are dropped, so enough newlines is necessary but not sufficient
+      if (newlines >= lines && start > floor) {
+        const found = nonBlankLines(
+          Buffer.concat(chunks).toString('utf8'),
+          true,
+        )
+        if (found.length >= lines) return found
+      }
+    }
+
+    return nonBlankLines(Buffer.concat(chunks).toString('utf8'), start > 0)
   }
 
   private parseLogLine(line: string): LogEntry {
@@ -189,7 +182,6 @@ export class LogStreamingService {
         typeof parsed.msg === 'string' ? parsed.msg : '',
       )
 
-      // Collect extra fields beyond standard pino fields into data
       let data: Record<string, LogValue> | undefined
       for (const key of Object.keys(parsed)) {
         if (PINO_STANDARD_FIELDS.has(key)) continue
@@ -211,143 +203,134 @@ export class LogStreamingService {
   }
 
   private async startFileWatching() {
-    if (this.watchedFiles.has(this.logFilePath) || this._startingFileWatch) {
+    if (this.watch.phase !== 'idle') {
       return
     }
-    this._startingFileWatch = true
+    const starting: WatchState = { phase: 'starting' }
+    this.watch = starting
 
+    let position = 0
     try {
-      let initialSize = 0
-      try {
-        const stats = await stat(this.logFilePath)
-        initialSize = stats.size
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-          this.log.debug(
-            {
-              file: this.logFilePath,
-            },
-            'Log file not found at startup, will watch for creation',
-          )
-        } else {
-          this.log.warn(
-            {
-              error,
-              file: this.logFilePath,
-            },
-            'Failed to start watching log file',
-          )
-          return
-        }
-      }
-
-      // All connections may have closed while awaiting stat
-      if (this.activeConnections.size === 0) {
+      position = (await stat(this.logFilePath)).size
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        this.log.debug(
+          { file: this.logFilePath },
+          'Log file not found at startup, will watch for creation',
+        )
+      } else {
+        this.log.warn(
+          { error, file: this.logFilePath },
+          'Failed to start watching log file',
+        )
+        if (this.watch === starting) this.watch = IDLE
         return
       }
-
-      this.watchedFiles.set(this.logFilePath, { size: initialSize })
-
-      const interval = setInterval(async () => {
-        if (this._watchTickInFlight) return
-        this._watchTickInFlight = true
-        try {
-          await this.checkFileChanges()
-        } finally {
-          this._watchTickInFlight = false
-        }
-      }, 1000)
-
-      const fileInfo = this.watchedFiles.get(this.logFilePath)
-      if (fileInfo) {
-        fileInfo.interval = interval
-      }
-
-      this.log.debug({ file: this.logFilePath }, 'Started watching log file')
-    } finally {
-      this._startingFileWatch = false
     }
+
+    // A shutdown or a newer start may have replaced this one while stat ran
+    if (this.watch !== starting) {
+      return
+    }
+    if (this.activeConnections.size === 0) {
+      this.watch = IDLE
+      return
+    }
+
+    const watched: WatchedFile = {
+      phase: 'watching',
+      position,
+      interval: setInterval(() => void this.tick(watched), WATCH_INTERVAL_MS),
+      tickInFlight: false,
+      partialLine: '',
+      decoder: new StringDecoder('utf8'),
+    }
+    this.watch = watched
+    this.log.debug({ file: this.logFilePath }, 'Started watching log file')
   }
 
   private stopFileWatching() {
-    const fileInfo = this.watchedFiles.get(this.logFilePath)
-    if (fileInfo?.interval) {
-      clearInterval(fileInfo.interval)
+    // A start still awaiting stat sees no connections and goes idle itself
+    if (this.watch.phase !== 'watching') {
+      return
     }
-    this.watchedFiles.delete(this.logFilePath)
-    this.partialLine = ''
+    clearInterval(this.watch.interval)
+    this.watch = IDLE
     this.log.debug({ file: this.logFilePath }, 'Stopped watching log file')
   }
 
-  private async checkFileChanges() {
+  private async tick(watched: WatchedFile) {
+    if (watched.tickInFlight) return
+    watched.tickInFlight = true
     try {
-      const stats = await stat(this.logFilePath)
-      const fileInfo = this.watchedFiles.get(this.logFilePath)
+      await this.checkFileChanges(watched)
+    } finally {
+      watched.tickInFlight = false
+    }
+  }
 
-      if (!fileInfo) {
+  private async checkFileChanges(watched: WatchedFile) {
+    try {
+      const { size } = await stat(this.logFilePath)
+
+      if (size < watched.position) {
+        // Rotated or truncated, so read the new file from its start
+        watched.position = 0
+        watched.partialLine = ''
+        watched.decoder = new StringDecoder('utf8')
+      }
+      if (size === watched.position) {
         return
       }
 
-      if (stats.size > fileInfo.size) {
-        // File has grown, read the new content properly
-        const fileHandle = await open(this.logFilePath, 'r')
-        try {
-          const buffer = Buffer.alloc(stats.size - fileInfo.size)
+      const fileHandle = await open(this.logFilePath, 'r')
+      try {
+        const chunk = Buffer.allocUnsafe(LIVE_READ_CHUNK_BYTES)
+        while (watched.position < size && this.watch === watched) {
+          const length = Math.min(chunk.length, size - watched.position)
           const { bytesRead } = await fileHandle.read(
-            buffer,
+            chunk,
             0,
-            buffer.length,
-            fileInfo.size,
+            length,
+            watched.position,
           )
-          const newContent = buffer.subarray(0, bytesRead).toString('utf-8')
-
-          // Handle partial lines from previous reads
-          const fullContent = this.partialLine + newContent
-          const lines = fullContent.split('\n')
-
-          // Keep the last line as partial if it doesn't end with newline
-          const endsWithNewline = newContent.endsWith('\n')
-          const newLines = endsWithNewline
-            ? lines.filter((line) => line.trim())
-            : lines.slice(0, -1).filter((line) => line.trim())
-
-          // Store any partial line for next read
-          this.partialLine = endsWithNewline ? '' : lines[lines.length - 1]
-
-          if (newLines.length > 0) {
-            for (const line of newLines) {
-              const entry: LogEntry = this.parseLogLine(line)
-              this.eventEmitter.emit('log', entry)
-            }
-          }
-        } finally {
-          await fileHandle.close()
+          if (bytesRead === 0) break
+          watched.position += bytesRead
+          this.emitLines(
+            watched,
+            watched.decoder.write(chunk.subarray(0, bytesRead)),
+          )
         }
-
-        fileInfo.size = stats.size
-      } else if (stats.size < fileInfo.size) {
-        // File was truncated or rotated, reset size and clear partial line
-        fileInfo.size = stats.size
-        this.partialLine = ''
+      } finally {
+        await fileHandle.close()
       }
     } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code
-      if (code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         this.log.debug(
-          {
-            file: this.logFilePath,
-          },
+          { file: this.logFilePath },
           'Log file not found when checking changes',
         )
         return
       }
       this.log.warn(
-        {
-          error,
-          file: this.logFilePath,
-        },
+        { error, file: this.logFilePath },
         'Error checking file changes',
       )
+    }
+  }
+
+  private emitLines(watched: WatchedFile, text: string) {
+    const content = watched.partialLine + text
+    const lastNewline = content.lastIndexOf('\n')
+    if (lastNewline === -1) {
+      watched.partialLine = content
+      return
+    }
+    watched.partialLine = content.slice(lastNewline + 1)
+    for (const line of content.slice(0, lastNewline).split('\n')) {
+      if (line.trim()) {
+        this.eventEmitter.emit('log', this.parseLogLine(line))
+      }
     }
   }
 }
