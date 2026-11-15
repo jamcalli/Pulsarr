@@ -54,8 +54,14 @@ async function init() {
       } else {
         app.log.info(`${signal} received, server closing`)
       }
-      await app.close()
-      await endLogFile()
+      try {
+        await app.close()
+      } catch (closeErr) {
+        app.log.error({ err: closeErr }, 'server close failed')
+        throw closeErr
+      } finally {
+        await endLogFile()
+      }
     },
   )
 

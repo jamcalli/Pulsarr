@@ -157,4 +157,33 @@ describe('LogFileDestination', () => {
     expect(file.stream.writableFinished).toBe(true)
     expect(file.lines).toEqual(['last\n'])
   })
+
+  it('holds every end call until the file has finished', async () => {
+    let finishFile = () => {}
+    const stream = new Writable({
+      write(_chunk, _encoding, done) {
+        done()
+      },
+      final(done) {
+        finishFile = () => done()
+      },
+    })
+    const destination = new LogFileDestination({
+      initial: stream,
+      open: vi.fn(),
+      fallback: vi.fn(),
+    })
+    const settled: string[] = []
+
+    const first = destination.end().then(() => settled.push('first'))
+    const second = destination.end().then(() => settled.push('second'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(settled).toEqual([])
+
+    finishFile()
+    await Promise.all([first, second])
+
+    expect(settled).toEqual(['first', 'second'])
+    expect(stream.writableFinished).toBe(true)
+  })
 })

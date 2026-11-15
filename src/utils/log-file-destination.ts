@@ -14,7 +14,7 @@ export interface LogFileDestinationOptions {
 export class LogFileDestination implements DestinationStream {
   private stream: Writable | null = null
   private reopenTimer: NodeJS.Timeout | null = null
-  private ended = false
+  private ending: Promise<void> | null = null
   private readonly open: () => Writable
   private readonly fallback: (line: string) => void
   private readonly reopenDelayMs: number
@@ -37,7 +37,11 @@ export class LogFileDestination implements DestinationStream {
 
   /** Resolves once the open file has flushed and closed, and never rejects. */
   end(): Promise<void> {
-    this.ended = true
+    this.ending ??= this.finish()
+    return this.ending
+  }
+
+  private finish(): Promise<void> {
     if (this.reopenTimer) {
       clearTimeout(this.reopenTimer)
       this.reopenTimer = null
@@ -68,10 +72,10 @@ export class LogFileDestination implements DestinationStream {
   }
 
   private scheduleReopen(): void {
-    if (this.ended || this.reopenTimer) return
+    if (this.ending || this.reopenTimer) return
     this.reopenTimer = setTimeout(() => {
       this.reopenTimer = null
-      if (this.ended) return
+      if (this.ending) return
       try {
         this.attach(this.open())
       } catch {
