@@ -28,6 +28,9 @@ export default fp(
 
     // Move initialization to onReady hook
     fastify.addHook('onReady', async () => {
+      service.onSSE('connected', () => emitPlexSSEStatus(fastify))
+      service.onSSE('disconnected', () => emitPlexSSEStatus(fastify))
+
       try {
         const initialized = await service.initialize()
         if (!initialized) {
@@ -45,9 +48,6 @@ export default fp(
               'SSE connection failed - polling will continue as fallback',
             )
           }
-
-          service.onSSE('connected', () => emitPlexSSEStatus(fastify))
-          service.onSSE('disconnected', () => emitPlexSSEStatus(fastify))
         }
       } catch (error) {
         fastify.log.error(

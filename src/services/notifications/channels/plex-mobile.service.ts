@@ -199,7 +199,7 @@ export class PlexMobileService {
       createdAt: Date.now(),
       settle,
     })
-    this.log.debug(
+    this.log.info(
       { queueKey, title: notification.title, username: user.name },
       'Plex mobile notification queued until Plex indexes the content',
     )
@@ -338,16 +338,8 @@ export class PlexMobileService {
     return sendPlexMobileNotification(payload, this.notificationDeps)
   }
 
-  /** Call on SSE disconnect so queued items still retry without content-scanned events. */
-  startRetryPolling(): void {
-    if (this.pendingQueue.size === 0) return
-    this.ensureRetryTimer()
-  }
-
   private ensureRetryTimer(): void {
     if (this.retryTimer) return
-    // A connected SSE stream drives retries through triggerRetryProcessing instead
-    if (this.fastify.plexServerService.isSSEConnected()) return
     this.retryTimer = setTimeout(() => {
       void this.processRetryQueue()
       this.retryTimer = setInterval(() => {
