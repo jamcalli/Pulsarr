@@ -271,20 +271,20 @@ export class LogStreamingService {
 
   private async checkFileChanges(watched: WatchedFile) {
     try {
-      const { size } = await stat(this.logFilePath)
-
-      if (size < watched.position) {
-        // Rotated or truncated, so read the new file from its start
-        watched.position = 0
-        watched.partialLine = ''
-        watched.decoder = new StringDecoder('utf8')
-      }
-      if (size === watched.position) {
-        return
-      }
-
       const fileHandle = await open(this.logFilePath, 'r')
       try {
+        const { size } = await fileHandle.stat()
+
+        if (size < watched.position) {
+          // Rotated or truncated, so read the new file from its start
+          watched.position = 0
+          watched.partialLine = ''
+          watched.decoder = new StringDecoder('utf8')
+        }
+        if (size === watched.position) {
+          return
+        }
+
         const chunk = Buffer.allocUnsafe(LIVE_READ_CHUNK_BYTES)
         while (watched.position < size && this.watch === watched) {
           const length = Math.min(chunk.length, size - watched.position)
