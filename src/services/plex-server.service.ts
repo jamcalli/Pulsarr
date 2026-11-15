@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events'
 import { PLEX_DEFAULT_PORT } from '@root/schemas/plex/configure-notifications.schema.js'
 import { PLEX_PROTECTION_PLAYLIST_DEFAULT } from '@root/schemas/shared/delete-sync-limits.js'
 import type { User } from '@root/types/config.types.js'
@@ -97,6 +98,14 @@ import {
 
 const PLEX_API_TIMEOUT = 30000
 
+const FORWARDED_SSE_EVENTS: { [K in keyof PlexSSEEventMap]: K } = {
+  playing: 'playing',
+  timeline: 'timeline',
+  reachability: 'reachability',
+  connected: 'connected',
+  disconnected: 'disconnected',
+}
+
 /** Used only when nothing better is known, and never cached. */
 const PLEX_FALLBACK_URL = `http://localhost:${PLEX_DEFAULT_PORT}`
 export const CONNECTION_LIST_TTL_MS = 15 * 60 * 1000
@@ -189,6 +198,8 @@ export class PlexServerService {
   private eventSource: PlexEventSource | null = null
   private sessionTracker: SessionTracker | null = null
   private timelineDebouncer: TimelineDebouncer | null = null
+  private readonly sseSubscribers = new EventEmitter()
+  private readonly contentScannedHandlers: ContentScannedHandler[] = []
   private staleSweepInterval: ReturnType<typeof setInterval> | null = null
   private static readonly STALE_SESSION_MS = 5 * 60 * 1000
   private static readonly STALE_SWEEP_INTERVAL_MS = 60 * 1000
@@ -1349,6 +1360,18 @@ export class PlexServerService {
       logger: this.log,
     })
 
+    for (const event of Object.values(FORWARDED_SSE_EVENTS)) {
+      this.eventSource.on(event, (...args) =>
+        this.sseSubscribers.emit(event, ...args),
+      )
+    }
+
+    this.timelineDebouncer.onContentScanned((event) => {
+      for (const handler of this.contentScannedHandlers) {
+        handler(event)
+      }
+    })
+
     this.eventSource.on('timeline', (entries) => {
       this.timelineDebouncer?.handleTimelineEntries(entries)
     })
@@ -1406,7 +1429,7 @@ export class PlexServerService {
     event: K,
     handler: (...args: PlexSSEEventMap[K]) => void,
   ): void {
-    this.eventSource?.on(event, handler)
+    this.sseSubscribers.on(event, handler)
   }
 
   isSSEConnected(): boolean {
@@ -1417,7 +1440,7 @@ export class PlexServerService {
     event: K,
     handler: (...args: PlexSSEEventMap[K]) => void,
   ): void {
-    this.eventSource?.off(event, handler)
+    this.sseSubscribers.off(event, handler)
   }
 
   getSessionTracker(): SessionTracker | null {
@@ -1426,7 +1449,7 @@ export class PlexServerService {
 
   // Fires after a 2-second quiet period following state-5 timeline entries
   onContentScanned(handler: ContentScannedHandler): void {
-    this.timelineDebouncer?.onContentScanned(handler)
+    this.contentScannedHandlers.push(handler)
   }
 
   // Drop pre-disconnect entries so recycled session keys after a Plex restart fire again, then seed live sessions

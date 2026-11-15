@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events'
 import type { PlexExistenceScope } from '@root/types/config.types.js'
 import { CacheRegistry } from '@services/cache-registry.service.js'
 import {
@@ -17,6 +18,22 @@ import {
   plexResource,
 } from '../../mocks/plex-resources.js'
 import { server } from '../../setup/msw-setup.js'
+
+const eventSources = vi.hoisted((): Array<EventEmitter> => [])
+
+vi.mock('@services/plex-server/sse/plex-event-source.js', () => ({
+  PlexEventSource: class extends EventEmitter {
+    constructor() {
+      super()
+      eventSources.push(this)
+    }
+    async connect() {}
+    disconnect() {}
+    isConnected() {
+      return true
+    }
+  },
+}))
 
 const LOCAL_HTTPS = 'https://192-168-1-10.abc.plex.direct:32400'
 const REMOTE_HTTPS = 'https://73-42-118-9.abc.plex.direct:32400'
@@ -933,5 +950,82 @@ describe('PlexServerService.getProtectedItems', () => {
       ...(await service.getOrCreateProtectionPlaylists()).keys(),
     ]).toEqual(['alice', 'owner'])
     expect(playlistCreates).toBe(0)
+  })
+})
+
+describe('PlexServerService SSE subscriptions', () => {
+  const SCANNED_EPISODE = {
+    itemID: '42',
+    identifier: 'com.plexapp.plugins.library',
+    sectionID: '1',
+    type: 4,
+    state: 5,
+    title: 'Episode 1',
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'],
+    })
+    eventSources.length = 0
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function createConnectableService() {
+    const service = createService()
+    vi.spyOn(service, 'getPlexServerUrl').mockResolvedValue(LOCAL_HTTPS)
+    return service
+  }
+
+  function currentStream() {
+    const stream = eventSources.at(-1)
+    if (!stream) throw new Error('expected an open event stream')
+    return stream
+  }
+
+  async function scanOnCurrentStream() {
+    currentStream().emit('timeline', [SCANNED_EPISODE])
+    await vi.advanceTimersByTimeAsync(2_000)
+  }
+
+  it('delivers events to handlers registered before the first connect and after a reconnect', async () => {
+    const service = createConnectableService()
+    const disconnected = vi.fn()
+    const scanned = vi.fn()
+    service.onSSE('disconnected', disconnected)
+    service.onContentScanned(scanned)
+
+    await service.connectSSE()
+    currentStream().emit('disconnected')
+    await scanOnCurrentStream()
+
+    expect(disconnected).toHaveBeenCalledTimes(1)
+    expect(scanned).toHaveBeenCalledWith({ itemIDs: new Set([42]) })
+
+    await service.applyConnectionSettings(false)
+    expect(eventSources).toHaveLength(2)
+    currentStream().emit('disconnected')
+    await scanOnCurrentStream()
+
+    expect(disconnected).toHaveBeenCalledTimes(2)
+    expect(scanned).toHaveBeenCalledTimes(2)
+    service.disconnectSSE()
+  })
+
+  it('stops delivering to a handler removed with offSSE across a reconnect', async () => {
+    const service = createConnectableService()
+    const disconnected = vi.fn()
+    service.onSSE('disconnected', disconnected)
+
+    await service.connectSSE()
+    service.offSSE('disconnected', disconnected)
+    await service.applyConnectionSettings(false)
+    currentStream().emit('disconnected')
+
+    expect(disconnected).not.toHaveBeenCalled()
+    service.disconnectSSE()
   })
 })

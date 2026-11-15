@@ -1,13 +1,16 @@
 import { PLEX_LABEL_SYNC_DEFAULTS } from '@schemas/plex/label-sync-config.schema.js'
-import { removeAllLabels } from '@services/plex-label-sync/cleanup/index.js'
+import { removeAllLabels } from '@services/plex-label-sync/cleanup/label-remover.js'
 import { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
 import type { FastifyInstance } from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
 
-vi.mock('@services/plex-label-sync/cleanup/index.js', () => ({
+vi.mock('@services/plex-label-sync/cleanup/label-cleaner.js', () => ({
   cleanupLabelsForWatchlistItems: vi.fn(),
   cleanupOrphanedPlexLabels: vi.fn(),
+}))
+
+vi.mock('@services/plex-label-sync/cleanup/label-remover.js', () => ({
   removeAllLabels: vi.fn().mockResolvedValue({
     processed: 0,
     removed: 0,
