@@ -89,9 +89,7 @@ export class LogStreamingService {
       { connectionId: id, options },
       'Adding log streaming connection',
     )
-    if (this.activeConnections.size === 1) {
-      void this.startFileWatching()
-    }
+    void this.startFileWatching()
   }
 
   removeConnection(id: string) {
@@ -294,7 +292,7 @@ export class LogStreamingService {
             length,
             watched.position,
           )
-          if (bytesRead === 0) break
+          if (bytesRead === 0 || this.watch !== watched) break
           watched.position += bytesRead
           this.emitLines(
             watched,

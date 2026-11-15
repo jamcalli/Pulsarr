@@ -1,4 +1,15 @@
-import { appendFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import type * as FsPromises from 'node:fs/promises'
+import {
+  appendFile,
+  type FileHandle,
+  type FileReadResult,
+  mkdir,
+  mkdtemp,
+  open,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { LogEntry } from '@root/types/logs.types.js'
@@ -13,6 +24,13 @@ import {
   vi,
 } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
+
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof FsPromises>()
+  return { ...actual, open: vi.fn(actual.open), stat: vi.fn(actual.stat) }
+})
+
+const actualFs = await vi.importActual<typeof FsPromises>('node:fs/promises')
 
 const PREVIOUS_TAIL_LIMIT_BYTES = 256 * 1024
 
@@ -36,6 +54,8 @@ describe('LogStreamingService', () => {
 
   afterEach(() => {
     service.shutdown()
+    vi.mocked(open).mockImplementation(actualFs.open)
+    vi.mocked(stat).mockImplementation(actualFs.stat)
   })
 
   afterAll(async () => {
@@ -202,6 +222,67 @@ describe('LogStreamingService', () => {
         timeout: 5_000,
       })
       expect(messages.filter((m) => m.startsWith('bulk-'))).toEqual(appended)
+    })
+
+    it('starts watching for a later connection after a failed start', async () => {
+      await writeFile(logFile, '')
+      vi.mocked(stat).mockRejectedValueOnce(
+        Object.assign(new Error('permission denied'), { code: 'EACCES' }),
+      )
+      service.addConnection('failed', { tail: 0, follow: true })
+      await new Promise((resolve) => setImmediate(resolve))
+
+      const messages = follow()
+
+      await waitForWatch(messages)
+    })
+
+    it('drops a read that finishes after the watcher stopped', async () => {
+      await writeFile(logFile, '')
+      const messages = follow()
+      await waitForWatch(messages)
+
+      let release = () => {}
+      const gate = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const reads: Promise<FileReadResult<Buffer>>[] = []
+      vi.mocked(open).mockImplementation(async (path, flags) => {
+        const handle = await actualFs.open(path, flags)
+        const gatedRead = (
+          buffer: Buffer,
+          offset: number,
+          length: number,
+          position: number,
+        ) => {
+          const pending = gate.then(() =>
+            handle.read(buffer, offset, length, position),
+          )
+          reads.push(pending)
+          return pending
+        }
+        return new Proxy(handle, {
+          get(target, property) {
+            if (property === 'read') return gatedRead
+            const value: FileHandle[keyof FileHandle] = Reflect.get(
+              target,
+              property,
+            )
+            return typeof value === 'function' ? value.bind(target) : value
+          },
+        })
+      })
+      await appendFile(logFile, pinoLine('after stop'))
+      await vi.waitFor(() => expect(reads.length).toBeGreaterThan(0), {
+        timeout: 5_000,
+      })
+
+      service.removeConnection('test')
+      release()
+      await Promise.all(reads)
+      await new Promise((resolve) => setImmediate(resolve))
+
+      expect(messages).not.toContain('after stop')
     })
 
     it('keeps two service instances independent', async () => {
