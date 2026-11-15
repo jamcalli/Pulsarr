@@ -196,7 +196,7 @@ describe('PlexMobileService retry queue', () => {
 
     expect(await queued[0]).toEqual({ ok: true })
     expect(uris).toEqual([
-      'server://machine-1/com.plexapp.plugins.library/library/metadata/episode-1',
+      'plex://libraries/machine-1/metadata/episode-1?autoplay=0',
     ])
     service.shutdown()
   })
