@@ -21,7 +21,7 @@ import {
   includesLabelIgnoreCase,
   isManagedLabel,
   isRemovedLabel,
-} from '../label-operations/index.js'
+} from '../label-operations/label-validator.js'
 import { resolveStaleRatingKey } from './stale-rating-key.js'
 
 /**

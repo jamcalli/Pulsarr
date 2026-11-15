@@ -22,9 +22,11 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   cleanupLabelsForWatchlistItems,
   cleanupOrphanedPlexLabels,
+} from './plex-label-sync/cleanup/label-cleaner.js'
+import {
   removeAllLabels,
   resetLabels,
-} from './plex-label-sync/cleanup/index.js'
+} from './plex-label-sync/cleanup/label-remover.js'
 import {
   fetchTagsForWatchlistItem,
   syncAllLabels,
