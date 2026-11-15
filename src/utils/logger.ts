@@ -3,6 +3,7 @@ import { parseEnv } from 'node:util'
 import { DEFAULT_LOG_LEVEL } from '@root/schemas/config/config.schema.js'
 import type { LogLevel } from '@root/types/logs.types.js'
 import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
+import { LogFileDestination } from '@utils/log-file-destination.js'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import type { DestinationStream, LoggerOptions } from 'pino'
 import pino from 'pino'
@@ -217,29 +218,49 @@ function reportOnce(
   })
 }
 
-function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
+function openLogFile(): rfs.RotatingFileStream {
   const logDirectory = resolveLogPath()
+  if (!fs.existsSync(logDirectory)) {
+    fs.mkdirSync(logDirectory, { recursive: true })
+  }
+  const stream = rfs.createStream(filename, {
+    size: '10M',
+    path: logDirectory,
+    compress: 'gzip',
+    maxFiles: 7,
+  })
+  reportOnce(stream, 'error', 'Log file stream failed:')
+  reportOnce(stream, 'warning', 'Log file stream warning:')
+  return stream
+}
+
+let activeLogFile: LogFileDestination | null = null
+
+function createLogFile(
+  enableConsoleOutput: boolean,
+): LogFileDestination | null {
+  let initial: rfs.RotatingFileStream
   try {
-    if (!fs.existsSync(logDirectory)) {
-      fs.mkdirSync(logDirectory, { recursive: true })
-    }
-    const stream = rfs.createStream(filename, {
-      size: '10M',
-      path: logDirectory,
-      compress: 'gzip',
-      maxFiles: 7,
-    })
-    reportOnce(
-      stream,
-      'error',
-      'Log file stream failed and file logging stopped:',
-    )
-    reportOnce(stream, 'warning', 'Log file stream warning:')
-    return stream
+    initial = openLogFile()
   } catch (err) {
     console.error('Failed to setup log directory:', err)
-    return process.stdout
+    return null
   }
+  activeLogFile = new LogFileDestination({
+    initial,
+    open: openLogFile,
+    fallback: enableConsoleOutput
+      ? () => {}
+      : (line) => {
+          process.stdout.write(line)
+        },
+  })
+  return activeLogFile
+}
+
+/** Flushes and closes the log file, resolving at once when none is open, and never rejects. */
+export function endLogFile(): Promise<void> {
+  return activeLogFile?.end() ?? Promise.resolve()
 }
 
 /**
@@ -288,20 +309,20 @@ export function createLoggerConfig(): LoggerOptions & {
     )
   }
 
-  // Always set up file logging
-  const fileStream = getFileStream()
+  const fileStream = createLogFile(enableConsoleOutput)
+
+  if (!fileStream) {
+    return {
+      level: DEFAULT_LOG_LEVEL,
+      stream: enableConsoleOutput
+        ? pretty({ ...PRETTY_OPTIONS, colorize: true })
+        : process.stdout,
+      serializers: SERIALIZERS,
+    }
+  }
 
   if (enableConsoleOutput) {
     // Log to both terminal and file
-
-    // Graceful fallback: avoid double-logging if file stream fell back to stdout
-    if (fileStream === process.stdout) {
-      return {
-        level: DEFAULT_LOG_LEVEL,
-        stream: pretty({ ...PRETTY_OPTIONS, colorize: true }),
-        serializers: SERIALIZERS,
-      }
-    }
 
     // Create a proper pretty stream for terminal output
     const prettyStream = pretty({

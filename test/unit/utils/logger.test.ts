@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { FastifyRequest } from 'fastify'
@@ -21,6 +21,7 @@ vi.mock('rotating-file-stream', () => ({
     write: vi.fn(),
     end: vi.fn(),
     on: vi.fn(),
+    once: vi.fn(),
   })),
 }))
 
@@ -640,7 +641,7 @@ describe('logger', () => {
     })
   })
 
-  describe('file stream failure', () => {
+  describe('log file', () => {
     let dataDir: string
     const previousDataDir = process.env.dataDir
 
@@ -648,44 +649,75 @@ describe('logger', () => {
       dataDir = await mkdtemp(join(tmpdir(), 'logger-'))
       process.env.dataDir = dataDir
       process.env.enableConsoleOutput = 'false'
-      await mkdir(join(dataDir, 'logs', 'pulsarr-current.log'), {
-        recursive: true,
-      })
     })
 
     afterEach(async () => {
+      const module = await import('@utils/logger.js')
+      await module.endLogFile()
       delete process.env.enableConsoleOutput
       if (previousDataDir === undefined) delete process.env.dataDir
       else process.env.dataDir = previousDataDir
       await rm(dataDir, { recursive: true, force: true })
     })
 
-    it('survives an unopenable log file and keeps logging', async () => {
+    async function realLogger() {
       const actualRfs = await vi.importActual<typeof rfsModule>(
         'rotating-file-stream',
       )
       const { default: actualPino } =
         await vi.importActual<typeof import('pino')>('pino')
-      vi.mocked(createStream).mockImplementationOnce(actualRfs.createStream)
-      vi.spyOn(console, 'error').mockImplementation(() => {})
-
+      let file: rfsModule.RotatingFileStream | undefined
+      vi.mocked(createStream).mockImplementationOnce((...args) => {
+        file = actualRfs.createStream(...args)
+        return file
+      })
       const module = await import('@utils/logger.js')
       const { stream } = module.createLoggerConfig()
-      if (!(stream instanceof actualRfs.RotatingFileStream)) {
-        throw new Error('Expected a rotating file stream')
-      }
-      await new Promise<void>((resolve) =>
-        stream.once('close', () => resolve()),
-      )
+      if (!stream || !file) throw new Error('Expected a log file stream')
+      return { module, file, logger: actualPino({}, stream) }
+    }
 
-      const logger = actualPino(
-        {},
-        actualPino.multistream([{ stream, level: 'trace' }]),
+    it('flushes lines logged just before endLogFile to disk', async () => {
+      const { module, logger } = await realLogger()
+      for (let i = 0; i < 200; i++) logger.info(`line-${i}`)
+
+      await module.endLogFile()
+
+      const contents = await readFile(
+        join(dataDir, 'logs', 'pulsarr-current.log'),
+        'utf-8',
       )
+      expect(contents).toContain('"msg":"line-0"')
+      expect(contents).toContain('"msg":"line-199"')
+    })
+
+    it('accepts writes after endLogFile', async () => {
+      const { module, logger } = await realLogger()
+      vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+
+      await module.endLogFile()
+
+      expect(() => logger.info('late line')).not.toThrow()
+      await expect(module.endLogFile()).resolves.toBeUndefined()
+    })
+
+    it('survives an unopenable log file and sends lines to stdout', async () => {
+      await mkdir(join(dataDir, 'logs', 'pulsarr-current.log'), {
+        recursive: true,
+      })
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const stdout = vi
+        .spyOn(process.stdout, 'write')
+        .mockImplementation(() => true)
+
+      const { file, logger } = await realLogger()
+      await new Promise<void>((resolve) => file.once('close', () => resolve()))
+
       expect(() => logger.info('after the failure')).not.toThrow()
-      expect(() => logger.error('again')).not.toThrow()
-      await new Promise((resolve) => setTimeout(resolve, 50))
-      expect(stream.destroyed).toBe(true)
+      expect(file.destroyed).toBe(true)
+      expect(stdout).toHaveBeenCalledWith(
+        expect.stringContaining('"msg":"after the failure"'),
+      )
     })
   })
 
