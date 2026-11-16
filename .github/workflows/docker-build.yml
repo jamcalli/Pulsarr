@@ -478,7 +478,7 @@ jobs:
           TMDBAPIKEY: ${{ secrets.TMDBAPIKEY }}
 
       - name: Create Draft Release
-        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7
+        uses: release-drafter/release-drafter@d1a19e60e81a7e650d00a7de9277f87e439117ea # v7
         with:
           config-name: release-drafter.yml
           tag: ${{ github.ref_name }}
