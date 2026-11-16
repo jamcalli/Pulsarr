@@ -10,11 +10,11 @@ You need:
 - The Plex account that owns your Plex server.
 - Sonarr and Radarr, with the API key from each. You'll find it in Settings > General.
 
-:::info
+<CalloutContainer type="info">
 Pulsarr reads your own watchlist and the watchlists of your Plex friends. Anyone who isn't a friend of your Plex account is skipped.
 
 Each friend also decides who can see their watchlist, in their own Plex privacy settings. If it's set to Private, Pulsarr can't see it, and Plex doesn't say so. It looks the same as an empty watchlist. They can change it from the privacy icon next to Watchlist on their Plex profile, or in the Plex web app under Settings > Account > Account Visibility & Activity Sharing.
-:::
+</CalloutContainer>
 
 ## Install Pulsarr [#install-pulsarr]
 

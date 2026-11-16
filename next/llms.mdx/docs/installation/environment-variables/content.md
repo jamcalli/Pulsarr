@@ -66,9 +66,9 @@ Pulsarr trusts forwarded headers only from loopback, link-local and private addr
 
 With `allowedHosts` set, list the hostname the proxy serves and any name Sonarr, Radarr or Maintainerr use to reach Pulsarr directly, such as its container name. If the proxy rewrites `Host` to its upstream name, list that name too. Keeping the original with `proxy_set_header Host $host;` avoids this.
 
-:::warning
+<CalloutContainer type="warning">
 With `requiredExceptLocal`, a proxy on a private address that doesn't send `X-Forwarded-For` makes every request look local, so nobody is asked to sign in.
-:::
+</CalloutContainer>
 
 Behind Cloudflare, the proxy must trust Cloudflare's address ranges to pass on real client addresses. Local sign-in bypass then works only for LAN clients that reach the proxy directly.
 
