@@ -3,6 +3,7 @@ import { parseEnv } from 'node:util'
 import { DEFAULT_LOG_LEVEL } from '@root/schemas/config/config.schema.js'
 import type { LogLevel } from '@root/types/logs.types.js'
 import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
+import { LogFileDestination } from '@utils/log-file-destination.js'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import type { DestinationStream, LoggerOptions } from 'pino'
 import pino from 'pino'
@@ -194,49 +195,72 @@ const SERIALIZERS = {
   err: errorSerializer,
 } as const
 
-/**
- * Build a Pulsarr log filename from a date (or return the current-log name).
- *
- * If `time` is falsy (null/undefined/0) the function returns `pulsarr-current.log`.
- * Otherwise it returns `pulsarr-YYYY-MM-DD[-index].log.gz` for rotated (compressed) logs.
- *
- * @param time - Date or timestamp to base the filename on; falsy returns the current log name.
- * @param index - Optional rotation index appended as `-index`; only included when a truthy number is provided.
- * @returns The generated log filename.
- */
-function filename(time: number | Date | null, index?: number): string {
-  if (!time) return 'pulsarr-current.log'
-  const date = typeof time === 'number' ? new Date(time) : time
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+function filename(args: rfs.GeneratorArguments | null): string {
+  if (!args) return 'pulsarr-current.log'
+  const { time, index } = args
+  const year = time.getFullYear()
+  const month = String(time.getMonth() + 1).padStart(2, '0')
+  const day = String(time.getDate()).padStart(2, '0')
   const indexStr = index ? `-${index}` : ''
   return `pulsarr-${year}-${month}-${day}${indexStr}.log.gz`
 }
 
-/**
- * Creates and returns a rotating file stream for logging, ensuring the log directory exists.
- *
- * If the log directory cannot be created or accessed, falls back to standard output.
- *
- * @returns A rotating file stream for logs, or {@link process.stdout} if setup fails.
- */
-function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
+function reportOnce(
+  stream: rfs.RotatingFileStream,
+  event: 'error' | 'warning',
+  label: string,
+): void {
+  let reported = false
+  stream.on(event, (err: Error) => {
+    if (reported) return
+    reported = true
+    console.error(label, err)
+  })
+}
+
+function openLogFile(): rfs.RotatingFileStream {
   const logDirectory = resolveLogPath()
+  if (!fs.existsSync(logDirectory)) {
+    fs.mkdirSync(logDirectory, { recursive: true })
+  }
+  const stream = rfs.createStream(filename, {
+    size: '10M',
+    path: logDirectory,
+    compress: 'gzip',
+    maxFiles: 7,
+  })
+  reportOnce(stream, 'error', 'Log file stream failed:')
+  reportOnce(stream, 'warning', 'Log file stream warning:')
+  return stream
+}
+
+let activeLogFile: LogFileDestination | null = null
+
+function createLogFile(
+  enableConsoleOutput: boolean,
+): LogFileDestination | null {
+  let initial: rfs.RotatingFileStream
   try {
-    if (!fs.existsSync(logDirectory)) {
-      fs.mkdirSync(logDirectory, { recursive: true })
-    }
-    return rfs.createStream(filename, {
-      size: '10M',
-      path: logDirectory,
-      compress: 'gzip',
-      maxFiles: 7,
-    })
+    initial = openLogFile()
   } catch (err) {
     console.error('Failed to setup log directory:', err)
-    return process.stdout
+    return null
   }
+  activeLogFile = new LogFileDestination({
+    initial,
+    open: openLogFile,
+    fallback: enableConsoleOutput
+      ? () => {}
+      : (line) => {
+          process.stdout.write(line)
+        },
+  })
+  return activeLogFile
+}
+
+/** Flushes and closes the log file, resolving at once when none is open, and never rejects. */
+export function endLogFile(): Promise<void> {
+  return activeLogFile?.end() ?? Promise.resolve()
 }
 
 /**
@@ -285,20 +309,20 @@ export function createLoggerConfig(): LoggerOptions & {
     )
   }
 
-  // Always set up file logging
-  const fileStream = getFileStream()
+  const fileStream = createLogFile(enableConsoleOutput)
+
+  if (!fileStream) {
+    return {
+      level: DEFAULT_LOG_LEVEL,
+      stream: enableConsoleOutput
+        ? pretty({ ...PRETTY_OPTIONS, colorize: true })
+        : process.stdout,
+      serializers: SERIALIZERS,
+    }
+  }
 
   if (enableConsoleOutput) {
     // Log to both terminal and file
-
-    // Graceful fallback: avoid double-logging if file stream fell back to stdout
-    if (fileStream === process.stdout) {
-      return {
-        level: DEFAULT_LOG_LEVEL,
-        stream: pretty({ ...PRETTY_OPTIONS, colorize: true }),
-        serializers: SERIALIZERS,
-      }
-    }
 
     // Create a proper pretty stream for terminal output
     const prettyStream = pretty({
