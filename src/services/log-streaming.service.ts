@@ -33,9 +33,15 @@ const TAIL_READ_MAX_BYTES = 4 * 1024 * 1024
 const LIVE_READ_CHUNK_BYTES = 64 * 1024
 const NEWLINE = 0x0a
 
+interface FileIdentity {
+  dev: number
+  ino: number
+}
+
 interface WatchedFile {
   phase: 'watching'
   position: number
+  identity: FileIdentity | null
   interval: NodeJS.Timeout
   tickInFlight: boolean
   partialLine: string
@@ -208,8 +214,11 @@ export class LogStreamingService {
     this.watch = starting
 
     let position = 0
+    let identity: FileIdentity | null = null
     try {
-      position = (await stat(this.logFilePath)).size
+      const { size, dev, ino } = await stat(this.logFilePath)
+      position = size
+      identity = { dev, ino }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         this.log.debug(
@@ -238,6 +247,7 @@ export class LogStreamingService {
     const watched: WatchedFile = {
       phase: 'watching',
       position,
+      identity,
       interval: setInterval(() => void this.tick(watched), WATCH_INTERVAL_MS),
       tickInFlight: false,
       partialLine: '',
@@ -271,9 +281,13 @@ export class LogStreamingService {
     try {
       const fileHandle = await open(this.logFilePath, 'r')
       try {
-        const { size } = await fileHandle.stat()
+        const { size, dev, ino } = await fileHandle.stat()
+        const replaced =
+          watched.identity !== null &&
+          (watched.identity.dev !== dev || watched.identity.ino !== ino)
+        watched.identity = { dev, ino }
 
-        if (size < watched.position) {
+        if (replaced || size < watched.position) {
           // Rotated or truncated, so read the new file from its start
           watched.position = 0
           watched.partialLine = ''

@@ -6,6 +6,7 @@ import {
   mkdir,
   mkdtemp,
   open,
+  rename,
   rm,
   stat,
   writeFile,
@@ -182,6 +183,30 @@ describe('LogStreamingService', () => {
       await vi.waitFor(() => expect(messages).toContain('after rotation'), {
         timeout: 5_000,
       })
+    })
+
+    it('reads a replaced file from its start when it is larger than the cursor', async () => {
+      await writeFile(logFile, pinoLine('before replace'))
+      const messages = follow()
+      await waitForWatch(messages)
+
+      const replacement = Array.from(
+        { length: 50 },
+        (_, i) => `replaced-${String(i).padStart(2, '0')}-${'r'.repeat(100)}`,
+      )
+      const staged = `${logFile}.next`
+      await writeFile(staged, replacement.map(pinoLine).join(''))
+      const previous = await stat(logFile)
+      expect((await stat(staged)).size).toBeGreaterThan(previous.size)
+      await rename(staged, logFile)
+      expect((await stat(logFile)).ino).not.toBe(previous.ino)
+
+      await vi.waitFor(() => expect(messages.at(-1)).toBe(replacement.at(-1)), {
+        timeout: 5_000,
+      })
+      expect(messages.filter((m) => m.startsWith('replaced-'))).toEqual(
+        replacement,
+      )
     })
 
     it('decodes a multi-byte character split across two reads', async () => {
