@@ -1,17 +1,17 @@
 3:"$Sreact.fragment"
-4:"/Pulsarr/next/_next/static/chunks/1yhuto5c8t75y.js"
-5:"/Pulsarr/next/_next/static/chunks/11hl4rvhu9lu-.js"
+4:"/Pulsarr/next/_next/static/chunks/2w7xwh6npotsm.js"
+5:"/Pulsarr/next/_next/static/chunks/29azwq3lr17zf.js"
 6:"/Pulsarr/next/_next/static/chunks/2s2r3x_pllbi2.js"
-7:"/Pulsarr/next/_next/static/chunks/0qn-axhs13evi.js"
+7:"/Pulsarr/next/_next/static/chunks/19ktotq06lxr0.js"
 8:I[929713,["$4","$5","$6","$7"],"default"]
 9:I[759292,["$4","$5","$6","$7"],"default"]
 e:"/Pulsarr/next/_next/static/chunks/14usz7_iupwj4.js"
-f:"/Pulsarr/next/_next/static/chunks/235j8jatcuwc3.js"
-10:"/Pulsarr/next/_next/static/chunks/0j0zjerh3h810.js"
-11:"/Pulsarr/next/_next/static/chunks/0fe3loo-mw-26.js"
-12:"/Pulsarr/next/_next/static/chunks/125akcrvtufnd.js"
-13:"/Pulsarr/next/_next/static/chunks/2qiok-dk2pmj_.js"
-14:"/Pulsarr/next/_next/static/chunks/3gph-kfw0ncy_.js"
+f:"/Pulsarr/next/_next/static/chunks/3ne2yj8h_are1.js"
+10:"/Pulsarr/next/_next/static/chunks/2g-16choj94l_.js"
+11:"/Pulsarr/next/_next/static/chunks/3s4vw9n1204k4.js"
+12:"/Pulsarr/next/_next/static/chunks/0hq07fs2jle28.js"
+13:"/Pulsarr/next/_next/static/chunks/1uqsttwzgv2jc.js"
+14:"/Pulsarr/next/_next/static/chunks/0c6h9an0ecpjm.js"
 15:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12","$13","$14"],"DocsPage"]
 16:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12","$13","$14"],"DocsTitle"]
 17:I[788185,["$4","$5","$6","$7","$e","$f","$10","$11","$12","$13","$14"],"DocsDescription"]
@@ -29,10 +29,10 @@ f:"/Pulsarr/next/_next/static/chunks/235j8jatcuwc3.js"
 b:X
 b:C
 c:X
-d:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$3","c",{"children":[["$","$L15",null,{"toc":[],"full":true,"footer":{"enabled":true},"children":[["$","$L16",null,{"children":"Approve and execute request"}],["$","$L17",null,{"className":"mb-0"}],["$","$L18",null,{}],["$","$L19",null,{"children":["$undefined",["$","$L1a",null,{"preloaded":{"docs":{}},"document":"./public/openapi.json","operations":[{"path":"/v1/approval/requests/{id}/approve","method":"post"}],"showDescription":true}]]}],"$undefined"]}],[["$","link","0",{"rel":"stylesheet","href":"/Pulsarr/next/_next/static/chunks/0iaxnelvtqw2u.css","precedence":"next"}],["$","script","script-0",{"src":"/Pulsarr/next/_next/static/chunks/0fe3loo-mw-26.js","async":true}],["$","script","script-1",{"src":"/Pulsarr/next/_next/static/chunks/125akcrvtufnd.js","async":true}],["$","script","script-2",{"src":"/Pulsarr/next/_next/static/chunks/2qiok-dk2pmj_.js","async":true}],["$","script","script-3",{"src":"/Pulsarr/next/_next/static/chunks/3gph-kfw0ncy_.js","async":true}]],["$","$L1b",null,{"children":["$","$1c",null,{"name":"Next.MetadataOutlet","children":"$@1d"}]}]]}],"p":"$@1e","v":null,"s":"$c"}}]]
+d:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$3","c",{"children":[["$","$L15",null,{"toc":[],"full":true,"footer":{"enabled":true},"children":[["$","$L16",null,{"children":"Approve and execute request"}],["$","$L17",null,{"className":"mb-0"}],["$","$L18",null,{}],["$","$L19",null,{"children":["$undefined",["$","$L1a",null,{"preloaded":{"docs":{}},"document":"./public/openapi.json","operations":[{"path":"/v1/approval/requests/{id}/approve","method":"post"}],"showDescription":true}]]}],"$undefined"]}],[["$","link","0",{"rel":"stylesheet","href":"/Pulsarr/next/_next/static/chunks/0iaxnelvtqw2u.css","precedence":"next"}],["$","script","script-0",{"src":"/Pulsarr/next/_next/static/chunks/3s4vw9n1204k4.js","async":true}],["$","script","script-1",{"src":"/Pulsarr/next/_next/static/chunks/0hq07fs2jle28.js","async":true}],["$","script","script-2",{"src":"/Pulsarr/next/_next/static/chunks/1uqsttwzgv2jc.js","async":true}],["$","script","script-3",{"src":"/Pulsarr/next/_next/static/chunks/0c6h9an0ecpjm.js","async":true}]],["$","$L1b",null,{"children":["$","$1c",null,{"name":"Next.MetadataOutlet","children":"$@1d"}]}]]}],"p":"$@1e","v":null,"s":"$c"}}]]
 2:[["children",{"s":{"n":"slug","t":"oc","k":"api/approval/approveAndExecuteRequest","s":["api","docs","llms-full.txt","llms.mdx","llms.txt","og"]},"h":64,"d":{"r":["$","$3","c",{"children":[null,["$","$L8",null,{"parallelRouterKey":"children","template":["$","$L9",null,{}]}]]}],"p":"$@a","v":"$b","s":"$c"},"c":"$Qd"}]]
 1:[["children",{"s":"(docs)","h":32,"c":"$Q2"}]]
-0:{"t":{"t":{"s":"","h":80,"c":"$Q1"},"h":{"r":["$","$3","h",{"children":[null,["$","$L20",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L22",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$1c",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Approve and execute request | Pulsarr"}],["$","meta","1",{"name":"robots","content":"noindex, nofollow"}],["$","link","2",{"rel":"canonical","href":"https://jamcalli.github.io/Pulsarr/next/api/approval/approveAndExecuteRequest/"}],["$","meta","3",{"property":"og:title","content":"Approve and execute request | Pulsarr"}],["$","meta","4",{"property":"og:url","content":"https://jamcalli.github.io/Pulsarr/next/api/approval/approveAndExecuteRequest/"}],["$","meta","5",{"property":"og:site_name","content":"Pulsarr"}],["$","meta","6",{"property":"og:image","content":"https://jamcalli.github.io/Pulsarr/next/og/docs/api/approval/approveAndExecuteRequest/image.png"}],["$","meta","7",{"property":"og:type","content":"website"}],["$","meta","8",{"name":"twitter:card","content":"summary_large_image"}],["$","meta","9",{"name":"twitter:title","content":"Approve and execute request | Pulsarr"}],["$","meta","10",{"name":"twitter:image","content":"https://jamcalli.github.io/Pulsarr/next/og/docs/api/approval/approveAndExecuteRequest/image.png"}],["$","link","11",{"rel":"icon","href":"/Pulsarr/next/favicon.ico?favicon.0b7unjwu1fikl.ico","sizes":"144x144","type":"image/x-icon"}],["$","link","12",{"rel":"icon","href":"/Pulsarr/next/icon.svg?icon.1gh3ozbeqj7fl.svg","sizes":"any","type":"image/svg+xml"}],["$","$L23","13",{}]]}]}],null]}],null]}],"p":"$@24","v":null,"s":"$c"}},"a":"$@25","u":"$@26","b":"W8blReyi_0r_gh4OPVW-U"}
+0:{"t":{"t":{"s":"","h":80,"c":"$Q1"},"h":{"r":["$","$3","h",{"children":[null,["$","$L20",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L22",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$1c",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Approve and execute request | Pulsarr"}],["$","meta","1",{"name":"robots","content":"noindex, nofollow"}],["$","link","2",{"rel":"canonical","href":"https://jamcalli.github.io/Pulsarr/next/api/approval/approveAndExecuteRequest/"}],["$","meta","3",{"property":"og:title","content":"Approve and execute request | Pulsarr"}],["$","meta","4",{"property":"og:url","content":"https://jamcalli.github.io/Pulsarr/next/api/approval/approveAndExecuteRequest/"}],["$","meta","5",{"property":"og:site_name","content":"Pulsarr"}],["$","meta","6",{"property":"og:image","content":"https://jamcalli.github.io/Pulsarr/next/og/docs/api/approval/approveAndExecuteRequest/image.png"}],["$","meta","7",{"property":"og:type","content":"website"}],["$","meta","8",{"name":"twitter:card","content":"summary_large_image"}],["$","meta","9",{"name":"twitter:title","content":"Approve and execute request | Pulsarr"}],["$","meta","10",{"name":"twitter:image","content":"https://jamcalli.github.io/Pulsarr/next/og/docs/api/approval/approveAndExecuteRequest/image.png"}],["$","link","11",{"rel":"icon","href":"/Pulsarr/next/favicon.ico?favicon.0b7unjwu1fikl.ico","sizes":"144x144","type":"image/x-icon"}],["$","link","12",{"rel":"icon","href":"/Pulsarr/next/icon.svg?icon.1gh3ozbeqj7fl.svg","sizes":"any","type":"image/svg+xml"}],["$","$L23","13",{}]]}]}],null]}],null]}],"p":"$@24","v":null,"s":"$c"}},"a":"$@25","u":"$@26","b":"DBe9dJYBTtuNAf8RZnSdQ"}
 1d:null
 26:true
 c:300
