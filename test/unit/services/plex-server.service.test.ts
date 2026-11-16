@@ -1015,7 +1015,7 @@ describe('PlexServerService SSE subscriptions', () => {
     service.disconnectSSE()
   })
 
-  it('leaves one live stream when two settings updates overlap', async () => {
+  it('opens one stream when two settings updates overlap', async () => {
     const service = createConnectableService()
     const disconnected = vi.fn()
     service.onSSE('disconnected', disconnected)
@@ -1025,12 +1025,28 @@ describe('PlexServerService SSE subscriptions', () => {
       service.applyConnectionSettings(false),
     ])
 
-    expect(eventSources).toHaveLength(2)
-    eventSources[0]?.emit('disconnected')
-    expect(disconnected).not.toHaveBeenCalled()
-
+    expect(eventSources).toHaveLength(1)
     currentStream().emit('disconnected')
     expect(disconnected).toHaveBeenCalledTimes(1)
+    service.disconnectSSE()
+  })
+
+  it('drops a connect whose server lookup finishes after a settings change', async () => {
+    const service = createService()
+    const lookup = Promise.withResolvers<string>()
+    vi.spyOn(service, 'getPlexServerUrl')
+      .mockReturnValueOnce(lookup.promise)
+      .mockResolvedValue(REMOTE_HTTPS)
+
+    const stale = service.connectSSE()
+    await service.applyConnectionSettings(false)
+    const current = currentStream()
+    lookup.resolve(LOCAL_HTTPS)
+    await stale
+
+    expect(eventSources).toHaveLength(1)
+    expect(currentStream()).toBe(current)
+    expect(service.isSSEConnected()).toBe(true)
     service.disconnectSSE()
   })
 

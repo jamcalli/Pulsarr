@@ -1343,8 +1343,10 @@ export class PlexServerService {
   }
 
   async connectSSE(): Promise<void> {
+    const generation = this.cacheGeneration
     const serverUrl = await this.getPlexServerUrl()
-    // an overlapping connect may have opened a source during the await above
+    // a settings change during the await means a newer connect owns the stream
+    if (generation !== this.cacheGeneration) return
     this.disconnectSSE()
     const token = this.config.plexTokens?.[0] || ''
 
