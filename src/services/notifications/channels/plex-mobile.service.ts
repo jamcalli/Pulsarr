@@ -355,6 +355,11 @@ export class PlexMobileService {
     return user?.notify_plex_mobile ? null : 'user turned off Plex mobile'
   }
 
+  /** Removes the entry only while it is still this record, since a newer send may have replaced it during an await. */
+  private dropPending(key: string, pending: PendingPlexNotification): void {
+    if (this.pendingQueue.get(key) === pending) this.pendingQueue.delete(key)
+  }
+
   private async processRetryQueue(): Promise<void> {
     if (this.isProcessingRetries) return
     this.isProcessingRetries = true
@@ -398,7 +403,7 @@ export class PlexMobileService {
           const optOut = await this.sendTimeOptOut(pending.user.id)
           if (optOut) {
             pending.settle({ ok: false, reason: optOut })
-            this.pendingQueue.delete(key)
+            this.dropPending(key, pending)
             continue
           }
 
@@ -406,9 +411,10 @@ export class PlexMobileService {
             await this.fastify.plexServerService.resolveUserPlexId(pending.user)
           if (plexUserId === null) {
             pending.settle({ ok: false, reason: 'no matching Plex account' })
-            this.pendingQueue.delete(key)
+            this.dropPending(key, pending)
             continue
           }
+          if (this.pendingQueue.get(key) !== pending) continue
 
           const result = await this.sendResolved(
             pending.notification,
@@ -419,7 +425,7 @@ export class PlexMobileService {
 
           if (result.ok) {
             pending.settle(result)
-            this.pendingQueue.delete(key)
+            this.dropPending(key, pending)
           } else {
             this.log.debug(
               { key, title: pending.notification.title, reason: result.reason },

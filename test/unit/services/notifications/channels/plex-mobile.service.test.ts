@@ -315,6 +315,53 @@ describe('PlexMobileService retry queue', () => {
     })
   })
 
+  it('keeps a notification that replaces its queue entry during a retry send', async () => {
+    let indexed = false
+    const service = createService({ isIndexed: () => indexed })
+    const queue = async () => {
+      const sent = await service.sendNotification(
+        VIEWER,
+        episode(1),
+        'severance-key',
+        'tvdb:371980',
+        false,
+      )
+      if (!('queued' in sent)) throw new Error('expected a queued delivery')
+      return sent
+    }
+    let replacement: { queued: Promise<DeliveryResult> } | undefined
+    let sends = 0
+    server.use(
+      http.post(PLEX_NOTIFICATIONS, async () => {
+        sends += 1
+        if (!replacement) {
+          indexed = false
+          replacement = await queue()
+          indexed = true
+        }
+        return new HttpResponse(null)
+      }),
+    )
+
+    const first = await queue()
+    indexed = true
+    service.triggerRetryProcessing()
+
+    expect(await first.queued).toEqual({
+      ok: false,
+      reason: 'replaced by a newer queued notification',
+    })
+    await vi.waitFor(
+      () => {
+        service.triggerRetryProcessing()
+        expect(sends).toBe(2)
+      },
+      { timeout: 500 },
+    )
+    expect(await replacement?.queued).toEqual({ ok: true })
+    service.shutdown()
+  })
+
   it('keeps two queued episodes of one show for one user', async () => {
     const uris = captureUris()
 
