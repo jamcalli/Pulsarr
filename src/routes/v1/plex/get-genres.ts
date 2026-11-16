@@ -22,8 +22,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        await fastify.db.syncGenresFromWatchlist()
-        const genres = await fastify.db.getAllGenres()
+        let genres = await fastify.db.getAllGenres()
+        if (genres.length === 0) {
+          await fastify.db.syncGenresFromWatchlist()
+          genres = await fastify.db.getAllGenres()
+        }
 
         reply.status(200)
         return {

@@ -12,7 +12,7 @@ import {
   getWatchlistForUser,
   WATCHLIST_PAGE_SIZE,
 } from '../api/graphql.js'
-import { isRateLimitError } from '../api/helpers.js'
+import { discoverItemKey, isRateLimitError } from '../api/helpers.js'
 import type { WatchlistSyncProgress } from '../progress/sync-progress.js'
 
 /** Returns the full Plex watchlist, or the stored DB items when the fetch fails or is incomplete, and throws when neither is available. */
@@ -74,9 +74,7 @@ export const fetchSelfWatchlist = async (
         const items = metadata
           .filter((metadata) => Boolean(metadata.key))
           .map((metadata) => {
-            const key = metadata.key
-              ?.replace('/library/metadata/', '')
-              .replace('/children', '')
+            const key = discoverItemKey(metadata.key)
 
             return {
               title: metadata.title || 'Unknown Title',
@@ -175,7 +173,7 @@ export const fetchSelfWatchlist = async (
   return allItems
 }
 
-/** Friends whose fetch failed are absent from the map; an empty watchlist is an empty set. */
+/** Friends whose fetch failed are absent from the map, and an empty watchlist is an empty set. */
 export const getOthersWatchlist = async (
   log: FastifyBaseLogger,
   friends: Set<[Friend & { userId: number }, string]>,

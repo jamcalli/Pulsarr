@@ -10,15 +10,12 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const service = LogStreamingService.getInstance(fastify.log, fastify)
+    const service = new LogStreamingService(fastify.log)
     fastify.decorate('logStreaming', service)
     fastify.log.debug('Log streaming service initialized')
 
     fastify.addHook('onClose', () => {
-      // Clean up polling intervals on server shutdown
-      if ('shutdown' in service && typeof service.shutdown === 'function') {
-        service.shutdown()
-      }
+      service.shutdown()
     })
   },
   {

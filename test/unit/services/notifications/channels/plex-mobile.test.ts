@@ -106,8 +106,7 @@ describe('sendPlexMobileNotification wire format', () => {
         to: [7],
         data: { provider: { identifier: 'machine-1', title: 'Basement' } },
         metadata: { type: 'movie', title: 'Dune', year: '2021' },
-        uri: 'server://machine-1/com.plexapp.plugins.library/library/metadata/555',
-        play: false,
+        uri: 'plex://libraries/machine-1/metadata/555?autoplay=0',
       }),
     )
   })
@@ -138,8 +137,7 @@ describe('sendPlexMobileNotification wire format', () => {
           count: 10,
         },
         metadata: { type: 'show', title: 'Severance' },
-        uri: 'server://machine-1/com.plexapp.plugins.library/library/metadata/900',
-        play: false,
+        uri: 'plex://libraries/machine-1/metadata/900?autoplay=0',
       }),
     )
   })
@@ -174,8 +172,7 @@ describe('sendPlexMobileNotification wire format', () => {
           index: '1',
           parentIndex: '1',
         },
-        uri: 'server://machine-1/com.plexapp.plugins.library/library/metadata/901',
-        play: false,
+        uri: 'plex://libraries/machine-1/metadata/901?autoplay=0',
       }),
     )
   })

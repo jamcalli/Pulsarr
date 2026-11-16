@@ -69,7 +69,6 @@ interface PlexNotificationBody {
   }
   metadata: Record<string, string>
   uri?: string
-  play?: boolean
 }
 
 type PlexPostResult =
@@ -150,8 +149,7 @@ export async function sendPlexMobileNotification(
       buildMetadata(payload),
       payload.type === 'season' ? payload.episodeCount : undefined,
     ),
-    uri: `server://${deps.serverMachineId}/com.plexapp.plugins.library/library/metadata/${payload.ratingKey}`,
-    play: false,
+    uri: `plex://libraries/${deps.serverMachineId}/metadata/${payload.ratingKey}?autoplay=0`,
   }
 
   deps.logger.debug(

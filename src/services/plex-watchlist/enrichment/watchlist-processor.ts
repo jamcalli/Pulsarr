@@ -22,26 +22,22 @@ export const processWatchlistItems = async (
   )
   progress?.processingItems(0, totalItems)
 
-  // Track completed items across all users
   let completedItems = 0
 
-  // Process each user's watchlist
   for (const [user, watchlistItems] of userWatchlistMap.entries()) {
     log.debug(
       `Processing ${watchlistItems.size} watchlist items for user ${user.username}`,
     )
 
-    // Process items in parallel batches
     const itemsArray = Array.from(watchlistItems)
     const processedItemsMap = await toItemsBatch(
       config,
       log,
       itemsArray,
       progress ? { reporter: progress, completedItems, totalItems } : undefined,
-      2, // Concurrency limit
+      2,
     )
 
-    // Combine all items for this user
     const userItems = new Set<Item>()
     for (const itemSet of processedItemsMap.values()) {
       for (const item of itemSet) {
@@ -53,7 +49,6 @@ export const processWatchlistItems = async (
       results.set(user, userItems)
     }
 
-    // Update completed items count
     completedItems += watchlistItems.size
   }
 

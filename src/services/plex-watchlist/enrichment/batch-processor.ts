@@ -16,7 +16,7 @@ export const toItemsBatch = async (
     completedItems: number
     totalItems: number
   },
-  initialConcurrencyLimit = 3, // Starting with a lower limit to prevent initial rate limiting
+  initialConcurrencyLimit = 3,
 ): Promise<Map<TokenWatchlistItem, Set<Item>>> => {
   const results = new Map<TokenWatchlistItem, Set<Item>>()
   const queue = [...items]
@@ -24,14 +24,11 @@ export const toItemsBatch = async (
   let batchCompletedCount = 0
   let currentConcurrencyLimit = initialConcurrencyLimit
 
-  // Track successful consecutive batches for concurrency recovery
   let consecutiveSuccessCount = 0
-  const RECOVERY_THRESHOLD = 5 // Number of successful items needed before attempting recovery
+  const RECOVERY_THRESHOLD = 5
 
-  // Track 404 items for consolidated reporting
   const notFoundItems: string[] = []
 
-  // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
 
   const reportItemDone = () =>
@@ -40,16 +37,12 @@ export const toItemsBatch = async (
       progress.totalItems,
     )
 
-  // Process items in batches with controlled concurrency
   while (queue.length > 0 || processingCount > 0) {
-    // Check if we're rate limited using the global rate limiter
     if (rateLimiter.isLimited()) {
-      // Reset consecutive success counter when rate limited
       consecutiveSuccessCount = 0
 
       await rateLimiter.waitIfLimited(log, progress?.reporter.rateLimited)
 
-      // Reduce concurrency after a rate limit to avoid hitting limits again
       currentConcurrencyLimit = Math.max(
         1,
         Math.floor(currentConcurrencyLimit * 0.7),
@@ -60,7 +53,6 @@ export const toItemsBatch = async (
       continue
     }
 
-    // Start processing new items up to the concurrency limit
     while (queue.length > 0 && processingCount < currentConcurrencyLimit) {
       const item = queue.shift()
       if (item) {
@@ -79,9 +71,8 @@ export const toItemsBatch = async (
             results.set(item, itemSet)
             processingCount--
             batchCompletedCount++
-            consecutiveSuccessCount++ // Increment success counter
+            consecutiveSuccessCount++
 
-            // Recovery logic - increase concurrency based on consecutive successes
             if (
               currentConcurrencyLimit < initialConcurrencyLimit &&
               consecutiveSuccessCount >= RECOVERY_THRESHOLD
@@ -93,25 +84,19 @@ export const toItemsBatch = async (
               log.debug(
                 `Concurrency recovery: increasing to ${currentConcurrencyLimit} after ${consecutiveSuccessCount} consecutive successes`,
               )
-              // Reset counter but don't drop it to zero to maintain some "credit"
               consecutiveSuccessCount = Math.floor(RECOVERY_THRESHOLD / 2)
             }
 
             reportItemDone()
           })
           .catch((error) => {
-            // Check if this is a rate limit exhaustion error
             if (isRateLimitError(error)) {
               log.warn(
                 `Rate limit exhausted while processing item ${item.title}. Putting back in queue.`,
               )
-              // Put the item back in the queue
               queue.unshift(item)
-              // Let the global rate limiter handle the cooldown timing
               rateLimiter.setRateLimited(undefined, log)
-              // Reset consecutive success counter
               consecutiveSuccessCount = 0
-              // Reduce concurrency after a rate limit exhaustion
               currentConcurrencyLimit = Math.max(
                 1,
                 Math.floor(currentConcurrencyLimit * 0.7),
@@ -119,22 +104,16 @@ export const toItemsBatch = async (
               log.debug(
                 `Reduced concurrency to ${currentConcurrencyLimit} after rate limit exhaustion`,
               )
-            }
-            // Check for other rate limit related errors
-            else if (
+            } else if (
               error.message?.includes('429') ||
               error.message?.toLowerCase().includes('rate limit')
             ) {
               log.warn(
                 `Rate limit detected while processing item ${item.title}. Putting back in queue.`,
               )
-              // Put the item back in the queue
               queue.unshift(item)
-              // Let the global rate limiter handle the cooldown timing
               rateLimiter.setRateLimited(undefined, log)
-              // Reset consecutive success counter
               consecutiveSuccessCount = 0
-              // Reduce concurrency after a rate limit
               currentConcurrencyLimit = Math.max(
                 1,
                 Math.floor(currentConcurrencyLimit * 0.7),
@@ -156,7 +135,6 @@ export const toItemsBatch = async (
       }
     }
 
-    // Small delay between checks to avoid busy waiting
     if (
       processingCount >= currentConcurrencyLimit ||
       (processingCount > 0 && queue.length === 0)
@@ -165,16 +143,14 @@ export const toItemsBatch = async (
     }
   }
 
-  // Log consolidated 404 warnings if any items were not found
   if (notFoundItems.length > 0) {
-    // Truncate long titles for readability
     const truncateTitle = (title: string, maxLength = 30): string => {
       if (title.length <= maxLength) return title
       return `${title.substring(0, maxLength - 3)}...`
     }
 
     const displayTitles = notFoundItems
-      .slice(0, 10) // Show up to 10 titles
+      .slice(0, 10)
       .map((title) => `"${truncateTitle(title)}"`)
       .join(', ')
 

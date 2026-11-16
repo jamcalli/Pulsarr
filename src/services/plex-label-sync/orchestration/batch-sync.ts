@@ -23,22 +23,26 @@ import pLimit from 'p-limit'
 
 import {
   fetchAllRadarrMovies,
-  fetchAllSonarrSeries,
   fetchRadarrTagsForItem,
+} from '../data-fetching/radarr-fetcher.js'
+import {
+  fetchAllSonarrSeries,
   fetchSonarrTagsForItem,
-} from '../data-fetching/index.js'
+} from '../data-fetching/sonarr-fetcher.js'
 import {
   buildReconcilerDeps,
   reconcileLabelsForContent as reconcileLabelsUtil,
-} from '../label-operations/index.js'
+} from '../label-operations/label-reconciler.js'
 import { isUserTaggingSystemTag as isUserTaggingSystemTagUtil } from '../label-operations/label-validator.js'
+import { resolveContentToPlexItems } from '../matching/content-resolver.js'
 import {
   buildRadarrMatchingCache,
-  buildSonarrMatchingCache,
   clearRadarrMatchingCache,
+} from '../matching/radarr-matcher.js'
+import {
+  buildSonarrMatchingCache,
   clearSonarrMatchingCache,
-  resolveContentToPlexItems,
-} from '../matching/index.js'
+} from '../matching/sonarr-matcher.js'
 import { groupWatchlistItemsByContent } from '../utils/content-grouper.js'
 
 /**

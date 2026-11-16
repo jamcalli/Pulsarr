@@ -59,3 +59,14 @@ export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
     )
   }
 }
+
+/** Stores the pending timer in state.rssCheckInterval, and stops rescheduling once the run ends or that handle is cleared. */
+export function scheduleRssCheck(deps: WorkflowDeps, intervalMs: number): void {
+  const { state } = deps
+  const { signal } = state
+  state.rssCheckInterval = setTimeout(async () => {
+    await checkRssFeeds(deps)
+    if (signal.aborted || !state.rssCheckInterval) return
+    scheduleRssCheck(deps, intervalMs)
+  }, intervalMs)
+}

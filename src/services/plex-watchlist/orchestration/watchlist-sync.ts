@@ -1,10 +1,3 @@
-/**
- * Watchlist Sync Orchestration
- *
- * Helper functions for processing and formatting watchlist data.
- * Extracted from PlexWatchlistService to support thin orchestrator pattern.
- */
-
 import type {
   Friend,
   TokenWatchlistItem,
@@ -15,29 +8,16 @@ import type { DatabaseService } from '@services/database.service.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-/**
- * Dependencies for watchlist sync operations
- */
 export interface WatchlistSyncDeps {
   db: DatabaseService
   logger: FastifyBaseLogger
 }
 
-/**
- * Result of extracting keys and relationships from a user watchlist map
- */
 export interface KeysAndRelationships {
   allKeys: Set<string>
   userKeyMap: Map<string, Set<string>>
 }
 
-/**
- * Extracts unique keys and user-key relationships from a watchlist map.
- *
- * @param userWatchlistMap - Map of users to their watchlist items
- * @param deps - Dependencies for logging
- * @returns Object containing all unique keys and user-to-keys mapping
- */
 export function extractKeysAndRelationships(
   userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   deps: WatchlistSyncDeps,
@@ -73,14 +53,6 @@ export function extractKeysAndRelationships(
   return { allKeys, userKeyMap }
 }
 
-/**
- * Retrieves existing watchlist items from the database.
- *
- * @param userKeyMap - Map of user IDs to their watchlist keys
- * @param allKeys - Set of all unique keys to look up
- * @param deps - Dependencies for database access and logging
- * @returns Array of existing watchlist items
- */
 export async function getExistingItems(
   userKeyMap: Map<string, Set<string>>,
   allKeys: Set<string>,
@@ -133,12 +105,6 @@ export async function getExistingItems(
   return existingItems
 }
 
-/**
- * Formats a single watchlist item for API response.
- *
- * @param item - The watchlist item to format
- * @returns Formatted item object
- */
 export function formatWatchlistItem(item: WatchlistItem): {
   title: string
   plexKey: string
@@ -159,13 +125,6 @@ export function formatWatchlistItem(item: WatchlistItem): {
   }
 }
 
-/**
- * Formats existing items for a specific user.
- *
- * @param existingItems - All existing items from database
- * @param user - The user to filter items for
- * @returns Array of formatted items for the user
- */
 export function formatExistingItems(
   existingItems: WatchlistItem[],
   user: Friend & { userId: number },
@@ -175,13 +134,6 @@ export function formatExistingItems(
     .map((item) => formatWatchlistItem(item))
 }
 
-/**
- * Formats linked items for a specific user.
- *
- * @param existingItemsToLink - Map of users to items that need linking
- * @param user - The user to get linked items for
- * @returns Array of formatted linked items
- */
 export function formatLinkedItems(
   existingItemsToLink: Map<Friend & { userId: number }, Set<WatchlistItem>>,
   user: Friend & { userId: number },
@@ -190,13 +142,6 @@ export function formatLinkedItems(
   return items ? Array.from(items).map(formatWatchlistItem) : []
 }
 
-/**
- * Formats processed items for a specific user.
- *
- * @param processedItems - Map of users to newly processed items
- * @param user - The user to get processed items for
- * @returns Array of formatted processed items
- */
 export function formatProcessedItems(
   processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
   user: Friend & { userId: number },
@@ -208,14 +153,6 @@ export function formatProcessedItems(
     : []
 }
 
-/**
- * Calculates the total number of items across all categories.
- *
- * @param existingItems - Items already in database
- * @param existingItemsToLink - Items being linked to users
- * @param processedItems - Newly processed items
- * @returns Total count of all items
- */
 export function calculateTotal(
   existingItems: WatchlistItem[],
   existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
@@ -232,15 +169,6 @@ export function calculateTotal(
   return existingItems.length + linkItemsCount + processedItemsCount
 }
 
-/**
- * Builds the user watchlists array for API response.
- *
- * @param userWatchlistMap - Map of users to their token watchlist items
- * @param existingItems - Items already in database
- * @param existingItemsToLink - Items being linked to users
- * @param processedItems - Newly processed items
- * @returns Array of user watchlist groups
- */
 export function buildUserWatchlists(
   userWatchlistMap: Map<Friend & { userId: number }, Set<TokenWatchlistItem>>,
   existingItems: WatchlistItem[],
@@ -261,15 +189,6 @@ export function buildUserWatchlists(
   }))
 }
 
-/**
- * Builds the complete API response for watchlist endpoints.
- *
- * @param userWatchlistMap - Map of users to their token watchlist items
- * @param existingItems - Items already in database
- * @param existingItemsToLink - Items being linked to users
- * @param processedItems - Newly processed items
- * @returns Complete response object with total and users array
- */
 export function buildResponse(
   userWatchlistMap: Map<Friend & { userId: number }, Set<TokenWatchlistItem>>,
   existingItems: WatchlistItem[],

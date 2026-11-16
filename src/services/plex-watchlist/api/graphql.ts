@@ -7,9 +7,10 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
-import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
+  communityHeaders,
+  discoverHeaders,
   PLEX_API_TIMEOUT_MS,
   parseRetryAfter,
   type RateLimitError,
@@ -75,11 +76,7 @@ export const getWatchlist = async (
 
   try {
     const response = await fetch(url.toString(), {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'application/json',
-        'X-Plex-Token': token,
-      },
+      headers: discoverHeaders(token),
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
@@ -208,11 +205,7 @@ const paginatedGraphQLFetch = async <
     try {
       response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'User-Agent': USER_AGENT,
-          'Content-Type': 'application/json',
-          'X-Plex-Token': options.token,
-        },
+        headers: communityHeaders(options.token),
         body: JSON.stringify(options.buildQuery(cursor)),
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
@@ -308,7 +301,7 @@ export interface GetWatchlistForUserOptions {
   onFallback?: () => void
 }
 
-/** Falls back to stored DB items on fetch failure when a DB getter is given; otherwise rethrows. */
+/** Falls back to stored DB items on fetch failure when a DB getter is given, and rethrows otherwise. */
 export const getWatchlistForUser = async ({
   token,
   log,

@@ -1,10 +1,3 @@
-/**
- * Token Users Module
- *
- * Handles ensuring users exist for each Plex token in the configuration.
- * Fetches actual usernames from Plex API and manages primary user designation.
- */
-
 import type { Config, User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
@@ -18,12 +11,6 @@ export interface TokenUsersDeps {
   fastify: FastifyInstance
 }
 
-/**
- * Creates default quota configurations for a newly created user using the quota service.
- *
- * @param userId - The user ID to create quotas for
- * @param deps - Service dependencies
- */
 export async function createDefaultQuotasForUser(
   userId: number,
   deps: TokenUsersDeps,
@@ -48,16 +35,6 @@ export async function createDefaultQuotasForUser(
   }
 }
 
-/**
- * Ensures users exist for each Plex token in the configuration.
- *
- * Fetches the actual username from the Plex API for each token,
- * creates new users if needed, and updates existing users.
- * The first token is marked as the primary token user.
- *
- * @param deps - Service dependencies
- * @returns Promise resolving to a map of Plex usernames to user IDs
- */
 export async function ensureTokenUsers(
   deps: TokenUsersDeps,
 ): Promise<Map<string, number>> {
@@ -65,19 +42,16 @@ export async function ensureTokenUsers(
 
   await allSettledOrThrow(
     deps.config.plexTokens.map(async (token, index) => {
-      // Fetch the actual Plex username for this token
-      let plexUsername = `token${index + 1}` // Fallback name
+      let plexUsername = `token${index + 1}`
       let usernameVerified = false
       let plexAvatar: string | null = null
       let plexUuid: string | null = null
-      const isPrimary = index === 0 // First token is primary
+      const isPrimary = index === 0
 
-      // Create AbortController for timeout
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10_000) // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10_000)
 
       try {
-        // Fetch the actual username from Plex API with timeout handling
         const response = await fetch('https://plex.tv/api/v2/user', {
           headers: {
             'User-Agent': USER_AGENT,
@@ -118,7 +92,6 @@ export async function ensureTokenUsers(
           }
         }
       } catch (error) {
-        // Handle timeout errors specifically
         if (error instanceof Error && error.name === 'AbortError') {
           deps.logger.warn(
             `Timeout fetching Plex username for token${index + 1} after 10s, using fallback name`,
@@ -129,9 +102,7 @@ export async function ensureTokenUsers(
             'Failed to fetch Plex username for token',
           )
         }
-        // Continue with the fallback name
       } finally {
-        // Always clear the timeout to prevent memory leaks
         clearTimeout(timeoutId)
       }
 
@@ -143,26 +114,21 @@ export async function ensureTokenUsers(
         return
       }
 
-      // Variable to hold our user
       let user: User | undefined
 
-      // If this is the primary token, try to get the existing primary user
       if (isPrimary) {
         user = await deps.db.getPrimaryUser()
       }
 
       if (!user) {
-        // Check if a user with this name already exists
         user = await deps.db.getUser(plexUsername)
       }
 
       if (user) {
-        // If this user should be primary, update primary status first
         if (isPrimary && !user.is_primary_token) {
           await deps.db.setPrimaryUser(user.id)
         }
 
-        // Build updates for any changed fields
         const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
           {}
         // Never overwrite a stored name with the fallback from a failed fetch
@@ -193,7 +159,7 @@ export async function ensureTokenUsers(
           can_sync: deps.config.newUserDefaultCanSync ?? true,
           requires_approval:
             deps.config.newUserDefaultRequiresApproval ?? false,
-          is_primary_token: false, // Primary flag is set separately below
+          is_primary_token: false,
           avatar: plexAvatar,
           plex_uuid: plexUuid,
         })
@@ -207,21 +173,17 @@ export async function ensureTokenUsers(
           // Reload so the notification carries the final primary flag
           const finalUser = await deps.db.getUser(user.id)
           if (finalUser) {
-            // Send native webhook notification for user creation (fire-and-forget)
             void deps.fastify.notifications.sendUserCreated(finalUser)
           }
 
-          // Create default quotas for the new user
           await createDefaultQuotasForUser(user.id, deps)
         }
 
         if (isPrimary) {
-          // Reload to get updated data with is_primary_token = true
           user = await deps.db.getUser(user.id)
         }
       }
 
-      // Safety check for user ID
       if (!user || typeof user.id !== 'number') {
         throw new Error(`Failed to create or retrieve user ${plexUsername}`)
       }

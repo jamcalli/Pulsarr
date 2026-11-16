@@ -1,6 +1,6 @@
 import { ConfigLogLevelSchema } from '@root/schemas/config/config.schema.js'
 import { TRUSTED_PROXY_RANGES } from '@utils/ip.js'
-import { createLoggerConfig } from '@utils/logger.js'
+import { createLoggerConfig, endLogFile } from '@utils/logger.js'
 import { normalizeBasePath } from '@utils/url.js'
 import closeWithGrace from 'close-with-grace'
 import Fastify, { LogController } from 'fastify'
@@ -54,7 +54,14 @@ async function init() {
       } else {
         app.log.info(`${signal} received, server closing`)
       }
-      await app.close()
+      try {
+        await app.close()
+      } catch (closeErr) {
+        app.log.error({ err: closeErr }, 'server close failed')
+        throw closeErr
+      } finally {
+        await endLogFile()
+      }
     },
   )
 
@@ -75,6 +82,7 @@ async function init() {
     )
   } catch (err) {
     app.log.error(err)
+    await endLogFile()
     process.exit(1)
   }
 }

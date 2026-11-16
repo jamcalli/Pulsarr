@@ -3,7 +3,7 @@ import type { DeliveryResult } from '@root/types/notification.types.js'
 import { PlexMobileService } from '@services/notifications/channels/plex-mobile.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { createMockUser } from '../../../../mocks/user.js'
 import { server } from '../../../../setup/msw-setup.js'
@@ -196,7 +196,7 @@ describe('PlexMobileService retry queue', () => {
 
     expect(await queued[0]).toEqual({ ok: true })
     expect(uris).toEqual([
-      'server://machine-1/com.plexapp.plugins.library/library/metadata/episode-1',
+      'plex://libraries/machine-1/metadata/episode-1?autoplay=0',
     ])
     service.shutdown()
   })
@@ -247,6 +247,119 @@ describe('PlexMobileService retry queue', () => {
       ok: false,
       reason: 'discarded at shutdown',
     })
+  })
+
+  describe('without a scan event', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    function useRetryClock() {
+      vi.useFakeTimers({
+        toFake: [
+          'setTimeout',
+          'clearTimeout',
+          'setInterval',
+          'clearInterval',
+          'Date',
+        ],
+      })
+    }
+
+    it('retries a queued push on the timer and sends it once Plex indexes it', async () => {
+      useRetryClock()
+      const uris = captureUris()
+      let indexed = false
+      const service = createService({ isIndexed: () => indexed })
+
+      const sent = await service.sendNotification(
+        VIEWER,
+        episode(1),
+        'severance-key',
+        'tvdb:371980',
+        false,
+      )
+      if (!('queued' in sent)) throw new Error('expected a queued delivery')
+      indexed = true
+      await vi.advanceTimersByTimeAsync(60_000)
+
+      expect(await sent.queued).toEqual({ ok: true })
+      expect(uris).toEqual([
+        'plex://libraries/machine-1/metadata/episode-1?autoplay=0',
+      ])
+      service.shutdown()
+    })
+
+    it('gives up on a queued push that Plex never indexes', async () => {
+      useRetryClock()
+      const uris = captureUris()
+      const service = createService({ isIndexed: () => false })
+
+      const sent = await service.sendNotification(
+        VIEWER,
+        episode(1),
+        'severance-key',
+        'tvdb:371980',
+        false,
+      )
+      if (!('queued' in sent)) throw new Error('expected a queued delivery')
+      await vi.advanceTimersByTimeAsync(11 * 60_000)
+
+      expect(await sent.queued).toEqual({
+        ok: false,
+        reason: 'Plex did not index the content in time',
+      })
+      expect(uris).toHaveLength(0)
+      expect(vi.getTimerCount()).toBe(0)
+      service.shutdown()
+    })
+  })
+
+  it('keeps a notification that replaces its queue entry during a retry send', async () => {
+    let indexed = false
+    const service = createService({ isIndexed: () => indexed })
+    const queue = async () => {
+      const sent = await service.sendNotification(
+        VIEWER,
+        episode(1),
+        'severance-key',
+        'tvdb:371980',
+        false,
+      )
+      if (!('queued' in sent)) throw new Error('expected a queued delivery')
+      return sent
+    }
+    let replacement: { queued: Promise<DeliveryResult> } | undefined
+    let sends = 0
+    server.use(
+      http.post(PLEX_NOTIFICATIONS, async () => {
+        sends += 1
+        if (!replacement) {
+          indexed = false
+          replacement = await queue()
+          indexed = true
+        }
+        return new HttpResponse(null)
+      }),
+    )
+
+    const first = await queue()
+    indexed = true
+    service.triggerRetryProcessing()
+
+    expect(await first.queued).toEqual({
+      ok: false,
+      reason: 'replaced by a newer queued notification',
+    })
+    await vi.waitFor(
+      () => {
+        service.triggerRetryProcessing()
+        expect(sends).toBe(2)
+      },
+      { timeout: 500 },
+    )
+    expect(await replacement?.queued).toEqual({ ok: true })
+    service.shutdown()
   })
 
   it('keeps two queued episodes of one show for one user', async () => {

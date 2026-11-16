@@ -15,10 +15,8 @@ import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
 import type { FastifyBaseLogger } from 'fastify'
-import {
-  matchPlexMovieToRadarr,
-  matchPlexSeriesToSonarr,
-} from '../matching/index.js'
+import { matchPlexMovieToRadarr } from '../matching/radarr-matcher.js'
+import { matchPlexSeriesToSonarr } from '../matching/sonarr-matcher.js'
 import { updateTrackingForContent } from '../tracking/content-tracker.js'
 import {
   computeFinalLabels,

@@ -6,9 +6,9 @@ import {
 import { normalizePosterPath } from '@utils/poster-url.js'
 import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
+import { PLEX_API_TIMEOUT_MS, parseRetryAfter } from '../api/helpers.js'
 import { PlexRateLimiter } from '../api/rate-limiter.js'
-import { parseRatings } from './rating-parser.js'
+import { imdbRatingCount, parseRatings } from './rating-parser.js'
 
 export interface EnrichedRssMetadata {
   ratingKey: string
@@ -46,7 +46,7 @@ export function selectPrimaryGuid(
   )
 }
 
-/** Takes the tmdb://123 guid form; returns null on no match or any failure, never throws. */
+/** Takes the tmdb://123 guid form, and returns null on no match or any failure without throwing. */
 export async function lookupByGuid(
   config: GuidLookupConfig,
   log: FastifyBaseLogger,
@@ -75,10 +75,7 @@ export async function lookupByGuid(
 
     if (response.status === 429) {
       const retryAfter = response.headers.get('Retry-After')
-      rateLimiter.setRateLimited(
-        retryAfter ? Number.parseInt(retryAfter, 10) : undefined,
-        log,
-      )
+      rateLimiter.setRateLimited(parseRetryAfter(retryAfter), log)
 
       if (retryCount < maxRetries) {
         await rateLimiter.waitIfLimited(log)
@@ -126,8 +123,7 @@ export async function lookupByGuid(
       return null
     }
 
-    const imdbVotes =
-      metadata.imdbRatingCount ?? json.MediaContainer?.imdbRatingCount
+    const imdbVotes = imdbRatingCount(metadata, json.MediaContainer)
     const ratings = parseRatings(metadata.Rating, imdbVotes)
 
     return {
@@ -149,7 +145,7 @@ export async function lookupByGuid(
   }
 }
 
-/** Keyed by the normalized primary guid; items with no usable guid or no match are absent. */
+/** Keyed by the normalized primary guid, leaving out items with no usable guid or no match. */
 export async function batchLookupByGuid(
   config: GuidLookupConfig,
   log: FastifyBaseLogger,
@@ -164,7 +160,6 @@ export async function batchLookupByGuid(
       continue
     }
 
-    // Convert normalized GUID (tmdb:123) back to Plex format (tmdb://123) for API lookup
     const plexGuid = primaryGuid.replace(/^(tmdb|imdb|tvdb):/, '$1://')
     const metadata = await lookupByGuid(config, log, plexGuid, item.category)
     if (metadata) {

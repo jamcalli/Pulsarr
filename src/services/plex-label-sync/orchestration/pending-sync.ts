@@ -22,7 +22,7 @@ import pLimit from 'p-limit'
 import {
   buildReconcilerDeps,
   reconcileLabelsForSingleItem,
-} from '../label-operations/index.js'
+} from '../label-operations/label-reconciler.js'
 import { computeDesiredTagLabels } from '../label-operations/label-validator.js'
 import {
   createDbGuidResolver,

@@ -29,7 +29,7 @@ import {
   includesLabelIgnoreCase,
   isAppUserLabel,
   isRemovedLabel,
-} from '../label-operations/index.js'
+} from '../label-operations/label-validator.js'
 import { cleanupTrackingForItems } from '../tracking/content-tracker.js'
 
 /**

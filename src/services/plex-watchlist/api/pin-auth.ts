@@ -20,27 +20,11 @@ export interface PlexPinPollResult {
   expiresIn: number
 }
 
-/**
- * Generates a unique client identifier for this PIN auth session.
- *
- * Each PIN generation gets a unique identifier to ensure Plex treats
- * it as a new device, guaranteeing a fresh auth token. This is important
- * for re-authentication scenarios (e.g., after Plex token revocation).
- */
+/** A new identifier per PIN makes Plex treat it as a new device and issue a fresh token. */
 function generateClientId(): string {
   return `${PLEX_CLIENT_IDENTIFIER}-${randomUUID().slice(0, 8)}`
 }
 
-/**
- * Generates a new Plex PIN for device authorization.
- *
- * Creates a PIN that users can enter at plex.tv/link to authorize
- * Pulsarr to access their Plex account. Returns a 4-character code
- * by default.
- *
- * @param log - Fastify logger instance
- * @returns PIN details including id, code, QR URL, expiration, and clientId
- */
 export async function generatePlexPin(
   log: FastifyBaseLogger,
 ): Promise<PlexPin> {
@@ -90,17 +74,6 @@ export async function generatePlexPin(
   }
 }
 
-/**
- * Polls a Plex PIN to check if user has authorized.
- *
- * Should be called periodically (e.g., every 5 seconds) after generating
- * a PIN to check if the user has completed authorization at plex.tv/link.
- *
- * @param pinId - The PIN ID returned from generatePlexPin
- * @param clientId - The client identifier used when generating the PIN
- * @param log - Fastify logger instance
- * @returns authToken if authorized, null otherwise, plus expiration info
- */
 export async function pollPlexPin(
   pinId: number,
   clientId: string,
@@ -116,7 +89,7 @@ export async function pollPlexPin(
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
-    // 404 means PIN expired or not found - return expired state
+    // Plex answers 404 for an expired or unknown PIN
     if (response.status === 404) {
       log.debug({ pinId }, 'Plex PIN expired or not found')
       return {

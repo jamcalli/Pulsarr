@@ -1,10 +1,3 @@
-/**
- * Item Categorizer Module
- *
- * Handles categorizing watchlist items into new items vs existing items,
- * and mapping existing items by key for efficient lookup.
- */
-
 import type {
   Friend,
   TokenWatchlistItem,
@@ -17,15 +10,6 @@ export interface ItemCategorizerDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Creates a watchlist item from a template item for a different user.
- * Used when an item exists in the database but needs to be linked to another user.
- *
- * @param user - The user to create the item for
- * @param item - The source token watchlist item
- * @param templateItem - The existing item to use as a template
- * @returns A new WatchlistItem for the user
- */
 export function createWatchlistItem(
   user: Friend,
   item: TokenWatchlistItem,
@@ -47,14 +31,6 @@ export function createWatchlistItem(
   }
 }
 
-/**
- * Maps existing watchlist items by their key for efficient lookup.
- * Creates a nested map structure: key -> userId -> WatchlistItem
- *
- * @param existingItems - Array of existing watchlist items
- * @param deps - Service dependencies
- * @returns Map of key to user map to watchlist item
- */
 export function mapExistingItemsByKey(
   existingItems: WatchlistItem[],
   deps: ItemCategorizerDeps,
@@ -91,15 +67,6 @@ export function mapExistingItemsByKey(
   return map
 }
 
-/**
- * Separates items into new items (not in database) and items to link (exist but for different user).
- *
- * @param items - Set of token watchlist items to process
- * @param user - The user these items belong to
- * @param existingItemsByKey - Map of existing items by key
- * @param deps - Service dependencies
- * @returns Object with newItems and itemsToLink sets
- */
 export function separateNewAndExistingItems(
   items: Set<TokenWatchlistItem>,
   user: Friend,
@@ -180,16 +147,6 @@ export function separateNewAndExistingItems(
   return { newItems, itemsToLink }
 }
 
-/**
- * Categorizes watchlist items into brand new items and existing items to link.
- * When forceRefresh is enabled, treats all items as new for metadata re-fetching.
- *
- * @param userWatchlistMap - Map of users to their watchlist items
- * @param existingItems - Array of existing items in the database
- * @param deps - Service dependencies
- * @param forceRefresh - If true, treat all items as new
- * @returns Object with brandNewItems and existingItemsToLink maps
- */
 export function categorizeItems(
   userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   existingItems: WatchlistItem[],
@@ -203,7 +160,6 @@ export function categorizeItems(
   const existingItemsToLink = new Map<Friend, Set<WatchlistItem>>()
 
   if (forceRefresh) {
-    // When force refresh is enabled, treat all items as brand new to trigger metadata re-fetching
     deps.logger.debug(
       'Force refresh enabled - treating all items as new for metadata refresh',
     )
@@ -211,7 +167,6 @@ export function categorizeItems(
       brandNewItems.set(user, items)
     })
   } else {
-    // Normal categorization logic
     const existingItemsByKey = mapExistingItemsByKey(existingItems, deps)
 
     userWatchlistMap.forEach((items, user) => {

@@ -1762,11 +1762,10 @@ describe('notification event routing', () => {
                 "title": "Availability Test Movie",
                 "type": "movie",
               },
-              "play": false,
               "to": [
                 2,
               ],
-              "uri": "server://machine-1/com.plexapp.plugins.library/library/metadata/900",
+              "uri": "plex://libraries/machine-1/metadata/900?autoplay=0",
             },
           ],
         }

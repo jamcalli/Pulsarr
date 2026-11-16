@@ -387,7 +387,7 @@ export class PlexWatchlistService {
     return generateAndSaveRssFeeds(this.rssProcessorDeps)
   }
 
-  /** Also creates and deletes DB users; returns empty changes without touching the DB if the friends API fails. */
+  /** Also creates and deletes DB users, and returns empty changes without touching the DB if the friends API fails. */
   async checkFriendChanges(): Promise<FriendChangesResult> {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
@@ -402,7 +402,6 @@ export class PlexWatchlistService {
       return { added: [], removed: [], userMap: new Map() }
     }
 
-    // Ensure token users are up-to-date before cleanup (handles username changes)
     await this.ensureTokenUsers()
 
     const removed = await this.checkForRemovedFriends(friendsResult.friends)
@@ -445,7 +444,6 @@ export class PlexWatchlistService {
       )
     }
 
-    // Ensure token users are up-to-date before cleanup (handles username changes)
     await this.ensureTokenUsers()
 
     await this.checkForRemovedFriends(friendsResult.friends)

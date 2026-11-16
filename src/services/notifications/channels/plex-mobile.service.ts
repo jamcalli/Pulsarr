@@ -199,7 +199,7 @@ export class PlexMobileService {
       createdAt: Date.now(),
       settle,
     })
-    this.log.debug(
+    this.log.info(
       { queueKey, title: notification.title, username: user.name },
       'Plex mobile notification queued until Plex indexes the content',
     )
@@ -338,16 +338,8 @@ export class PlexMobileService {
     return sendPlexMobileNotification(payload, this.notificationDeps)
   }
 
-  /** Call on SSE disconnect so queued items still retry without content-scanned events. */
-  startRetryPolling(): void {
-    if (this.pendingQueue.size === 0) return
-    this.ensureRetryTimer()
-  }
-
   private ensureRetryTimer(): void {
     if (this.retryTimer) return
-    // A connected SSE stream drives retries through triggerRetryProcessing instead
-    if (this.fastify.plexServerService.isSSEConnected()) return
     this.retryTimer = setTimeout(() => {
       void this.processRetryQueue()
       this.retryTimer = setInterval(() => {
@@ -361,6 +353,11 @@ export class PlexMobileService {
     if (!this.isEnabled()) return 'Plex mobile turned off'
     const user = await this.fastify.db.getUser(userId)
     return user?.notify_plex_mobile ? null : 'user turned off Plex mobile'
+  }
+
+  /** Removes the entry only while it is still this record, since a newer send may have replaced it during an await. */
+  private dropPending(key: string, pending: PendingPlexNotification): void {
+    if (this.pendingQueue.get(key) === pending) this.pendingQueue.delete(key)
   }
 
   private async processRetryQueue(): Promise<void> {
@@ -406,7 +403,7 @@ export class PlexMobileService {
           const optOut = await this.sendTimeOptOut(pending.user.id)
           if (optOut) {
             pending.settle({ ok: false, reason: optOut })
-            this.pendingQueue.delete(key)
+            this.dropPending(key, pending)
             continue
           }
 
@@ -414,9 +411,10 @@ export class PlexMobileService {
             await this.fastify.plexServerService.resolveUserPlexId(pending.user)
           if (plexUserId === null) {
             pending.settle({ ok: false, reason: 'no matching Plex account' })
-            this.pendingQueue.delete(key)
+            this.dropPending(key, pending)
             continue
           }
+          if (this.pendingQueue.get(key) !== pending) continue
 
           const result = await this.sendResolved(
             pending.notification,
@@ -427,7 +425,7 @@ export class PlexMobileService {
 
           if (result.ok) {
             pending.settle(result)
-            this.pendingQueue.delete(key)
+            this.dropPending(key, pending)
           } else {
             this.log.debug(
               { key, title: pending.notification.title, reason: result.reason },

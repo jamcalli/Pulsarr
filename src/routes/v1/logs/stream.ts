@@ -4,6 +4,7 @@ import {
   LogStreamQuerySchema,
   LogStreamResponseSchema,
 } from '@schemas/logs/logs.schema.js'
+import { createLogFilter } from '@services/log-streaming.service.js'
 import { logRouteError } from '@utils/route-errors.js'
 import { sseStream } from '@utils/sse-stream.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -52,8 +53,7 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
       const emitter = logService.getEventEmitter()
 
-      const matchesFilter = (entry: LogEntry) =>
-        !filter || entry.message.toLowerCase().includes(filter.toLowerCase())
+      const matchesFilter = createLogFilter(filter)
 
       return reply.sse(
         (async function* source() {
