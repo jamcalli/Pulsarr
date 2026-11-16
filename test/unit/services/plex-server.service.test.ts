@@ -1015,6 +1015,25 @@ describe('PlexServerService SSE subscriptions', () => {
     service.disconnectSSE()
   })
 
+  it('leaves one live stream when two settings updates overlap', async () => {
+    const service = createConnectableService()
+    const disconnected = vi.fn()
+    service.onSSE('disconnected', disconnected)
+
+    await Promise.all([
+      service.applyConnectionSettings(false),
+      service.applyConnectionSettings(false),
+    ])
+
+    expect(eventSources).toHaveLength(2)
+    eventSources[0]?.emit('disconnected')
+    expect(disconnected).not.toHaveBeenCalled()
+
+    currentStream().emit('disconnected')
+    expect(disconnected).toHaveBeenCalledTimes(1)
+    service.disconnectSSE()
+  })
+
   it('stops delivering to a handler removed with offSSE across a reconnect', async () => {
     const service = createConnectableService()
     const disconnected = vi.fn()

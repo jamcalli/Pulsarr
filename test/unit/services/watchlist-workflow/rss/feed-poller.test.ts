@@ -184,4 +184,29 @@ describe('scheduleRssCheck', () => {
     expect(checkSelfFeed).toHaveBeenCalledTimes(1)
     expect(deps.state.rssCheckInterval).toBeNull()
   })
+
+  it('does not reschedule an old check that finishes after a restart', async () => {
+    let release: () => void = () => {}
+    checkSelfFeed.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        release = resolve
+      })
+      return { feed: 'self', changed: false, newItems: [], totalItems: 0 }
+    })
+    scheduleRssCheck(deps, INTERVAL_MS)
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS)
+
+    deps.state.endRun()
+    deps.state.rssCheckInterval = null
+    deps.state.beginRun()
+    scheduleRssCheck(deps, INTERVAL_MS)
+    const restarted = deps.state.rssCheckInterval
+
+    release()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(deps.state.rssCheckInterval).toBe(restarted)
+
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS)
+    expect(checkSelfFeed).toHaveBeenCalledTimes(2)
+  })
 })

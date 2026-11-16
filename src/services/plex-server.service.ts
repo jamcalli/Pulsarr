@@ -1344,6 +1344,8 @@ export class PlexServerService {
 
   async connectSSE(): Promise<void> {
     const serverUrl = await this.getPlexServerUrl()
+    // an overlapping connect may have opened a source during the await above
+    this.disconnectSSE()
     const token = this.config.plexTokens?.[0] || ''
 
     if (!token) {
