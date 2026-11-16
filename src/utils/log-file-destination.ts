@@ -29,7 +29,9 @@ export class LogFileDestination implements DestinationStream {
   write(line: string): void {
     const stream = this.stream
     if (stream && !stream.destroyed && !stream.writableEnded) {
-      stream.write(line)
+      stream.write(line, (error) => {
+        if (error) this.fallback(line)
+      })
     } else {
       this.fallback(line)
     }

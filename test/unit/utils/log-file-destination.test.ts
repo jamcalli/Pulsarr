@@ -110,6 +110,85 @@ describe('LogFileDestination', () => {
     expect(file.lines).toEqual([])
   })
 
+  it('sends a line buffered before the file failed to open to the fallback once', async () => {
+    const stream = new Writable({
+      construct(done) {
+        void Promise.resolve().then(() => done(new Error('open failed')))
+      },
+      write(_chunk, _encoding, done) {
+        done()
+      },
+    })
+    const fallback = vi.fn()
+    const destination = new LogFileDestination({
+      initial: stream,
+      open: vi.fn(() => memoryFile().stream),
+      fallback,
+    })
+    const closed = new Promise<void>((resolve) =>
+      stream.once('close', () => resolve()),
+    )
+
+    destination.write('buffered\n')
+    await closed
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(fallback).toHaveBeenCalledTimes(1)
+    expect(fallback).toHaveBeenCalledWith('buffered\n')
+  })
+
+  it('sends only the lines a failing write did not persist to the fallback', async () => {
+    const written: string[] = []
+    const stream = new Writable({
+      write(chunk: Buffer, _encoding, done) {
+        const line = chunk.toString()
+        void Promise.resolve().then(() => {
+          if (line === 'second\n') {
+            done(new Error('disk full'))
+            return
+          }
+          written.push(line)
+          done()
+        })
+      },
+    })
+    const fallback = vi.fn()
+    const destination = new LogFileDestination({
+      initial: stream,
+      open: vi.fn(() => memoryFile().stream),
+      fallback,
+    })
+    const closed = new Promise<void>((resolve) =>
+      stream.once('close', () => resolve()),
+    )
+
+    destination.write('first\n')
+    destination.write('second\n')
+    destination.write('third\n')
+    await closed
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(written).toEqual(['first\n'])
+    expect(fallback.mock.calls).toEqual([['second\n'], ['third\n']])
+  })
+
+  it('never sends a line written to a healthy file to the fallback', async () => {
+    const file = memoryFile()
+    const fallback = vi.fn()
+    const destination = new LogFileDestination({
+      initial: file.stream,
+      open: vi.fn(),
+      fallback,
+    })
+
+    destination.write('one\n')
+    destination.write('two\n')
+    await destination.end()
+
+    expect(file.lines).toEqual(['one\n', 'two\n'])
+    expect(fallback).not.toHaveBeenCalled()
+  })
+
   it('drops lines while down when the fallback discards them', async () => {
     const file = memoryFile()
     const destination = new LogFileDestination({
