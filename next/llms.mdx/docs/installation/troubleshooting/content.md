@@ -40,6 +40,8 @@ The request reached Pulsarr from a different origin than the page. Either the re
 
 The proxy isn't sending `X-Forwarded-For`, so every visitor shares the proxy's address. See [Reverse proxy](/installation/environment-variables#reverse-proxy).
 
+Behind Cloudflare with Traefik or Caddy, visitors share the Cloudflare address instead. Add Cloudflare's ranges to [`trustedProxies`](/installation/environment-variables#security).
+
 ## The PostgreSQL migration fails [#the-postgresql-migration-fails]
 
 On PostgreSQL 15 and later, create the database with `OWNER` instead of granting privileges on it. Create the tables before copying the data. The copy refuses tables that already have rows, so after a failed run recreate the database and start from the table step. See [PostgreSQL](/installation/postgresql#move-from-sqlite).
