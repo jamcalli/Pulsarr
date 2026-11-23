@@ -39,6 +39,9 @@
   "baseBranchPatterns": [
     "develop"
   ],
+  "constraints": {
+    "npm": "<12"
+  },
   "timezone": "UTC",
   "schedule": [
     "before 6am on monday",
