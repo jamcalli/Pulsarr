@@ -1,4 +1,10 @@
-import { isLocalIpAddress } from '@utils/ip.js'
+import {
+  createConfigurableProxyTrust,
+  createProxyTrust,
+  isLocalClientChain,
+  isLocalIpAddress,
+  parseTrustedProxies,
+} from '@utils/ip.js'
 import { describe, expect, it } from 'vitest'
 
 describe('ip', () => {
@@ -115,6 +121,140 @@ describe('ip', () => {
         expect(isLocalIpAddress(' 127.0.0.1 ')).toBe(true)
         expect(isLocalIpAddress(' ::1 ')).toBe(true)
       })
+    })
+  })
+
+  describe('parseTrustedProxies', () => {
+    it('returns an empty list for empty or undefined input', () => {
+      expect(parseTrustedProxies('')).toEqual([])
+      expect(parseTrustedProxies(undefined)).toEqual([])
+    })
+
+    it('parses a mixed list of addresses and ranges', () => {
+      expect(
+        parseTrustedProxies(
+          ' 173.245.48.0/20, 203.0.113.7 ,2400:cb00::/32, 2001:db8::1 ',
+        ),
+      ).toEqual([
+        '173.245.48.0/20',
+        '203.0.113.7',
+        '2400:cb00::/32',
+        '2001:db8::1',
+      ])
+    })
+
+    it.each([
+      'proxy.example.com',
+      '10.1',
+      '10.1/8',
+      '10.0.0.0/33',
+      '2001:db8::/129',
+      'not an ip',
+      '0.0.0.0/0',
+      '::/0',
+      '173.245.48.5/20',
+      '10.1.2.3/8',
+      '::ffff:173.245.48.0/116',
+    ])('rejects %s', (entry) => {
+      expect(() => parseTrustedProxies(entry)).toThrow(/trustedProxies/)
+    })
+
+    it('accepts a bare IPv4-mapped address', () => {
+      expect(parseTrustedProxies('::ffff:173.245.48.5')).toEqual([
+        '::ffff:173.245.48.5',
+      ])
+    })
+  })
+
+  describe('createProxyTrust', () => {
+    const builtIn = createProxyTrust([])
+    const withExtras = createProxyTrust([
+      '173.245.48.0/20',
+      '2400:cb00::/32',
+      '203.0.113.9',
+    ])
+
+    it.each([
+      '127.0.0.1',
+      '::1',
+      '10.0.0.5',
+      '172.20.0.1',
+      '192.168.1.1',
+      '169.254.1.1',
+      'fd00::1',
+      'fe80::1',
+      '::ffff:10.0.0.1',
+    ])('trusts the local address %s with no extras', (address) => {
+      expect(builtIn(address)).toBe(true)
+    })
+
+    it.each(['8.8.8.8', '173.245.48.5', '2606:4700::1', 'localhost'])(
+      'rejects %s with no extras',
+      (address) => {
+        expect(builtIn(address)).toBe(false)
+      },
+    )
+
+    it.each([
+      '173.245.48.5',
+      '173.245.63.255',
+      '2400:cb00::1',
+      '203.0.113.9',
+      '::ffff:173.245.48.5',
+    ])('trusts %s inside an extra entry', (address) => {
+      expect(withExtras(address)).toBe(true)
+    })
+
+    it.each(['173.245.64.0', '203.0.113.10', 'not an ip', '173.245.48'])(
+      'rejects %s outside every extra entry',
+      (address) => {
+        expect(withExtras(address)).toBe(false)
+      },
+    )
+
+    it('rejects a missing address from a destroyed socket', () => {
+      expect(builtIn(undefined)).toBe(false)
+      expect(withExtras(undefined)).toBe(false)
+    })
+  })
+
+  describe('isLocalClientChain', () => {
+    it('rejects an empty chain', () => {
+      expect(isLocalClientChain([])).toBe(false)
+    })
+
+    it('accepts a chain of local addresses', () => {
+      expect(isLocalClientChain(['172.18.0.2', '192.168.1.50', '::1'])).toBe(
+        true,
+      )
+    })
+
+    it('rejects a chain with one public hop', () => {
+      expect(
+        isLocalClientChain(['172.18.0.2', '173.245.48.5', '10.0.0.1']),
+      ).toBe(false)
+    })
+
+    it('rejects a chain with a missing address', () => {
+      expect(isLocalClientChain(['172.18.0.2', undefined])).toBe(false)
+    })
+  })
+
+  describe('createConfigurableProxyTrust', () => {
+    it('trusts only local peers before configure', () => {
+      const { trustProxy } = createConfigurableProxyTrust()
+
+      expect(trustProxy('172.18.0.2')).toBe(true)
+      expect(trustProxy('173.245.48.5')).toBe(false)
+    })
+
+    it('trusts the extra range after configure', () => {
+      const { trustProxy, configure } = createConfigurableProxyTrust()
+      configure(['173.245.48.0/20'])
+
+      expect(trustProxy('172.18.0.2')).toBe(true)
+      expect(trustProxy('173.245.48.5')).toBe(true)
+      expect(trustProxy('203.0.113.7')).toBe(false)
     })
   })
 })

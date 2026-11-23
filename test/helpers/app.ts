@@ -1,5 +1,5 @@
 import serviceApp from '@root/app.js'
-import { TRUSTED_PROXY_RANGES } from '@utils/ip.js'
+import { createConfigurableProxyTrust } from '@utils/ip.js'
 import type { FastifyInstance, onRouteHookHandler } from 'fastify'
 import Fastify from 'fastify'
 import type { TestContext } from 'vitest'
@@ -12,6 +12,7 @@ export async function build(
 ): Promise<FastifyInstance> {
   await initializeTestDatabase()
 
+  const proxyTrust = createConfigurableProxyTrust()
   const app = Fastify({
     logger: false,
     // Match production AJV options from server.ts
@@ -21,7 +22,7 @@ export async function build(
         removeAdditional: 'all',
       },
     },
-    trustProxy: TRUSTED_PROXY_RANGES,
+    trustProxy: proxyTrust.trustProxy,
   })
 
   if (onRoute) {
@@ -29,6 +30,9 @@ export async function build(
   }
 
   await app.register(serviceApp)
+  app.addHook('onReady', async () => {
+    proxyTrust.configure(app.config.trustedProxies)
+  })
 
   if (t) {
     t.onTestFinished(async () => {
