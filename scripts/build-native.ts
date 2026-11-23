@@ -199,12 +199,18 @@ cpSync(
   resolve(COMMON_DIR, '.env.example'),
 )
 
+const TMDB_PLACEHOLDER = /^# tmdbApiKey=$/m
 const tmdbKey = process.env.TMDBAPIKEY
 if (tmdbKey) {
   const envExample = resolve(COMMON_DIR, '.env.example')
-  let content = readFileSync(envExample, 'utf8')
-  content += `\n# --- TMDB (pre-configured) ---\ntmdbApiKey=${tmdbKey}\n`
-  writeFileSync(envExample, content)
+  const content = readFileSync(envExample, 'utf8')
+  if (!TMDB_PLACEHOLDER.test(content)) {
+    throw new Error('.env.example has no "# tmdbApiKey=" line to fill in')
+  }
+  writeFileSync(
+    envExample,
+    content.replace(TMDB_PLACEHOLDER, () => `tmdbApiKey=${tmdbKey}`),
+  )
   console.log('    Injected TMDB API key into .env.example')
 }
 
