@@ -119,5 +119,41 @@ describe('auth-bypass', () => {
         expect(result.shouldBypass).toBe(false)
       }
     })
+
+    it('should bypass when every forwarded hop is local', () => {
+      const mockFastify = {
+        config: {
+          authenticationMethod: 'requiredExceptLocal',
+        },
+      } as unknown as FastifyInstance
+
+      const mockRequest = {
+        ip: '192.168.1.50',
+        ips: ['172.18.0.2', '192.168.1.50'],
+      } as unknown as FastifyRequest
+
+      const result = getAuthBypassStatus(mockFastify, mockRequest)
+
+      expect(result.isLocalBypass).toBe(true)
+      expect(result.shouldBypass).toBe(true)
+    })
+
+    it('should not bypass when a forwarded hop is public', () => {
+      const mockFastify = {
+        config: {
+          authenticationMethod: 'requiredExceptLocal',
+        },
+      } as unknown as FastifyInstance
+
+      const mockRequest = {
+        ip: '10.0.0.1',
+        ips: ['172.18.0.2', '173.245.48.5', '10.0.0.1'],
+      } as unknown as FastifyRequest
+
+      const result = getAuthBypassStatus(mockFastify, mockRequest)
+
+      expect(result.isLocalBypass).toBe(false)
+      expect(result.shouldBypass).toBe(false)
+    })
   })
 })

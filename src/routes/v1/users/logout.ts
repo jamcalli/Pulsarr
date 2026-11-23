@@ -1,6 +1,6 @@
 import { LogoutBodySchema, LogoutResponseSchema } from '@schemas/auth/logout.js'
 import { ErrorSchema } from '@schemas/common/error.schema.js'
-import { isLocalIpAddress } from '@utils/ip.js'
+import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -22,12 +22,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const authMethod = fastify.config.authenticationMethod
-        const isAuthDisabled = authMethod === 'disabled'
-        const isLocalBypass =
-          authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
-
-        if (isAuthDisabled || isLocalBypass) {
+        if (getAuthBypassStatus(fastify, request).shouldBypass) {
           return reply.badRequest(
             'Logout not available: Authentication is disabled for your IP address.',
           )

@@ -1,5 +1,5 @@
 import { ConfigLogLevelSchema } from '@root/schemas/config/config.schema.js'
-import { TRUSTED_PROXY_RANGES } from '@utils/ip.js'
+import { createConfigurableProxyTrust } from '@utils/ip.js'
 import { createLoggerConfig, endLogFile } from '@utils/logger.js'
 import { normalizeBasePath } from '@utils/url.js'
 import closeWithGrace from 'close-with-grace'
@@ -12,6 +12,8 @@ async function init() {
     process.env.enableRequestLogging ?? '',
   )
 
+  const proxyTrust = createConfigurableProxyTrust()
+
   const app = Fastify({
     logger: createLoggerConfig(),
     ajv: {
@@ -21,12 +23,11 @@ async function init() {
       },
     },
     pluginTimeout: 60000,
-    // Force close persistent connections (like SSE) during shutdown
     forceCloseConnections: true,
     logController: new LogController({
       disableRequestLogging: !enableRequestLogging,
     }),
-    trustProxy: TRUSTED_PROXY_RANGES,
+    trustProxy: proxyTrust.trustProxy,
   })
 
   const basePath = normalizeBasePath(process.env.basePath)
@@ -37,6 +38,7 @@ async function init() {
   }
 
   await app.ready()
+  proxyTrust.configure(app.config.trustedProxies)
 
   const configLogLevel = app.config.logLevel
   if (configLogLevel && ConfigLogLevelSchema.options.includes(configLogLevel)) {
@@ -66,9 +68,6 @@ async function init() {
   )
 
   try {
-    // listenPort: internal port the server binds to (default 3003)
-    // port: external port for webhook URL generation (what Sonarr/Radarr use to reach Pulsarr)
-    // Docker users should use port mapping (e.g., 8080:3003) and set port=8080 for webhooks
     // Fastify logs one line per interface on 0.0.0.0 and has no option to turn it off
     const logLevel = app.log.level
     app.log.level = 'warn'

@@ -50,7 +50,6 @@ export type RemovedLabelMode = 'remove' | 'keep' | 'special-label'
 
 export type DeletionMode = 'watchlist' | 'tag-based'
 
-// Type-safe key definitions for public content notification config
 export type DiscordWebhookKey =
   | 'discordWebhookUrls'
   | 'discordWebhookUrlsMovies'
@@ -61,7 +60,6 @@ export type AppriseUrlKey =
   | 'appriseUrlsMovies'
   | 'appriseUrlsShows'
 
-// Type-safe lookup table structure for public content notification keys
 export type PublicContentKeyMap = Record<
   'discord' | 'apprise',
   {
@@ -78,12 +76,10 @@ export type SecretColumn =
 
 export interface Config {
   id: number
-  // System Config
   basePath: string
   baseUrl: string
   port: number
   listenPort: number
-  // Database Config
   dbType: 'sqlite' | 'postgres'
   dbPath: string
   dbHost: string
@@ -101,50 +97,42 @@ export interface Config {
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
   allowedOrigins: string[]
   allowedHosts: string[]
+  trustedProxies: string[]
   rateLimitMax: number
-  // Maintainerr Config
   maintainerrEnabled: boolean
   maintainerrUrl: string
   maintainerrWebhookSecret: string
   maintainerrExclusionMode: MaintainerrExclusionMode
-  // Discord Config
   discordWebhookUrl: string
   discordBotToken: string
   discordClientId: string
-  // Apprise Config
   enableApprise: boolean
   appriseUrl: string
   systemAppriseUrl: string
   appriseEmailSender?: string
-  // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
   publicContentNotifications?: {
     enabled: boolean
-    // Discord webhook URLs for public content announcements (comma-separated)
+    /** Comma-separated. */
     discordWebhookUrls?: string
-    // Movie-specific Discord webhook URLs (comma-separated)
+    /** Comma-separated. */
     discordWebhookUrlsMovies?: string
-    // Show-specific Discord webhook URLs (comma-separated)
+    /** Comma-separated. */
     discordWebhookUrlsShows?: string
-    // Apprise URLs for public content announcements (comma-separated)
+    /** Comma-separated. */
     appriseUrls?: string
-    // Movie-specific Apprise URLs (comma-separated)
+    /** Comma-separated. */
     appriseUrlsMovies?: string
-    // Show-specific Apprise URLs (comma-separated)
+    /** Comma-separated. */
     appriseUrlsShows?: string
   }
-  // Plex Mobile Config
   plexMobileEnabled: boolean
-  // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number
-  // Out-of-app update notifications
   notifyOnUpdate: UpdateNotifyOption
   notifyOnAvailability: boolean
-  // Pending Webhooks Config
   pendingWebhookRetryInterval: number
   pendingWebhookMaxAge: number
   pendingWebhookCleanupInterval: number
-  // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string
   sonarrQualityProfile: string
@@ -154,20 +142,16 @@ export interface Config {
   sonarrMonitorNewItems: 'all' | 'none'
   sonarrTags: string[]
   sonarrCreateSeasonFolders: boolean
-  // Radarr Config
   radarrBaseUrl: string
   radarrApiKey: string
   radarrQualityProfile: string
   radarrRootFolder: string
   radarrBypassIgnored: boolean
   radarrTags: string[]
-  // TMDB Config
   tmdbApiKey: string
   tmdbRegion: string
-  // Plex Config
   plexTokens: string[]
   skipFriendSync: boolean
-  // Delete Config
   deletionMode: DeletionMode
   deleteMovie: boolean
   deleteEndedShow: boolean
@@ -181,42 +165,34 @@ export interface Config {
   watchlistAddNotify: NotifyOption
   deleteSyncNotifyOnlyOnDeletion: boolean
   maxDeletionPrevention: number
-  deleteSyncTrackedOnly: boolean // Only delete content tracked in approval_requests
-  deleteSyncCleanupApprovals: boolean // Clean up approval_requests for deleted content
+  deleteSyncTrackedOnly: boolean
+  deleteSyncCleanupApprovals: boolean
   deleteSyncRequiredTagRegex?: string // Additional regex filter - content must have BOTH removal tag AND tag matching this regex to be deleted
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string
   plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
   skipIfExistsOnPlex?: boolean // Skip downloading if content exists on accessible Plex servers (primary token only, requires reconciliation)
   plexExistenceScope: PlexExistenceScope
-  // Plex Label Sync Configuration - nested object following complex config pattern
   plexLabelSync?: PlexLabelSyncConfig
-  // RSS Config
   selfRss?: string
   friendsRss?: string
-  // Tagging Config
   tagUsersInSonarr: boolean
   tagUsersInRadarr: boolean
   cleanupOrphanedTags: boolean
   tagPrefix: string
   tagNamingSource: 'username' | 'alias'
-  // Special tag for removed content
   removedTagMode: RemovedTagMode
   removedTagPrefix: string
-  // Plex Session Monitoring
   plexSessionMonitoring?: {
     enabled: boolean
     pollingIntervalMinutes: number
     remainingEpisodes: number
     filterUsers?: string[]
-    // Rolling monitoring reset settings
     enableAutoReset?: boolean
     inactivityResetDays?: number
     autoResetIntervalHours?: number
-    // Progressive cleanup mode - cleans up previous seasons as user progresses
     enableProgressiveCleanup?: boolean
   }
-  // New User Defaults
   newUserDefaultCanSync?: boolean
   newUserDefaultRequiresApproval?: boolean
   newUserDefaultMovieQuotaEnabled?: boolean
@@ -229,43 +205,31 @@ export interface Config {
   newUserDefaultShowBypassApproval?: boolean
   newUserDefaultMovieWatchlistCap?: number | null
   newUserDefaultShowWatchlistCap?: number | null
-  // Quota System Configuration
   quotaSettings?: {
-    // Cleanup configuration
     cleanup: {
       enabled: boolean
       retentionDays: number
     }
-    // Weekly rolling quota configuration
     weeklyRolling: {
       resetDays: number
     }
-    // Monthly quota configuration
     monthly: {
       resetDay: number
       handleMonthEnd: 'last-day' | 'skip-month' | 'next-month'
     }
   }
-  // Approval System Configuration
   approvalExpiration?: {
     enabled?: boolean
-    // Default expiration time in hours for approval requests
     defaultExpirationHours?: number
-    // What happens when approvals expire
     expirationAction?: 'expire' | 'auto_approve'
-    // Auto-approve quota_exceeded requests when quota becomes available
     autoApproveOnQuotaAvailable?: boolean
-    // Per-trigger expiration overrides
     quotaExceededExpirationHours?: number
     routerRuleExpirationHours?: number
     manualFlagExpirationHours?: number
     contentCriteriaExpirationHours?: number
-    // Maintenance settings
     cleanupExpiredDays?: number
   }
-  // Security Config
   allowIframes: boolean
-  // Ready state
   _isReady: boolean
 }
 

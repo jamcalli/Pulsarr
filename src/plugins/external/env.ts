@@ -27,6 +27,7 @@ import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
 import { parseAllowedHosts } from '@utils/allowed-hosts.js'
 import { resolveDataDir } from '@utils/data-dir.js'
+import { parseTrustedProxies } from '@utils/ip.js'
 import { parseJsonOr } from '@utils/json.js'
 import { parseAllowedOrigins } from '@utils/request-origin.js'
 import type { FastifyInstance } from 'fastify'
@@ -34,8 +35,6 @@ import fp from 'fastify-plugin'
 
 const generateSecret = () => crypto.randomBytes(32).toString('hex')
 
-// Resolve data directory deterministically from platform (Windows/macOS)
-// or fall back to project-relative paths (Linux/Docker)
 const dataDir = resolveDataDir()
 
 const schema = {
@@ -156,6 +155,10 @@ const schema = {
       type: 'string',
       default: '',
     },
+    trustedProxies: {
+      type: 'string',
+      default: '',
+    },
     discordWebhookUrl: {
       type: 'string',
       default: '',
@@ -184,7 +187,6 @@ const schema = {
       type: 'string',
       default: '',
     },
-    // Public Content Notifications
     publicContentNotifications: {
       type: 'string',
       default: JSON.stringify(
@@ -276,7 +278,6 @@ const schema = {
       type: 'string',
       default: '[]',
     },
-    // TMDB Config
     tmdbApiKey: {
       type: 'string',
       default: '',
@@ -454,17 +455,14 @@ const schema = {
       type: 'boolean',
       default: false,
     },
-    // Quota System Configuration
     quotaSettings: {
       type: 'string',
       default: JSON.stringify(STORED_CONFIG_DEFAULTS.quotaSettings),
     },
-    // Approval System Configuration
     approvalExpiration: {
       type: 'string',
       default: JSON.stringify(STORED_CONFIG_DEFAULTS.approvalExpiration),
     },
-    // Plex Label Sync Configuration - nested object following complex config pattern
     plexLabelSync: {
       type: 'string',
       default: JSON.stringify(STORED_CONFIG_DEFAULTS.plexLabelSync),
@@ -497,6 +495,7 @@ export default fp(
       ...rawConfig,
       allowedOrigins: parseAllowedOrigins(rawConfig.allowedOrigins),
       allowedHosts: parseAllowedHosts(rawConfig.allowedHosts),
+      trustedProxies: parseTrustedProxies(rawConfig.trustedProxies),
       sonarrTags: parseJsonOr(
         rawConfig.sonarrTags,
         [],
@@ -591,7 +590,6 @@ export default fp(
       _isReady: false,
     }
 
-    // Ensure arrays are arrays (in case parsed value is not an array)
     parsedConfig.radarrTags = Array.isArray(parsedConfig.radarrTags)
       ? parsedConfig.radarrTags
       : []
@@ -602,14 +600,12 @@ export default fp(
       ? parsedConfig.plexTokens
       : []
 
-    // Validate PostgreSQL configuration for security
     if (parsedConfig.dbType === 'postgres') {
       const isUsingConnectionString =
         parsedConfig.dbConnectionString &&
         parsedConfig.dbConnectionString.trim() !== ''
 
       if (isUsingConnectionString) {
-        // Basic validation of connection string format
         const connStr = parsedConfig.dbConnectionString.trim()
         if (
           !connStr.startsWith('postgres://') &&
@@ -622,7 +618,6 @@ export default fp(
       }
 
       if (!isUsingConnectionString) {
-        // Validate individual connection parameters
         if (!parsedConfig.dbPassword || parsedConfig.dbPassword.trim() === '') {
           fastify.log.error(
             'PostgreSQL database selected but no password provided. This is a security risk.',
