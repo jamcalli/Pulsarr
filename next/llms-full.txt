@@ -769,9 +769,9 @@ About every two hours, Pulsarr reads every watchlist in full. That is when it no
 
 Pulsarr watches your Plex watchlist and the watchlists of your Plex friends. When a movie or show is added, Pulsarr sends it to Radarr or Sonarr. When it's available, Pulsarr can notify the person who added it through Discord, Apprise or Plex mobile push.
 
-<CalloutContainer type="info">
+:::info
 Pulsarr can only read the watchlist of someone who is a friend of your Plex account. People with access to your server who aren't friends yet show up under **Not yet friends** on the **Plex users** page, where you can send them a friend request.
-</CalloutContainer>
+:::
 
 With Plex Pass, watchlist changes arrive within seconds. Without it, Pulsarr checks each watchlist on a schedule.
 
@@ -956,9 +956,9 @@ Pulsarr trusts forwarded headers only from loopback, link-local and private addr
 
 With `allowedHosts` set, list the hostname the proxy serves and any name Sonarr, Radarr or Maintainerr use to reach Pulsarr directly, such as its container name. If the proxy rewrites `Host` to its upstream name, list that name too. Keeping the original with `proxy_set_header Host $host;` avoids this.
 
-<CalloutContainer type="warning">
+:::warning
 With `requiredExceptLocal`, a proxy on a private address that doesn't send `X-Forwarded-For` makes every request look local, so nobody is asked to sign in.
-</CalloutContainer>
+:::
 
 Behind Cloudflare, the proxy must trust [Cloudflare's address ranges](https://www.cloudflare.com/ips/) to pass on real client addresses. That is enough for a proxy that replaces the client address, such as nginx with its real IP module. A proxy that adds the Cloudflare address to `X-Forwarded-For`, such as Traefik or Caddy, also needs Cloudflare's ranges in `trustedProxies`. Without them Pulsarr sees the Cloudflare address as the client, and every visitor behind one Cloudflare address shares the per-IP rate limits. Local sign-in bypass then works only for LAN clients that reach the proxy directly.
 
@@ -1336,11 +1336,11 @@ You need:
 - The Plex account that owns your Plex server.
 - Sonarr and Radarr, with the API key from each. You'll find it in Settings > General.
 
-<CalloutContainer type="info">
+:::info
 Pulsarr reads your own watchlist and the watchlists of your Plex friends. Anyone who isn't a friend of your Plex account is skipped.
 
 Each friend also decides who can see their watchlist, in their own Plex privacy settings. If it's set to Private, Pulsarr can't see it, and Plex doesn't say so. It looks the same as an empty watchlist. They can change it from the privacy icon next to Watchlist on their Plex profile, or in the Plex web app under Settings > Account > Account Visibility & Activity Sharing.
-</CalloutContainer>
+:::
 
 ## Install Pulsarr [#install-pulsarr]
 

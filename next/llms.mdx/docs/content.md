@@ -4,9 +4,9 @@
 
 Pulsarr watches your Plex watchlist and the watchlists of your Plex friends. When a movie or show is added, Pulsarr sends it to Radarr or Sonarr. When it's available, Pulsarr can notify the person who added it through Discord, Apprise or Plex mobile push.
 
-<CalloutContainer type="info">
+:::info
 Pulsarr can only read the watchlist of someone who is a friend of your Plex account. People with access to your server who aren't friends yet show up under **Not yet friends** on the **Plex users** page, where you can send them a friend request.
-</CalloutContainer>
+:::
 
 With Plex Pass, watchlist changes arrive within seconds. Without it, Pulsarr checks each watchlist on a schedule.
 
