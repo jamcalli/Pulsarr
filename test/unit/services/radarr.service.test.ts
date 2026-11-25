@@ -370,6 +370,27 @@ describe('RadarrService.reactivateInRadarr', () => {
     expect(edited).not.toHaveProperty('tags')
     expect(commands).toEqual([])
   })
+
+  it('resolves when the search fails after the editor write', async () => {
+    serveEditor(true)
+    server.use(
+      http.post('http://radarr.test/api/v3/command', () =>
+        HttpResponse.json({ message: 'boom' }, { status: 500 }),
+      ),
+    )
+
+    const applied = await service.reactivateInRadarr(
+      EXISTING,
+      { title: 'Movie', type: 'movie', guids: ['tmdb:1'] },
+      '/movies',
+      3,
+      undefined,
+      true,
+    )
+
+    expect(edited).toMatchObject({ monitored: true })
+    expect(applied.rootFolder).toBe('/stored')
+  })
 })
 
 describe('RadarrService webhook setup', () => {

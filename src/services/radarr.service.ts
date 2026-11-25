@@ -335,13 +335,13 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
       (await this.client.get<RadarrMovie>(`movie/${movieId}`))
 
     // A manual MoviesSearch skips Radarr's availability check
-    const searched = addOptions.searchForMovie && stored.isAvailable === true
-    if (searched) {
-      await this.client.post('command', {
+    const searched =
+      addOptions.searchForMovie &&
+      stored.isAvailable === true &&
+      (await this.searchBestEffort(item.title, {
         name: 'MoviesSearch',
         movieIds: [movieId],
-      })
-    }
+      }))
     this.log.info(
       {
         title: item.title,

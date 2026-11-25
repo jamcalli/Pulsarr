@@ -1,4 +1,5 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import { ROLLING_BASELINE_SEASON } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   SonarrInstance,
@@ -313,7 +314,13 @@ describe('SonarrManagerService dormant reactivation', () => {
   let reactivateInSonarr: Mock<SonarrService['reactivateInSonarr']>
   let findInLibrary: Mock<SonarrService['findInLibrary']>
   let getEpisodes: Mock<SonarrService['getEpisodes']>
-  let hasRollingMonitoredShow: Mock<DatabaseService['hasRollingMonitoredShow']>
+  let getRollingMasterShowId: Mock<DatabaseService['getRollingMasterShowId']>
+  let updateRollingShowMonitoringType: Mock<
+    DatabaseService['updateRollingShowMonitoringType']
+  >
+  let resetRollingMonitoredShowToOriginal: Mock<
+    DatabaseService['resetRollingMonitoredShowToOriginal']
+  >
   let createRollingMonitoredShow: Mock<
     PlexSessionMonitorService['createRollingMonitoredShow']
   >
@@ -323,9 +330,15 @@ describe('SonarrManagerService dormant reactivation', () => {
 
   beforeEach(() => {
     instance = { ...INSTANCE, existingContentMode: 'dormant' }
-    hasRollingMonitoredShow = vi.fn<DatabaseService['hasRollingMonitoredShow']>(
-      async () => false,
+    getRollingMasterShowId = vi.fn<DatabaseService['getRollingMasterShowId']>(
+      async () => null,
     )
+    updateRollingShowMonitoringType = vi.fn<
+      DatabaseService['updateRollingShowMonitoringType']
+    >(async () => true)
+    resetRollingMonitoredShowToOriginal = vi.fn<
+      DatabaseService['resetRollingMonitoredShowToOriginal']
+    >(async () => 2)
     createRollingMonitoredShow = vi.fn<
       PlexSessionMonitorService['createRollingMonitoredShow']
     >(async () => 1)
@@ -339,7 +352,9 @@ describe('SonarrManagerService dormant reactivation', () => {
       updateWatchlistItem: vi.fn<DatabaseService['updateWatchlistItem']>(
         async () => true,
       ),
-      hasRollingMonitoredShow,
+      getRollingMasterShowId,
+      updateRollingShowMonitoringType,
+      resetRollingMonitoredShowToOriginal,
     }
     const plexSessionMonitor: Partial<PlexSessionMonitorService> = {
       createRollingMonitoredShow,
@@ -390,6 +405,7 @@ describe('SonarrManagerService dormant reactivation', () => {
       'pilot',
       'standard',
     )
+    expect(getRollingMasterShowId).toHaveBeenCalledWith(42, 1)
     expect(createRollingMonitoredShow).toHaveBeenCalledWith(
       42,
       1,
@@ -400,15 +416,67 @@ describe('SonarrManagerService dormant reactivation', () => {
     expect(applied).toMatchObject({ seasonMonitoring: 'pilotRolling' })
   })
 
-  it('keeps an existing rolling row for a reactivated series', async () => {
-    hasRollingMonitoredShow.mockResolvedValue(true)
+  it('restarts an existing rolling row of another type at the requested baseline', async () => {
+    getRollingMasterShowId.mockResolvedValue(10)
 
     await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
       seasonMonitoring: 'allSeasonPilotRolling',
     })
 
+    expect(getRollingMasterShowId).toHaveBeenCalledWith(42, 1)
+    expect(updateRollingShowMonitoringType).toHaveBeenCalledWith(
+      10,
+      'allSeasonPilotRolling',
+      ROLLING_BASELINE_SEASON.allSeasonPilotRolling,
+    )
+    expect(resetRollingMonitoredShowToOriginal).toHaveBeenCalledWith(10)
+    const [typed] = updateRollingShowMonitoringType.mock.invocationCallOrder
+    const [reset] = resetRollingMonitoredShowToOriginal.mock.invocationCallOrder
+    expect(typed).toBeLessThan(reset)
     expect(createRollingMonitoredShow).not.toHaveBeenCalled()
     expect(monitorAllSeasonPilots).toHaveBeenCalledWith(42, 1)
+  })
+
+  it('resets an existing rolling row of the same type to its baseline', async () => {
+    getRollingMasterShowId.mockResolvedValue(10)
+
+    await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      seasonMonitoring: 'pilotRolling',
+    })
+
+    expect(updateRollingShowMonitoringType).toHaveBeenCalledWith(
+      10,
+      'pilotRolling',
+      ROLLING_BASELINE_SEASON.pilotRolling,
+    )
+    expect(resetRollingMonitoredShowToOriginal).toHaveBeenCalledWith(10)
+    expect(createRollingMonitoredShow).not.toHaveBeenCalled()
+  })
+
+  it('skips the reset and keeps the add when the type write fails', async () => {
+    getRollingMasterShowId.mockResolvedValue(10)
+    updateRollingShowMonitoringType.mockResolvedValue(false)
+
+    await expect(
+      manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+        seasonMonitoring: 'pilotRolling',
+      }),
+    ).resolves.toMatchObject({ seasonMonitoring: 'pilotRolling' })
+    expect(resetRollingMonitoredShowToOriginal).not.toHaveBeenCalled()
+  })
+
+  it('never looks up a rolling row for a fresh add', async () => {
+    vi.spyOn(service, 'addToSonarr').mockResolvedValue({
+      ...ADDED,
+      seriesId: 42,
+    })
+
+    await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      seasonMonitoring: 'pilotRolling',
+    })
+
+    expect(getRollingMasterShowId).not.toHaveBeenCalled()
+    expect(createRollingMonitoredShow).toHaveBeenCalledTimes(1)
   })
 
   it('rethrows when the series has every episode on disk', async () => {

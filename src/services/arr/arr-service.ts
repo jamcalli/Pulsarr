@@ -67,6 +67,10 @@ export interface ArrLibraryResource {
   tmdbId?: number
 }
 
+type ArrSearchCommand =
+  | { name: 'MissingEpisodeSearch'; seriesId: number; monitored: true }
+  | { name: 'MoviesSearch'; movieIds: number[] }
+
 export abstract class ArrService<
   TInstance extends ArrInstanceRow,
   TResource extends ArrLibraryResource,
@@ -266,6 +270,23 @@ export abstract class ArrService<
         serviceName: appName,
         error: errorMessage(err),
       }
+    }
+  }
+
+  /** Resolves false instead of throwing, so a failed search never fails a monitoring write that already landed. */
+  protected async searchBestEffort(
+    title: string,
+    command: ArrSearchCommand,
+  ): Promise<boolean> {
+    try {
+      await this.client.post('command', command)
+      return true
+    } catch (error) {
+      this.log.warn(
+        { error, title, ...command },
+        `${this.product.appName} search for ${title} failed after reactivating it`,
+      )
+      return false
     }
   }
 

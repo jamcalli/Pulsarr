@@ -212,19 +212,29 @@ async function resolveDestinations(
   return { record, destinationIds, checkIds }
 }
 
-/** True only for a new request whose every present copy is dormant on an instance that reactivates it, so the item routes as absent. */
+/** True only for a new request whose every present copy is dormant on an instance that reactivates it, and unchecked when a lookup failed. */
 async function isReactivation(
   newRequest: boolean | undefined,
   presentInstanceIds: number[],
   externalId: number,
+  title: string,
   manager: Pick<
     ContentRoutingDeps['sonarrManager'] | ContentRoutingDeps['radarrManager'],
     'hasDormantCopy'
   >,
-): Promise<boolean> {
+  logger: ContentRoutingDeps['logger'],
+): Promise<boolean | 'unchecked'> {
   if (!newRequest || presentInstanceIds.length === 0) return false
   for (const instanceId of presentInstanceIds) {
-    if (!(await manager.hasDormantCopy(instanceId, externalId))) return false
+    try {
+      if (!(await manager.hasDormantCopy(instanceId, externalId))) return false
+    } catch (error) {
+      logger.warn(
+        { error, instanceId, title },
+        `Instance ${instanceId} could not be checked for a dormant copy of ${title}, skipping item`,
+      )
+      return 'unchecked'
+    }
   }
   return true
 }
@@ -553,8 +563,13 @@ export async function routeShow(
     params.newRequest,
     presentInstanceIds,
     tvdbId,
+    tempItem.title,
     deps.sonarrManager,
+    deps.logger,
   )
+  if (reactivation === 'unchecked') {
+    return { routed: false, skippedReason: 'no-instances-available' }
+  }
 
   if (presentInstanceIds.length > 0 && !reactivation) {
     const completion = await completeFromApproval(
@@ -706,8 +721,13 @@ export async function routeMovie(
     params.newRequest,
     presentInstanceIds,
     tmdbId,
+    tempItem.title,
     deps.radarrManager,
+    deps.logger,
   )
+  if (reactivation === 'unchecked') {
+    return { routed: false, skippedReason: 'no-instances-available' }
+  }
 
   if (presentInstanceIds.length > 0 && !reactivation) {
     const completion = await completeFromApproval(

@@ -5,6 +5,7 @@ import type {
   JunctionUpdateResult,
   StatusUpdateResult,
 } from '@root/types/watchlist-status.types.js'
+import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { emitWatchlistChange } from '@utils/watchlist-events.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -18,6 +19,7 @@ import {
   createSonarrJunctionConfig,
   processJunctionUpdates,
 } from './watchlist-status/junction/junction-processor.js'
+import { dropDormantMatches } from './watchlist-status/status-sync/dormant-matches.js'
 import {
   createRadarrStatusConfig,
   createSonarrStatusConfig,
@@ -83,11 +85,20 @@ export class StatusService {
 
       const result = await this.commitJunctionThenMain(
         await this.processShowJunctionUpdates(existingSeries, dbWatchlistItems),
-        (matches) =>
+        async (matches) =>
           processStatusUpdates(
             { logger: this.log },
             createSonarrStatusConfig(),
-            matches,
+            await dropDormantMatches(
+              this.log,
+              this.sonarrManager,
+              (series) => ({
+                instanceId: series.sonarr_instance_id,
+                externalId: extractTvdbId(series.guids),
+              }),
+              matches,
+              dbWatchlistItems,
+            ),
             dbWatchlistItems,
           ),
       )
@@ -132,11 +143,20 @@ export class StatusService {
           existingMovies,
           dbWatchlistItems,
         ),
-        (matches) =>
+        async (matches) =>
           processStatusUpdates(
             { logger: this.log },
             createRadarrStatusConfig(this.log),
-            matches,
+            await dropDormantMatches(
+              this.log,
+              this.radarrManager,
+              (movie) => ({
+                instanceId: movie.radarr_instance_id,
+                externalId: extractTmdbId(movie.guids),
+              }),
+              matches,
+              dbWatchlistItems,
+            ),
             dbWatchlistItems,
           ),
       )
@@ -169,10 +189,10 @@ export class StatusService {
     junction: JunctionUpdateResult<TItem>,
     mainStep: (
       matches: Map<number, TItem[]>,
-    ) => (ShowStatusUpdate | MovieStatusUpdate)[],
+    ) => Promise<(ShowStatusUpdate | MovieStatusUpdate)[]>,
   ): Promise<StatusUpdateResult> {
     try {
-      const mainUpdates = mainStep(junction.matches)
+      const mainUpdates = await mainStep(junction.matches)
       const updated =
         mainUpdates.length > 0
           ? await this.dbService.bulkUpdateWatchlistItems(mainUpdates)

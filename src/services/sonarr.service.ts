@@ -375,7 +375,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
 
     const edited = await this.client.put<SonarrSeries[]>('series/editor', {
       seriesIds: [seriesId],
-      monitored: true,
       monitorNewItems: settings.monitorNewItems,
       ...(qualityProfileId !== undefined && { qualityProfileId }),
       seriesType,
@@ -384,17 +383,18 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
       ...(tags.length > 0 && { tags: tags.map(Number), applyTags: 'add' }),
       ...(!hasFiles && { rootFolderPath }),
     })
+    // Monitoring flips only here so a failed earlier write leaves the series dormant and retryable
     await this.client.post('seasonpass', {
-      series: [{ id: seriesId }],
+      series: [{ id: seriesId, monitored: true }],
       monitoringOptions: { monitor: addOptions.monitor },
     })
-    if (settings.shouldSearch) {
-      await this.client.post('command', {
+    const searched =
+      settings.shouldSearch &&
+      (await this.searchBestEffort(item.title, {
         name: 'MissingEpisodeSearch',
         seriesId,
         monitored: true,
-      })
-    }
+      }))
 
     const stored =
       edited?.find((series) => series.id === seriesId) ??
@@ -407,7 +407,7 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
         rootFolder: rootFolderPath,
         seriesType,
         seasonMonitoring: addOptions.monitor,
-        searched: settings.shouldSearch,
+        searched,
       },
       `Reactivated ${item.title} in Sonarr`,
     )

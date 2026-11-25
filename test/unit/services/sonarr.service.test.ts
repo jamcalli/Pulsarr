@@ -379,7 +379,6 @@ describe('SonarrService.reactivateInSonarr', () => {
         path: 'series/editor',
         body: {
           seriesIds: [42],
-          monitored: true,
           monitorNewItems: 'all',
           qualityProfileId: 3,
           seriesType: 'anime',
@@ -392,7 +391,7 @@ describe('SonarrService.reactivateInSonarr', () => {
       {
         path: 'seasonpass',
         body: {
-          series: [{ id: 42 }],
+          series: [{ id: 42, monitored: true }],
           monitoringOptions: { monitor: 'firstSeason' },
         },
       },
@@ -434,6 +433,44 @@ describe('SonarrService.reactivateInSonarr', () => {
       'series/editor',
       'seasonpass',
     ])
+  })
+
+  it('resolves when the search fails after monitoring was written', async () => {
+    server.use(
+      http.post('http://sonarr.test/api/v3/command', () =>
+        HttpResponse.json({ message: 'boom' }, { status: 500 }),
+      ),
+    )
+
+    const applied = await service.reactivateInSonarr(
+      EXISTING,
+      { title: 'Show', type: 'show', guids: ['tvdb:1'] },
+      '/tv',
+    )
+
+    expect(applied.seriesId).toBe(42)
+    expect(requests.map((request) => request.path)).toEqual([
+      'series/editor',
+      'seasonpass',
+    ])
+  })
+
+  it('rejects when the season pass fails, with monitoring left out of the editor write', async () => {
+    server.use(
+      http.post('http://sonarr.test/api/v3/seasonpass', () =>
+        HttpResponse.json({ message: 'boom' }, { status: 500 }),
+      ),
+    )
+
+    await expect(
+      service.reactivateInSonarr(
+        EXISTING,
+        { title: 'Show', type: 'show', guids: ['tvdb:1'] },
+        '/tv',
+      ),
+    ).rejects.toThrow()
+    expect(requests.map((request) => request.path)).toEqual(['series/editor'])
+    expect(requests[0].body).not.toHaveProperty('monitored')
   })
 })
 

@@ -411,28 +411,20 @@ export abstract class ArrManager<
     }
   }
 
-  /** False unless the instance reactivates dormant content and holds this item unmonitored and missing, and a failed lookup reads as false. */
+  /** False unless the instance reactivates dormant content and holds this item unmonitored and missing, and a failed lookup rejects. */
   async hasDormantCopy(
     instanceId: number,
     externalId: number,
   ): Promise<boolean> {
-    try {
-      const instance = await this.store.get(instanceId)
-      if (instance?.existingContentMode !== 'dormant') return false
-      const service = this.services.get(instanceId)
-      if (!service) return false
-      const existing = await service.findInLibrary(externalId)
-      return existing !== undefined && (await service.isDormant(existing))
-    } catch (error) {
-      this.log.warn(
-        { error, instanceId, [this.product.idField]: externalId },
-        `Could not check ${this.product.appName} for a dormant copy`,
-      )
-      return false
-    }
+    const instance = await this.store.get(instanceId)
+    if (instance?.existingContentMode !== 'dormant') return false
+    const service = this.services.get(instanceId)
+    if (!service) return false
+    const existing = await service.findInLibrary(externalId)
+    return existing !== undefined && (await service.isDormant(existing))
   }
 
-  /** The shared half of what a route applied, read back from what the arr stored. */
+  /** The shared half of what a route applied, read back from the arr, with only the tags the route sent. */
   protected appliedRouting(
     route: ArrRoute<TInstance, TService, TItem, TSettings>,
     added: ArrAddedSettings,

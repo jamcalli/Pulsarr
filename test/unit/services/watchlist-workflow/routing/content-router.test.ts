@@ -636,6 +636,20 @@ describe.each(ROUTERS)(
       expect(deps.db.updateWatchlistItem).toHaveBeenCalled()
     })
 
+    it('leaves the item unrouted and untouched when the dormancy lookup fails', async () => {
+      const deps = buildDeps([FOUND])
+      vi.mocked(manager(deps).hasDormantCopy).mockRejectedValue(
+        new Error('arr down'),
+      )
+
+      expect(await route(deps, undefined, [], true)).toEqual({
+        routed: false,
+        skippedReason: 'no-instances-available',
+      })
+      expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+      expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+    })
+
     it('keeps the present path when another present copy is healthy', async () => {
       const deps = dormantOn(buildDeps([FOUND, FOUND]), 1)
 

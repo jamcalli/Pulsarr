@@ -1,6 +1,7 @@
 import { placeholderSonarrInstance } from '@root/schemas/common/arr-placeholder.js'
 import {
   isRollingMonitoringOption,
+  ROLLING_BASELINE_SEASON,
   type SonarrRollingMonitorOption,
 } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type {
@@ -166,7 +167,7 @@ export class SonarrManagerService extends ArrManager<
     }
   }
 
-  /** Never throws, so a failed enrollment leaves the add itself standing, and a reactivated series already enrolled keeps its row. */
+  /** Never throws, so a failed enrollment leaves the add itself standing, and a reactivated series already enrolled restarts its row at the option's baseline. */
   private async enrollRolling(
     seriesId: number,
     instanceId: number,
@@ -178,10 +179,10 @@ export class SonarrManagerService extends ArrManager<
     if (!plexSessionMonitor) return
     try {
       const tvdbId = extractTvdbId(item.guids)
-      const enrolled =
-        reactivated &&
-        (await this.fastify.db.hasRollingMonitoredShow(seriesId, instanceId))
-      if (!enrolled) {
+      const masterId = reactivated
+        ? await this.fastify.db.getRollingMasterShowId(seriesId, instanceId)
+        : null
+      if (masterId === null) {
         await plexSessionMonitor.createRollingMonitoredShow(
           seriesId,
           instanceId,
@@ -189,12 +190,30 @@ export class SonarrManagerService extends ArrManager<
           item.title,
           monitoring,
         )
+      } else {
+        const updated = await this.fastify.db.updateRollingShowMonitoringType(
+          masterId,
+          monitoring,
+          ROLLING_BASELINE_SEASON[monitoring],
+        )
+        if (!updated) {
+          throw new Error(
+            `Failed to update monitoring type for rolling show ${masterId}`,
+          )
+        }
+        await this.fastify.db.resetRollingMonitoredShowToOriginal(masterId)
       }
       if (monitoring === 'allSeasonPilotRolling') {
         await plexSessionMonitor.monitorAllSeasonPilots(seriesId, instanceId)
       }
       this.log.debug(
-        { seriesId, instanceId, tvdbId: tvdbId || null, monitoring },
+        {
+          seriesId,
+          instanceId,
+          tvdbId: tvdbId || null,
+          monitoring,
+          restarted: masterId !== null,
+        },
         'Created rolling monitoring entry',
       )
     } catch (error) {

@@ -447,10 +447,12 @@ describe('RadarrManagerService dormant reactivation', () => {
       await expect(manager.hasDormantCopy(1, 1)).resolves.toBe(false)
     })
 
-    it('is false when the lookup fails', async () => {
+    it('rejects when the lookup fails', async () => {
       findInLibrary.mockRejectedValue(new Error('Radarr is down'))
 
-      await expect(manager.hasDormantCopy(1, 1)).resolves.toBe(false)
+      await expect(manager.hasDormantCopy(1, 1)).rejects.toThrow(
+        'Radarr is down',
+      )
     })
   })
 })
