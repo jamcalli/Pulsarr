@@ -68,6 +68,7 @@ function radarrInstance(id: number): RadarrInstance {
     baseUrl: 'http://radarr.test',
     apiKey: 'key',
     bypassIgnored: false,
+    existingContentMode: 'off',
     tags: [],
     isDefault: id === 1,
   }

@@ -27,6 +27,7 @@ export const InstanceFormSchema = z.object({
   }),
   monitorNewItems: SonarrMonitorNewItemsSchema,
   createSeasonFolders: sonarr.createSeasonFolders,
+  existingContentMode: sonarr.existingContentMode,
   isDefault: sonarr.isDefault,
   bypassIgnored: sonarr.bypassIgnored,
   syncedInstances: z.array(z.string()),

@@ -2,10 +2,15 @@ import {
   HttpError,
   WebhookCallbackError,
 } from '@root/types/arr-connection.types.js'
-import type { SonarrInstance, SonarrPost } from '@root/types/sonarr.types.js'
+import type {
+  SonarrEpisode,
+  SonarrInstance,
+  SonarrPost,
+  SonarrSeries,
+} from '@root/types/sonarr.types.js'
 import { createArrCaches } from '@services/arr/arr-caches.js'
 import { CacheRegistry } from '@services/cache-registry.service.js'
-import { SonarrService } from '@services/sonarr.service.js'
+import { isDormantSeries, SonarrService } from '@services/sonarr.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +25,7 @@ const INSTANCE: SonarrInstance = {
   baseUrl: 'http://sonarr.test',
   apiKey: 'placeholder',
   bypassIgnored: false,
+  existingContentMode: 'off',
   seasonMonitoring: 'all',
   monitorNewItems: 'all',
   tags: [],
@@ -206,6 +212,228 @@ describe('SonarrService.addToSonarr', () => {
       qualityProfileId: 3,
       tags: ['5'],
     })
+  })
+})
+
+describe('isDormantSeries', () => {
+  const NOW = Date.parse('2026-06-01T00:00:00Z')
+  const AIRED = '2026-01-01T00:00:00Z'
+  const UPCOMING = '2027-01-01T00:00:00Z'
+
+  function episode(
+    fields: Partial<
+      Pick<SonarrEpisode, 'monitored' | 'hasFile' | 'seasonNumber'>
+    > & { airDateUtc?: string },
+  ) {
+    return {
+      monitored: false,
+      hasFile: false,
+      seasonNumber: 1,
+      airDateUtc: AIRED,
+      ...fields,
+    }
+  }
+
+  it('is dormant when unmonitored with no files', () => {
+    expect(
+      isDormantSeries({ monitored: false }, [episode({}), episode({})], NOW),
+    ).toBe(true)
+  })
+
+  it('is not dormant when a complete show is unmonitored', () => {
+    expect(
+      isDormantSeries(
+        { monitored: false },
+        [episode({ hasFile: true }), episode({ hasFile: true })],
+        NOW,
+      ),
+    ).toBe(false)
+  })
+
+  it('is not dormant when the series is monitored and has no episodes', () => {
+    expect(isDormantSeries({ monitored: true }, [], NOW)).toBe(false)
+  })
+
+  it('is dormant when nothing is monitored and an aired episode is missing beside files', () => {
+    expect(
+      isDormantSeries(
+        { monitored: true },
+        [episode({ hasFile: true }), episode({})],
+        NOW,
+      ),
+    ).toBe(true)
+  })
+
+  it('ignores unaired missing episodes when the show has files', () => {
+    expect(
+      isDormantSeries(
+        { monitored: false },
+        [episode({ hasFile: true }), episode({ airDateUtc: UPCOMING })],
+        NOW,
+      ),
+    ).toBe(false)
+  })
+
+  it('ignores missing specials when the show has files', () => {
+    expect(
+      isDormantSeries(
+        { monitored: false },
+        [episode({ hasFile: true }), episode({ seasonNumber: 0 })],
+        NOW,
+      ),
+    ).toBe(false)
+  })
+
+  it('is not dormant while any episode is monitored', () => {
+    expect(
+      isDormantSeries(
+        { monitored: true },
+        [episode({ monitored: true }), episode({})],
+        NOW,
+      ),
+    ).toBe(false)
+  })
+})
+
+describe('SonarrService.reactivateInSonarr', () => {
+  const EXISTING: SonarrSeries = {
+    id: 42,
+    title: 'Show',
+    tvdbId: 1,
+    monitored: false,
+    rootFolderPath: '/old',
+    statistics: { episodeFileCount: 0 },
+  }
+  let service: SonarrService
+  let requests: Array<{ path: string; body: Record<string, unknown> }>
+
+  beforeEach(async () => {
+    requests = []
+    service = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      {} as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
+    )
+    await service.initialize({ ...INSTANCE, tags: ['5'] })
+    const record = async (path: string, request: Request) => {
+      requests.push({
+        path,
+        body: (await request.json()) as Record<string, unknown>,
+      })
+    }
+    server.use(
+      http.get('http://sonarr.test/api/v3/rootfolder', () =>
+        HttpResponse.json([{ id: 1, path: '/first' }]),
+      ),
+      http.get('http://sonarr.test/api/v3/qualityprofile', () =>
+        HttpResponse.json([{ id: 3, name: 'HD' }]),
+      ),
+      http.get('http://sonarr.test/api/v3/tag', () =>
+        HttpResponse.json([{ id: 5, label: 'kids' }]),
+      ),
+      http.put(
+        'http://sonarr.test/api/v3/series/editor',
+        async ({ request }) => {
+          await record('series/editor', request)
+          return HttpResponse.json(
+            [
+              {
+                ...EXISTING,
+                monitored: true,
+                rootFolderPath: '/stored',
+                qualityProfileId: 3,
+                tags: [5, 9],
+              },
+            ],
+            { status: 202 },
+          )
+        },
+      ),
+      http.post('http://sonarr.test/api/v3/seasonpass', async ({ request }) => {
+        await record('seasonpass', request)
+        return HttpResponse.json({}, { status: 202 })
+      }),
+      http.post('http://sonarr.test/api/v3/command', async ({ request }) => {
+        await record('command', request)
+        return HttpResponse.json({ id: 1 }, { status: 201 })
+      }),
+    )
+  })
+
+  it('writes the add settings, applies the monitor preset, then searches the series', async () => {
+    const applied = await service.reactivateInSonarr(
+      EXISTING,
+      { title: 'Show', type: 'show', guids: ['tvdb:1'] },
+      '/tv',
+      3,
+      undefined,
+      true,
+      'firstSeason',
+      'anime',
+    )
+
+    expect(requests).toEqual([
+      {
+        path: 'series/editor',
+        body: {
+          seriesIds: [42],
+          monitored: true,
+          monitorNewItems: 'all',
+          qualityProfileId: 3,
+          seriesType: 'anime',
+          moveFiles: false,
+          tags: [5],
+          applyTags: 'add',
+          rootFolderPath: '/tv',
+        },
+      },
+      {
+        path: 'seasonpass',
+        body: {
+          series: [{ id: 42 }],
+          monitoringOptions: { monitor: 'firstSeason' },
+        },
+      },
+      {
+        path: 'command',
+        body: { name: 'MissingEpisodeSearch', seriesId: 42, monitored: true },
+      },
+    ])
+    expect(applied).toEqual({
+      seriesId: 42,
+      rootFolder: '/stored',
+      qualityProfileId: 3,
+      qualityProfileName: 'HD',
+      tags: ['kids'],
+    })
+  })
+
+  it('keeps the root folder of a show that has files', async () => {
+    await service.reactivateInSonarr(
+      { ...EXISTING, statistics: { episodeFileCount: 4 } },
+      { title: 'Show', type: 'show', guids: ['tvdb:1'] },
+      '/tv',
+    )
+
+    expect(requests[0].body).not.toHaveProperty('rootFolderPath')
+  })
+
+  it('skips the search when search on add is off', async () => {
+    await service.reactivateInSonarr(
+      EXISTING,
+      { title: 'Show', type: 'show', guids: ['tvdb:1'] },
+      undefined,
+      undefined,
+      undefined,
+      false,
+    )
+
+    expect(requests.map((request) => request.path)).toEqual([
+      'series/editor',
+      'seasonpass',
+    ])
   })
 })
 

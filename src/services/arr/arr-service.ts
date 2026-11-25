@@ -105,6 +105,9 @@ export abstract class ArrService<
   /** Maps the instance row onto the product's own add and routing defaults. */
   protected abstract applyInstance(instance: TInstance): void
 
+  /** True when the library entry is unmonitored and missing content, so nothing in the arr will deliver it. */
+  abstract isDormant(resource: TResource): Promise<boolean>
+
   /** Throws until initialize has set the instance credentials. */
   get client(): ArrClient {
     if (!this.arrClient) {

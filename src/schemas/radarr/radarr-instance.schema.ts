@@ -1,4 +1,8 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import {
+  DEFAULT_EXISTING_CONTENT_MODE,
+  ExistingContentModeSchema,
+} from '@root/schemas/common/existing-content-mode.schema.js'
 import { ArrBaseUrlSchema } from '@root/schemas/common/url.schema.js'
 import {
   RadarrMinimumAvailabilitySchema,
@@ -14,6 +18,7 @@ export const RadarrInstanceFieldsSchema = z.object({
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean(),
   searchOnAdd: z.boolean(),
+  existingContentMode: ExistingContentModeSchema,
   minimumAvailability: RadarrMinimumAvailabilitySchema,
   monitor: RadarrMonitorSchema,
   tags: z.array(z.string()),
@@ -27,6 +32,9 @@ const radarrFields = RadarrInstanceFieldsSchema.shape
 export const RadarrInstanceSchema = RadarrInstanceFieldsSchema.extend({
   bypassIgnored: radarrFields.bypassIgnored.default(false),
   searchOnAdd: radarrFields.searchOnAdd.default(true),
+  existingContentMode: radarrFields.existingContentMode.default(
+    DEFAULT_EXISTING_CONTENT_MODE,
+  ),
   minimumAvailability: radarrFields.minimumAvailability.default('released'),
   monitor: radarrFields.monitor.default('movieOnly'),
   tags: radarrFields.tags.default([]),

@@ -3902,6 +3902,11 @@ export interface components {
             /** @enum {string} */
             contentType?: "radarr" | "sonarr" | "both";
         };
+        /**
+         * @description What a new watchlist request does when the item is already in the instance
+         * @enum {string}
+         */
+        ExistingContentMode: "off" | "dormant";
         /** @description A genre with the number of watchlist items tagged with it */
         GenreStat: {
             genre: string;
@@ -4269,6 +4274,8 @@ export interface components {
             bypassIgnored: boolean;
             /** @default true */
             searchOnAdd: boolean;
+            /** @default off */
+            existingContentMode: components["schemas"]["ExistingContentMode"];
             /** @default released */
             minimumAvailability: components["schemas"]["RadarrMinimumAvailability"];
             /** @default movieOnly */
@@ -4299,6 +4306,8 @@ export interface components {
             bypassIgnored?: boolean;
             /** @default true */
             searchOnAdd?: boolean;
+            /** @default off */
+            existingContentMode?: components["schemas"]["ExistingContentMode"];
             /** @default released */
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             /** @default movieOnly */
@@ -4320,6 +4329,7 @@ export interface components {
             rootFolder?: string | null;
             bypassIgnored?: boolean;
             searchOnAdd?: boolean;
+            existingContentMode?: components["schemas"]["ExistingContentMode"];
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             monitor?: components["schemas"]["RadarrMonitor"];
             tags?: string[];
@@ -4715,6 +4725,8 @@ export interface components {
             monitorNewItems: components["schemas"]["SonarrMonitorNewItems"];
             /** @default true */
             searchOnAdd: boolean;
+            /** @default off */
+            existingContentMode: components["schemas"]["ExistingContentMode"];
             /** @default false */
             createSeasonFolders: boolean;
             /** @default [] */
@@ -4749,6 +4761,8 @@ export interface components {
             monitorNewItems?: components["schemas"]["SonarrMonitorNewItems"];
             /** @default true */
             searchOnAdd?: boolean;
+            /** @default off */
+            existingContentMode?: components["schemas"]["ExistingContentMode"];
             /** @default false */
             createSeasonFolders?: boolean;
             /** @default [] */
@@ -4772,6 +4786,7 @@ export interface components {
             seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
             monitorNewItems?: components["schemas"]["SonarrMonitorNewItems"];
             searchOnAdd?: boolean;
+            existingContentMode?: components["schemas"]["ExistingContentMode"];
             createSeasonFolders?: boolean;
             tags?: string[];
             isDefault?: boolean;

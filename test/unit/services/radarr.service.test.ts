@@ -2,10 +2,14 @@ import {
   HttpError,
   WebhookCallbackError,
 } from '@root/types/arr-connection.types.js'
-import type { RadarrInstance, RadarrPost } from '@root/types/radarr.types.js'
+import type {
+  RadarrInstance,
+  RadarrMovie,
+  RadarrPost,
+} from '@root/types/radarr.types.js'
 import { createArrCaches } from '@services/arr/arr-caches.js'
 import { CacheRegistry } from '@services/cache-registry.service.js'
-import { RadarrService } from '@services/radarr.service.js'
+import { isDormantMovie, RadarrService } from '@services/radarr.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +24,7 @@ const INSTANCE: RadarrInstance = {
   baseUrl: 'http://radarr.test',
   apiKey: 'placeholder',
   bypassIgnored: false,
+  existingContentMode: 'off',
   tags: [],
   isDefault: true,
 }
@@ -204,6 +209,166 @@ describe('RadarrService.addToRadarr', () => {
       qualityProfileId: 3,
       tags: ['5'],
     })
+  })
+})
+
+describe('isDormantMovie', () => {
+  const movie: RadarrMovie = { id: 1, title: 'Movie', tmdbId: 1 }
+
+  it('is dormant when unmonitored with no file', () => {
+    expect(isDormantMovie({ ...movie, monitored: false, hasFile: false })).toBe(
+      true,
+    )
+  })
+
+  it('is not dormant when monitored', () => {
+    expect(isDormantMovie({ ...movie, monitored: true, hasFile: false })).toBe(
+      false,
+    )
+  })
+
+  it('is not dormant when it has a file', () => {
+    expect(isDormantMovie({ ...movie, monitored: false, hasFile: true })).toBe(
+      false,
+    )
+  })
+
+  it('is not dormant when the record omits the fields', () => {
+    expect(isDormantMovie(movie)).toBe(false)
+  })
+})
+
+describe('RadarrService.reactivateInRadarr', () => {
+  const EXISTING: RadarrMovie = {
+    id: 42,
+    title: 'Movie',
+    tmdbId: 1,
+    monitored: false,
+    hasFile: false,
+  }
+  let service: RadarrService
+  let edited: Record<string, unknown> | undefined
+  let commands: Array<Record<string, unknown>>
+
+  function serveEditor(isAvailable: boolean) {
+    server.use(
+      http.put(
+        'http://radarr.test/api/v3/movie/editor',
+        async ({ request }) => {
+          edited = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json(
+            [
+              {
+                ...EXISTING,
+                monitored: true,
+                isAvailable,
+                rootFolderPath: '/stored',
+                qualityProfileId: 3,
+                tags: [5, 9],
+              },
+            ],
+            { status: 202 },
+          )
+        },
+      ),
+    )
+  }
+
+  beforeEach(async () => {
+    edited = undefined
+    commands = []
+    service = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      {} as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
+    )
+    await service.initialize({ ...INSTANCE, tags: ['5'] })
+    server.use(
+      http.get('http://radarr.test/api/v3/rootfolder', () =>
+        HttpResponse.json([{ id: 1, path: '/first' }]),
+      ),
+      http.get('http://radarr.test/api/v3/qualityprofile', () =>
+        HttpResponse.json([{ id: 3, name: 'HD' }]),
+      ),
+      http.get('http://radarr.test/api/v3/tag', () =>
+        HttpResponse.json([{ id: 5, label: 'kids' }]),
+      ),
+      http.post('http://radarr.test/api/v3/command', async ({ request }) => {
+        commands.push((await request.json()) as Record<string, unknown>)
+        return HttpResponse.json({ id: 1 }, { status: 201 })
+      }),
+    )
+  })
+
+  it('writes the add settings through the editor and searches an available movie', async () => {
+    serveEditor(true)
+
+    const applied = await service.reactivateInRadarr(
+      EXISTING,
+      { title: 'Movie', type: 'movie', guids: ['tmdb:1'] },
+      '/movies',
+      3,
+      undefined,
+      true,
+      'announced',
+      'movieOnly',
+    )
+
+    expect(edited).toEqual({
+      movieIds: [42],
+      monitored: true,
+      qualityProfileId: 3,
+      minimumAvailability: 'announced',
+      rootFolderPath: '/movies',
+      moveFiles: false,
+      tags: [5],
+      applyTags: 'add',
+    })
+    expect(commands).toEqual([{ name: 'MoviesSearch', movieIds: [42] }])
+    expect(applied).toEqual({
+      rootFolder: '/stored',
+      qualityProfileId: 3,
+      qualityProfileName: 'HD',
+      tags: ['kids'],
+    })
+  })
+
+  it('never searches a movie Radarr reports unavailable', async () => {
+    serveEditor(false)
+
+    await service.reactivateInRadarr(
+      EXISTING,
+      { title: 'Movie', type: 'movie', guids: ['tmdb:1'] },
+      undefined,
+      undefined,
+      undefined,
+      true,
+    )
+
+    expect(edited).toMatchObject({ monitored: true })
+    expect(commands).toEqual([])
+  })
+
+  it('leaves the movie unmonitored for the none option and sends no tags when there are none', async () => {
+    await service.initialize(INSTANCE)
+    serveEditor(true)
+
+    await service.reactivateInRadarr(
+      EXISTING,
+      { title: 'Movie', type: 'movie', guids: ['tmdb:1'] },
+      undefined,
+      undefined,
+      [],
+      false,
+      undefined,
+      'none',
+    )
+
+    expect(edited).toMatchObject({ monitored: false })
+    expect(edited).not.toHaveProperty('tags')
+    expect(commands).toEqual([])
   })
 })
 

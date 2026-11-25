@@ -68,6 +68,20 @@ export async function createRollingMonitoredShow(
   }
 }
 
+export async function hasRollingMonitoredShow(
+  this: DatabaseService,
+  sonarrSeriesId: number,
+  sonarrInstanceId: number,
+): Promise<boolean> {
+  const row = await this.knex('rolling_monitored_shows')
+    .where({
+      sonarr_series_id: sonarrSeriesId,
+      sonarr_instance_id: sonarrInstanceId,
+    })
+    .first('id')
+  return row !== undefined
+}
+
 /** Race-safe through the unique (sonarr_series_id, sonarr_instance_id, plex_user_id) constraint, returns the new or existing row id. */
 export async function createOrFindUserRollingMonitoredShow(
   this: DatabaseService,

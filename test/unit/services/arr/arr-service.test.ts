@@ -23,6 +23,7 @@ const BASE_INSTANCE = {
   id: 1,
   apiKey: 'placeholder',
   bypassIgnored: false,
+  existingContentMode: 'off' as const,
   tags: [],
   isDefault: true,
 }

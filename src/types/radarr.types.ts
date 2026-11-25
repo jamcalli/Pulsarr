@@ -1,3 +1,4 @@
+import type { ExistingContentMode } from '@root/schemas/common/existing-content-mode.schema.js'
 import type {
   MinimumAvailability,
   RadarrMonitorType,
@@ -151,7 +152,7 @@ export interface RadarrPost {
   qualityProfileId: number | null | string
   rootFolderPath: string | null
   addOptions: RadarrAddOptions
-  tags: string[] // Keep as string[] for compatibility with existing code
+  tags: string[]
   minimumAvailability?: MinimumAvailability
   monitored: boolean
 }
@@ -184,7 +185,6 @@ export interface Item extends ContentItem {
   isExclusion?: boolean
 }
 
-// Alias for better semantics - we can gradually migrate to this
 export type RadarrItem = Item
 
 export interface RadarrInstance {
@@ -199,6 +199,7 @@ export interface RadarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   searchOnAdd?: boolean
+  existingContentMode: ExistingContentMode
   minimumAvailability?: MinimumAvailability
   monitor?: RadarrMonitorType
   skipDefaultRoutingWhenNoMatch?: boolean

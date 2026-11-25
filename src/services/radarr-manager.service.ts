@@ -17,6 +17,7 @@ import {
 } from '@services/arr/arr-manager.js'
 import { RADARR } from '@services/arr/arr-product.js'
 import { RadarrService } from '@services/radarr.service.js'
+import { extractTmdbId } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class RadarrManagerService extends ArrManager<
@@ -92,14 +93,20 @@ export class RadarrManagerService extends ArrManager<
       settings.minimumAvailability ?? instance.minimumAvailability ?? 'released'
     const monitor = settings.monitor ?? instance.monitor ?? 'movieOnly'
 
-    const added = await route.service.addToRadarr(
-      route.item,
+    const overrides = [
       route.rootFolder,
       route.qualityProfileId,
       route.tags,
       route.searchOnAdd,
       minimumAvailability,
       monitor,
+    ] as const
+    const added = await this.addOrReactivate(
+      route,
+      extractTmdbId(route.item.guids),
+      () => route.service.addToRadarr(route.item, ...overrides),
+      (existing) =>
+        route.service.reactivateInRadarr(existing, route.item, ...overrides),
     )
 
     return {

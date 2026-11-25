@@ -124,14 +124,23 @@ export class SonarrManagerService extends ArrManager<
 
     const rolling = isRollingMonitoringOption(seasonMonitoring)
 
-    const added = await route.service.addToSonarr(
-      item,
+    const overrides = [
       route.rootFolder,
       route.qualityProfileId,
       route.tags,
       route.searchOnAdd,
       rolling ? ROLLING_ADD_MONITOR[seasonMonitoring] : seasonMonitoring,
       seriesType,
+    ] as const
+    let reactivated = false
+    const added = await this.addOrReactivate(
+      route,
+      extractTvdbId(item.guids),
+      () => route.service.addToSonarr(item, ...overrides),
+      (existing) => {
+        reactivated = true
+        return route.service.reactivateInSonarr(existing, item, ...overrides)
+      },
     )
     if (rolling) {
       await this.enrollRolling(
@@ -139,6 +148,7 @@ export class SonarrManagerService extends ArrManager<
         instanceId,
         item,
         seasonMonitoring,
+        reactivated,
       )
     }
 
@@ -156,24 +166,30 @@ export class SonarrManagerService extends ArrManager<
     }
   }
 
-  /** Never throws, so a failed enrollment leaves the add itself standing. */
+  /** Never throws, so a failed enrollment leaves the add itself standing, and a reactivated series already enrolled keeps its row. */
   private async enrollRolling(
     seriesId: number,
     instanceId: number,
     item: ArrPreparedItem<SonarrItem>,
     monitoring: SonarrRollingMonitorOption,
+    reactivated: boolean,
   ): Promise<void> {
     const plexSessionMonitor = this.fastify.plexSessionMonitor
     if (!plexSessionMonitor) return
     try {
       const tvdbId = extractTvdbId(item.guids)
-      await plexSessionMonitor.createRollingMonitoredShow(
-        seriesId,
-        instanceId,
-        tvdbId ? String(tvdbId) : '',
-        item.title,
-        monitoring,
-      )
+      const enrolled =
+        reactivated &&
+        (await this.fastify.db.hasRollingMonitoredShow(seriesId, instanceId))
+      if (!enrolled) {
+        await plexSessionMonitor.createRollingMonitoredShow(
+          seriesId,
+          instanceId,
+          tvdbId ? String(tvdbId) : '',
+          item.title,
+          monitoring,
+        )
+      }
       if (monitoring === 'allSeasonPilotRolling') {
         await plexSessionMonitor.monitorAllSeasonPilots(seriesId, instanceId)
       }

@@ -1,4 +1,8 @@
 import {
+  DEFAULT_EXISTING_CONTENT_MODE,
+  toExistingContentMode,
+} from '@root/schemas/common/existing-content-mode.schema.js'
+import {
   type MinimumAvailability,
   RADARR_MINIMUM_AVAILABILITY_OPTIONS,
   type RadarrMonitorType,
@@ -40,6 +44,7 @@ function mapRowToRadarrInstance(
     rootFolder: row.root_folder,
     bypassIgnored: Boolean(row.bypass_ignored),
     searchOnAdd: row.search_on_add === null ? true : Boolean(row.search_on_add),
+    existingContentMode: toExistingContentMode(row.existing_content_mode),
     minimumAvailability: normaliseMinimumAvailability(row.minimum_availability),
     monitor: row.monitor as RadarrMonitorType,
     tags: parseJsonOr(row.tags, [], this.log, 'radarr.tags'),
@@ -113,6 +118,8 @@ async function insertRadarrInstanceRow(
       root_folder: instance.rootFolder,
       bypass_ignored: instance.bypassIgnored,
       search_on_add: instance.searchOnAdd ?? true,
+      existing_content_mode:
+        instance.existingContentMode ?? DEFAULT_EXISTING_CONTENT_MODE,
       minimum_availability: normaliseMinimumAvailability(
         instance.minimumAvailability,
       ),
@@ -189,6 +196,9 @@ export async function updateRadarrInstance(
         }),
         ...(typeof sanitized.searchOnAdd !== 'undefined' && {
           search_on_add: sanitized.searchOnAdd,
+        }),
+        ...(typeof sanitized.existingContentMode !== 'undefined' && {
+          existing_content_mode: sanitized.existingContentMode,
         }),
         ...(typeof sanitized.minimumAvailability !== 'undefined' && {
           minimum_availability: normaliseMinimumAvailability(

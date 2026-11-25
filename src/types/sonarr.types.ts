@@ -1,3 +1,4 @@
+import type { ExistingContentMode } from '@root/schemas/common/existing-content-mode.schema.js'
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 export interface SonarrAddOptions {
   monitor: string | null
@@ -183,7 +184,6 @@ export interface Item extends ContentItem {
   isExclusion?: boolean
 }
 
-// Alias for better semantics - we can gradually migrate to this
 export type SonarrItem = Item
 
 export interface SonarrConfiguration {
@@ -211,6 +211,7 @@ export interface SonarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   searchOnAdd?: boolean
+  existingContentMode: ExistingContentMode
   seriesType?: SonarrSeriesType
   createSeasonFolders?: boolean
   skipDefaultRoutingWhenNoMatch?: boolean

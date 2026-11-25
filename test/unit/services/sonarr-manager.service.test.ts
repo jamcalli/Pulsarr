@@ -1,9 +1,14 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
-import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
+import type {
+  SonarrInstance,
+  SonarrItem,
+  SonarrSeries,
+} from '@root/types/sonarr.types.js'
 import { createArrCaches } from '@services/arr/arr-caches.js'
 import { CacheRegistry } from '@services/cache-registry.service.js'
 import type { DatabaseService } from '@services/database.service.js'
+import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -24,6 +29,7 @@ const INSTANCE: SonarrInstance = {
   baseUrl: 'http://sonarr.test',
   apiKey: 'test-api-key',
   bypassIgnored: false,
+  existingContentMode: 'off',
   seasonMonitoring: 'all',
   monitorNewItems: 'all',
   tags: [],
@@ -294,6 +300,145 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
     )
     expect(addToSonarr).not.toHaveBeenCalled()
     expect(emit).not.toHaveBeenCalled()
+  })
+})
+
+describe('SonarrManagerService dormant reactivation', () => {
+  const item: SonarrItem = { title: 'Show', type: 'show', guids: ['tvdb:1'] }
+  const ALREADY_ADDED = new Error('This series has already been added')
+  const DORMANT: SonarrSeries = { id: 42, title: 'Show', monitored: false }
+  let service: SonarrService
+  let manager: SonarrManagerService
+  let instance: SonarrInstance
+  let reactivateInSonarr: Mock<SonarrService['reactivateInSonarr']>
+  let findInLibrary: Mock<SonarrService['findInLibrary']>
+  let getEpisodes: Mock<SonarrService['getEpisodes']>
+  let hasRollingMonitoredShow: Mock<DatabaseService['hasRollingMonitoredShow']>
+  let createRollingMonitoredShow: Mock<
+    PlexSessionMonitorService['createRollingMonitoredShow']
+  >
+  let monitorAllSeasonPilots: Mock<
+    PlexSessionMonitorService['monitorAllSeasonPilots']
+  >
+
+  beforeEach(() => {
+    instance = { ...INSTANCE, existingContentMode: 'dormant' }
+    hasRollingMonitoredShow = vi.fn<DatabaseService['hasRollingMonitoredShow']>(
+      async () => false,
+    )
+    createRollingMonitoredShow = vi.fn<
+      PlexSessionMonitorService['createRollingMonitoredShow']
+    >(async () => 1)
+    monitorAllSeasonPilots = vi.fn<
+      PlexSessionMonitorService['monitorAllSeasonPilots']
+    >(async () => undefined)
+    const db: Partial<DatabaseService> = {
+      getSonarrInstance: vi.fn<DatabaseService['getSonarrInstance']>(
+        async () => instance,
+      ),
+      updateWatchlistItem: vi.fn<DatabaseService['updateWatchlistItem']>(
+        async () => true,
+      ),
+      hasRollingMonitoredShow,
+    }
+    const plexSessionMonitor: Partial<PlexSessionMonitorService> = {
+      createRollingMonitoredShow,
+      monitorAllSeasonPilots,
+    }
+    const fastify: Partial<FastifyInstance> = {
+      caches: new CacheRegistry(),
+      db: db as DatabaseService,
+      progress: { emit: vi.fn() } as unknown as FastifyInstance['progress'],
+      plexSessionMonitor: plexSessionMonitor as PlexSessionMonitorService,
+    }
+    service = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
+    )
+    vi.spyOn(service, 'addToSonarr').mockRejectedValue(ALREADY_ADDED)
+    reactivateInSonarr = vi
+      .spyOn(service, 'reactivateInSonarr')
+      .mockResolvedValue({ ...ADDED, seriesId: 42 })
+    findInLibrary = vi
+      .spyOn(service, 'findInLibrary')
+      .mockResolvedValue(DORMANT)
+    getEpisodes = vi.spyOn(service, 'getEpisodes').mockResolvedValue([])
+    manager = new SonarrManagerService(
+      createMockLogger(),
+      fastify as FastifyInstance,
+    )
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    manager['services'].set(1, service)
+  })
+
+  it('reactivates a dormant series with the mapped rolling preset and enrols it', async () => {
+    const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      seasonMonitoring: 'pilotRolling',
+    })
+
+    expect(getEpisodes).toHaveBeenCalledWith(42)
+    expect(reactivateInSonarr).toHaveBeenCalledWith(
+      DORMANT,
+      expect.objectContaining({ title: 'Show' }),
+      undefined,
+      undefined,
+      [],
+      true,
+      'pilot',
+      'standard',
+    )
+    expect(createRollingMonitoredShow).toHaveBeenCalledWith(
+      42,
+      1,
+      '1',
+      'Show',
+      'pilotRolling',
+    )
+    expect(applied).toMatchObject({ seasonMonitoring: 'pilotRolling' })
+  })
+
+  it('keeps an existing rolling row for a reactivated series', async () => {
+    hasRollingMonitoredShow.mockResolvedValue(true)
+
+    await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      seasonMonitoring: 'allSeasonPilotRolling',
+    })
+
+    expect(createRollingMonitoredShow).not.toHaveBeenCalled()
+    expect(monitorAllSeasonPilots).toHaveBeenCalledWith(42, 1)
+  })
+
+  it('rethrows when the series has every episode on disk', async () => {
+    getEpisodes.mockResolvedValue([
+      {
+        id: 1,
+        seriesId: 42,
+        episodeFileId: 1,
+        seasonNumber: 1,
+        episodeNumber: 1,
+        title: 'Pilot',
+        airDateUtc: '2020-01-01T00:00:00Z',
+        hasFile: true,
+        monitored: false,
+        unverifiedSceneNumbering: false,
+        grabbed: false,
+      },
+    ])
+
+    await expect(manager.routeItemToSonarr(item, 'key', 2, 1)).rejects.toBe(
+      ALREADY_ADDED,
+    )
+    expect(reactivateInSonarr).not.toHaveBeenCalled()
+  })
+
+  it('rethrows for a syncing route', async () => {
+    await expect(
+      manager.routeItemToSonarr(item, 'key', 2, 1, true),
+    ).rejects.toBe(ALREADY_ADDED)
+    expect(findInLibrary).not.toHaveBeenCalled()
   })
 })
 

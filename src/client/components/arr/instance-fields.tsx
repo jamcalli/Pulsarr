@@ -1,3 +1,4 @@
+import { ExistingContentModeSchema } from '@root/schemas/common/existing-content-mode.schema'
 import { SonarrMonitorNewItemsSchema } from '@root/schemas/sonarr/sonarr-instance.schema'
 import { useStore } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
@@ -9,6 +10,7 @@ import type { CreatableOption } from '@/hooks/useCreatableOptions'
 import { INSTANCE_COPY } from '@/lib/arr/instance-copy'
 import {
   type ArrType,
+  EXISTING_CONTENT_MODE_LABELS,
   editValues,
   MONITOR_NEW_ITEMS_LABELS,
 } from '@/lib/arr/instance-form'
@@ -55,6 +57,10 @@ const DEFAULT_PROPS: InstanceFieldsProps = {
 
 const MONITOR_NEW_ITEMS_OPTIONS = SonarrMonitorNewItemsSchema.options.map(
   (value) => ({ value, label: MONITOR_NEW_ITEMS_LABELS[value] }),
+)
+
+const EXISTING_CONTENT_MODE_OPTIONS = ExistingContentModeSchema.options.map(
+  (value) => ({ value, label: EXISTING_CONTENT_MODE_LABELS[value] }),
 )
 
 export const InstanceFields = withFieldGroup({
@@ -146,6 +152,17 @@ export const InstanceFields = withFieldGroup({
           tagsDescription={copy.tagsDescription}
           onCreateTag={onCreateTag}
         />
+        <group.AppField name="existingContentMode">
+          {(field) => (
+            <field.SelectField
+              label="Existing content"
+              description="What a new request does when the title is already on this instance."
+              orientation="responsive"
+              disabled={fieldsDisabled}
+              options={EXISTING_CONTENT_MODE_OPTIONS}
+            />
+          )}
+        </group.AppField>
         {type === 'sonarr' && (
           <>
             <group.AppField name="monitorNewItems">

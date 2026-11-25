@@ -3,6 +3,7 @@ import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   RadarrInstance,
   Item as RadarrItem,
+  RadarrMovie,
 } from '@root/types/radarr.types.js'
 import { createArrCaches } from '@services/arr/arr-caches.js'
 import { CacheRegistry } from '@services/cache-registry.service.js'
@@ -27,6 +28,7 @@ const INSTANCE: RadarrInstance = {
   baseUrl: 'http://radarr.test',
   apiKey: 'test-api-key',
   bypassIgnored: false,
+  existingContentMode: 'off',
   tags: [],
   isDefault: true,
 }
@@ -294,6 +296,162 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
     )
     expect(addToRadarr).not.toHaveBeenCalled()
     expect(emit).not.toHaveBeenCalled()
+  })
+})
+
+describe('RadarrManagerService dormant reactivation', () => {
+  const item: RadarrItem = { title: 'Movie', type: 'movie', guids: ['tmdb:1'] }
+  const ALREADY_ADDED = new Error('This movie has already been added')
+  const DORMANT: RadarrMovie = {
+    id: 42,
+    title: 'Movie',
+    tmdbId: 1,
+    monitored: false,
+    hasFile: false,
+  }
+  let service: RadarrService
+  let manager: RadarrManagerService
+  let instance: RadarrInstance
+  let addToRadarr: Mock<RadarrService['addToRadarr']>
+  let reactivateInRadarr: Mock<RadarrService['reactivateInRadarr']>
+  let findInLibrary: Mock<RadarrService['findInLibrary']>
+  let updateWatchlistItem: Mock<DatabaseService['updateWatchlistItem']>
+
+  beforeEach(() => {
+    instance = { ...INSTANCE, existingContentMode: 'dormant' }
+    updateWatchlistItem = vi.fn<DatabaseService['updateWatchlistItem']>(
+      async () => true,
+    )
+    const db: Partial<DatabaseService> = {
+      getRadarrInstance: vi.fn<DatabaseService['getRadarrInstance']>(
+        async () => instance,
+      ),
+      updateWatchlistItem,
+    }
+    const fastify: Partial<FastifyInstance> = {
+      caches: new CacheRegistry(),
+      db: db as DatabaseService,
+      progress: { emit: vi.fn() } as unknown as FastifyInstance['progress'],
+    }
+    service = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify as FastifyInstance,
+      createArrCaches(new CacheRegistry()),
+    )
+    addToRadarr = vi
+      .spyOn(service, 'addToRadarr')
+      .mockRejectedValue(ALREADY_ADDED)
+    reactivateInRadarr = vi
+      .spyOn(service, 'reactivateInRadarr')
+      .mockResolvedValue(ADDED)
+    findInLibrary = vi
+      .spyOn(service, 'findInLibrary')
+      .mockResolvedValue(DORMANT)
+    manager = new RadarrManagerService(
+      createMockLogger(),
+      fastify as FastifyInstance,
+    )
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    manager['services'].set(1, service)
+  })
+
+  it('reactivates a dormant movie when the add reports it already added', async () => {
+    const applied = await manager.routeItemToRadarr(item, 'key', 2, 1)
+
+    expect(findInLibrary).toHaveBeenCalledWith(1)
+    expect(reactivateInRadarr).toHaveBeenCalledWith(
+      DORMANT,
+      expect.objectContaining({ title: 'Movie' }),
+      undefined,
+      undefined,
+      [],
+      true,
+      'released',
+      'movieOnly',
+    )
+    expect(applied).toMatchObject({ instanceId: 1, rootFolder: '/sent' })
+    expect(updateWatchlistItem).toHaveBeenCalledWith(
+      2,
+      'key',
+      expect.objectContaining({ status: 'requested', radarr_instance_id: 1 }),
+    )
+  })
+
+  it('makes no lookup when the add succeeds', async () => {
+    addToRadarr.mockResolvedValue(ADDED)
+
+    await manager.routeItemToRadarr(item, 'key', 2, 1)
+
+    expect(findInLibrary).not.toHaveBeenCalled()
+    expect(reactivateInRadarr).not.toHaveBeenCalled()
+  })
+
+  it('rethrows when the instance leaves existing content as is', async () => {
+    instance = { ...INSTANCE, existingContentMode: 'off' }
+
+    await expect(manager.routeItemToRadarr(item, 'key', 2, 1)).rejects.toBe(
+      ALREADY_ADDED,
+    )
+    expect(findInLibrary).not.toHaveBeenCalled()
+  })
+
+  it('rethrows for a syncing route', async () => {
+    await expect(
+      manager.routeItemToRadarr(item, 'key', 2, 1, true),
+    ).rejects.toBe(ALREADY_ADDED)
+    expect(findInLibrary).not.toHaveBeenCalled()
+  })
+
+  it('rethrows when the stored movie is not dormant', async () => {
+    findInLibrary.mockResolvedValue({ ...DORMANT, hasFile: true })
+
+    await expect(manager.routeItemToRadarr(item, 'key', 2, 1)).rejects.toBe(
+      ALREADY_ADDED,
+    )
+    expect(reactivateInRadarr).not.toHaveBeenCalled()
+  })
+
+  it('rethrows any other add error without a lookup', async () => {
+    const failure = new Error('Radarr is down')
+    addToRadarr.mockRejectedValue(failure)
+
+    await expect(manager.routeItemToRadarr(item, 'key', 2, 1)).rejects.toBe(
+      failure,
+    )
+    expect(findInLibrary).not.toHaveBeenCalled()
+  })
+
+  describe('hasDormantCopy', () => {
+    it('is true for a dormant movie on a reactivating instance', async () => {
+      await expect(manager.hasDormantCopy(1, 1)).resolves.toBe(true)
+    })
+
+    it('is false without a lookup when the instance leaves content as is', async () => {
+      instance = { ...INSTANCE, existingContentMode: 'off' }
+
+      await expect(manager.hasDormantCopy(1, 1)).resolves.toBe(false)
+      expect(findInLibrary).not.toHaveBeenCalled()
+    })
+
+    it('is false when the movie is not in the library', async () => {
+      findInLibrary.mockResolvedValue(undefined)
+
+      await expect(manager.hasDormantCopy(1, 1)).resolves.toBe(false)
+    })
+
+    it('is false when the movie is monitored', async () => {
+      findInLibrary.mockResolvedValue({ ...DORMANT, monitored: true })
+
+      await expect(manager.hasDormantCopy(1, 1)).resolves.toBe(false)
+    })
+
+    it('is false when the lookup fails', async () => {
+      findInLibrary.mockRejectedValue(new Error('Radarr is down'))
+
+      await expect(manager.hasDormantCopy(1, 1)).resolves.toBe(false)
+    })
   })
 })
 
