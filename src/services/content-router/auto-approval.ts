@@ -59,7 +59,9 @@ export async function createAutoApprovalRecord(
       lookupUserId,
       contentKey,
     )
-    if (existingRequest) {
+    if (existingRequest?.status === 'expired') {
+      await deps.db.deleteApprovalRequest(existingRequest.id)
+    } else if (existingRequest) {
       logger.debug(
         `Auto-approval record already exists for ${item.title}, skipping`,
       )
