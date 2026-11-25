@@ -607,6 +607,7 @@ describe.each(ROUTERS)(
       expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
       expect(deps.contentRouter.routeContent).toHaveBeenCalledTimes(1)
       expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+      expect(deps.db.getBulkWatchlistItems).not.toHaveBeenCalled()
     })
 
     it('checks a bulk data copy for dormancy too', async () => {
@@ -723,18 +724,37 @@ describe.each(ROUTERS)(
       expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
     })
 
-    it('keeps the record when the row cannot be read', async () => {
-      const deps = dormantOn(
-        buildDeps([FOUND], recordFrom('2026-01-01T00:00:00.000Z', 1)),
-        1,
-      )
-      vi.mocked(deps.db.getBulkWatchlistItems).mockRejectedValue(
-        new Error('db down'),
-      )
+    it.each([
+      [
+        'throws',
+        (deps: ContentRoutingDeps) =>
+          vi
+            .mocked(deps.db.getBulkWatchlistItems)
+            .mockRejectedValue(new Error('db down')),
+      ],
+      [
+        'returns no row',
+        (deps: ContentRoutingDeps) =>
+          vi.mocked(deps.db.getBulkWatchlistItems).mockResolvedValue([]),
+      ],
+    ])(
+      'leaves the item and record untouched when the row read %s',
+      async (_, failRead) => {
+        const deps = dormantOn(
+          buildDeps([FOUND], recordFrom('2026-01-01T00:00:00.000Z', 1)),
+          1,
+        )
+        failRead(deps)
 
-      expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
-      expect(deps.contentRouter.routeContent).toHaveBeenCalledTimes(1)
-      expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
-    })
+        expect(await route(deps, undefined, [], true)).toEqual({
+          routed: false,
+          skippedReason: 'no-instances-available',
+        })
+        expect(deps.db.getBulkWatchlistItems).toHaveBeenCalled()
+        expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+        expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
+        expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+      },
+    )
   },
 )

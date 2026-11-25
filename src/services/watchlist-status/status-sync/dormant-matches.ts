@@ -29,18 +29,28 @@ export async function dropDormantMatches<TContent>(
   )
   if (reactivating.size === 0) return matchesByWatchlistId
 
-  const isDormant = async (match: TContent): Promise<boolean> => {
-    const { instanceId, externalId } = locate(match)
-    if (instanceId === undefined || !reactivating.has(instanceId)) return false
-    try {
-      return await checker.hasDormantCopy(instanceId, externalId)
-    } catch (error) {
+  const lookups = new Map<string, Promise<boolean>>()
+  const lookUp = (instanceId: number, externalId: number): Promise<boolean> =>
+    checker.hasDormantCopy(instanceId, externalId).catch((error) => {
       logger.debug(
         { error, instanceId, externalId },
         'Could not check for a dormant copy, leaving the pending row as is',
       )
       return true
+    })
+
+  const isDormant = (match: TContent): Promise<boolean> => {
+    const { instanceId, externalId } = locate(match)
+    if (instanceId === undefined || !reactivating.has(instanceId)) {
+      return Promise.resolve(false)
     }
+    const key = `${instanceId}:${externalId}`
+    let lookup = lookups.get(key)
+    if (!lookup) {
+      lookup = lookUp(instanceId, externalId)
+      lookups.set(key, lookup)
+    }
+    return lookup
   }
 
   const filtered = new Map(matchesByWatchlistId)

@@ -1,5 +1,4 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
-import { ROLLING_BASELINE_SEASON } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   SonarrInstance,
@@ -315,11 +314,8 @@ describe('SonarrManagerService dormant reactivation', () => {
   let findInLibrary: Mock<SonarrService['findInLibrary']>
   let getEpisodes: Mock<SonarrService['getEpisodes']>
   let getRollingMasterShowId: Mock<DatabaseService['getRollingMasterShowId']>
-  let updateRollingShowMonitoringType: Mock<
-    DatabaseService['updateRollingShowMonitoringType']
-  >
-  let resetRollingMonitoredShowToOriginal: Mock<
-    DatabaseService['resetRollingMonitoredShowToOriginal']
+  let deleteAllRollingMonitoredShowEntries: Mock<
+    DatabaseService['deleteAllRollingMonitoredShowEntries']
   >
   let createRollingMonitoredShow: Mock<
     PlexSessionMonitorService['createRollingMonitoredShow']
@@ -333,11 +329,8 @@ describe('SonarrManagerService dormant reactivation', () => {
     getRollingMasterShowId = vi.fn<DatabaseService['getRollingMasterShowId']>(
       async () => null,
     )
-    updateRollingShowMonitoringType = vi.fn<
-      DatabaseService['updateRollingShowMonitoringType']
-    >(async () => true)
-    resetRollingMonitoredShowToOriginal = vi.fn<
-      DatabaseService['resetRollingMonitoredShowToOriginal']
+    deleteAllRollingMonitoredShowEntries = vi.fn<
+      DatabaseService['deleteAllRollingMonitoredShowEntries']
     >(async () => 2)
     createRollingMonitoredShow = vi.fn<
       PlexSessionMonitorService['createRollingMonitoredShow']
@@ -353,8 +346,7 @@ describe('SonarrManagerService dormant reactivation', () => {
         async () => true,
       ),
       getRollingMasterShowId,
-      updateRollingShowMonitoringType,
-      resetRollingMonitoredShowToOriginal,
+      deleteAllRollingMonitoredShowEntries,
     }
     const plexSessionMonitor: Partial<PlexSessionMonitorService> = {
       createRollingMonitoredShow,
@@ -416,7 +408,7 @@ describe('SonarrManagerService dormant reactivation', () => {
     expect(applied).toMatchObject({ seasonMonitoring: 'pilotRolling' })
   })
 
-  it('restarts an existing rolling row of another type at the requested baseline', async () => {
+  it('replaces an existing rolling row with a fresh one of the requested type', async () => {
     getRollingMasterShowId.mockResolvedValue(10)
 
     await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
@@ -424,48 +416,67 @@ describe('SonarrManagerService dormant reactivation', () => {
     })
 
     expect(getRollingMasterShowId).toHaveBeenCalledWith(42, 1)
-    expect(updateRollingShowMonitoringType).toHaveBeenCalledWith(
-      10,
+    expect(deleteAllRollingMonitoredShowEntries).toHaveBeenCalledWith(10)
+    expect(createRollingMonitoredShow).toHaveBeenCalledWith(
+      42,
+      1,
+      '1',
+      'Show',
       'allSeasonPilotRolling',
-      ROLLING_BASELINE_SEASON.allSeasonPilotRolling,
     )
-    expect(resetRollingMonitoredShowToOriginal).toHaveBeenCalledWith(10)
-    const [typed] = updateRollingShowMonitoringType.mock.invocationCallOrder
-    const [reset] = resetRollingMonitoredShowToOriginal.mock.invocationCallOrder
-    expect(typed).toBeLessThan(reset)
-    expect(createRollingMonitoredShow).not.toHaveBeenCalled()
+    const [deleted] =
+      deleteAllRollingMonitoredShowEntries.mock.invocationCallOrder
+    const [created] = createRollingMonitoredShow.mock.invocationCallOrder
+    expect(deleted).toBeLessThan(created)
     expect(monitorAllSeasonPilots).toHaveBeenCalledWith(42, 1)
   })
 
-  it('resets an existing rolling row of the same type to its baseline', async () => {
+  it('skips the pilot pass for other rolling types', async () => {
     getRollingMasterShowId.mockResolvedValue(10)
 
     await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
       seasonMonitoring: 'pilotRolling',
     })
 
-    expect(updateRollingShowMonitoringType).toHaveBeenCalledWith(
-      10,
-      'pilotRolling',
-      ROLLING_BASELINE_SEASON.pilotRolling,
-    )
-    expect(resetRollingMonitoredShowToOriginal).toHaveBeenCalledWith(10)
+    expect(deleteAllRollingMonitoredShowEntries).toHaveBeenCalledWith(10)
+    expect(createRollingMonitoredShow).toHaveBeenCalledTimes(1)
+    expect(monitorAllSeasonPilots).not.toHaveBeenCalled()
+  })
+
+  it('removes an existing rolling row for a non-rolling request', async () => {
+    getRollingMasterShowId.mockResolvedValue(10)
+
+    await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      seasonMonitoring: 'all',
+    })
+
+    expect(getRollingMasterShowId).toHaveBeenCalledWith(42, 1)
+    expect(deleteAllRollingMonitoredShowEntries).toHaveBeenCalledWith(10)
     expect(createRollingMonitoredShow).not.toHaveBeenCalled()
   })
 
-  it('skips the reset and keeps the add when the type write fails', async () => {
+  it('deletes nothing when the series has no rolling row', async () => {
+    await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      seasonMonitoring: 'all',
+    })
+
+    expect(getRollingMasterShowId).toHaveBeenCalledWith(42, 1)
+    expect(deleteAllRollingMonitoredShowEntries).not.toHaveBeenCalled()
+    expect(createRollingMonitoredShow).not.toHaveBeenCalled()
+  })
+
+  it('keeps the add when the rolling cleanup fails', async () => {
     getRollingMasterShowId.mockResolvedValue(10)
-    updateRollingShowMonitoringType.mockResolvedValue(false)
+    deleteAllRollingMonitoredShowEntries.mockRejectedValue(new Error('db down'))
 
     await expect(
       manager.routeItemToSonarr(item, 'key', 2, 1, false, {
-        seasonMonitoring: 'pilotRolling',
+        seasonMonitoring: 'all',
       }),
-    ).resolves.toMatchObject({ seasonMonitoring: 'pilotRolling' })
-    expect(resetRollingMonitoredShowToOriginal).not.toHaveBeenCalled()
+    ).resolves.toMatchObject({ seasonMonitoring: 'all' })
   })
 
-  it('never looks up a rolling row for a fresh add', async () => {
+  it('never looks up or deletes a rolling row for a fresh add', async () => {
     vi.spyOn(service, 'addToSonarr').mockResolvedValue({
       ...ADDED,
       seriesId: 42,
@@ -476,6 +487,7 @@ describe('SonarrManagerService dormant reactivation', () => {
     })
 
     expect(getRollingMasterShowId).not.toHaveBeenCalled()
+    expect(deleteAllRollingMonitoredShowEntries).not.toHaveBeenCalled()
     expect(createRollingMonitoredShow).toHaveBeenCalledTimes(1)
   })
 

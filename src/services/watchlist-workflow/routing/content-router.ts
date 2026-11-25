@@ -156,28 +156,36 @@ async function listArrInstanceIds(
   return new Set(instances.map((instance) => instance.id))
 }
 
-/** False when the watchlist row cannot be read. */
-async function predatesWatchlistRow(
+type RecordAge = 'predates-row' | 'current' | 'unreadable'
+
+async function recordAgeAgainstRow(
   record: ApprovalRequest,
   context: RoutingContext,
   deps: ContentRoutingDeps,
-): Promise<boolean> {
+): Promise<RecordAge> {
   try {
     const rows = await deps.db.getBulkWatchlistItems(
       [context.userId],
       [context.itemKey],
     )
     const row = rows.find((candidate) => candidate.key === context.itemKey)
-    if (!row) return false
-    return (
-      new Date(record.createdAt).getTime() < new Date(row.created_at).getTime()
-    )
+    if (!row) {
+      deps.logger.warn(
+        { userId: context.userId, itemKey: context.itemKey },
+        'Found no watchlist row to check its approval record against, skipping item',
+      )
+      return 'unreadable'
+    }
+    return new Date(record.createdAt).getTime() <
+      new Date(row.created_at).getTime()
+      ? 'predates-row'
+      : 'current'
   } catch (error) {
     deps.logger.warn(
       { error, userId: context.userId, itemKey: context.itemKey },
-      'Could not read the watchlist row to check its approval record',
+      'Could not read the watchlist row to check its approval record, skipping item',
     )
-    return false
+    return 'unreadable'
   }
 }
 
@@ -239,14 +247,18 @@ async function isReactivation(
   return true
 }
 
-/** A reactivation is a fresh request, so a record that approved an earlier one must not replay its routing. */
+/** A reactivation is a fresh request, so a record that approved an earlier one must not replay its routing. Null when there is no record. */
 async function expireSpentRecord(
   { record }: Destinations,
   context: RoutingContext,
   deps: ContentRoutingDeps,
-): Promise<void> {
-  if (!record || !(await predatesWatchlistRow(record, context, deps))) return
-  await deps.db.updateApprovalRequest(record.id, { status: 'expired' })
+): Promise<RecordAge | null> {
+  if (!record) return null
+  const age = await recordAgeAgainstRow(record, context, deps)
+  if (age === 'predates-row') {
+    await deps.db.updateApprovalRequest(record.id, { status: 'expired' })
+  }
+  return age
 }
 
 interface Presence {
@@ -599,8 +611,11 @@ export async function routeShow(
     )
   }
 
-  if (reactivation) {
-    await expireSpentRecord(destinations, context, deps)
+  if (
+    reactivation &&
+    (await expireSpentRecord(destinations, context, deps)) === 'unreadable'
+  ) {
+    return { routed: false, skippedReason: 'no-instances-available' }
   }
   const outcome = await deps.contentRouter.routeContent(
     sonarrItem,
@@ -757,8 +772,11 @@ export async function routeMovie(
     )
   }
 
-  if (reactivation) {
-    await expireSpentRecord(destinations, context, deps)
+  if (
+    reactivation &&
+    (await expireSpentRecord(destinations, context, deps)) === 'unreadable'
+  ) {
+    return { routed: false, skippedReason: 'no-instances-available' }
   }
   const outcome = await deps.contentRouter.routeContent(
     radarrItem,

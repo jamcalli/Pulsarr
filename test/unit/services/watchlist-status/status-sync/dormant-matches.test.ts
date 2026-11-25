@@ -126,6 +126,50 @@ describe('dropDormantMatches', () => {
     expect(hasDormantCopy).toHaveBeenCalledTimes(1)
   })
 
+  it('looks up a copy shared by two pending rows once and holds both', async () => {
+    const first = watchlistItem('pending')
+    const second = { ...watchlistItem('pending'), id: 2, user_id: 8 }
+
+    const matches = await dropDormantMatches(
+      createMockLogger(),
+      checker,
+      locate,
+      new Map([
+        [1, [copyOn(1)]],
+        [2, [copyOn(1)]],
+      ]),
+      [first, second],
+    )
+
+    expect(matches.get(1)).toEqual([])
+    expect(matches.get(2)).toEqual([])
+    expect(hasDormantCopy).toHaveBeenCalledTimes(1)
+  })
+
+  it('looks up each distinct title once', async () => {
+    const second = {
+      ...watchlistItem('pending'),
+      id: 2,
+      key: 'other-key',
+      guids: ['tmdb:200'],
+    }
+
+    await dropDormantMatches(
+      createMockLogger(),
+      checker,
+      locate,
+      new Map([
+        [1, [copyOn(1)]],
+        [2, [{ ...copyOn(1), guids: ['tmdb:200'] }]],
+      ]),
+      [watchlistItem('pending'), second],
+    )
+
+    expect(hasDormantCopy).toHaveBeenCalledTimes(2)
+    expect(hasDormantCopy).toHaveBeenCalledWith(1, 100)
+    expect(hasDormantCopy).toHaveBeenCalledWith(1, 200)
+  })
+
   it('returns the matches untouched without any lookup when no instance reactivates', async () => {
     modes = { 1: 'off', 2: 'off' }
     const matches = new Map([[1, [copyOn(1)]]])

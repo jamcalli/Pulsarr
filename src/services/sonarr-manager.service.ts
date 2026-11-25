@@ -1,7 +1,6 @@
 import { placeholderSonarrInstance } from '@root/schemas/common/arr-placeholder.js'
 import {
   isRollingMonitoringOption,
-  ROLLING_BASELINE_SEASON,
   type SonarrRollingMonitorOption,
 } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type {
@@ -143,12 +142,12 @@ export class SonarrManagerService extends ArrManager<
         return route.service.reactivateInSonarr(existing, item, ...overrides)
       },
     )
-    if (rolling) {
-      await this.enrollRolling(
+    if (rolling || reactivated) {
+      await this.syncRollingEntry(
         added.seriesId,
         instanceId,
         item,
-        seasonMonitoring,
+        rolling ? seasonMonitoring : null,
         reactivated,
       )
     }
@@ -167,57 +166,43 @@ export class SonarrManagerService extends ArrManager<
     }
   }
 
-  /** Never throws, so a failed enrollment leaves the add itself standing, and a reactivated series already enrolled restarts its row at the option's baseline. */
-  private async enrollRolling(
+  /** Never throws, so a failed write leaves the add standing. A reactivation drops the series' rows on the instance before a rolling option enrols it afresh. */
+  private async syncRollingEntry(
     seriesId: number,
     instanceId: number,
     item: ArrPreparedItem<SonarrItem>,
-    monitoring: SonarrRollingMonitorOption,
+    monitoring: SonarrRollingMonitorOption | null,
     reactivated: boolean,
   ): Promise<void> {
-    const plexSessionMonitor = this.fastify.plexSessionMonitor
-    if (!plexSessionMonitor) return
     try {
-      const tvdbId = extractTvdbId(item.guids)
-      const masterId = reactivated
-        ? await this.fastify.db.getRollingMasterShowId(seriesId, instanceId)
-        : null
-      if (masterId === null) {
-        await plexSessionMonitor.createRollingMonitoredShow(
+      if (reactivated) {
+        const masterId = await this.fastify.db.getRollingMasterShowId(
           seriesId,
           instanceId,
-          tvdbId ? String(tvdbId) : '',
-          item.title,
-          monitoring,
         )
-      } else {
-        const updated = await this.fastify.db.updateRollingShowMonitoringType(
-          masterId,
-          monitoring,
-          ROLLING_BASELINE_SEASON[monitoring],
-        )
-        if (!updated) {
-          throw new Error(
-            `Failed to update monitoring type for rolling show ${masterId}`,
-          )
+        if (masterId !== null) {
+          await this.fastify.db.deleteAllRollingMonitoredShowEntries(masterId)
         }
-        await this.fastify.db.resetRollingMonitoredShowToOriginal(masterId)
       }
+      const plexSessionMonitor = this.fastify.plexSessionMonitor
+      if (monitoring === null || !plexSessionMonitor) return
+      const tvdbId = extractTvdbId(item.guids)
+      await plexSessionMonitor.createRollingMonitoredShow(
+        seriesId,
+        instanceId,
+        tvdbId ? String(tvdbId) : '',
+        item.title,
+        monitoring,
+      )
       if (monitoring === 'allSeasonPilotRolling') {
         await plexSessionMonitor.monitorAllSeasonPilots(seriesId, instanceId)
       }
       this.log.debug(
-        {
-          seriesId,
-          instanceId,
-          tvdbId: tvdbId || null,
-          monitoring,
-          restarted: masterId !== null,
-        },
+        { seriesId, instanceId, tvdbId: tvdbId || null, monitoring },
         'Created rolling monitoring entry',
       )
     } catch (error) {
-      this.log.error({ error }, 'Failed to create rolling monitoring entry')
+      this.log.error({ error }, 'Failed to sync rolling monitoring entry')
     }
   }
 
