@@ -32,6 +32,7 @@ function item(userId: number, key: string): TokenWatchlistItem {
 
 function createDeps(inserted: { id: number; user_id: number; key: string }[]) {
   const emit = vi.fn()
+  const syncLabelForNewWatchlistItem = vi.fn(async () => true)
   const deps = {
     db: {
       getUser: vi.fn(async (id: number) => ({ id, can_sync: true })),
@@ -39,14 +40,15 @@ function createDeps(inserted: { id: number; user_id: number; key: string }[]) {
       syncGenresFromItems: vi.fn(async () => undefined),
     },
     logger: createMockLogger(),
-    config: {},
+    config: { plexLabelSync: { enabled: true } },
+    plexLabelSyncService: { syncLabelForNewWatchlistItem },
     fastify: {
       progress: { emit, hasActiveConnections: () => false },
       tmdb: { isConfigured: () => false },
     },
     handleLinkedItemsForLabelSync: vi.fn(),
   } as unknown as ItemProcessorDeps
-  return { deps, emit }
+  return { deps, emit, syncLabelForNewWatchlistItem }
 }
 
 const NEW_ITEMS = new Map([
@@ -95,5 +97,32 @@ describe('processAndSaveNewItems', () => {
         metadata: { action: 'added', userIds: [4] },
       }),
     )
+  })
+
+  it('syncs Plex labels for each inserted row', async () => {
+    const { deps, syncLabelForNewWatchlistItem } = createDeps([
+      { id: 1, user_id: 3, key: 'a' },
+      { id: 2, user_id: 4, key: 'b' },
+    ])
+
+    await processAndSaveNewItems(NEW_ITEMS, false, deps)
+
+    expect(syncLabelForNewWatchlistItem).toHaveBeenCalledTimes(2)
+    expect(syncLabelForNewWatchlistItem).toHaveBeenCalledWith(1, 'a', true)
+  })
+
+  it('skips the per-item Plex label sync on a metadata refresh', async () => {
+    const { deps, syncLabelForNewWatchlistItem } = createDeps([
+      { id: 1, user_id: 3, key: 'a' },
+      { id: 2, user_id: 4, key: 'b' },
+    ])
+
+    await processAndSaveNewItems(NEW_ITEMS, true, deps)
+
+    expect(deps.db.createWatchlistItems).toHaveBeenCalledWith(
+      expect.any(Array),
+      { onConflict: 'merge' },
+    )
+    expect(syncLabelForNewWatchlistItem).not.toHaveBeenCalled()
   })
 })
