@@ -1,3 +1,4 @@
+import { DEFAULT_EXISTING_CONTENT_MODE } from '@root/schemas/common/existing-content-mode.schema.js'
 import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 
@@ -13,6 +14,7 @@ export function placeholderRadarrInstance(): Omit<RadarrInstance, 'id'> {
     rootFolder: '',
     bypassIgnored: false,
     searchOnAdd: true,
+    existingContentMode: DEFAULT_EXISTING_CONTENT_MODE,
     minimumAvailability: 'released',
     tags: [],
     syncedInstances: [],
@@ -32,6 +34,7 @@ export function placeholderSonarrInstance(): Omit<SonarrInstance, 'id'> {
     seasonMonitoring: 'all',
     monitorNewItems: 'all',
     searchOnAdd: true,
+    existingContentMode: DEFAULT_EXISTING_CONTENT_MODE,
     createSeasonFolders: false,
     seriesType: 'standard',
     tags: [],

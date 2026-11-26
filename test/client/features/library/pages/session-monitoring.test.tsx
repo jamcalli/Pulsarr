@@ -125,6 +125,7 @@ function sonarrInstance(id: number, name: string): SonarrInstance {
     seasonMonitoring: 'all',
     monitorNewItems: 'all',
     searchOnAdd: true,
+    existingContentMode: 'off',
     createSeasonFolders: true,
     tags: [],
     isDefault: id === 1,

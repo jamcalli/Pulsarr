@@ -124,21 +124,31 @@ export class SonarrManagerService extends ArrManager<
 
     const rolling = isRollingMonitoringOption(seasonMonitoring)
 
-    const added = await route.service.addToSonarr(
-      item,
+    const overrides = [
       route.rootFolder,
       route.qualityProfileId,
       route.tags,
       route.searchOnAdd,
       rolling ? ROLLING_ADD_MONITOR[seasonMonitoring] : seasonMonitoring,
       seriesType,
+    ] as const
+    let reactivated = false
+    const added = await this.addOrReactivate(
+      route,
+      extractTvdbId(item.guids),
+      () => route.service.addToSonarr(item, ...overrides),
+      (existing) => {
+        reactivated = true
+        return route.service.reactivateInSonarr(existing, item, ...overrides)
+      },
     )
-    if (rolling) {
-      await this.enrollRolling(
+    if (rolling || reactivated) {
+      await this.syncRollingEntry(
         added.seriesId,
         instanceId,
         item,
-        seasonMonitoring,
+        rolling ? seasonMonitoring : null,
+        reactivated,
       )
     }
 
@@ -156,16 +166,33 @@ export class SonarrManagerService extends ArrManager<
     }
   }
 
-  /** Never throws, so a failed enrollment leaves the add itself standing. */
-  private async enrollRolling(
+  /** Never throws, so a failed write leaves the add standing. A reactivation drops the series' rows on the instance before a rolling option enrols it afresh. */
+  private async syncRollingEntry(
     seriesId: number,
     instanceId: number,
     item: ArrPreparedItem<SonarrItem>,
-    monitoring: SonarrRollingMonitorOption,
+    monitoring: SonarrRollingMonitorOption | null,
+    reactivated: boolean,
   ): Promise<void> {
-    const plexSessionMonitor = this.fastify.plexSessionMonitor
-    if (!plexSessionMonitor) return
     try {
+      if (reactivated) {
+        const masterId = await this.fastify.db.getRollingMasterShowId(
+          seriesId,
+          instanceId,
+        )
+        if (masterId !== null) {
+          const deleted =
+            await this.fastify.db.deleteAllRollingMonitoredShowEntries(masterId)
+          // The delete reports a failed transaction as zero rows, and enrolling on top would leave two masters
+          if (deleted === 0) {
+            throw new Error(
+              `Rolling rows of series ${seriesId} could not be removed`,
+            )
+          }
+        }
+      }
+      const plexSessionMonitor = this.fastify.plexSessionMonitor
+      if (monitoring === null || !plexSessionMonitor) return
       const tvdbId = extractTvdbId(item.guids)
       await plexSessionMonitor.createRollingMonitoredShow(
         seriesId,
@@ -182,7 +209,7 @@ export class SonarrManagerService extends ArrManager<
         'Created rolling monitoring entry',
       )
     } catch (error) {
-      this.log.error({ error }, 'Failed to create rolling monitoring entry')
+      this.log.error({ error }, 'Failed to sync rolling monitoring entry')
     }
   }
 

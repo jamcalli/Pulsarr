@@ -1,11 +1,3 @@
-/**
- * Database row types for table records
- * These types represent the raw database schema with snake_case field names
- */
-
-/**
- * Base interface for common instance row fields
- */
 export interface BaseInstanceRow {
   id: number
   name: string
@@ -19,6 +11,7 @@ export interface BaseInstanceRow {
   is_enabled: boolean | number
   synced_instances: string | null
   skip_default_routing_when_no_match: boolean | number | null
+  existing_content_mode: string | null
   created_at: string
   updated_at: string
 }

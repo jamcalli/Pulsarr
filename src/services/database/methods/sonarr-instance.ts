@@ -1,3 +1,7 @@
+import {
+  DEFAULT_EXISTING_CONTENT_MODE,
+  toExistingContentMode,
+} from '@root/schemas/common/existing-content-mode.schema.js'
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
@@ -34,6 +38,7 @@ function mapRowToSonarrInstance(
     seasonMonitoring: row.season_monitoring || 'all',
     monitorNewItems: (row.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: toBoolean(row.search_on_add, true),
+    existingContentMode: toExistingContentMode(row.existing_content_mode),
     createSeasonFolders: toBoolean(row.create_season_folders, false),
     tags: parseJsonOr(row.tags, [], this.log, 'sonarr.tags'),
     isDefault: Boolean(row.is_default),
@@ -113,6 +118,8 @@ async function insertSonarrInstanceRow(
         instance.monitorNewItems || 'all',
       ),
       search_on_add: instance.searchOnAdd ?? true,
+      existing_content_mode:
+        instance.existingContentMode ?? DEFAULT_EXISTING_CONTENT_MODE,
       create_season_folders: instance.createSeasonFolders ?? false,
       tags: Array.isArray(instance.tags)
         ? JSON.stringify(instance.tags)
@@ -195,6 +202,9 @@ export async function updateSonarrInstance(
         }),
         ...(typeof sanitized.searchOnAdd !== 'undefined' && {
           search_on_add: sanitized.searchOnAdd,
+        }),
+        ...(typeof sanitized.existingContentMode !== 'undefined' && {
+          existing_content_mode: sanitized.existingContentMode,
         }),
         ...(typeof sanitized.createSeasonFolders !== 'undefined' && {
           create_season_folders: sanitized.createSeasonFolders,

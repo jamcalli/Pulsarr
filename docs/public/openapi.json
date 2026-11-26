@@ -2801,6 +2801,14 @@
         "additionalProperties": false,
         "description": "Field and operator metadata an evaluator contributes to the rule builder"
       },
+      "ExistingContentMode": {
+        "type": "string",
+        "enum": [
+          "off",
+          "dormant"
+        ],
+        "description": "What a new watchlist request does when the item is already in the instance"
+      },
       "GenreStat": {
         "type": "object",
         "properties": {
@@ -4150,6 +4158,10 @@
             "default": true,
             "type": "boolean"
           },
+          "existingContentMode": {
+            "default": "off",
+            "$ref": "#/components/schemas/ExistingContentMode"
+          },
           "minimumAvailability": {
             "default": "released",
             "$ref": "#/components/schemas/RadarrMinimumAvailability"
@@ -4189,6 +4201,7 @@
           "apiKey",
           "bypassIgnored",
           "searchOnAdd",
+          "existingContentMode",
           "minimumAvailability",
           "monitor",
           "tags",
@@ -4255,6 +4268,10 @@
           "searchOnAdd": {
             "default": true,
             "type": "boolean"
+          },
+          "existingContentMode": {
+            "default": "off",
+            "$ref": "#/components/schemas/ExistingContentMode"
           },
           "minimumAvailability": {
             "default": "released",
@@ -4325,6 +4342,9 @@
           },
           "searchOnAdd": {
             "type": "boolean"
+          },
+          "existingContentMode": {
+            "$ref": "#/components/schemas/ExistingContentMode"
           },
           "minimumAvailability": {
             "$ref": "#/components/schemas/RadarrMinimumAvailability"
@@ -6062,6 +6082,10 @@
             "default": true,
             "type": "boolean"
           },
+          "existingContentMode": {
+            "default": "off",
+            "$ref": "#/components/schemas/ExistingContentMode"
+          },
           "createSeasonFolders": {
             "default": false,
             "type": "boolean"
@@ -6103,6 +6127,7 @@
           "seasonMonitoring",
           "monitorNewItems",
           "searchOnAdd",
+          "existingContentMode",
           "createSeasonFolders",
           "tags",
           "isDefault",
@@ -6177,6 +6202,10 @@
           "searchOnAdd": {
             "default": true,
             "type": "boolean"
+          },
+          "existingContentMode": {
+            "default": "off",
+            "$ref": "#/components/schemas/ExistingContentMode"
           },
           "createSeasonFolders": {
             "default": false,
@@ -6253,6 +6282,9 @@
           },
           "searchOnAdd": {
             "type": "boolean"
+          },
+          "existingContentMode": {
+            "$ref": "#/components/schemas/ExistingContentMode"
           },
           "createSeasonFolders": {
             "type": "boolean"

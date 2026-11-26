@@ -90,6 +90,7 @@ export async function routeSingleItem(
         userAlias,
         sonarrItem,
         primaryUser,
+        newRequest: true,
       },
       deps,
     )
@@ -125,6 +126,7 @@ export async function routeSingleItem(
         userAlias,
         radarrItem,
         primaryUser,
+        newRequest: true,
       },
       deps,
     )

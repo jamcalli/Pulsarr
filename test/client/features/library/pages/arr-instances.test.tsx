@@ -35,6 +35,7 @@ function makeInstance(overrides: Partial<SonarrInstance>): SonarrInstance {
     seasonMonitoring: 'all',
     monitorNewItems: 'all',
     searchOnAdd: true,
+    existingContentMode: 'off',
     createSeasonFolders: false,
     tags: [],
     isDefault: true,

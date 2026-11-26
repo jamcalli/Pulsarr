@@ -37,6 +37,7 @@ const SONARR_ROW: SonarrInstance = {
   baseUrl: 'http://arr.test',
   apiKey: 'key',
   bypassIgnored: false,
+  existingContentMode: 'off',
   seasonMonitoring: 'all',
   monitorNewItems: 'all',
   tags: [],
@@ -49,6 +50,7 @@ const RADARR_ROW: RadarrInstance = {
   baseUrl: 'http://arr.test',
   apiKey: 'key',
   bypassIgnored: false,
+  existingContentMode: 'off',
   tags: [],
   isDefault: true,
 }

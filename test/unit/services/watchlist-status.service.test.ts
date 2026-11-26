@@ -1,6 +1,9 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
+import type {
+  DatabaseWatchlistItem,
+  WatchlistStatus,
+} from '@root/types/watchlist-status.types.js'
 import type { FastifyInstance } from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
@@ -36,11 +39,12 @@ import { processJunctionUpdates } from '@services/watchlist-status/junction/junc
 import { processStatusUpdates } from '@services/watchlist-status/status-sync/status-processor.js'
 import { StatusService } from '@services/watchlist-status.service.js'
 
-function rows(userIds: number[]) {
+function rows(userIds: number[], status?: WatchlistStatus) {
   return userIds.map((userId) => ({
     id: userId,
     user_id: userId,
     key: `k${userId}`,
+    status,
   }))
 }
 
@@ -60,8 +64,12 @@ function createService(showUserIds: number[], movieUserIds: number[]) {
   const service = new StatusService(
     createMockLogger(),
     db as unknown as FastifyInstance['db'],
-    {} as FastifyInstance['sonarrManager'],
-    {} as FastifyInstance['radarrManager'],
+    {
+      getAllInstances: async () => [],
+    } as unknown as FastifyInstance['sonarrManager'],
+    {
+      getAllInstances: async () => [],
+    } as unknown as FastifyInstance['radarrManager'],
     fastify as unknown as FastifyInstance,
   )
   return { service, emit, db }
@@ -154,6 +162,40 @@ describe('StatusService.syncAllStatuses', () => {
     expect(vi.mocked(processStatusUpdates).mock.calls[0][2]).toBe(matches)
   })
 
+  it('drops a pending row match that is dormant on a reactivating instance before the main pass', async () => {
+    const dormant = {
+      guids: ['tvdb:100'],
+      sonarr_instance_id: 3,
+    } as SonarrItem
+    vi.mocked(processJunctionUpdates).mockResolvedValueOnce({
+      updated: 0,
+      userIds: [],
+      matches: new Map([[1, [dormant]]]),
+    })
+    const hasDormantCopy = vi.fn(async () => true)
+    const { db } = createService([], [])
+    db.getAllShowWatchlistItems.mockResolvedValueOnce(rows([1], 'pending'))
+    const service = new StatusService(
+      createMockLogger(),
+      db as unknown as FastifyInstance['db'],
+      {
+        getAllInstances: async () => [
+          { id: 3, existingContentMode: 'dormant' },
+        ],
+        hasDormantCopy,
+      } as unknown as FastifyInstance['sonarrManager'],
+      {} as FastifyInstance['radarrManager'],
+      { config: {} } as unknown as FastifyInstance,
+    )
+
+    await service.syncSonarrStatuses([])
+
+    expect(hasDormantCopy).toHaveBeenCalledWith(3, 100)
+    expect(vi.mocked(processStatusUpdates).mock.calls[0][2]).toEqual(
+      new Map([[1, []]]),
+    )
+  })
+
   it('emits the junction users when the main write fails, then rejects', async () => {
     vi.mocked(processJunctionUpdates).mockImplementation(
       async (_deps, _config, _arrItems, items) => ({
@@ -225,8 +267,14 @@ describe('StatusService.syncInstance', () => {
         async (updates: unknown[]) => updates.length,
       ),
     }
-    const sonarrManager = { fetchAllSeries: vi.fn(async () => []) }
-    const radarrManager = { fetchAllMovies: vi.fn(async () => []) }
+    const sonarrManager = {
+      fetchAllSeries: vi.fn(async () => []),
+      getAllInstances: vi.fn(async () => []),
+    }
+    const radarrManager = {
+      fetchAllMovies: vi.fn(async () => []),
+      getAllInstances: vi.fn(async () => []),
+    }
     const service = new StatusService(
       createMockLogger(),
       db as unknown as FastifyInstance['db'],

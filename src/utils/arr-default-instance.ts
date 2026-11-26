@@ -1,3 +1,4 @@
+import { DEFAULT_EXISTING_CONTENT_MODE } from '@root/schemas/common/existing-content-mode.schema.js'
 import type { Config } from '@root/types/config.types.js'
 import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
@@ -21,6 +22,7 @@ export function defaultRadarrInstance(
     qualityProfile: config.radarrQualityProfile,
     rootFolder: config.radarrRootFolder,
     bypassIgnored: config.radarrBypassIgnored,
+    existingContentMode: DEFAULT_EXISTING_CONTENT_MODE,
     tags: config.radarrTags || [],
     isDefault: true,
   }
@@ -36,6 +38,7 @@ export function defaultSonarrInstance(
     qualityProfile: config.sonarrQualityProfile,
     rootFolder: config.sonarrRootFolder,
     bypassIgnored: config.sonarrBypassIgnored,
+    existingContentMode: DEFAULT_EXISTING_CONTENT_MODE,
     seasonMonitoring: config.sonarrSeasonMonitoring,
     monitorNewItems: config.sonarrMonitorNewItems || 'all',
     tags: config.sonarrTags || [],

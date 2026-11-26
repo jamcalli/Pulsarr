@@ -1,4 +1,5 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import type { ExistingContentMode } from '@root/schemas/common/existing-content-mode.schema.js'
 import type { ArrWebhookResult } from '@root/schemas/config/config.schema.js'
 import {
   type ConnectionTestResult,
@@ -23,6 +24,7 @@ import type {
   ArrService,
 } from '@services/arr/arr-service.js'
 import { PlaceholderResetError } from '@utils/arr-default-instance.js'
+import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { errorMessage } from '@utils/error-message.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
@@ -43,6 +45,7 @@ export interface ArrManagedInstance extends ArrInstanceRow {
   bypassIgnored: boolean
   tags: string[]
   searchOnAdd?: boolean
+  existingContentMode: ExistingContentMode
 }
 
 export interface ArrInstanceStore<TInstance extends ArrManagedInstance> {
@@ -85,6 +88,8 @@ export interface ArrRoute<
   qualityProfileId: number | undefined
   tags: string[]
   searchOnAdd: boolean
+  /** The add may update an existing entry that is unmonitored and missing content. */
+  reactivateDormant: boolean
 }
 
 export interface ArrRouted<TApplied> {
@@ -356,6 +361,8 @@ export abstract class ArrManager<
             : parseQualityProfileId(qualityProfileSource),
         tags: [...new Set(settings.tags ?? instance.tags ?? [])],
         searchOnAdd: settings.searchOnAdd ?? instance.searchOnAdd ?? true,
+        reactivateDormant:
+          !syncing && instance.existingContentMode === 'dormant',
       })
 
       await this.fastify.db.updateWatchlistItem(userId, key, {
@@ -385,7 +392,39 @@ export abstract class ArrManager<
     }
   }
 
-  /** The shared half of what a route applied, read back from what the arr stored. */
+  /** Rethrows the add's error unless it is the arr's already-added error on a reactivating route and the stored entry is dormant. */
+  protected async addOrReactivate<TAdded>(
+    route: ArrRoute<TInstance, TService, TItem, TSettings>,
+    externalId: number,
+    add: () => Promise<TAdded>,
+    reactivate: (existing: TResource) => Promise<TAdded>,
+  ): Promise<TAdded> {
+    try {
+      return await add()
+    } catch (error) {
+      if (!route.reactivateDormant || !isArrAlreadyAddedError(error)) {
+        throw error
+      }
+      const existing = await route.service.findInLibrary(externalId)
+      if (!existing || !(await route.service.isDormant(existing))) throw error
+      return await reactivate(existing)
+    }
+  }
+
+  /** False unless the instance reactivates dormant content and holds this item unmonitored and missing, and a failed lookup rejects. */
+  async hasDormantCopy(
+    instanceId: number,
+    externalId: number,
+  ): Promise<boolean> {
+    const instance = await this.store.get(instanceId)
+    if (instance?.existingContentMode !== 'dormant') return false
+    const service = this.services.get(instanceId)
+    if (!service) return false
+    const existing = await service.findInLibrary(externalId)
+    return existing !== undefined && (await service.isDormant(existing))
+  }
+
+  /** The shared half of what a route applied, read back from the arr, with only the tags the route sent. */
   protected appliedRouting(
     route: ArrRoute<TInstance, TService, TItem, TSettings>,
     added: ArrAddedSettings,

@@ -83,6 +83,7 @@ const radarrInstance: RadarrInstance = {
   rootFolder: '/movies',
   bypassIgnored: false,
   searchOnAdd: true,
+  existingContentMode: 'off',
   minimumAvailability: 'released',
   monitor: 'movieOnly',
   tags: [],

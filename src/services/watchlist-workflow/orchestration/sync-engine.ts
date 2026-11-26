@@ -337,6 +337,7 @@ export async function syncWatchlistItems(
                   arrInstances: sonarrInstances,
                   primaryUser,
                   reconcile: true,
+                  newRequest: item.status === 'pending',
                 },
                 deps,
               )
@@ -386,6 +387,7 @@ export async function syncWatchlistItems(
                   arrInstances: radarrInstances,
                   primaryUser,
                   reconcile: true,
+                  newRequest: item.status === 'pending',
                 },
                 deps,
               )

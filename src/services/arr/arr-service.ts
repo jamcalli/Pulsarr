@@ -67,6 +67,10 @@ export interface ArrLibraryResource {
   tmdbId?: number
 }
 
+type ArrSearchCommand =
+  | { name: 'MissingEpisodeSearch'; seriesId: number; monitored: true }
+  | { name: 'MoviesSearch'; movieIds: number[] }
+
 export abstract class ArrService<
   TInstance extends ArrInstanceRow,
   TResource extends ArrLibraryResource,
@@ -104,6 +108,9 @@ export abstract class ArrService<
 
   /** Maps the instance row onto the product's own add and routing defaults. */
   protected abstract applyInstance(instance: TInstance): void
+
+  /** True when the library entry is unmonitored and missing content, so nothing in the arr will deliver it. */
+  abstract isDormant(resource: TResource): Promise<boolean>
 
   /** Throws until initialize has set the instance credentials. */
   get client(): ArrClient {
@@ -263,6 +270,23 @@ export abstract class ArrService<
         serviceName: appName,
         error: errorMessage(err),
       }
+    }
+  }
+
+  /** Resolves false instead of throwing, so a failed search never fails a monitoring write that already landed. */
+  protected async searchBestEffort(
+    title: string,
+    command: ArrSearchCommand,
+  ): Promise<boolean> {
+    try {
+      await this.client.post('command', command)
+      return true
+    } catch (error) {
+      this.log.warn(
+        { error, title, ...command },
+        `${this.product.appName} search for ${title} failed after reactivating it`,
+      )
+      return false
     }
   }
 

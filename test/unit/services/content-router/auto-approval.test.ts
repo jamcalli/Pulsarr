@@ -182,6 +182,26 @@ describe('createAutoApprovalRecord', () => {
     expect(createApprovalRequest).not.toHaveBeenCalled()
   })
 
+  it('replaces an expired request with a new record', async () => {
+    const deleteApprovalRequest = vi.fn().mockResolvedValue(true)
+    const { deps, createApprovalRequest } = autoDeps({
+      db: {
+        getApprovalRequestByContent: vi
+          .fn()
+          .mockResolvedValue({ id: 1, status: 'expired' }),
+        deleteApprovalRequest,
+      },
+    })
+
+    await createAutoApprovalRecord(params(), deps)
+
+    expect(deleteApprovalRequest).toHaveBeenCalledWith(1)
+    expect(createApprovalRequest).toHaveBeenCalledTimes(1)
+    expect(deleteApprovalRequest.mock.invocationCallOrder[0]).toBeLessThan(
+      createApprovalRequest.mock.invocationCallOrder[0],
+    )
+  })
+
   it('swallows a failed write', async () => {
     const { deps } = autoDeps({
       db: { createApprovalRequest: vi.fn().mockRejectedValue(new Error('db')) },

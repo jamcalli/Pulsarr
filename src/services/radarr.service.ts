@@ -3,6 +3,10 @@ import type {
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
 import type {
+  ArrQualityProfile,
+  ArrTag,
+} from '@root/types/arr-connection.types.js'
+import type {
   Item,
   RadarrAddOptions,
   RadarrConfiguration,
@@ -29,10 +33,38 @@ import {
   extractTmdbId,
   normalizeGuid,
 } from '@utils/guid-handler.js'
-import { findQualityProfileName } from '@utils/quality-profile.js'
+import {
+  findQualityProfileName,
+  parseQualityProfileId,
+} from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 const MOVIE_LIBRARY_ENDPOINT = 'movie?excludeLocalCovers=true'
+
+type RadarrAddOverrides = [
+  overrideRootFolder?: string,
+  overrideQualityProfileId?: number | string | null,
+  overrideTags?: string[],
+  overrideSearchOnAdd?: boolean | null,
+  overrideMinimumAvailability?: MinimumAvailability,
+  overrideMonitor?: RadarrMonitorType | null,
+]
+
+interface RadarrAddSettings {
+  addOptions: RadarrAddOptions
+  rootFolderPath: string
+  qualityProfiles: ArrQualityProfile[]
+  qualityProfileId: number | string | null
+  tags: string[]
+  existingTags: ArrTag[]
+  minimumAvailability: MinimumAvailability
+  monitored: boolean
+}
+
+/** Unmonitored with no file, so nothing in Radarr will ever deliver it. */
+export function isDormantMovie(movie: RadarrMovie): boolean {
+  return movie.monitored === false && movie.hasFile === false
+}
 
 export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
   private config: RadarrConfiguration | null = null
@@ -57,6 +89,10 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
       minimumAvailability: instance.minimumAvailability || 'released',
       monitor: instance.monitor || 'movieOnly',
     }
+  }
+
+  isDormant(movie: RadarrMovie): Promise<boolean> {
+    return Promise.resolve(isDormantMovie(movie))
   }
 
   private get radarrConfig(): RadarrConfiguration {
@@ -151,66 +187,103 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
     }
   }
 
+  private async resolveAddSettings(
+    ...[
+      overrideRootFolder,
+      overrideQualityProfileId,
+      overrideTags,
+      overrideSearchOnAdd,
+      overrideMinimumAvailability,
+      overrideMonitor,
+    ]: RadarrAddOverrides
+  ): Promise<RadarrAddSettings> {
+    const config = this.radarrConfig
+    const addOptions: RadarrAddOptions = {
+      searchForMovie:
+        overrideSearchOnAdd !== undefined && overrideSearchOnAdd !== null
+          ? overrideSearchOnAdd
+          : config.searchOnAdd !== undefined
+            ? config.searchOnAdd
+            : true,
+      monitor: overrideMonitor ?? config.monitor ?? 'movieOnly',
+    }
+
+    const rootFolderPath = await resolveRootFolder(
+      this.context,
+      config.radarrRootFolder,
+      overrideRootFolder,
+    )
+
+    const qualityProfiles =
+      overrideQualityProfileId !== undefined
+        ? await this.getQualityProfiles().catch(() => [])
+        : await this.getQualityProfiles()
+    const qualityProfileId =
+      overrideQualityProfileId !== undefined
+        ? overrideQualityProfileId
+        : resolveQualityProfileId(
+            this.context,
+            qualityProfiles,
+            config.radarrQualityProfileId,
+          )
+
+    const { ids: tags, existing: existingTags } = await this.tags.resolveForAdd(
+      overrideTags,
+      config.radarrTagIds,
+    )
+
+    return {
+      addOptions,
+      rootFolderPath,
+      qualityProfiles,
+      qualityProfileId,
+      tags,
+      existingTags,
+      minimumAvailability:
+        overrideMinimumAvailability ||
+        config.minimumAvailability ||
+        ('released' as MinimumAvailability),
+      monitored: addOptions.monitor !== 'none',
+    }
+  }
+
+  private addedSettings(
+    settings: RadarrAddSettings,
+    stored: RadarrMovie | undefined,
+  ): ArrAddedSettings {
+    const qualityProfileId =
+      stored?.qualityProfileId ?? settings.qualityProfileId
+    const labelById = new Map(settings.existingTags.map((t) => [t.id, t.label]))
+    return {
+      rootFolder: stored?.rootFolderPath ?? settings.rootFolderPath,
+      qualityProfileId,
+      qualityProfileName: findQualityProfileName(
+        settings.qualityProfiles,
+        qualityProfileId,
+      ),
+      tags: (stored?.tags ?? settings.tags.map(Number)).map(
+        (id) => labelById.get(id) ?? String(id),
+      ),
+    }
+  }
+
   async addToRadarr(
     item: Item,
-    overrideRootFolder?: string,
-    overrideQualityProfileId?: number | string | null,
-    overrideTags?: string[],
-    overrideSearchOnAdd?: boolean | null,
-    overrideMinimumAvailability?: MinimumAvailability,
-    overrideMonitor?: RadarrMonitorType | null,
+    ...overrides: RadarrAddOverrides
   ): Promise<ArrAddedSettings> {
-    const config = this.radarrConfig
     try {
-      const addOptions: RadarrAddOptions = {
-        searchForMovie:
-          overrideSearchOnAdd !== undefined && overrideSearchOnAdd !== null
-            ? overrideSearchOnAdd
-            : config.searchOnAdd !== undefined
-              ? config.searchOnAdd
-              : true, // Default to true for backward compatibility
-        monitor: overrideMonitor ?? config.monitor ?? 'movieOnly',
-      }
-
-      const tmdbId = extractTmdbId(item.guids)
-
-      const rootFolderPath = await resolveRootFolder(
-        this.context,
-        config.radarrRootFolder,
-        overrideRootFolder,
-      )
-
-      const qualityProfiles =
-        overrideQualityProfileId !== undefined
-          ? await this.getQualityProfiles().catch(() => [])
-          : await this.getQualityProfiles()
-      const qualityProfileId =
-        overrideQualityProfileId !== undefined
-          ? overrideQualityProfileId
-          : resolveQualityProfileId(
-              this.context,
-              qualityProfiles,
-              config.radarrQualityProfileId,
-            )
-
-      const { ids: tags, existing: existingTags } =
-        await this.tags.resolveForAdd(overrideTags, config.radarrTagIds)
-
-      // When monitor is 'none', the movie should not be monitored
-      const shouldMonitor = addOptions.monitor !== 'none'
+      const settings = await this.resolveAddSettings(...overrides)
+      const { addOptions, qualityProfileId, rootFolderPath, tags } = settings
 
       const movie: RadarrPost = {
         title: item.title,
-        tmdbId,
+        tmdbId: extractTmdbId(item.guids),
         qualityProfileId,
         rootFolderPath,
         addOptions,
         tags,
-        minimumAvailability:
-          overrideMinimumAvailability ||
-          config.minimumAvailability ||
-          ('released' as MinimumAvailability),
-        monitored: shouldMonitor,
+        minimumAvailability: settings.minimumAvailability,
+        monitored: settings.monitored,
       }
 
       const created = await this.client.post<RadarrMovie>('movie', movie)
@@ -227,18 +300,7 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
         },
         `Sent ${item.title} to Radarr`,
       )
-      const labelById = new Map(existingTags.map((t) => [t.id, t.label]))
-      return {
-        rootFolder: created?.rootFolderPath ?? rootFolderPath,
-        qualityProfileId: created?.qualityProfileId ?? qualityProfileId,
-        qualityProfileName: findQualityProfileName(
-          qualityProfiles,
-          created?.qualityProfileId ?? qualityProfileId,
-        ),
-        tags: (created?.tags ?? tags.map(Number)).map(
-          (id) => labelById.get(id) ?? String(id),
-        ),
-      }
+      return this.addedSettings(settings, created)
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },
@@ -248,12 +310,61 @@ export class RadarrService extends ArrService<RadarrInstance, RadarrMovie> {
     }
   }
 
+  /** Writes a new add's settings onto an existing movie and searches it, and the movieAndCollection option monitors the movie only. */
+  async reactivateInRadarr(
+    existing: RadarrMovie,
+    item: Item,
+    ...overrides: RadarrAddOverrides
+  ): Promise<ArrAddedSettings> {
+    const movieId = existing.id
+    const settings = await this.resolveAddSettings(...overrides)
+    const { addOptions, rootFolderPath, tags } = settings
+    const qualityProfileId = parseQualityProfileId(settings.qualityProfileId)
+
+    const edited = await this.client.put<RadarrMovie[]>('movie/editor', {
+      movieIds: [movieId],
+      monitored: settings.monitored,
+      ...(qualityProfileId !== undefined && { qualityProfileId }),
+      minimumAvailability: settings.minimumAvailability,
+      rootFolderPath,
+      moveFiles: false,
+      ...(tags.length > 0 && { tags: tags.map(Number), applyTags: 'add' }),
+    })
+    const stored =
+      edited?.find((movie) => movie.id === movieId) ??
+      (await this.client.get<RadarrMovie>(`movie/${movieId}`))
+
+    // A manual MoviesSearch skips Radarr's availability check
+    const searched =
+      addOptions.searchForMovie &&
+      stored.isAvailable === true &&
+      (await this.searchBestEffort(item.title, {
+        name: 'MoviesSearch',
+        movieIds: [movieId],
+      }))
+    this.log.info(
+      {
+        title: item.title,
+        movieId,
+        qualityProfileId,
+        rootFolder: rootFolderPath,
+        minimumAvailability: settings.minimumAvailability,
+        monitored: settings.monitored,
+        searched,
+      },
+      `Reactivated ${item.title} in Radarr`,
+    )
+    return this.addedSettings(settings, {
+      ...stored,
+      tags: tags.map(Number),
+    })
+  }
+
   async deleteFromRadarr(item: Item, deleteFiles: boolean): Promise<void> {
     try {
       const radarrId = extractRadarrId(item.guids)
 
       if (radarrId > 0) {
-        // Use the extracted Radarr ID directly
         await this.deleteFromRadarrById(radarrId, deleteFiles)
         this.log.debug(`Deleted ${item.title} from Radarr`)
         return

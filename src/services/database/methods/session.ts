@@ -68,6 +68,24 @@ export async function createRollingMonitoredShow(
   }
 }
 
+/** The id of the series' master row on that instance, null when it has none. */
+export async function getRollingMasterShowId(
+  this: DatabaseService,
+  sonarrSeriesId: number,
+  sonarrInstanceId: number,
+): Promise<number | null> {
+  const row: Pick<RollingMonitoredShow, 'id'> | undefined = await this.knex(
+    'rolling_monitored_shows',
+  )
+    .where({
+      sonarr_series_id: sonarrSeriesId,
+      sonarr_instance_id: sonarrInstanceId,
+    })
+    .whereNull('plex_user_id')
+    .first('id')
+  return row?.id ?? null
+}
+
 /** Race-safe through the unique (sonarr_series_id, sonarr_instance_id, plex_user_id) constraint, returns the new or existing row id. */
 export async function createOrFindUserRollingMonitoredShow(
   this: DatabaseService,

@@ -17,6 +17,14 @@ export const MONITOR_NEW_ITEMS_LABELS: Record<
   none: 'None',
 }
 
+export const EXISTING_CONTENT_MODE_LABELS: Record<
+  components['schemas']['ExistingContentMode'],
+  string
+> = {
+  off: 'Leave as is',
+  dormant: 'Reactivate when unmonitored and missing',
+}
+
 /** The open editor: a saved instance, or a new one that saves over the placeholder row when there is one. */
 export type EditTarget =
   | { kind: 'saved'; target: ArrTarget }
@@ -47,6 +55,7 @@ export interface InstanceFormValues {
   routing: InstanceRoutingValues
   monitorNewItems: components['schemas']['SonarrMonitorNewItems']
   createSeasonFolders: boolean
+  existingContentMode: components['schemas']['ExistingContentMode']
   isDefault: boolean
   bypassIgnored: boolean
   syncedInstances: string[]
@@ -58,6 +67,7 @@ const SONARR_DEFAULTS = SonarrInstanceSchema.pick({
   seasonMonitoring: true,
   monitorNewItems: true,
   searchOnAdd: true,
+  existingContentMode: true,
   createSeasonFolders: true,
   tags: true,
   seriesType: true,
@@ -87,6 +97,7 @@ function blankValues(isDefault: boolean): InstanceFormValues {
     },
     monitorNewItems: SONARR_DEFAULTS.monitorNewItems,
     createSeasonFolders: SONARR_DEFAULTS.createSeasonFolders,
+    existingContentMode: SONARR_DEFAULTS.existingContentMode,
     isDefault,
     bypassIgnored: SONARR_DEFAULTS.bypassIgnored,
     syncedInstances: [],
@@ -110,6 +121,7 @@ function savedValues({ type, instance }: ArrTarget): InstanceFormValues {
       tags: instance.tags,
       searchOnAdd: instance.searchOnAdd,
     },
+    existingContentMode: instance.existingContentMode,
     bypassIgnored: instance.bypassIgnored,
     syncedInstances: (instance.syncedInstances ?? []).map(String),
     skipDefaultRoutingWhenNoMatch: instance.skipDefaultRoutingWhenNoMatch,
@@ -161,6 +173,7 @@ function sharedBody(values: InstanceFormValues) {
     rootFolder: values.routing.rootFolder,
     tags: values.routing.tags,
     searchOnAdd: values.routing.searchOnAdd,
+    existingContentMode: values.existingContentMode,
     bypassIgnored: values.bypassIgnored,
     isDefault: values.isDefault,
     syncedInstances: values.syncedInstances.map(Number),

@@ -36,6 +36,8 @@ const RADARR_ITEM: RadarrItem = {
 }
 
 interface RecordFake {
+  id?: number
+  createdAt?: string
   status: ApprovalStatus
   proposedRouterDecision: {
     approval: {
@@ -68,6 +70,7 @@ function radarrInstance(id: number): RadarrInstance {
     baseUrl: 'http://radarr.test',
     apiKey: 'key',
     bypassIgnored: false,
+    existingContentMode: 'off',
     tags: [],
     isDefault: id === 1,
   }
@@ -96,6 +99,8 @@ function buildDeps(
     db: {
       getApprovalRequestByContent: vi.fn().mockResolvedValue(record),
       updateWatchlistItem: vi.fn().mockResolvedValue(true),
+      getBulkWatchlistItems: vi.fn().mockResolvedValue([]),
+      updateApprovalRequest: vi.fn().mockResolvedValue(null),
     },
     contentRouter: {
       log: createMockLogger(),
@@ -109,11 +114,13 @@ function buildDeps(
       seriesExistsByTvdbId: vi.fn(existence),
       getAllInstances: vi.fn(async () => ids.map(sonarrInstance)),
       routeItemToSonarr: vi.fn(echoAppliedSonarr()),
+      hasDormantCopy: vi.fn().mockResolvedValue(false),
     },
     radarrManager: {
       movieExistsByTmdbId: vi.fn(existence),
       getAllInstances: vi.fn(async () => ids.map(radarrInstance)),
       routeItemToRadarr: vi.fn(echoAppliedRadarr()),
+      hasDormantCopy: vi.fn().mockResolvedValue(false),
     },
   })
 }
@@ -281,12 +288,14 @@ const ROUTERS = [
   {
     contentType: 'show',
     itemKey: 'show-key',
+    manager: (deps: ContentRoutingDeps) => deps.sonarrManager,
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.sonarrManager.routeItemToSonarr).mock.calls,
     route: (
       deps: ContentRoutingDeps,
       presentIn?: number[],
       excludedIn: number[] = [],
+      newRequest?: boolean,
     ) =>
       routeShow(
         {
@@ -313,6 +322,7 @@ const ROUTERS = [
               })),
             ]),
           primaryUser: null,
+          newRequest,
         },
         deps,
       ),
@@ -320,12 +330,14 @@ const ROUTERS = [
   {
     contentType: 'movie',
     itemKey: 'movie-key',
+    manager: (deps: ContentRoutingDeps) => deps.radarrManager,
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.radarrManager.routeItemToRadarr).mock.calls,
     route: (
       deps: ContentRoutingDeps,
       presentIn?: number[],
       excludedIn: number[] = [],
+      newRequest?: boolean,
     ) =>
       routeMovie(
         {
@@ -352,6 +364,7 @@ const ROUTERS = [
               })),
             ]),
           primaryUser: null,
+          newRequest,
         },
         deps,
       ),
@@ -555,3 +568,193 @@ describe.each(ROUTERS)('$contentType existing copy status', (router) => {
     expect(deps.fastify.progress.emit).not.toHaveBeenCalled()
   })
 })
+
+describe.each(ROUTERS)(
+  '$contentType new request',
+  ({ route, added, manager, itemKey }) => {
+    const ROW_CREATED = '2026-11-20T12:00:00.000Z'
+    const exists = { routed: false, skippedReason: 'exists-in-target' }
+
+    function recordFrom(createdAt: string, ...instanceIds: number[]) {
+      return { ...recordNaming('approved', ...instanceIds), id: 7, createdAt }
+    }
+
+    function withRow(deps: ContentRoutingDeps) {
+      vi.mocked(deps.db.getBulkWatchlistItems).mockResolvedValue([
+        {
+          title: 'Item',
+          key: itemKey,
+          type: 'movie',
+          user_id: 1,
+          status: 'pending',
+          created_at: ROW_CREATED,
+          updated_at: ROW_CREATED,
+        },
+      ])
+      return deps
+    }
+
+    function dormantOn(deps: ContentRoutingDeps, ...instanceIds: number[]) {
+      vi.mocked(manager(deps).hasDormantCopy).mockImplementation(
+        async (instanceId) => instanceIds.includes(instanceId),
+      )
+      return deps
+    }
+
+    it('routes as absent when every present copy is dormant', async () => {
+      const deps = dormantOn(buildDeps([FOUND]), 1)
+
+      expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
+      expect(deps.contentRouter.routeContent).toHaveBeenCalledTimes(1)
+      expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+      expect(deps.db.getBulkWatchlistItems).not.toHaveBeenCalled()
+    })
+
+    it('checks a bulk data copy for dormancy too', async () => {
+      const deps = dormantOn(buildDeps([MISSING]), 1)
+
+      expect(await route(deps, [1], [], true)).toEqual({ routed: true })
+      expect(manager(deps).hasDormantCopy).toHaveBeenCalledWith(
+        1,
+        expect.any(Number),
+      )
+    })
+
+    it('keeps the present path for a row that is not a new request', async () => {
+      const deps = dormantOn(buildDeps([FOUND]), 1)
+
+      expect(await route(deps)).toEqual(exists)
+      expect(manager(deps).hasDormantCopy).not.toHaveBeenCalled()
+      expect(deps.db.getBulkWatchlistItems).not.toHaveBeenCalled()
+      expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+    })
+
+    it('keeps the present path when the instance reports no dormant copy', async () => {
+      const deps = buildDeps([FOUND])
+
+      expect(await route(deps, undefined, [], true)).toEqual(exists)
+      expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+      expect(deps.db.updateWatchlistItem).toHaveBeenCalled()
+    })
+
+    it('leaves the item unrouted and untouched when the dormancy lookup fails', async () => {
+      const deps = buildDeps([FOUND])
+      vi.mocked(manager(deps).hasDormantCopy).mockRejectedValue(
+        new Error('arr down'),
+      )
+
+      expect(await route(deps, undefined, [], true)).toEqual({
+        routed: false,
+        skippedReason: 'no-instances-available',
+      })
+      expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+      expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+    })
+
+    it('keeps the present path when another present copy is healthy', async () => {
+      const deps = dormantOn(buildDeps([FOUND, FOUND]), 1)
+
+      expect(await route(deps, undefined, [], true)).toEqual(exists)
+      expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+    })
+
+    it('expires a record older than the row before reactivating', async () => {
+      const deps = dormantOn(
+        withRow(buildDeps([FOUND], recordFrom('2026-01-01T00:00:00.000Z', 1))),
+        1,
+      )
+
+      expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
+      expect(added(deps)).toEqual([])
+      expect(deps.db.updateApprovalRequest).toHaveBeenCalledWith(7, {
+        status: 'expired',
+      })
+      const [expired] = vi.mocked(deps.db.updateApprovalRequest).mock
+        .invocationCallOrder
+      const [routed] = vi.mocked(deps.contentRouter.routeContent).mock
+        .invocationCallOrder
+      expect(expired).toBeLessThan(routed)
+    })
+
+    it('replays an old record when a healthy copy is present', async () => {
+      const deps = withRow(
+        buildDeps(
+          [FOUND, MISSING],
+          recordFrom('2026-01-01T00:00:00.000Z', 1, 2),
+        ),
+      )
+
+      expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
+      expect(added(deps).map((call) => call[3])).toEqual([2])
+      expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
+    })
+
+    it('keeps an old record for content that is gone', async () => {
+      const deps = withRow(
+        buildDeps([MISSING], recordFrom('2026-01-01T00:00:00.000Z', 1)),
+      )
+
+      expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
+      expect(deps.contentRouter.routeContent).toHaveBeenCalledTimes(1)
+      expect(deps.db.getBulkWatchlistItems).not.toHaveBeenCalled()
+      expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
+    })
+
+    it('still replays a record newer than the row', async () => {
+      const deps = withRow(
+        buildDeps(
+          [FOUND, MISSING],
+          recordFrom('2026-11-21T00:00:00.000Z', 1, 2),
+        ),
+      )
+
+      expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
+      expect(added(deps).map((call) => call[3])).toEqual([2])
+      expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
+    })
+
+    it('hands a newer record to the content router for a dormant copy', async () => {
+      const deps = dormantOn(
+        withRow(buildDeps([FOUND], recordFrom('2026-11-21T00:00:00.000Z', 1))),
+        1,
+      )
+
+      expect(await route(deps, undefined, [], true)).toEqual({ routed: true })
+      expect(deps.contentRouter.routeContent).toHaveBeenCalledTimes(1)
+      expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      [
+        'throws',
+        (deps: ContentRoutingDeps) =>
+          vi
+            .mocked(deps.db.getBulkWatchlistItems)
+            .mockRejectedValue(new Error('db down')),
+      ],
+      [
+        'returns no row',
+        (deps: ContentRoutingDeps) =>
+          vi.mocked(deps.db.getBulkWatchlistItems).mockResolvedValue([]),
+      ],
+    ])(
+      'leaves the item and record untouched when the row read %s',
+      async (_, failRead) => {
+        const deps = dormantOn(
+          buildDeps([FOUND], recordFrom('2026-01-01T00:00:00.000Z', 1)),
+          1,
+        )
+        failRead(deps)
+
+        expect(await route(deps, undefined, [], true)).toEqual({
+          routed: false,
+          skippedReason: 'no-instances-available',
+        })
+        expect(deps.db.getBulkWatchlistItems).toHaveBeenCalled()
+        expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+        expect(deps.db.updateApprovalRequest).not.toHaveBeenCalled()
+        expect(deps.db.updateWatchlistItem).not.toHaveBeenCalled()
+      },
+    )
+  },
+)

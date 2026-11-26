@@ -26,6 +26,7 @@ For both:
 - **Quality profile** and **Root folder**.
 - **Search on add** searches as soon as an item is added.
 - **Tags** are added to items that reach the instance because no route matched. A matching route uses its own tags instead.
+- **Existing content** decides what a new request does when the title is already on the instance. See [Existing content](#existing-content).
 
 For Sonarr:
 
@@ -42,6 +43,31 @@ For Radarr:
 Before sending, Pulsarr checks only the instances the request is routed to. A title already on some other instance is still sent.
 
 **Skip content already on Plex**, under [Plex connection](/system/plex-connection), checks Plex servers, not Sonarr or Radarr. **Servers to check** there sets whether shared servers count, and they only count for the admin's own watchlist.
+
+## Existing content
+
+With **Existing content** on **Leave as is**, a title already on the instance is left alone and the request is marked as requested. **Reactivate when unmonitored and missing** acts on titles that meet both conditions:
+
+- A movie qualifies when it's unmonitored and has no file.
+- A show qualifies when nothing in it is monitored, and either no episode has a file or an aired episode outside the specials is missing its file. A complete show that's unmonitored is left alone.
+
+A new request for a qualifying title is handled like a request for new content. Content router routes, approvals and quotas apply, and the usual notification is sent. Instead of adding the title, Pulsarr applies the request's quality profile, root folder, tags, monitoring and series type or minimum availability to the existing entry. It then searches when **Search on add** is on.
+
+- Tags are added to the entry's tags and never replace them.
+- A show that still has some files keeps its root folder.
+- A movie is searched only when Radarr reports it available.
+- **Movie and collection** monitors the movie only.
+- A rolling request gives the show a fresh [session monitoring](/library/session-monitoring) entry, and a request with any other option removes the show's entry.
+
+Things to know:
+
+- It acts only when a title is added to a watchlist. Titles already on a watchlist are never touched.
+- An approval from an earlier request for the same title does not carry over. The new request is checked again.
+- If the title is on more than one of the instances the request goes to, every copy has to qualify on an instance with this setting on. Otherwise nothing changes.
+- A reactivated title gets an approval record like any request, so [delete sync](/library/delete-sync) with **Tracked content only** treats it as requested content.
+- With **Skip content already on Plex** on, a title Plex still reports is skipped first.
+- [Exclusions](/library/exclusions) are checked first. A title excluded for the user, or for everyone, is skipped before this setting applies.
+- A title that has no files but is still monitored does not qualify.
 
 ## Behavior
 

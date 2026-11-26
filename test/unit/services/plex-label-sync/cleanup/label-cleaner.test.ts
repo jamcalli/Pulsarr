@@ -1117,6 +1117,7 @@ describe('label-cleaner', () => {
           qualityProfile: null,
           rootFolder: null,
           bypassIgnored: false,
+          existingContentMode: 'off',
           tags: [],
           isDefault: true,
         },

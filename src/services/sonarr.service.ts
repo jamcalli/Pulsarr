@@ -1,5 +1,9 @@
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
-import { HttpError } from '@root/types/arr-connection.types.js'
+import {
+  type ArrQualityProfile,
+  type ArrTag,
+  HttpError,
+} from '@root/types/arr-connection.types.js'
 import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   SonarrItem as Item,
@@ -27,8 +31,57 @@ import {
   extractTvdbId,
   normalizeGuid,
 } from '@utils/guid-handler.js'
-import { findQualityProfileName } from '@utils/quality-profile.js'
+import {
+  findQualityProfileName,
+  parseQualityProfileId,
+} from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+type SonarrAddOverrides = [
+  overrideRootFolder?: string,
+  overrideQualityProfileId?: number | string | null,
+  overrideTags?: string[],
+  overrideSearchOnAdd?: boolean | null,
+  overrideSeasonMonitoring?: string | null,
+  overrideSeriesType?: SonarrSeriesType | null,
+  overrideCreateSeasonFolders?: boolean | null,
+]
+
+interface SonarrAddSettings {
+  addOptions: SonarrAddOptions
+  shouldSearch: boolean
+  rootFolderPath: string
+  qualityProfiles: ArrQualityProfile[]
+  qualityProfileId: number | string | null
+  tags: string[]
+  existingTags: ArrTag[]
+  monitorNewItems: 'all' | 'none'
+  seriesType: SonarrSeriesType
+  seasonFolder: boolean | undefined
+}
+
+/** Nothing monitored, and either no file at all or an aired regular episode without one, so nothing in Sonarr will deliver it. */
+export function isDormantSeries(
+  series: Pick<SonarrSeries, 'monitored'>,
+  episodes: ReadonlyArray<
+    Pick<SonarrEpisode, 'monitored' | 'hasFile' | 'seasonNumber' | 'airDateUtc'>
+  >,
+  now: number = Date.now(),
+): boolean {
+  const nothingMonitored =
+    series.monitored === false ||
+    (episodes.length > 0 && episodes.every((episode) => !episode.monitored))
+  if (!nothingMonitored) return false
+  const hasFiles = episodes.some((episode) => episode.hasFile)
+  const missingAired = episodes.some(
+    (episode) =>
+      episode.seasonNumber > 0 &&
+      !episode.hasFile &&
+      episode.airDateUtc !== undefined &&
+      Date.parse(episode.airDateUtc) < now,
+  )
+  return !hasFiles || missingAired
+}
 
 export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
   private config: SonarrConfiguration | null = null
@@ -55,6 +108,10 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
       sonarrSeriesType: instance.seriesType || 'standard',
       createSeasonFolders: instance.createSeasonFolders,
     }
+  }
+
+  async isDormant(series: SonarrSeries): Promise<boolean> {
+    return isDormantSeries(series, await this.getEpisodes(series.id))
   }
 
   private get sonarrConfig(): SonarrConfiguration {
@@ -117,11 +174,7 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Get full series data by Sonarr series ID, including season statistics.
-   * Returns null when the series does not exist; rethrows other errors so
-   * callers can distinguish a missing series from a failed lookup.
-   */
+  /** Null when the series does not exist, and any other failure rethrows. */
   async getSeriesById(seriesId: number): Promise<SonarrSeries | null> {
     try {
       return await this.client.get<SonarrSeries>(`series/${seriesId}`)
@@ -162,70 +215,107 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  async addToSonarr(
-    item: Item,
-    overrideRootFolder?: string,
-    overrideQualityProfileId?: number | string | null,
-    overrideTags?: string[],
-    overrideSearchOnAdd?: boolean | null,
-    overrideSeasonMonitoring?: string | null,
-    overrideSeriesType?: SonarrSeriesType | null,
-    overrideCreateSeasonFolders?: boolean | null,
-  ): Promise<ArrAddedSettings & { seriesId: number }> {
+  private async resolveAddSettings(
+    ...[
+      overrideRootFolder,
+      overrideQualityProfileId,
+      overrideTags,
+      overrideSearchOnAdd,
+      overrideSeasonMonitoring,
+      overrideSeriesType,
+      overrideCreateSeasonFolders,
+    ]: SonarrAddOverrides
+  ): Promise<SonarrAddSettings> {
     const config = this.sonarrConfig
-    try {
-      // Check if searchOnAdd parameter or property exists and use it, otherwise default to true
-      const shouldSearch =
-        overrideSearchOnAdd !== undefined && overrideSearchOnAdd !== null
-          ? overrideSearchOnAdd
-          : config.searchOnAdd !== undefined
-            ? config.searchOnAdd
-            : true
+    const shouldSearch =
+      overrideSearchOnAdd !== undefined && overrideSearchOnAdd !== null
+        ? overrideSearchOnAdd
+        : config.searchOnAdd !== undefined
+          ? config.searchOnAdd
+          : true
 
-      // Season monitoring strategy - prefer override, then config, then default to 'all'
-      const monitorStrategy = overrideSeasonMonitoring
+    const addOptions: SonarrAddOptions = {
+      monitor: overrideSeasonMonitoring
         ? overrideSeasonMonitoring
-        : config.sonarrSeasonMonitoring || 'all'
+        : config.sonarrSeasonMonitoring || 'all',
+      searchForCutoffUnmetEpisodes: shouldSearch,
+      searchForMissingEpisodes: shouldSearch,
+    }
 
-      const addOptions: SonarrAddOptions = {
-        monitor: monitorStrategy,
-        searchForCutoffUnmetEpisodes: shouldSearch,
-        searchForMissingEpisodes: shouldSearch,
-      }
+    const rootFolderPath = await resolveRootFolder(
+      this.context,
+      config.sonarrRootFolder,
+      overrideRootFolder,
+    )
 
-      const rootFolderPath = await resolveRootFolder(
-        this.context,
-        config.sonarrRootFolder,
-        overrideRootFolder,
-      )
+    const qualityProfiles =
+      overrideQualityProfileId !== undefined
+        ? await this.getQualityProfiles().catch(() => [])
+        : await this.getQualityProfiles()
+    const qualityProfileId =
+      overrideQualityProfileId !== undefined
+        ? overrideQualityProfileId
+        : resolveQualityProfileId(
+            this.context,
+            qualityProfiles,
+            config.sonarrQualityProfileId,
+          )
 
-      const qualityProfiles =
-        overrideQualityProfileId !== undefined
-          ? await this.getQualityProfiles().catch(() => [])
-          : await this.getQualityProfiles()
-      const qualityProfileId =
-        overrideQualityProfileId !== undefined
-          ? overrideQualityProfileId
-          : resolveQualityProfileId(
-              this.context,
-              qualityProfiles,
-              config.sonarrQualityProfileId,
-            )
+    const { ids: tags, existing: existingTags } = await this.tags.resolveForAdd(
+      overrideTags,
+      config.sonarrTagIds,
+    )
 
-      const { ids: tags, existing: existingTags } =
-        await this.tags.resolveForAdd(overrideTags, config.sonarrTagIds)
-
-      // Series type - prefer override, then config, then default to 'standard'
-      const seriesType = overrideSeriesType
+    return {
+      addOptions,
+      shouldSearch,
+      rootFolderPath,
+      qualityProfiles,
+      qualityProfileId,
+      tags,
+      existingTags,
+      monitorNewItems: config.sonarrMonitorNewItems || 'all',
+      seriesType: overrideSeriesType
         ? overrideSeriesType
-        : config.sonarrSeriesType || 'standard'
-
-      // Create season folders - prefer override, then config, then default to undefined (Sonarr default)
-      const createSeasonFolders =
+        : config.sonarrSeriesType || 'standard',
+      // Undefined leaves Sonarr's own season folder default
+      seasonFolder:
         overrideCreateSeasonFolders !== undefined &&
         overrideCreateSeasonFolders !== null
           ? overrideCreateSeasonFolders
-          : config.createSeasonFolders
+          : config.createSeasonFolders,
+    }
+  }
+
+  private addedSettings(
+    settings: SonarrAddSettings,
+    stored: SonarrSeries,
+  ): ArrAddedSettings & { seriesId: number } {
+    const qualityProfileId =
+      stored.qualityProfileId ?? settings.qualityProfileId
+    const labelById = new Map(settings.existingTags.map((t) => [t.id, t.label]))
+    return {
+      seriesId: stored.id,
+      rootFolder: stored.rootFolderPath ?? settings.rootFolderPath,
+      qualityProfileId,
+      qualityProfileName: findQualityProfileName(
+        settings.qualityProfiles,
+        qualityProfileId,
+      ),
+      tags: (stored.tags ?? settings.tags.map(Number)).map(
+        (id) => labelById.get(id) ?? String(id),
+      ),
+    }
+  }
+
+  async addToSonarr(
+    item: Item,
+    ...overrides: SonarrAddOverrides
+  ): Promise<ArrAddedSettings & { seriesId: number }> {
+    try {
+      const settings = await this.resolveAddSettings(...overrides)
+      const { addOptions, qualityProfileId, rootFolderPath, tags, seriesType } =
+        settings
 
       const show: SonarrPost = {
         title: item.title,
@@ -235,10 +325,10 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
         addOptions,
         languageProfileId: null,
         monitored: true,
-        monitorNewItems: config.sonarrMonitorNewItems || 'all',
+        monitorNewItems: settings.monitorNewItems,
         tags,
         seriesType,
-        seasonFolder: createSeasonFolders,
+        seasonFolder: settings.seasonFolder,
       }
 
       const createdSeries = await this.client.post<SonarrSeries>('series', show)
@@ -257,19 +347,7 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
         },
         `Sent ${item.title} to Sonarr`,
       )
-      const labelById = new Map(existingTags.map((t) => [t.id, t.label]))
-      return {
-        seriesId: createdSeries.id,
-        rootFolder: createdSeries.rootFolderPath ?? rootFolderPath,
-        qualityProfileId: createdSeries.qualityProfileId ?? qualityProfileId,
-        qualityProfileName: findQualityProfileName(
-          qualityProfiles,
-          createdSeries.qualityProfileId ?? qualityProfileId,
-        ),
-        tags: (createdSeries.tags ?? tags.map(Number)).map(
-          (id) => labelById.get(id) ?? String(id),
-        ),
-      }
+      return this.addedSettings(settings, createdSeries)
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },
@@ -279,12 +357,71 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
+  /** Writes a new add's settings and monitor preset onto an existing series and searches it, keeping the root folder when it has files. */
+  async reactivateInSonarr(
+    existing: SonarrSeries,
+    item: Item,
+    ...overrides: SonarrAddOverrides
+  ): Promise<ArrAddedSettings & { seriesId: number }> {
+    const settings = await this.resolveAddSettings(...overrides)
+    const { addOptions, tags, seriesType, seasonFolder } = settings
+    const seriesId = existing.id
+    const qualityProfileId = parseQualityProfileId(settings.qualityProfileId)
+    // Missing statistics count as files, so an unknown series never moves root folder
+    const hasFiles = existing.statistics?.episodeFileCount !== 0
+    const rootFolderPath = hasFiles
+      ? (existing.rootFolderPath ?? settings.rootFolderPath)
+      : settings.rootFolderPath
+
+    const edited = await this.client.put<SonarrSeries[]>('series/editor', {
+      seriesIds: [seriesId],
+      monitorNewItems: settings.monitorNewItems,
+      ...(qualityProfileId !== undefined && { qualityProfileId }),
+      seriesType,
+      ...(seasonFolder !== undefined && { seasonFolder }),
+      moveFiles: false,
+      ...(tags.length > 0 && { tags: tags.map(Number), applyTags: 'add' }),
+      ...(!hasFiles && { rootFolderPath }),
+    })
+    // Monitoring flips only here so a failed earlier write leaves the series dormant and retryable
+    await this.client.post('seasonpass', {
+      series: [{ id: seriesId, monitored: true }],
+      monitoringOptions: { monitor: addOptions.monitor },
+    })
+    const searched =
+      settings.shouldSearch &&
+      (await this.searchBestEffort(item.title, {
+        name: 'MissingEpisodeSearch',
+        seriesId,
+        monitored: true,
+      }))
+
+    const stored =
+      edited?.find((series) => series.id === seriesId) ??
+      (await this.client.get<SonarrSeries>(`series/${seriesId}`))
+    this.log.info(
+      {
+        title: item.title,
+        seriesId,
+        qualityProfileId,
+        rootFolder: rootFolderPath,
+        seriesType,
+        seasonMonitoring: addOptions.monitor,
+        searched,
+      },
+      `Reactivated ${item.title} in Sonarr`,
+    )
+    return this.addedSettings(
+      { ...settings, rootFolderPath },
+      { ...stored, tags: tags.map(Number) },
+    )
+  }
+
   async deleteFromSonarr(item: Item, deleteFiles: boolean): Promise<void> {
     try {
       const sonarrId = extractSonarrId(item.guids)
 
       if (sonarrId > 0) {
-        // Use the extracted Sonarr ID directly
         await this.deleteFromSonarrById(sonarrId, deleteFiles)
         this.log.debug(`Deleted ${item.title} from Sonarr`)
         return
@@ -324,10 +461,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     return this.client.get<SonarrTagDetail[]>('tag/detail')
   }
 
-  /**
-   * Get all series from Sonarr (raw data)
-   * @returns Promise resolving to array of series
-   */
   async getAllSeries(): Promise<SonarrSeries[]> {
     try {
       return await this.readLibrary()
@@ -337,18 +470,11 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Search for episodes in a specific season
-   * Enables monitoring first if needed, then searches
-   * @param seriesId The Sonarr series ID
-   * @param seasonNumber The season number to search
-   */
+  /** Monitors the series and the season first when they are not, then searches the season. */
   async searchSeason(seriesId: number, seasonNumber: number): Promise<void> {
     try {
-      // STEP 1: Get current series data
       const series = await this.client.get<SonarrSeries>(`series/${seriesId}`)
 
-      // STEP 2: Check if season exists
       const season = series.seasons?.find(
         (s) => s.seasonNumber === seasonNumber,
       )
@@ -358,7 +484,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
         )
       }
 
-      // STEP 3: Enable monitoring if needed
       let needsUpdate = false
       if (!season.monitored) {
         season.monitored = true
@@ -373,7 +498,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
         this.log.debug(`Enabling monitoring for series ${seriesId}`)
       }
 
-      // STEP 4: Update series if monitoring changed
       if (needsUpdate) {
         await this.client.put(`series/${seriesId}`, series)
         this.log.debug(
@@ -381,7 +505,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
         )
       }
 
-      // STEP 5: Now trigger the search
       await this.client.post('command', {
         name: 'SeasonSearch',
         seriesId,
@@ -397,11 +520,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Search for specific episodes by their IDs
-   * Uses Sonarr's EpisodeSearch command for targeted episode searching
-   * @param episodeIds Array of Sonarr episode IDs to search for
-   */
   async searchEpisodes(episodeIds: number[]): Promise<void> {
     if (episodeIds.length === 0) return
 
@@ -418,26 +536,18 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Update monitoring for a specific season
-   * @param seriesId The Sonarr series ID
-   * @param seasonNumber The season number
-   * @param monitored Whether to monitor the season
-   */
   async updateSeasonMonitoring(
     seriesId: number,
     seasonNumber: number,
     monitored: boolean,
   ): Promise<void> {
     try {
-      // First get the series to find the season
       const series = await this.client.get<SonarrSeries>(`series/${seriesId}`)
 
       if (!series.seasons) {
         throw new Error('Series has no seasons')
       }
 
-      // Find and update the season
       const seasonIndex = series.seasons.findIndex(
         (s) => s.seasonNumber === seasonNumber,
       )
@@ -447,7 +557,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
 
       series.seasons[seasonIndex].monitored = monitored
 
-      // Update the series
       await this.client.put(`series/${seriesId}`, series)
 
       this.log.debug(
@@ -459,26 +568,18 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Update series monitoring settings
-   * @param seriesId The Sonarr series ID
-   * @param updates Object containing monitoring updates
-   */
   async updateSeriesMonitoring(
     seriesId: number,
     updates: { monitored?: boolean; monitorNewItems?: 'all' | 'none' },
   ): Promise<void> {
     try {
-      // Get current series data
       const series = await this.client.get<SonarrSeries>(`series/${seriesId}`)
 
-      // Apply updates
       const updatedSeries = {
         ...series,
         ...updates,
       }
 
-      // Send update
       await this.client.put(`series/${seriesId}`, updatedSeries)
 
       this.log.debug(`Updated series ${seriesId} monitoring settings`)
@@ -488,13 +589,7 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Wait for Sonarr to finish its post-add background refresh.
-   * Sonarr queues a RefreshSeriesCommand after adding a series. Until that
-   * completes, addOptions is non-null and Sonarr will re-apply its monitoring
-   * preset, clobbering any episode-level changes we make. Poll until
-   * addOptions is cleared, then it's safe to set custom monitoring.
-   */
+  /** Sonarr re-applies the add's monitor preset until its post-add refresh clears addOptions, so this polls for that before episode changes. */
   async waitForAddComplete(
     seriesId: number,
     timeoutMs = 30_000,
@@ -511,11 +606,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     )
   }
 
-  /**
-   * Get all episodes for a series
-   * @param seriesId The Sonarr series ID
-   * @returns Array of episodes
-   */
   async getEpisodes(seriesId: number): Promise<SonarrEpisode[]> {
     try {
       const episodes = await this.client.get<SonarrEpisode[]>(
@@ -531,12 +621,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Get episodes for a specific season
-   * @param seriesId The Sonarr series ID
-   * @param seasonNumber The season number
-   * @returns Array of episodes in the season
-   */
   async getSeasonEpisodes(
     seriesId: number,
     seasonNumber: number,
@@ -553,11 +637,7 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Get the episode count for a specific season using the fast episode endpoint.
-   * Uses /episode?seriesId=X&seasonNumber=Y which is a direct indexed query,
-   * avoiding the expensive statistics computation of the /series endpoint.
-   */
+  /** Reads the indexed episode endpoint, which skips the costly statistics of the series endpoint. */
   async getSeasonEpisodeCount(
     seriesId: number,
     seasonNumber: number,
@@ -576,10 +656,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Update monitoring for specific episodes
-   * @param episodes Array of episode updates with id and monitored status
-   */
   async updateEpisodesMonitoring(
     episodes: Array<{ id: number; monitored: boolean }>,
   ): Promise<void> {
@@ -612,25 +688,17 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Update monitoring for a single episode
-   * @param episodeId The episode ID
-   * @param monitored Whether to monitor the episode
-   */
   async updateEpisodeMonitoring(
     episodeId: number,
     monitored: boolean,
   ): Promise<void> {
     try {
-      // First get the episode
       const episode = await this.client.get<SonarrEpisode>(
         `episode/${episodeId}`,
       )
 
-      // Update monitoring status
       episode.monitored = monitored
 
-      // Send update
       await this.client.put(`episode/${episodeId}`, episode)
 
       this.log.debug(`Updated episode ${episodeId} monitoring to ${monitored}`)
@@ -643,10 +711,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Delete episode file from Sonarr and filesystem
-   * @param episodeFileId The episode file ID
-   */
   async deleteEpisodeFile(episodeFileId: number): Promise<void> {
     try {
       await this.client.delete(`episodefile/${episodeFileId}`)
@@ -658,10 +722,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
     }
   }
 
-  /**
-   * Delete multiple episode files from Sonarr and filesystem
-   * @param episodeFileIds Array of episode file IDs to delete
-   */
   async deleteEpisodeFiles(episodeFileIds: number[]): Promise<void> {
     if (episodeFileIds.length === 0) {
       this.log.debug('No episode files to delete')
@@ -682,13 +742,11 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
           `Failed to delete ${failures.length} of ${episodeFileIds.length} episode files`,
         )
 
-        // Log details about which files failed
         const failedIds = episodeFileIds.filter(
           (_, index) => results[index].status === 'rejected',
         )
         this.log.error({ failedIds }, 'Failed episode file IDs')
 
-        // Log the actual errors for debugging
         const rejectedResults = results.filter(
           (r): r is PromiseRejectedResult => r.status === 'rejected',
         )
@@ -707,7 +765,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
 
       this.log.debug(`Successfully deleted ${successCount} episode files`)
     } catch (error) {
-      // Re-throw errors from Promise.allSettled analysis above
       if (
         error instanceof Error &&
         error.message.includes('Failed to delete')
@@ -715,7 +772,6 @@ export class SonarrService extends ArrService<SonarrInstance, SonarrSeries> {
         throw error
       }
 
-      // Handle unexpected errors
       this.log.error({ error }, 'Unexpected error deleting episode files:')
       throw error
     }

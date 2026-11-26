@@ -1,4 +1,8 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import {
+  DEFAULT_EXISTING_CONTENT_MODE,
+  ExistingContentModeSchema,
+} from '@root/schemas/common/existing-content-mode.schema.js'
 import { ArrBaseUrlSchema } from '@root/schemas/common/url.schema.js'
 import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { SonarrSeriesTypeSchema } from '@root/schemas/sonarr/series-type.schema.js'
@@ -19,6 +23,7 @@ export const SonarrInstanceFieldsSchema = z.object({
   seasonMonitoring: SonarrSeasonMonitoringValueSchema,
   monitorNewItems: SonarrMonitorNewItemsSchema,
   searchOnAdd: z.boolean(),
+  existingContentMode: ExistingContentModeSchema,
   createSeasonFolders: z.boolean(),
   tags: z.array(z.string()),
   isDefault: z.boolean(),
@@ -34,6 +39,9 @@ export const SonarrInstanceSchema = SonarrInstanceFieldsSchema.extend({
   seasonMonitoring: sonarrFields.seasonMonitoring.default('all'),
   monitorNewItems: sonarrFields.monitorNewItems.default('all'),
   searchOnAdd: sonarrFields.searchOnAdd.default(true),
+  existingContentMode: sonarrFields.existingContentMode.default(
+    DEFAULT_EXISTING_CONTENT_MODE,
+  ),
   createSeasonFolders: sonarrFields.createSeasonFolders.default(false),
   tags: sonarrFields.tags.default([]),
   isDefault: sonarrFields.isDefault.default(false),
@@ -77,7 +85,6 @@ export const SonarrInstanceCreateResponseSchema = z
     description: 'Id of the newly created Sonarr instance',
   })
 
-// Inferred types for use in client and server
 export type SonarrInstance = z.infer<typeof SonarrInstanceSchema>
 export type SonarrInstanceUpdate = z.infer<typeof SonarrInstanceUpdateSchema>
 export type SonarrInstanceResponse = z.infer<

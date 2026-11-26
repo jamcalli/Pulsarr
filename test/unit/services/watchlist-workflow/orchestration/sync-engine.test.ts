@@ -101,6 +101,7 @@ const radarrInstance: RadarrInstance = {
   baseUrl: 'http://radarr.test',
   apiKey: 'key',
   bypassIgnored: false,
+  existingContentMode: 'off',
   tags: [],
   isDefault: true,
 }

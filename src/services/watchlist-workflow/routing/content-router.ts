@@ -56,6 +56,8 @@ export interface RouteShowParams {
   primaryUser: { id: number } | null
   /** Only the full reconciliation pass sets this. */
   reconcile?: boolean
+  /** True for a row the user just added, which may reactivate dormant copies. */
+  newRequest?: boolean
 }
 
 export interface RouteMovieParams {
@@ -71,6 +73,8 @@ export interface RouteMovieParams {
   primaryUser: { id: number } | null
   /** Only the full reconciliation pass sets this. */
   reconcile?: boolean
+  /** True for a row the user just added, which may reactivate dormant copies. */
+  newRequest?: boolean
 }
 
 type SkipSubject = Pick<
@@ -152,6 +156,39 @@ async function listArrInstanceIds(
   return new Set(instances.map((instance) => instance.id))
 }
 
+type RecordAge = 'predates-row' | 'current' | 'unreadable'
+
+async function recordAgeAgainstRow(
+  record: ApprovalRequest,
+  context: RoutingContext,
+  deps: ContentRoutingDeps,
+): Promise<RecordAge> {
+  try {
+    const rows = await deps.db.getBulkWatchlistItems(
+      [context.userId],
+      [context.itemKey],
+    )
+    const row = rows.find((candidate) => candidate.key === context.itemKey)
+    if (!row) {
+      deps.logger.warn(
+        { userId: context.userId, itemKey: context.itemKey },
+        'Found no watchlist row to check its approval record against, skipping item',
+      )
+      return 'unreadable'
+    }
+    return new Date(record.createdAt).getTime() <
+      new Date(row.created_at).getTime()
+      ? 'predates-row'
+      : 'current'
+  } catch (error) {
+    deps.logger.warn(
+      { error, userId: context.userId, itemKey: context.itemKey },
+      'Could not read the watchlist row to check its approval record, skipping item',
+    )
+    return 'unreadable'
+  }
+}
+
 /** A record's destinations on instances that still exist replace the current targets, and presence is checked over both sets. */
 async function resolveDestinations(
   targetInstanceIds: number[],
@@ -181,6 +218,47 @@ async function resolveDestinations(
   const destinationIds = recorded.filter((id) => instanceIds.has(id))
   const checkIds = [...new Set([...targetInstanceIds, ...destinationIds])]
   return { record, destinationIds, checkIds }
+}
+
+/** True only for a new request whose every present copy is dormant on an instance that reactivates it, and unchecked when a lookup failed. */
+async function isReactivation(
+  newRequest: boolean | undefined,
+  presentInstanceIds: number[],
+  externalId: number,
+  title: string,
+  manager: Pick<
+    ContentRoutingDeps['sonarrManager'] | ContentRoutingDeps['radarrManager'],
+    'hasDormantCopy'
+  >,
+  logger: ContentRoutingDeps['logger'],
+): Promise<boolean | 'unchecked'> {
+  if (!newRequest || presentInstanceIds.length === 0) return false
+  for (const instanceId of presentInstanceIds) {
+    try {
+      if (!(await manager.hasDormantCopy(instanceId, externalId))) return false
+    } catch (error) {
+      logger.warn(
+        { error, instanceId, title },
+        `Instance ${instanceId} could not be checked for a dormant copy of ${title}, skipping item`,
+      )
+      return 'unchecked'
+    }
+  }
+  return true
+}
+
+/** A reactivation is a fresh request, so a record that approved an earlier one must not replay its routing. Null when there is no record. */
+async function expireSpentRecord(
+  { record }: Destinations,
+  context: RoutingContext,
+  deps: ContentRoutingDeps,
+): Promise<RecordAge | null> {
+  if (!record) return null
+  const age = await recordAgeAgainstRow(record, context, deps)
+  if (age === 'predates-row') {
+    await deps.db.updateApprovalRequest(record.id, { status: 'expired' })
+  }
+  return age
 }
 
 interface Presence {
@@ -493,7 +571,19 @@ export async function routeShow(
 
   const { presentInstanceIds } = presence
 
-  if (presentInstanceIds.length > 0) {
+  const reactivation = await isReactivation(
+    params.newRequest,
+    presentInstanceIds,
+    tvdbId,
+    tempItem.title,
+    deps.sonarrManager,
+    deps.logger,
+  )
+  if (reactivation === 'unchecked') {
+    return { routed: false, skippedReason: 'no-instances-available' }
+  }
+
+  if (presentInstanceIds.length > 0 && !reactivation) {
     const completion = await completeFromApproval(
       sonarrItem,
       context,
@@ -521,6 +611,12 @@ export async function routeShow(
     )
   }
 
+  if (
+    reactivation &&
+    (await expireSpentRecord(destinations, context, deps)) === 'unreadable'
+  ) {
+    return { routed: false, skippedReason: 'no-instances-available' }
+  }
   const outcome = await deps.contentRouter.routeContent(
     sonarrItem,
     tempItem.key,
@@ -636,7 +732,19 @@ export async function routeMovie(
 
   const { presentInstanceIds } = presence
 
-  if (presentInstanceIds.length > 0) {
+  const reactivation = await isReactivation(
+    params.newRequest,
+    presentInstanceIds,
+    tmdbId,
+    tempItem.title,
+    deps.radarrManager,
+    deps.logger,
+  )
+  if (reactivation === 'unchecked') {
+    return { routed: false, skippedReason: 'no-instances-available' }
+  }
+
+  if (presentInstanceIds.length > 0 && !reactivation) {
     const completion = await completeFromApproval(
       radarrItem,
       context,
@@ -664,6 +772,12 @@ export async function routeMovie(
     )
   }
 
+  if (
+    reactivation &&
+    (await expireSpentRecord(destinations, context, deps)) === 'unreadable'
+  ) {
+    return { routed: false, skippedReason: 'no-instances-available' }
+  }
   const outcome = await deps.contentRouter.routeContent(
     radarrItem,
     tempItem.key,
