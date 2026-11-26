@@ -9,7 +9,7 @@ import {
   startStaggeredPolling,
 } from './watchlist-workflow/etag/staggered-poller.js'
 import { fetchWatchlists as fetchWatchlistsModule } from './watchlist-workflow/fetching/watchlist-fetcher.js'
-import { schedulePendingReconciliation } from './watchlist-workflow/lifecycle/scheduler.js'
+import { schedulePeriodicReconciliation } from './watchlist-workflow/lifecycle/reconciliation-tick.js'
 import { initializeWorkflow } from './watchlist-workflow/lifecycle/workflow-starter.js'
 import { cleanupWorkflow } from './watchlist-workflow/lifecycle/workflow-stopper.js'
 import { reconcile as reconcileModule } from './watchlist-workflow/orchestration/reconciler.js'
@@ -21,7 +21,6 @@ import {
 import type { WorkflowDeps } from './watchlist-workflow/types.js'
 
 export class WatchlistWorkflowService {
-  // Inherits parent log level changes
   private readonly log: FastifyBaseLogger
 
   private readonly state = new WorkflowState()
@@ -29,7 +28,7 @@ export class WatchlistWorkflowService {
   constructor(
     readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    // RSS check interval: 10s with small jitter (S3 feeds update within seconds)
+    // S3 feeds update within seconds, so RSS polls every 10s plus jitter
     private readonly rssCheckIntervalMs: number = 10_000 +
       Math.ceil(Math.random() * 2_000),
   ) {
@@ -172,22 +171,14 @@ export class WatchlistWorkflowService {
         this.log.debug('Starting initial full reconciliation')
         await this.reconcile({ mode: 'full' })
         if (signal.aborted) return false
-        await schedulePendingReconciliation(this.deps)
-        if (signal.aborted) return false
+        schedulePeriodicReconciliation(this.deps)
       } catch (syncError) {
         this.log.error(
           { error: syncError },
           'Error during initial reconciliation',
         )
-        try {
-          await schedulePendingReconciliation(this.deps)
-          if (signal.aborted) return false
-        } catch (scheduleError) {
-          this.log.error(
-            { error: scheduleError },
-            'Failed to schedule failsafe after initial sync error',
-          )
-        }
+        schedulePeriodicReconciliation(this.deps)
+        if (signal.aborted) return false
         throw new Error('Failed during initial reconciliation', {
           cause: syncError,
         })
@@ -225,7 +216,7 @@ export class WatchlistWorkflowService {
       }
       this.log.error({ error }, 'Error in Watchlist workflow')
       try {
-        await cleanupWorkflow(this.deps)
+        cleanupWorkflow(this.deps)
       } catch (cleanupError) {
         this.log.error(
           { error: cleanupError },
@@ -278,7 +269,7 @@ export class WatchlistWorkflowService {
     this.log.info('Stopping Watchlist workflow')
     this.setStatus('stopping')
 
-    await cleanupWorkflow(this.deps)
+    cleanupWorkflow(this.deps)
 
     this.setStatus('stopped')
     this.state.initialized = false

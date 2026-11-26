@@ -1,6 +1,6 @@
 import type { EtagPollResult } from '@root/types/plex.types.js'
 import { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
-import { RECONCILIATION_JOB_NAME } from '@services/watchlist-workflow/lifecycle/scheduler.js'
+import { runPeriodicReconciliation } from '@services/watchlist-workflow/lifecycle/reconciliation-tick.js'
 import { WatchlistWorkflowService } from '@services/watchlist-workflow.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
@@ -20,7 +20,12 @@ import {
   initializeTestDatabase,
   resetDatabase,
 } from '../../helpers/database.js'
-import { seedAll, useArrHandlers } from '../../helpers/watchlist-workflow.js'
+import {
+  seedAll,
+  useArrHandlers,
+  workflowDeps,
+  workflowState,
+} from '../../helpers/watchlist-workflow.js'
 import { server } from '../../setup/msw-setup.js'
 
 describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
@@ -80,17 +85,18 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
     const callsBefore = checkFriendChanges.mock.calls.length
 
     await expect(
-      app.scheduler.runJobNow(RECONCILIATION_JOB_NAME),
-    ).resolves.toBe(true)
+      runPeriodicReconciliation(workflowDeps(service)),
+    ).resolves.toBeUndefined()
 
     expect(service.getLastSuccessfulSyncTime()).toBeGreaterThanOrEqual(
       syncTimeBefore,
     )
     expect(checkFriendChanges).toHaveBeenCalledTimes(callsBefore + 1)
     expect(routeContent).not.toHaveBeenCalled()
+    expect(workflowState(service).reconciliationTimer).not.toBeNull()
   })
 
-  it('releases the schedule and queue when startup fails, and can start again', async () => {
+  it('releases the reconciliation timer and queue when startup fails, and can start again', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)
     await patchConfigSettings(knex, { _isReady: false })
@@ -112,7 +118,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
     await expect(service.startWorkflow()).rejects.toThrow('plex down')
 
     expect(service.getStatus()).toBe('stopped')
-    expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+    expect(workflowState(service).reconciliationTimer).toBeNull()
 
     checkFriendChanges.mockResolvedValue({
       added: [],
@@ -122,7 +128,7 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
 
     await expect(service.startWorkflow()).resolves.toBe(true)
     expect(service.getStatus()).toBe('running')
-    expect(app.scheduler.getActiveJobs()).toContain(RECONCILIATION_JOB_NAME)
+    expect(workflowState(service).reconciliationTimer).not.toBeNull()
   })
 
   it('drops an in-flight etag reconcile when the service stops mid-poll', async () => {

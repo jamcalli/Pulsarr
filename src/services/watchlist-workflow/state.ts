@@ -29,6 +29,7 @@ export class WorkflowState {
   plexUuidCache: Map<string, UserMapEntry> = new Map()
   rssCheckInterval: NodeJS.Timeout | null = null
   statusSyncDebounceTimer: NodeJS.Timeout | null = null
+  reconciliationTimer: NodeJS.Timeout | null = null
 
   private runController: AbortController | null = null
 
@@ -45,6 +46,13 @@ export class WorkflowState {
   endRun(): void {
     this.runController?.abort()
     this.runController = null
+  }
+
+  clearReconciliationTimer(): void {
+    if (this.reconciliationTimer) {
+      clearTimeout(this.reconciliationTimer)
+      this.reconciliationTimer = null
+    }
   }
 
   ensureEtagPoller(

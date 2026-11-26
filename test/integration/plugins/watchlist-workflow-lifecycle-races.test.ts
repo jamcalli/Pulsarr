@@ -1,5 +1,3 @@
-import { RECONCILIATION_JOB_NAME } from '@services/watchlist-workflow/lifecycle/scheduler.js'
-import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { WatchlistWorkflowService } from '@services/watchlist-workflow.service.js'
 import type { FastifyInstance } from 'fastify'
 import {
@@ -21,6 +19,7 @@ import {
 import {
   seedAll,
   useArrHandlers,
+  workflowDeps,
   workflowState,
 } from '../../helpers/watchlist-workflow.js'
 
@@ -65,11 +64,6 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
     return booted
   }
 
-  function workflowDeps(workflow: WatchlistWorkflowService): WorkflowDeps {
-    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    return workflow['deps']
-  }
-
   function holdPlexPing(booted: FastifyInstance) {
     const gate = Promise.withResolvers<void>()
     const spy = vi
@@ -77,18 +71,6 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
       .mockImplementationOnce(async () => {
         await gate.promise
         return 'accepted'
-      })
-    return { release: gate.resolve, spy }
-  }
-
-  function holdReconciliationUnschedule(booted: FastifyInstance) {
-    const gate = Promise.withResolvers<void>()
-    const unscheduleJob = booted.scheduler.unscheduleJob.bind(booted.scheduler)
-    const spy = vi
-      .spyOn(booted.scheduler, 'unscheduleJob')
-      .mockImplementationOnce(async (name: string) => {
-        await gate.promise
-        return unscheduleJob(name)
       })
     return { release: gate.resolve, spy }
   }
@@ -130,7 +112,7 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
     expect(workflow.getStatus()).toBe('stopped')
     expect(workflowState(workflow).rssCheckInterval).toBeNull()
     expect(workflowState(workflow).deferredRoutingQueue).toBeNull()
-    expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+    expect(workflowState(workflow).reconciliationTimer).toBeNull()
   })
 
   it('stop while the staggered poller is starting leaves the poller unarmed', async () => {
@@ -174,23 +156,24 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
     await expect(starting).resolves.toBe(false)
     expect(workflow.getStatus()).toBe('stopped')
     expect(workflowState(workflow).deferredRoutingQueue).toBeNull()
-    expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+    expect(workflowState(workflow).reconciliationTimer).toBeNull()
   })
 
-  it('a start while stopping returns false', async () => {
+  it('stop clears the pending reconciliation and a restart arms exactly one', async () => {
     app = await bootInEtagMode()
     service = new WatchlistWorkflowService(app.log, app, 50)
+    const state = workflowState(service)
     await expect(service.startWorkflow()).resolves.toBe(true)
-    const held = holdReconciliationUnschedule(app)
+    const firstTimer = state.reconciliationTimer
+    expect(firstTimer).not.toBeNull()
 
-    const stopping = service.stop()
-    await vi.waitFor(() => expect(held.spy).toHaveBeenCalled())
-    expect(service.getStatus()).toBe('stopping')
-
-    await expect(service.startWorkflow()).resolves.toBe(false)
-    held.release()
-    await expect(stopping).resolves.toBe(true)
+    await expect(service.stop()).resolves.toBe(true)
     expect(service.getStatus()).toBe('stopped')
+    expect(state.reconciliationTimer).toBeNull()
+
+    await expect(service.startWorkflow()).resolves.toBe(true)
+    expect(state.reconciliationTimer).not.toBeNull()
+    expect(state.reconciliationTimer).not.toBe(firstTimer)
   })
 
   it('a second start while starting returns false and does not replace the queue', async () => {

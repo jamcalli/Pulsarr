@@ -1,13 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
-
-vi.mock('@services/watchlist-workflow/lifecycle/scheduler.js', () => ({
-  cleanupExistingManualSync: vi.fn(async () => {}),
-  setupPeriodicReconciliation: vi.fn(async () => {}),
-}))
-
 import { initializeWorkflow } from '@services/watchlist-workflow/lifecycle/workflow-starter.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 describe('initializeWorkflow', () => {
   let deps: WorkflowDeps | undefined
@@ -51,6 +45,21 @@ describe('initializeWorkflow', () => {
     expect(deps.state.rssFeedCache).toBeNull()
     expect(deps.state.isEtagFallbackActive).toBe(false)
     expect(deps.state.deferredRoutingQueue).toBeNull()
+  })
+
+  it('clears a reconciliation timer left by the previous run', async () => {
+    deps = createWorkflowDeps({
+      plexService: {
+        pingPlex: vi.fn(async () => 'accepted' as const),
+        generateAndSaveRssFeeds: vi.fn(async () => ({ self: '', friends: '' })),
+      },
+    })
+    const onTick = vi.fn()
+    deps.state.reconciliationTimer = setTimeout(onTick, 60_000)
+
+    await initializeWorkflow(deps)
+
+    expect(deps.state.reconciliationTimer).toBeNull()
   })
 
   it.each(['rejected', 'unreachable'] as const)(
