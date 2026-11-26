@@ -148,6 +148,7 @@ export async function processAndSaveNewItems(
       )
 
       if (
+        !isMetadataRefresh &&
         plexLabelSyncService &&
         config.plexLabelSync?.enabled &&
         insertedResults &&
