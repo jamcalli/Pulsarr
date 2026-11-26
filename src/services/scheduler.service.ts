@@ -59,7 +59,12 @@ export class SchedulerService {
   private readonly pendingCatchUps = new Set<string>()
   private readonly jobsRunSinceBoot = new Set<string>()
   private appStarted = false
-  private readonly nextIntervalFire = new Map<string, number>()
+  private readonly intervalTimers = new Map<
+    string,
+    { startedAt: number; intervalMs: number }
+  >()
+  /** Tail of the updates in flight per job, so each one reads the row the last one wrote. */
+  private readonly updateQueues = new Map<string, Promise<unknown>>()
   /** Runs in progress per job, since a manual run can overlap a scheduled one. */
   private readonly runningJobs = new Map<string, number>()
   private readonly log: FastifyBaseLogger
@@ -108,9 +113,7 @@ export class SchedulerService {
       ) {
         continue
       }
-      const nextFire = this.nextIntervalFire.get(name)
       void live.job.executeAsync()
-      if (nextFire !== undefined) this.nextIntervalFire.set(name, nextFire)
     }
     this.pendingCatchUps.clear()
   }
@@ -135,7 +138,7 @@ export class SchedulerService {
   async unscheduleJob(name: string): Promise<boolean> {
     const known = this.jobs.has(name) || this.internalJobs.has(name)
     this.scheduler.removeById(name)
-    this.nextIntervalFire.delete(name)
+    this.intervalTimers.delete(name)
     this.jobs.delete(name)
     this.internalJobs.delete(name)
     return known
@@ -146,6 +149,28 @@ export class SchedulerService {
     config: IntervalConfig | CronConfig | null,
     enabled?: boolean,
     expectedType?: DbSchedule['type'],
+  ): Promise<'updated' | 'unknown' | 'type-mismatch'> {
+    return this.queueUpdate(name, () =>
+      this.applyUpdate(name, config, enabled, expectedType),
+    )
+  }
+
+  private queueUpdate<T>(name: string, update: () => Promise<T>): Promise<T> {
+    const previous = this.updateQueues.get(name) ?? Promise.resolve()
+    const next = previous.then(update, update)
+    const tail = next.catch(() => {})
+    this.updateQueues.set(name, tail)
+    void tail.then(() => {
+      if (this.updateQueues.get(name) === tail) this.updateQueues.delete(name)
+    })
+    return next
+  }
+
+  private async applyUpdate(
+    name: string,
+    config: IntervalConfig | CronConfig | null,
+    enabled: boolean | undefined,
+    expectedType: DbSchedule['type'] | undefined,
   ): Promise<'updated' | 'unknown' | 'type-mismatch'> {
     const row = await this.fastify.db.getScheduleByName(name)
     if (!row) return 'unknown'
@@ -162,25 +187,33 @@ export class SchedulerService {
     if (!nextSpec) return 'type-mismatch'
 
     const registration = this.jobs.get(name)
+    const wasLive = registration ? registration.live !== null : false
+    const restorePrevious = () => {
+      if (!registration) return
+      this.stopLiveJob(name)
+      if (wasLive) this.startLiveJob(name, row, registration.handler)
+    }
+
     if (registration) {
-      const wasLive = registration.live !== null
       this.stopLiveJob(name)
       if (enabled ?? row.enabled) {
         try {
           this.startLiveJob(name, nextSpec, registration.handler)
         } catch (error) {
-          if (wasLive) {
-            this.startLiveJob(name, row, registration.handler)
-          }
+          restorePrevious()
           throw error
         }
       }
     }
 
-    await this.fastify.db.updateSchedule(name, {
+    const persisted = await this.fastify.db.updateSchedule(name, {
       config: configChanged ? nextSpec.config : undefined,
       enabled: enabledChanged ? enabled : undefined,
     })
+    if (!persisted) {
+      restorePrevious()
+      throw new Error(`Could not save the schedule for ${name}`)
+    }
     return 'updated'
   }
 
@@ -253,11 +286,14 @@ export class SchedulerService {
       const specChanged = forced !== undefined && !sameSpec(existing, forced)
       const enabled = forced?.enabled ?? existing.enabled
       if (specChanged || enabled !== existing.enabled) {
-        await this.fastify.db.updateSchedule(name, {
+        const persisted = await this.fastify.db.updateSchedule(name, {
           type: specChanged ? forced.type : undefined,
           config: specChanged ? forced.config : undefined,
           enabled: enabled !== existing.enabled ? enabled : undefined,
         })
+        if (!persisted) {
+          throw new Error(`Could not save the schedule for ${name}`)
+        }
       }
       return {
         spec: specChanged ? forced : existing,
@@ -291,14 +327,12 @@ export class SchedulerService {
       if (intervalMs <= 0) {
         throw new Error(`Schedule ${name} has an interval with no time units`)
       }
-      const task = this.buildTask(name, handler, () => {
-        this.nextIntervalFire.set(name, Date.now() + intervalMs)
-      })
+      const task = this.buildTask(name, handler)
       const interval = new SimpleIntervalJob(spec.config, task, {
         id: name,
         preventOverrun: true,
       })
-      this.nextIntervalFire.set(name, Date.now() + intervalMs)
+      this.intervalTimers.set(name, { startedAt: Date.now(), intervalMs })
       this.addToScheduler(name, () =>
         this.scheduler.addSimpleIntervalJob(interval),
       )
@@ -318,7 +352,7 @@ export class SchedulerService {
 
   private stopLiveJob(name: string): void {
     this.scheduler.removeById(name)
-    this.nextIntervalFire.delete(name)
+    this.intervalTimers.delete(name)
     const registration = this.jobs.get(name)
     if (registration) registration.live = null
   }
@@ -328,20 +362,15 @@ export class SchedulerService {
       add()
     } catch (error) {
       this.scheduler.removeById(name)
-      this.nextIntervalFire.delete(name)
+      this.intervalTimers.delete(name)
       throw error
     }
   }
 
-  private buildTask(
-    name: string,
-    handler: JobHandler,
-    onFire?: () => void,
-  ): AsyncTask {
+  private buildTask(name: string, handler: JobHandler): AsyncTask {
     return new AsyncTask(
       `${name}-task`,
       async () => {
-        onFire?.()
         await this.runJob(name, handler)
       },
       (error) => {
@@ -386,7 +415,7 @@ export class SchedulerService {
     if (!live) return null
     const next =
       live.spec.type === 'interval'
-        ? this.nextIntervalFire.get(name)
+        ? nextIntervalFire(this.intervalTimers.get(name))
         : new Cron(live.spec.config.expression).nextRun()?.getTime()
     if (next === undefined) return null
     return {
@@ -443,6 +472,16 @@ function specForType(
     return type === 'cron' ? { type, config } : null
   }
   return type === 'interval' ? { type, config } : null
+}
+
+/** The next tick of a fixed-rate timer, which stays right when a tick was skipped for an overrun. */
+function nextIntervalFire(
+  timer: { startedAt: number; intervalMs: number } | undefined,
+): number | undefined {
+  if (!timer) return undefined
+  const elapsed = Date.now() - timer.startedAt
+  const ticks = Math.floor(elapsed / timer.intervalMs) + 1
+  return timer.startedAt + ticks * timer.intervalMs
 }
 
 function isOverdue(spec: ScheduleSpec, lastRun: JobRunInfo | null): boolean {

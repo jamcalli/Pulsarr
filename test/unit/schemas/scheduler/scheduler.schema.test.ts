@@ -43,6 +43,15 @@ describe('CronConfigPayloadSchema', () => {
     )
   })
 
+  it.each(['2000-01-01T00:00:00Z', '2099-01-01T00:00:00Z'])(
+    'rejects the date %s, which is not a cron expression',
+    (expression) => {
+      expect(CronConfigPayloadSchema.safeParse({ expression }).success).toBe(
+        false,
+      )
+    },
+  )
+
   it('rejects a malformed expression', () => {
     expect(
       CronConfigPayloadSchema.safeParse({ expression: '0 2 *' }).success,

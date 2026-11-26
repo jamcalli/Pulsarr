@@ -70,8 +70,8 @@ export const IntervalConfigPayloadSchema = IntervalConfigSchema.extend({
 
 function isValidCronExpression(expression: string): boolean {
   try {
-    new Cron(expression)
-    return true
+    // A date string parses as a one-shot run with no pattern
+    return new Cron(expression).getPattern() !== undefined
   } catch {
     return false
   }

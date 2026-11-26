@@ -189,6 +189,66 @@ describe('SchedulerService', () => {
       next_run: null,
     })
 
+    it('applies overlapping updates in the order they were made', async () => {
+      createScheduler([hourlyRow(true)])
+      const handler = vi.fn().mockResolvedValue(undefined)
+      await scheduler.scheduleJob(JOB, handler)
+
+      const disabling = scheduler.updateJobSchedule(JOB, null, false)
+      const enabling = scheduler.updateJobSchedule(JOB, null, true)
+      await Promise.all([disabling, enabling])
+      await vi.advanceTimersByTimeAsync(HOUR)
+
+      expect((await db.getScheduleByName(JOB))?.enabled).toBe(true)
+      expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the previous timer and throws when the update cannot be saved', async () => {
+      createScheduler([hourlyRow(true)])
+      const handler = vi.fn().mockResolvedValue(undefined)
+      await scheduler.scheduleJob(JOB, handler)
+      db.updateSchedule.mockResolvedValueOnce(false)
+
+      await expect(
+        scheduler.updateJobSchedule(JOB, { minutes: 10 }),
+      ).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(10 * MINUTE)
+      expect(handler).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(50 * MINUTE)
+      expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    it('still accepts an update after one that failed', async () => {
+      createScheduler([hourlyRow(true)])
+      await scheduler.scheduleJob(JOB, vi.fn().mockResolvedValue(undefined))
+      db.updateSchedule.mockResolvedValueOnce(false)
+      await expect(
+        scheduler.updateJobSchedule(JOB, { minutes: 10 }),
+      ).rejects.toThrow()
+
+      await scheduler.updateJobSchedule(JOB, { minutes: 20 })
+
+      expect((await db.getScheduleByName(JOB))?.config).toEqual({
+        minutes: 20,
+      })
+    })
+
+    it('reports the next tick after one was skipped for a long run', async () => {
+      createScheduler([hourlyRow(true)])
+      const handler = vi.fn(
+        () => new Promise<void>((resolve) => setTimeout(resolve, 90 * MINUTE)),
+      )
+      await scheduler.scheduleJob(JOB, handler)
+
+      await vi.advanceTimersByTimeAsync(2 * HOUR + 31 * MINUTE)
+
+      expect(handler).toHaveBeenCalledTimes(1)
+      expect((await scheduler.getSchedule(JOB))?.next_run?.time).toBe(
+        new Date(NOW.getTime() + 3 * HOUR).toISOString(),
+      )
+    })
+
     it('runs on the new interval once the config changes', async () => {
       createScheduler([hourlyRow(true)])
       const handler = vi.fn().mockResolvedValue(undefined)
@@ -410,6 +470,21 @@ describe('SchedulerService', () => {
     await vi.advanceTimersByTimeAsync(5 * MINUTE)
 
     expect((await db.getScheduleByName(JOB))?.enabled).toBe(false)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('starts no timer when the given schedule cannot be saved', async () => {
+    createScheduler([intervalRow({ minutes: 5 })])
+    const handler = vi.fn().mockResolvedValue(undefined)
+    db.updateSchedule.mockResolvedValueOnce(false)
+
+    await expect(
+      scheduler.scheduleJob(JOB, handler, {
+        schedule: { type: 'interval', config: { minutes: 1 } },
+      }),
+    ).rejects.toThrow()
+    await vi.advanceTimersByTimeAsync(5 * MINUTE)
+
     expect(handler).not.toHaveBeenCalled()
   })
 
