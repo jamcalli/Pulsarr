@@ -1,17 +1,53 @@
 import { BackgroundRunStatusSchema } from '@root/schemas/common/background-run.schema.js'
-import { ErrorSchema } from '@root/schemas/common/error.schema.js'
-import { CronExpressionParser } from 'cron-parser'
+import {
+  MS_PER_DAY,
+  MS_PER_HOUR,
+  MS_PER_MINUTE,
+  MS_PER_SECOND,
+} from '@root/schemas/shared/time-units.js'
+import { Cron } from 'croner'
 import { z } from 'zod'
 
-// Zod schema for interval configuration
+/** Exclusive upper bound on an interval, the longest delay a timer accepts. */
+export const INTERVAL_LIMIT_MS = 2_147_483_647
+
+const unitMax = (unitMs: number) => Math.floor((INTERVAL_LIMIT_MS - 1) / unitMs)
+
+export function intervalToMs(config: {
+  days?: number
+  hours?: number
+  minutes?: number
+  seconds?: number
+}): number {
+  return (
+    (config.days ?? 0) * MS_PER_DAY +
+    (config.hours ?? 0) * MS_PER_HOUR +
+    (config.minutes ?? 0) * MS_PER_MINUTE +
+    (config.seconds ?? 0) * MS_PER_SECOND
+  )
+}
+
+const INTERVAL_LIMIT_DAYS =
+  Math.floor((INTERVAL_LIMIT_MS / MS_PER_DAY) * 10) / 10
+
 export const IntervalConfigSchema = z
   .object({
-    days: z.number().int().positive().max(365).optional(),
-    hours: z.number().int().positive().max(8760).optional(), // Allow up to 1 year in hours
-    minutes: z.number().int().positive().max(525600).optional(), // Allow up to 1 year in minutes
-    seconds: z.number().int().positive().max(31536000).optional(), // Allow up to 1 year in seconds
-    runImmediately: z.boolean().optional(),
+    days: z.number().optional(),
+    hours: z.number().optional(),
+    minutes: z.number().optional(),
+    seconds: z.number().optional(),
   })
+  .meta({
+    id: 'JobIntervalConfig',
+    description: 'Time units between runs of an interval job',
+  })
+
+export const IntervalConfigPayloadSchema = IntervalConfigSchema.extend({
+  days: z.number().int().positive().max(unitMax(MS_PER_DAY)).optional(),
+  hours: z.number().int().positive().max(unitMax(MS_PER_HOUR)).optional(),
+  minutes: z.number().int().positive().max(unitMax(MS_PER_MINUTE)).optional(),
+  seconds: z.number().int().positive().max(unitMax(MS_PER_SECOND)).optional(),
+})
   .refine(
     (config) =>
       config.days !== undefined ||
@@ -23,98 +59,93 @@ export const IntervalConfigSchema = z
         'At least one time unit (days, hours, minutes, or seconds) must be specified',
     },
   )
+  .refine((config) => intervalToMs(config) < INTERVAL_LIMIT_MS, {
+    message: `Interval must be shorter than ${INTERVAL_LIMIT_DAYS} days`,
+  })
+  .meta({
+    id: 'JobIntervalConfigPayload',
+    description:
+      'Time units between runs of an interval job, within what a timer can run',
+  })
 
-// Zod schema for cron configuration
-export const CronConfigSchema = z.object({
-  expression: z
-    .string()
-    .min(1, { error: 'Cron expression is required' })
-    .refine(
-      (expression) => {
-        try {
-          // Use cron-parser to validate - it handles field count and format validation
-          CronExpressionParser.parse(expression, { currentDate: new Date() })
-          return true
-        } catch (_error) {
-          // If validation fails for any reason, assume invalid
-          return false
-        }
-      },
-      {
+function isValidCronExpression(expression: string): boolean {
+  try {
+    new Cron(expression)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export const CronConfigSchema = z
+  .object({ expression: z.string() })
+  .meta({ id: 'JobCronConfig', description: 'Cron expression of a cron job' })
+
+export const CronConfigPayloadSchema = z
+  .object({
+    expression: z
+      .string()
+      .min(1, { error: 'Cron expression is required' })
+      .refine(isValidCronExpression, {
         message:
           'Invalid cron expression (format: [second] minute hour day month weekday)',
-      },
-    ),
-})
+      }),
+  })
+  .meta({
+    id: 'JobCronConfigPayload',
+    description: 'Cron expression of a cron job, checked by the cron parser',
+  })
 
-// Create schema for partial updates (without the name field)
-export const ScheduleUpdateSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('interval'),
-    config: IntervalConfigSchema.optional(),
-    enabled: z.boolean().optional(),
-  }),
-  z.object({
-    type: z.literal('cron'),
-    config: CronConfigSchema.optional(),
-    enabled: z.boolean().optional(),
-  }),
-])
+const ScheduleUpdateBaseSchema = z.object({ enabled: z.boolean().optional() })
 
-// Rest of your type definitions remain the same...
-export const JobRunInfoSchema = z.object({
-  time: z.string(),
-  status: z.enum(['completed', 'failed', 'pending']),
-  error: z.string().optional(),
-  estimated: z.boolean().optional(),
-})
+export const ScheduleUpdateSchema = z
+  .discriminatedUnion('type', [
+    ScheduleUpdateBaseSchema.extend({
+      type: z.literal('interval'),
+      config: IntervalConfigPayloadSchema.optional(),
+    }),
+    ScheduleUpdateBaseSchema.extend({
+      type: z.literal('cron'),
+      config: CronConfigPayloadSchema.optional(),
+    }),
+  ])
+  .meta({
+    id: 'JobScheduleUpdatePayload',
+    description: 'New timing or enabled state for a scheduled job',
+  })
 
-const JobRunningSchema = z.boolean().meta({
-  description: 'True while a run of the job is in progress',
-})
+export const JobRunInfoSchema = z
+  .object({
+    time: z.string(),
+    status: z.enum(['completed', 'failed', 'pending']),
+    error: z.string().optional(),
+    estimated: z.boolean().optional(),
+  })
+  .meta({ id: 'JobRunInfo', description: 'One past or upcoming run of a job' })
 
-// Define specific job types
-const IntervalJobSchema = z.object({
+const JobRowSchema = z.object({
   id: z.number(),
   name: z.string(),
-  type: z.literal('interval'),
-  config: IntervalConfigSchema,
   enabled: z.boolean(),
   last_run: JobRunInfoSchema.nullable(),
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
-  running: JobRunningSchema,
+  running: z.boolean().meta({
+    description: 'True while a run of the job is in progress',
+  }),
 })
 
-const CronJobSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  type: z.literal('cron'),
-  config: CronConfigSchema,
-  enabled: z.boolean(),
-  last_run: JobRunInfoSchema.nullable(),
-  next_run: JobRunInfoSchema.nullable(),
-  created_at: z.string(),
-  updated_at: z.string(),
-  running: JobRunningSchema,
-})
-
-// Combine with regular union instead of discriminated union
 export const JobStatusSchema = z
-  .union([IntervalJobSchema, CronJobSchema])
+  .union([
+    JobRowSchema.extend({
+      type: z.literal('interval'),
+      config: IntervalConfigSchema,
+    }),
+    JobRowSchema.extend({ type: z.literal('cron'), config: CronConfigSchema }),
+  ])
   .meta({ id: 'JobStatus', description: 'A scheduled job and its run state' })
 
-// Standard response schemas
-export const SuccessResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-})
-
-// Re-export shared ErrorSchema with alias for backward compatibility
-export { ErrorSchema, ErrorSchema as ErrorResponseSchema }
-
-// Schema for delete sync dry run results
 export const DeleteItemSchema = z
   .object({
     title: z.string(),
@@ -176,19 +207,4 @@ export const DeleteSyncDryRunStatusSchema = BackgroundRunStatusSchema.extend({
   description: 'The latest delete sync dry run',
 })
 
-// Inferred types for exports
-export type IntervalConfig = z.infer<typeof IntervalConfigSchema>
-export type CronConfig = z.infer<typeof CronConfigSchema>
 export type ScheduleUpdate = z.infer<typeof ScheduleUpdateSchema>
-export type JobRunInfo = z.infer<typeof JobRunInfoSchema>
-export type JobStatus = z.infer<typeof JobStatusSchema>
-export type SuccessResponse = z.infer<typeof SuccessResponseSchema>
-export type ErrorResponse = z.infer<typeof ErrorSchema>
-export type DeleteItem = z.infer<typeof DeleteItemSchema>
-export type DeletionContentTypeResult = z.infer<
-  typeof DeletionContentTypeResultSchema
->
-export type DeleteSyncResult = z.infer<typeof DeleteSyncResultSchema>
-export type DeleteSyncDryRunResponse = z.infer<
-  typeof DeleteSyncDryRunResponseSchema
->

@@ -7,6 +7,15 @@ import type {
 import type { DatabaseService } from '@services/database.service.js'
 import { parseJsonOr } from '@utils/json.js'
 
+function parseRunInfo(
+  this: DatabaseService,
+  value: string | JobRunInfo | null,
+  context: string,
+): JobRunInfo | null {
+  if (typeof value !== 'string') return value
+  return parseJsonOr<JobRunInfo | null>(value, null, this.log, context)
+}
+
 /** Returns null for an unknown type or a parse failure */
 function parseScheduleRow(
   this: DatabaseService,
@@ -27,26 +36,8 @@ function parseScheduleRow(
       id: schedule.id,
       name: schedule.name,
       enabled: Boolean(schedule.enabled),
-      last_run: schedule.last_run
-        ? typeof schedule.last_run === 'string'
-          ? parseJsonOr<JobRunInfo>(
-              schedule.last_run,
-              {} as JobRunInfo,
-              this.log,
-              'schedule.last_run',
-            )
-          : (schedule.last_run as JobRunInfo)
-        : null,
-      next_run: schedule.next_run
-        ? typeof schedule.next_run === 'string'
-          ? parseJsonOr<JobRunInfo>(
-              schedule.next_run,
-              {} as JobRunInfo,
-              this.log,
-              'schedule.next_run',
-            )
-          : (schedule.next_run as JobRunInfo)
-        : null,
+      last_run: parseRunInfo.call(this, schedule.last_run, 'schedule.last_run'),
+      next_run: parseRunInfo.call(this, schedule.next_run, 'schedule.next_run'),
       created_at: schedule.created_at,
       updated_at: schedule.updated_at,
     }
@@ -118,7 +109,7 @@ export async function updateSchedule(
   this: DatabaseService,
   name: string,
   updates: Partial<
-    Omit<DbSchedule, 'id' | 'name' | 'created_at' | 'updated_at'>
+    Omit<DbSchedule, 'id' | 'name' | 'next_run' | 'created_at' | 'updated_at'>
   >,
 ): Promise<boolean> {
   try {
@@ -133,12 +124,6 @@ export async function updateSchedule(
     if (updates.last_run !== undefined) {
       updateData.last_run = updates.last_run
         ? JSON.stringify(updates.last_run)
-        : null
-    }
-
-    if (updates.next_run !== undefined) {
-      updateData.next_run = updates.next_run
-        ? JSON.stringify(updates.next_run)
         : null
     }
 
@@ -163,7 +148,7 @@ export async function updateSchedule(
 
 export async function createSchedule(
   this: DatabaseService,
-  schedule: Omit<DbSchedule, 'id' | 'created_at' | 'updated_at'>,
+  schedule: Omit<DbSchedule, 'id' | 'next_run' | 'created_at' | 'updated_at'>,
 ): Promise<number> {
   try {
     const insertData: Record<string, unknown> = {
@@ -172,7 +157,6 @@ export async function createSchedule(
       config: JSON.stringify(schedule.config),
       enabled: schedule.enabled,
       last_run: schedule.last_run ? JSON.stringify(schedule.last_run) : null,
-      next_run: schedule.next_run ? JSON.stringify(schedule.next_run) : null,
       created_at: this.timestamp,
       updated_at: this.timestamp,
     }
@@ -185,19 +169,5 @@ export async function createSchedule(
   } catch (error) {
     this.log.error({ error }, `Error creating schedule ${schedule.name}:`)
     throw error
-  }
-}
-
-/** Returns false when no schedule matched or on error */
-export async function deleteSchedule(
-  this: DatabaseService,
-  name: string,
-): Promise<boolean> {
-  try {
-    const deleted = await this.knex('schedules').where({ name }).delete()
-    return deleted > 0
-  } catch (error) {
-    this.log.error({ error }, `Error deleting schedule ${name}:`)
-    return false
   }
 }

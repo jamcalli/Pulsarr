@@ -1,33 +1,17 @@
-/**
- * Type for schedule information in the Db
- */
-export type DbSchedule =
-  | {
-      id: number
-      name: string
-      type: 'interval'
-      config: IntervalConfig
-      enabled: boolean
-      last_run: JobRunInfo | null
-      next_run: JobRunInfo | null
-      created_at: string
-      updated_at: string
-    }
-  | {
-      id: number
-      name: string
-      type: 'cron'
-      config: CronConfig
-      enabled: boolean
-      last_run: JobRunInfo | null
-      next_run: JobRunInfo | null
-      created_at: string
-      updated_at: string
-    }
+interface ScheduleRowFields {
+  id: number
+  name: string
+  enabled: boolean
+  last_run: JobRunInfo | null
+  next_run: JobRunInfo | null
+  created_at: string
+  updated_at: string
+}
 
-/**
- * Type for job run status information
- */
+export type DbSchedule =
+  | (ScheduleRowFields & { type: 'interval'; config: IntervalConfig })
+  | (ScheduleRowFields & { type: 'cron'; config: CronConfig })
+
 export interface JobRunInfo {
   time: string
   status: 'completed' | 'failed' | 'pending'
@@ -35,20 +19,19 @@ export interface JobRunInfo {
   estimated?: boolean
 }
 
-/**
- * Type for configuration of interval jobs
- */
 export interface IntervalConfig {
   days?: number
   hours?: number
   minutes?: number
   seconds?: number
-  runImmediately?: boolean
 }
 
-/**
- * Type for configuration of cron jobs
- */
 export interface CronConfig {
   expression: string
 }
+
+export type ScheduleSpec =
+  | { type: 'interval'; config: IntervalConfig }
+  | { type: 'cron'; config: CronConfig }
+
+export type DeclaredSchedule = ScheduleSpec & { enabled?: boolean }

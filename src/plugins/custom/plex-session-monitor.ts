@@ -1,11 +1,5 @@
-/**
- * Plex Session Monitor Plugin
- *
- * Registers the PlexSessionMonitorService for monitoring Plex sessions
- * and triggering Sonarr searches based on viewing patterns
- */
-
 import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
+import { sessionMonitorJobSchedules } from '@services/plex-session-monitor/job-schedules.js'
 import { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -22,10 +16,8 @@ export default fp(
 
     fastify.decorate('plexSessionMonitor', service)
 
-    // Register scheduled jobs after server is ready
     fastify.addHook('onReady', async () => {
       try {
-        // Subscribe to SSE playing events for immediate session processing
         let playingChain: Promise<void> = Promise.resolve()
         fastify.plexServerService.onSSE('playing', (notifications) => {
           if (!fastify.config.plexSessionMonitoring?.enabled) return
@@ -36,200 +28,114 @@ export default fp(
             })
         })
 
-        // On SSE disconnect, run one immediate poll to bridge the gap
+        // A disconnect may have dropped playing events, so poll once to bridge the gap
         fastify.plexServerService.onSSE('disconnected', () => {
           if (fastify.config.plexSessionMonitoring?.enabled) {
             void service.monitorSessions()
           }
         })
 
+        const schedules = sessionMonitorJobSchedules(
+          fastify.config.plexSessionMonitoring,
+        )
+
         await fastify.scheduler.scheduleJob(
           'plex-session-monitor',
           async () => {
-            try {
-              // Check if monitoring is enabled using cached config
-              const config = fastify.config
-              if (!config?.plexSessionMonitoring?.enabled) {
-                fastify.log.debug(
-                  'Plex session monitoring is disabled, skipping task',
-                )
-                return
-              }
-
-              // Skip polling when SSE is delivering events in real time
-              if (fastify.plexServerService.isSSEConnected()) {
-                fastify.log.debug('SSE active, skipping session monitor poll')
-                return
-              }
-
-              fastify.log.debug('Starting Plex session monitoring task')
-              const result = await service.monitorSessions()
-
-              if (result.errors.length > 0) {
-                fastify.log.error(
-                  { errors: result.errors },
-                  `Session monitoring completed with ${result.errors.length} errors`,
-                )
-              } else if (result.triggeredSearches > 0) {
-                // Only log at INFO level if something actually happened
-                fastify.log.info(
-                  `Session monitoring completed. Processed: ${result.processedSessions}, Triggered: ${result.triggeredSearches}`,
-                )
-              } else {
-                // Log at DEBUG level when nothing happened
-                fastify.log.debug(
-                  'Session monitoring completed. No active sessions to process.',
-                )
-              }
-            } catch (error) {
-              fastify.log.error(
-                { error },
-                'Plex session monitoring task failed:',
-              )
-            }
-          },
-        )
-
-        // Get the schedule to see if it should be enabled
-        const schedule = await fastify.db.getScheduleByName(
-          'plex-session-monitor',
-        )
-        if (schedule?.enabled) {
-          const config = fastify.config
-          const intervalMinutes =
-            config?.plexSessionMonitoring?.pollingIntervalMinutes ||
-            PLEX_SESSION_MONITORING_DEFAULTS.pollingIntervalMinutes
-
-          fastify.log.debug(
-            `Scheduling Plex session monitoring to run every ${intervalMinutes} minutes`,
-          )
-
-          // Update the job schedule with the correct interval
-          const updated = await fastify.scheduler.updateJobSchedule(
-            'plex-session-monitor',
-            { minutes: intervalMinutes },
-            true,
-          )
-          if (!updated) {
-            fastify.log.error('Failed to update plex-session-monitor schedule')
-          }
-        }
-
-        // Register automatic reset job for rolling monitored shows
-        await fastify.scheduler.scheduleJob(
-          'plex-rolling-auto-reset',
-          async () => {
-            try {
-              // Check if monitoring and auto reset are enabled using cached config
-              const config = fastify.config
-              const sessionConfig = config?.plexSessionMonitoring
-              if (!sessionConfig?.enabled || !sessionConfig?.enableAutoReset) {
-                fastify.log.debug(
-                  'Plex session monitoring or auto reset is disabled, skipping auto reset task',
-                )
-                return
-              }
-
-              const inactivityDays =
-                sessionConfig.inactivityResetDays ??
-                PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
-
+            if (!fastify.config.plexSessionMonitoring?.enabled) {
               fastify.log.debug(
-                `Starting automatic reset of rolling shows inactive for ${inactivityDays} days`,
+                'Plex session monitoring is disabled, skipping task',
               )
-              await service.resetInactiveRollingShows(inactivityDays)
+              return
+            }
 
+            if (fastify.plexServerService.isSSEConnected()) {
+              fastify.log.debug('SSE active, skipping session monitor poll')
+              return
+            }
+
+            fastify.log.debug('Starting Plex session monitoring task')
+            const result = await service.monitorSessions()
+
+            if (result.errors.length > 0) {
+              fastify.log.error(
+                { errors: result.errors },
+                `Session monitoring completed with ${result.errors.length} errors`,
+              )
+            } else if (result.triggeredSearches > 0) {
               fastify.log.info(
-                `Automatic reset task completed for shows inactive ${inactivityDays}+ days`,
+                `Session monitoring completed. Processed: ${result.processedSessions}, Triggered: ${result.triggeredSearches}`,
               )
-            } catch (error) {
-              fastify.log.error(
-                { error },
-                'Automatic rolling reset task failed:',
+            } else {
+              fastify.log.debug(
+                'Session monitoring completed. No active sessions to process.',
               )
             }
           },
+          {
+            schedule: {
+              type: 'interval',
+              ...schedules['plex-session-monitor'],
+            },
+          },
         )
 
-        // Check if auto reset should be enabled and configure its schedule
-        const autoResetSchedule = await fastify.db.getScheduleByName(
+        await fastify.scheduler.scheduleJob(
           'plex-rolling-auto-reset',
-        )
-        if (autoResetSchedule?.enabled) {
-          const config = fastify.config
-          const sessionConfig = config?.plexSessionMonitoring
-          const intervalHours =
-            sessionConfig?.autoResetIntervalHours ||
-            PLEX_SESSION_MONITORING_DEFAULTS.autoResetIntervalHours
+          async () => {
+            const sessionConfig = fastify.config.plexSessionMonitoring
+            if (!sessionConfig?.enabled || !sessionConfig?.enableAutoReset) {
+              fastify.log.debug(
+                'Plex session monitoring or auto reset is disabled, skipping auto reset task',
+              )
+              return
+            }
 
-          fastify.log.debug(
-            `Scheduling Plex rolling auto reset to run every ${intervalHours} hours`,
-          )
+            const inactivityDays =
+              sessionConfig.inactivityResetDays ??
+              PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
-          // Update the job schedule with the correct interval
-          const updated = await fastify.scheduler.updateJobSchedule(
-            'plex-rolling-auto-reset',
-            { hours: intervalHours },
-            true,
-          )
-          if (!updated) {
-            fastify.log.error(
-              'Failed to update plex-rolling-auto-reset schedule',
+            fastify.log.debug(
+              `Starting automatic reset of rolling shows inactive for ${inactivityDays} days`,
             )
-          }
-        }
+            await service.resetInactiveRollingShows(inactivityDays)
 
-        // Register pilot sync job for allSeasonPilotRolling shows
+            fastify.log.info(
+              `Automatic reset task completed for shows inactive ${inactivityDays}+ days`,
+            )
+          },
+          {
+            schedule: {
+              type: 'interval',
+              ...schedules['plex-rolling-auto-reset'],
+            },
+          },
+        )
+
         await fastify.scheduler.scheduleJob(
           'plex-rolling-pilot-sync',
           async () => {
-            try {
-              const config = fastify.config
-              if (!config?.plexSessionMonitoring?.enabled) {
-                fastify.log.debug(
-                  'Plex session monitoring is disabled, skipping pilot sync task',
-                )
-                return
-              }
-
+            if (!fastify.config.plexSessionMonitoring?.enabled) {
               fastify.log.debug(
-                'Starting new season pilot sync for allSeasonPilotRolling shows',
+                'Plex session monitoring is disabled, skipping pilot sync task',
               )
-              await service.syncNewSeasonPilots()
-
-              fastify.log.info('New season pilot sync task completed')
-            } catch (error) {
-              fastify.log.error({ error }, 'New season pilot sync task failed:')
+              return
             }
+
+            fastify.log.debug(
+              'Starting new season pilot sync for allSeasonPilotRolling shows',
+            )
+            await service.syncNewSeasonPilots()
+
+            fastify.log.info('New season pilot sync task completed')
+          },
+          {
+            schedule: {
+              type: 'interval',
+              ...schedules['plex-rolling-pilot-sync'],
+            },
           },
         )
-
-        // Configure pilot sync schedule (reuse autoResetIntervalHours)
-        const pilotSyncSchedule = await fastify.db.getScheduleByName(
-          'plex-rolling-pilot-sync',
-        )
-        if (pilotSyncSchedule?.enabled) {
-          const config = fastify.config
-          const sessionConfig = config?.plexSessionMonitoring
-          const intervalHours =
-            sessionConfig?.autoResetIntervalHours ||
-            PLEX_SESSION_MONITORING_DEFAULTS.autoResetIntervalHours
-
-          fastify.log.debug(
-            `Scheduling Plex rolling pilot sync to run every ${intervalHours} hours`,
-          )
-
-          const updated = await fastify.scheduler.updateJobSchedule(
-            'plex-rolling-pilot-sync',
-            { hours: intervalHours },
-            true,
-          )
-          if (!updated) {
-            fastify.log.error(
-              'Failed to update plex-rolling-pilot-sync schedule',
-            )
-          }
-        }
       } catch (error) {
         fastify.log.error(
           { error },

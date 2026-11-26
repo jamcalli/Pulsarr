@@ -196,7 +196,7 @@
       "groupName": "Scheduling",
       "matchPackageNames": [
         "toad-scheduler",
-        "cron-parser"
+        "croner"
       ]
     },
     {
@@ -532,7 +532,7 @@
       "groupName": "Scheduling",
       "matchPackageNames": [
         "toad-scheduler",
-        "cron-parser"
+        "croner"
       ],
       "matchUpdateTypes": [
         "patch"

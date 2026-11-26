@@ -2,35 +2,23 @@ import { SchedulerService } from '@services/scheduler.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
-/**
- * Fastify plugin for job scheduling
- *
- * This plugin integrates the SchedulerService into Fastify, making job scheduling
- * functionality available throughout the application.
- */
 declare module 'fastify' {
   interface FastifyInstance {
-    /**
-     * The scheduler service instance
-     */
     scheduler: SchedulerService
   }
 }
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    // Create the scheduler service
     const scheduler = new SchedulerService(fastify.log, fastify)
-
-    // Decorate fastify with the scheduler service only
     fastify.decorate('scheduler', scheduler)
 
-    // Initialize jobs from database on ready
-    fastify.addHook('onReady', async () => {
-      await scheduler.initializeJobsFromDatabase()
+    // onListen is the first point where every plugin's onReady has finished
+    fastify.addHook('onListen', async () => {
+      scheduler.runCatchUps()
+      await scheduler.logReadiness()
     })
 
-    // Cleanup on close
     fastify.addHook('onClose', () => {
       scheduler.stop()
     })

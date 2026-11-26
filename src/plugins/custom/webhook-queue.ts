@@ -11,9 +11,9 @@ declare module 'fastify' {
 export default fp(
   async (fastify: FastifyInstance) => {
     const config = {
-      retryInterval: fastify.config.pendingWebhookRetryInterval ?? 20,
-      maxAge: fastify.config.pendingWebhookMaxAge ?? 10,
-      cleanupInterval: fastify.config.pendingWebhookCleanupInterval ?? 60,
+      retryInterval: fastify.config.pendingWebhookRetryInterval,
+      maxAge: fastify.config.pendingWebhookMaxAge,
+      cleanupInterval: fastify.config.pendingWebhookCleanupInterval,
     }
 
     const service = new WebhookQueueService(fastify.log, fastify, config)
@@ -25,7 +25,7 @@ export default fp(
         fastify.log.debug('WebhookQueueService initialized successfully')
       } catch (error) {
         fastify.log.error({ error }, 'Failed to initialize WebhookQueueService')
-        throw error // Re-throw to prevent server start with broken state
+        throw error
       }
     })
 

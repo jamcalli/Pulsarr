@@ -2958,6 +2958,147 @@
         ],
         "description": "Arr instance kind, radarr or sonarr"
       },
+      "JobCronConfig": {
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression"
+        ],
+        "additionalProperties": false,
+        "description": "Cron expression of a cron job"
+      },
+      "JobCronConfigPayload": {
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "expression"
+        ],
+        "description": "Cron expression of a cron job, checked by the cron parser"
+      },
+      "JobIntervalConfig": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number"
+          },
+          "hours": {
+            "type": "number"
+          },
+          "minutes": {
+            "type": "number"
+          },
+          "seconds": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Time units between runs of an interval job"
+      },
+      "JobIntervalConfigPayload": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 24
+          },
+          "hours": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 596
+          },
+          "minutes": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 35791
+          },
+          "seconds": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 2147483
+          }
+        },
+        "description": "Time units between runs of an interval job, within what a timer can run"
+      },
+      "JobRunInfo": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "failed",
+              "pending"
+            ]
+          },
+          "error": {
+            "type": "string"
+          },
+          "estimated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "time",
+          "status"
+        ],
+        "additionalProperties": false,
+        "description": "One past or upcoming run of a job"
+      },
+      "JobScheduleUpdatePayload": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string",
+                "const": "interval"
+              },
+              "config": {
+                "$ref": "#/components/schemas/JobIntervalConfigPayload"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string",
+                "const": "cron"
+              },
+              "config": {
+                "$ref": "#/components/schemas/JobCronConfigPayload"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        ],
+        "description": "New timing or enabled state for a scheduled job",
+        "type": "object"
+      },
       "JobStatus": {
         "anyOf": [
           {
@@ -2969,70 +3110,13 @@
               "name": {
                 "type": "string"
               },
-              "type": {
-                "type": "string",
-                "const": "interval"
-              },
-              "config": {
-                "type": "object",
-                "properties": {
-                  "days": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 365
-                  },
-                  "hours": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 8760
-                  },
-                  "minutes": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 525600
-                  },
-                  "seconds": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 31536000
-                  },
-                  "runImmediately": {
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": false
-              },
               "enabled": {
                 "type": "boolean"
               },
               "last_run": {
                 "anyOf": [
                   {
-                    "type": "object",
-                    "properties": {
-                      "time": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "completed",
-                          "failed",
-                          "pending"
-                        ]
-                      },
-                      "error": {
-                        "type": "string"
-                      },
-                      "estimated": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "time",
-                      "status"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/JobRunInfo"
                   },
                   {
                     "type": "null"
@@ -3042,31 +3126,7 @@
               "next_run": {
                 "anyOf": [
                   {
-                    "type": "object",
-                    "properties": {
-                      "time": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "completed",
-                          "failed",
-                          "pending"
-                        ]
-                      },
-                      "error": {
-                        "type": "string"
-                      },
-                      "estimated": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "time",
-                      "status"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/JobRunInfo"
                   },
                   {
                     "type": "null"
@@ -3082,19 +3142,26 @@
               "running": {
                 "type": "boolean",
                 "description": "True while a run of the job is in progress"
+              },
+              "type": {
+                "type": "string",
+                "const": "interval"
+              },
+              "config": {
+                "$ref": "#/components/schemas/JobIntervalConfig"
               }
             },
             "required": [
               "id",
               "name",
-              "type",
-              "config",
               "enabled",
               "last_run",
               "next_run",
               "created_at",
               "updated_at",
-              "running"
+              "running",
+              "type",
+              "config"
             ],
             "additionalProperties": false
           },
@@ -3107,54 +3174,13 @@
               "name": {
                 "type": "string"
               },
-              "type": {
-                "type": "string",
-                "const": "cron"
-              },
-              "config": {
-                "type": "object",
-                "properties": {
-                  "expression": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "expression"
-                ],
-                "additionalProperties": false
-              },
               "enabled": {
                 "type": "boolean"
               },
               "last_run": {
                 "anyOf": [
                   {
-                    "type": "object",
-                    "properties": {
-                      "time": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "completed",
-                          "failed",
-                          "pending"
-                        ]
-                      },
-                      "error": {
-                        "type": "string"
-                      },
-                      "estimated": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "time",
-                      "status"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/JobRunInfo"
                   },
                   {
                     "type": "null"
@@ -3164,31 +3190,7 @@
               "next_run": {
                 "anyOf": [
                   {
-                    "type": "object",
-                    "properties": {
-                      "time": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "completed",
-                          "failed",
-                          "pending"
-                        ]
-                      },
-                      "error": {
-                        "type": "string"
-                      },
-                      "estimated": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "time",
-                      "status"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/JobRunInfo"
                   },
                   {
                     "type": "null"
@@ -3204,19 +3206,26 @@
               "running": {
                 "type": "boolean",
                 "description": "True while a run of the job is in progress"
+              },
+              "type": {
+                "type": "string",
+                "const": "cron"
+              },
+              "config": {
+                "$ref": "#/components/schemas/JobCronConfig"
               }
             },
             "required": [
               "id",
               "name",
-              "type",
-              "config",
               "enabled",
               "last_run",
               "next_run",
               "created_at",
               "updated_at",
-              "running"
+              "running",
+              "type",
+              "config"
             ],
             "additionalProperties": false
           }
@@ -6484,6 +6493,24 @@
         ],
         "additionalProperties": false,
         "description": "Aggregate days spent moving between two watchlist statuses for a content type."
+      },
+      "SuccessMessage": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable result message"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Outcome flag with a human-readable message"
       },
       "SyncPlexLabelsResponse": {
         "type": "object",
@@ -15322,82 +15349,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "interval"
-                      },
-                      "config": {
-                        "type": "object",
-                        "properties": {
-                          "days": {
-                            "type": "integer",
-                            "exclusiveMinimum": 0,
-                            "maximum": 365
-                          },
-                          "hours": {
-                            "type": "integer",
-                            "exclusiveMinimum": 0,
-                            "maximum": 8760
-                          },
-                          "minutes": {
-                            "type": "integer",
-                            "exclusiveMinimum": 0,
-                            "maximum": 525600
-                          },
-                          "seconds": {
-                            "type": "integer",
-                            "exclusiveMinimum": 0,
-                            "maximum": 31536000
-                          },
-                          "runImmediately": {
-                            "type": "boolean"
-                          }
-                        }
-                      },
-                      "enabled": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "cron"
-                      },
-                      "config": {
-                        "type": "object",
-                        "properties": {
-                          "expression": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "required": [
-                          "expression"
-                        ]
-                      },
-                      "enabled": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ]
-                  }
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/JobScheduleUpdatePayload"
               }
             }
-          }
+          },
+          "description": "New timing or enabled state for a scheduled job"
         },
         "parameters": [
           {
@@ -15415,20 +15371,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -15491,25 +15444,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/SuccessMessage"
                 }
               }
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Default Response",
             "content": {
               "application/json": {
