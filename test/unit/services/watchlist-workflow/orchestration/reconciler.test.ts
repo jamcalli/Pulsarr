@@ -214,6 +214,25 @@ describe('reconcile', () => {
     expect(state.isReconciling).toBe(false)
   })
 
+  it('does not sync when its run ended while it waited for another reconciliation', async () => {
+    vi.useFakeTimers()
+    try {
+      state.isReconciling = true
+      const waiting = reconcile({ mode: 'full' }, deps)
+
+      state.endRun()
+      state.beginRun()
+      state.isReconciling = false
+      await vi.advanceTimersByTimeAsync(1000)
+      await waiting
+
+      expect(fetchWatchlists).not.toHaveBeenCalled()
+      expect(state.isReconciling).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('stays cancelled when a new run opens before the aborted sync resumes', async () => {
     vi.mocked(fetchWatchlists).mockImplementationOnce(async () => {
       state.endRun()
