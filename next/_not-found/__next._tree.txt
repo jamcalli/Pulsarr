@@ -1,4 +1,4 @@
 :HL["/Pulsarr/next/_next/static/chunks/1h4qz4ps41tf0.css","style"]
 2:[["children",{"s":"__PAGE__","h":160}]]
 1:[["children",{"s":"/_not-found","h":96,"c":"$Q2"}]]
-0:{"b":"D3z9jEY28PEWebUFj35tt","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"V5vVnNF2sE-Wn6aHQN06d","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
