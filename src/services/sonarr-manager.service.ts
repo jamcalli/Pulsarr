@@ -181,7 +181,14 @@ export class SonarrManagerService extends ArrManager<
           instanceId,
         )
         if (masterId !== null) {
-          await this.fastify.db.deleteAllRollingMonitoredShowEntries(masterId)
+          const deleted =
+            await this.fastify.db.deleteAllRollingMonitoredShowEntries(masterId)
+          // The delete reports a failed transaction as zero rows, and enrolling on top would leave two masters
+          if (deleted === 0) {
+            throw new Error(
+              `Rolling rows of series ${seriesId} could not be removed`,
+            )
+          }
         }
       }
       const plexSessionMonitor = this.fastify.plexSessionMonitor

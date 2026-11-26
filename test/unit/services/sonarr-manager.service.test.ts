@@ -476,6 +476,18 @@ describe('SonarrManagerService dormant reactivation', () => {
     ).resolves.toMatchObject({ seasonMonitoring: 'all' })
   })
 
+  it('enrols nothing on top of rolling rows the delete could not remove', async () => {
+    getRollingMasterShowId.mockResolvedValue(10)
+    deleteAllRollingMonitoredShowEntries.mockResolvedValue(0)
+
+    await expect(
+      manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+        seasonMonitoring: 'firstSeasonRolling',
+      }),
+    ).resolves.toMatchObject({ seasonMonitoring: 'firstSeasonRolling' })
+    expect(createRollingMonitoredShow).not.toHaveBeenCalled()
+  })
+
   it('never looks up or deletes a rolling row for a fresh add', async () => {
     vi.spyOn(service, 'addToSonarr').mockResolvedValue({
       ...ADDED,
