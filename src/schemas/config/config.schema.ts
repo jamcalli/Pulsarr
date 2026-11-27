@@ -77,6 +77,7 @@ export const QUOTA_MONTHLY_RESET_DAY = { min: 1, max: 31 } as const
 /** Empty means Pulsarr negotiates the Plex server connection itself. */
 export const PLEX_SERVER_URL_DEFAULT = ''
 export const TMDB_REGION_DEFAULT = 'US'
+export const PENDING_WEBHOOK_INTERVAL_SECONDS = { min: 1, max: 86_400 } as const
 export const PENDING_WEBHOOK_DEFAULTS = {
   retryIntervalSeconds: 20,
   maxAgeMinutes: 10,
@@ -522,11 +523,19 @@ export const ConfigUpdateSchema = z
     notifyOnAvailability: z.boolean().optional(),
     // Pending Webhooks Config
     // How often to retry processing pending webhooks (in seconds)
-    pendingWebhookRetryInterval: z.number().optional(),
+    pendingWebhookRetryInterval: z
+      .number()
+      .min(PENDING_WEBHOOK_INTERVAL_SECONDS.min)
+      .max(PENDING_WEBHOOK_INTERVAL_SECONDS.max)
+      .optional(),
     // Maximum age of a pending webhook before it expires (in minutes)
     pendingWebhookMaxAge: z.number().optional(),
     // How often to clean up expired webhooks (in seconds)
-    pendingWebhookCleanupInterval: z.number().optional(),
+    pendingWebhookCleanupInterval: z
+      .number()
+      .min(PENDING_WEBHOOK_INTERVAL_SECONDS.min)
+      .max(PENDING_WEBHOOK_INTERVAL_SECONDS.max)
+      .optional(),
     // Other configs
     plexTokens: PlexTokensSchema.optional(),
     skipFriendSync: z.boolean().optional(),

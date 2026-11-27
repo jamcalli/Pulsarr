@@ -594,6 +594,22 @@ describe('SchedulerService', () => {
     expect(db.updateSchedule).not.toHaveBeenCalled()
   })
 
+  it.each([{ seconds: 0 }, { seconds: -5 }, { days: 30 }])(
+    'refuses an internal job interval of %o and keeps the running one',
+    async (interval) => {
+      createScheduler([])
+      const handler = vi.fn().mockResolvedValue(undefined)
+      scheduler.scheduleInternalJob(JOB, { seconds: 30 }, handler)
+
+      expect(() =>
+        scheduler.scheduleInternalJob(JOB, interval, handler),
+      ).toThrow()
+      await vi.advanceTimersByTimeAsync(MINUTE)
+
+      expect(handler).toHaveBeenCalledTimes(2)
+    },
+  )
+
   it('stops an internal job when it is unscheduled', async () => {
     createScheduler([])
     const handler = vi.fn().mockResolvedValue(undefined)

@@ -129,6 +129,7 @@ export class SchedulerService {
     interval: IntervalConfig,
     handler: () => Promise<void>,
   ): void {
+    assertStartable(name, { type: 'interval', config: interval })
     this.scheduler.removeById(name)
     const task = new AsyncTask(name, handler, (error) => {
       this.log.error({ error }, `Internal job ${name} failed`)

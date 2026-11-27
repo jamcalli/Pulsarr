@@ -1949,13 +1949,17 @@
             "type": "boolean"
           },
           "pendingWebhookRetryInterval": {
-            "type": "number"
+            "type": "number",
+            "minimum": 1,
+            "maximum": 86400
           },
           "pendingWebhookMaxAge": {
             "type": "number"
           },
           "pendingWebhookCleanupInterval": {
-            "type": "number"
+            "type": "number",
+            "minimum": 1,
+            "maximum": 86400
           },
           "plexTokens": {
             "type": "array",
