@@ -20,8 +20,8 @@ import {
 
 const ETAG_CACHE_SIZE = 50
 
-const friendItemsQuery = (watchlistId: string) => `query {
-  userV2(user: {id: "${watchlistId}"}) {
+const FRIEND_ITEMS_QUERY = `query GetFriendWatchlistItems($user: UserInput!) {
+  userV2(user: $user) {
     ... on User {
       watchlist(first: ${ETAG_CACHE_SIZE}) {
         nodes { id title type }
@@ -30,8 +30,8 @@ const friendItemsQuery = (watchlistId: string) => `query {
   }
 }`
 
-const friendEtagQuery = (watchlistId: string) => `query {
-  userV2(user: {id: "${watchlistId}"}) {
+const FRIEND_ETAG_QUERY = `query GetFriendWatchlistEtag($user: UserInput!) {
+  userV2(user: $user) {
     ... on User {
       watchlist(first: 2) {
         nodes { id }
@@ -489,7 +489,8 @@ export class EtagPoller {
         method: 'POST',
         headers: communityHeaders(token),
         body: JSON.stringify({
-          query: friendItemsQuery(friend.watchlistId),
+          query: FRIEND_ITEMS_QUERY,
+          variables: { user: { id: friend.watchlistId } },
         }),
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
@@ -520,7 +521,8 @@ export class EtagPoller {
         method: 'POST',
         headers: communityHeaders(token),
         body: JSON.stringify({
-          query: friendEtagQuery(friend.watchlistId),
+          query: FRIEND_ETAG_QUERY,
+          variables: { user: { id: friend.watchlistId } },
         }),
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
@@ -664,7 +666,8 @@ export class EtagPoller {
         method: 'POST',
         headers: communityHeaders(token),
         body: JSON.stringify({
-          query: friendEtagQuery(friend.watchlistId),
+          query: FRIEND_ETAG_QUERY,
+          variables: { user: { id: friend.watchlistId } },
         }),
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
@@ -694,7 +697,8 @@ export class EtagPoller {
         method: 'POST',
         headers: communityHeaders(token),
         body: JSON.stringify({
-          query: friendItemsQuery(friend.watchlistId),
+          query: FRIEND_ITEMS_QUERY,
+          variables: { user: { id: friend.watchlistId } },
         }),
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })

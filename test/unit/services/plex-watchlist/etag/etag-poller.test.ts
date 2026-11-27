@@ -8,6 +8,7 @@ import { server } from '../../../../setup/msw-setup.js'
 
 const WATCHLIST_URL =
   'https://discover.provider.plex.tv/library/sections/watchlist/all'
+const COMMUNITY_API_URL = 'https://community.plex.tv/api'
 
 function captureTokens(conditional: boolean[] = []): string[] {
   const tokens: string[] = []
@@ -265,7 +266,7 @@ describe('EtagPoller staggered loop restart', () => {
     }
     let etag = 'W/"1"'
     server.use(
-      http.post('https://community.plex.tv/api', () =>
+      http.post(COMMUNITY_API_URL, () =>
         HttpResponse.json(
           { data: { userV2: { watchlist: { nodes: [] } } } },
           { headers: { etag } },
@@ -321,5 +322,50 @@ describe('EtagPoller staggered loop restart', () => {
     expect(onUserChanged).not.toHaveBeenCalled()
 
     poller.stopStaggeredPolling()
+  })
+})
+
+describe('EtagPoller friend GraphQL requests', () => {
+  const hostileId = 'friend-1"}) { id } } query Injected { me'
+
+  it('sends the watchlist id as a variable, never inside the query text', async () => {
+    const poller = new EtagPoller(
+      () => ({ plexTokens: ['token'] }) as Config,
+      createMockLogger(),
+    )
+    const friend = {
+      userId: 2,
+      username: 'friend',
+      isPrimary: false,
+      watchlistId: hostileId,
+    }
+    const bodies: {
+      query: string
+      variables?: { user?: { id?: string } }
+    }[] = []
+    server.use(
+      http.post(COMMUNITY_API_URL, async ({ request }) => {
+        bodies.push((await request.json()) as (typeof bodies)[number])
+        return HttpResponse.json(
+          { data: { userV2: { watchlist: { nodes: [] } } } },
+          { headers: { etag: `W/"${bodies.length}"` } },
+        )
+      }),
+    )
+
+    await poller.establishBaseline(friend)
+    await poller.checkUser(friend)
+
+    expect(bodies.map((body) => body.query.match(/query (\w+)/)?.[1])).toEqual([
+      'GetFriendWatchlistItems',
+      'GetFriendWatchlistEtag',
+      'GetFriendWatchlistEtag',
+      'GetFriendWatchlistItems',
+    ])
+    for (const body of bodies) {
+      expect(body.query).not.toContain('friend-1')
+      expect(body.query).toContain('userV2(user: $user)')
+      expect(body.variables).toEqual({ user: { id: hostileId } })
+    }
   })
 })
