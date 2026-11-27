@@ -1,5 +1,8 @@
 import { isDeepStrictEqual } from 'node:util'
-import { intervalToMs } from '@root/schemas/scheduler/scheduler.schema.js'
+import {
+  INTERVAL_LIMIT_MS,
+  intervalToMs,
+} from '@root/schemas/scheduler/scheduler.schema.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import type {
   CronConfig,
@@ -56,8 +59,10 @@ export class SchedulerService {
   /** Names registered in this process, since only a first registration may catch up an overdue run. */
   private readonly registeredJobs = new Set<string>()
   /** Overdue jobs held until every plugin has started, since a handler may use a service that starts later. */
-  private readonly pendingCatchUps = new Set<string>()
+  private readonly pendingCatchUps = new Map<string, JobRunInfo>()
   private readonly jobsRunSinceBoot = new Set<string>()
+  /** Scheduled runs in progress by job name, since a replaced timer gets a new task with no memory of the run. */
+  private readonly scheduledRuns = new Set<string>()
   private appStarted = false
   private readonly intervalTimers = new Map<
     string,
@@ -96,8 +101,8 @@ export class SchedulerService {
       )
       return
     }
-    if (firstRegistration && isOverdue(row.spec, row.lastRun)) {
-      this.pendingCatchUps.add(name)
+    if (firstRegistration && row.lastRun && isOverdue(row.spec, row.lastRun)) {
+      this.pendingCatchUps.set(name, row.lastRun)
       if (this.appStarted) this.runCatchUps()
     }
   }
@@ -105,11 +110,12 @@ export class SchedulerService {
   /** Runs each overdue interval job once, and from then on a job registered overdue catches up at registration. */
   runCatchUps(): void {
     this.appStarted = true
-    for (const name of this.pendingCatchUps) {
+    for (const [name, lastRun] of this.pendingCatchUps) {
       const live = this.jobs.get(name)?.live
       if (
         !(live?.job instanceof SimpleIntervalJob) ||
-        this.jobsRunSinceBoot.has(name)
+        this.jobsRunSinceBoot.has(name) ||
+        !isOverdue(live.spec, lastRun)
       ) {
         continue
       }
@@ -187,32 +193,20 @@ export class SchedulerService {
     if (!nextSpec) return 'type-mismatch'
 
     const registration = this.jobs.get(name)
-    const wasLive = registration ? registration.live !== null : false
-    const restorePrevious = () => {
-      if (!registration) return
-      this.stopLiveJob(name)
-      if (wasLive) this.startLiveJob(name, row, registration.handler)
-    }
-
-    if (registration) {
-      this.stopLiveJob(name)
-      if (enabled ?? row.enabled) {
-        try {
-          this.startLiveJob(name, nextSpec, registration.handler)
-        } catch (error) {
-          restorePrevious()
-          throw error
-        }
-      }
-    }
+    const willRun = enabled ?? row.enabled
+    if (registration && willRun) assertStartable(name, nextSpec)
 
     const persisted = await this.fastify.db.updateSchedule(name, {
       config: configChanged ? nextSpec.config : undefined,
       enabled: enabledChanged ? enabled : undefined,
     })
     if (!persisted) {
-      restorePrevious()
       throw new Error(`Could not save the schedule for ${name}`)
+    }
+
+    if (registration) {
+      this.stopLiveJob(name)
+      if (willRun) this.startLiveJob(name, nextSpec, registration.handler)
     }
     return 'updated'
   }
@@ -322,11 +316,9 @@ export class SchedulerService {
   ): void {
     let job: SimpleIntervalJob | CronJob
 
+    assertStartable(name, spec)
     if (spec.type === 'interval') {
       const intervalMs = intervalToMs(spec.config)
-      if (intervalMs <= 0) {
-        throw new Error(`Schedule ${name} has an interval with no time units`)
-      }
       const task = this.buildTask(name, handler)
       const interval = new SimpleIntervalJob(spec.config, task, {
         id: name,
@@ -371,7 +363,13 @@ export class SchedulerService {
     return new AsyncTask(
       `${name}-task`,
       async () => {
-        await this.runJob(name, handler)
+        if (this.scheduledRuns.has(name)) return
+        this.scheduledRuns.add(name)
+        try {
+          await this.runJob(name, handler)
+        } finally {
+          this.scheduledRuns.delete(name)
+        }
       },
       (error) => {
         this.log.error({ error }, `Error recording the run of job ${name}`)
@@ -484,12 +482,28 @@ function nextIntervalFire(
   return timer.startedAt + ticks * timer.intervalMs
 }
 
-function isOverdue(spec: ScheduleSpec, lastRun: JobRunInfo | null): boolean {
+function isOverdue(spec: ScheduleSpec, lastRun: JobRunInfo): boolean {
   return (
     spec.type === 'interval' &&
-    lastRun !== null &&
     Date.parse(lastRun.time) + intervalToMs(spec.config) <= Date.now()
   )
+}
+
+/** Throws for a schedule the timer library would refuse, so a caller can check before it commits. */
+function assertStartable(name: string, spec: ScheduleSpec): void {
+  if (spec.type === 'cron') {
+    if (new Cron(spec.config.expression).getPattern() === undefined) {
+      throw new Error(`Schedule ${name} has no cron pattern`)
+    }
+    return
+  }
+  const intervalMs = intervalToMs(spec.config)
+  if (intervalMs <= 0) {
+    throw new Error(`Schedule ${name} has an interval with no time units`)
+  }
+  if (intervalMs >= INTERVAL_LIMIT_MS) {
+    throw new Error(`Schedule ${name} has an interval too long to schedule`)
+  }
 }
 
 function sameSpec(a: ScheduleSpec, b: ScheduleSpec): boolean {

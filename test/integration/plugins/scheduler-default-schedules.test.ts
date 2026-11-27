@@ -271,12 +271,12 @@ describe('scheduler rows on first boot', { timeout: 30_000 }, () => {
       expect(
         (await booted.db.getScheduleByName('plex-session-monitor'))?.config,
       ).toEqual({ minutes: 5 })
+      expect(
+        (await booted.db.getScheduleByName('plex-rolling-auto-reset'))?.config,
+      ).toEqual({ hours: 6 })
+      expect(
+        (await booted.db.getScheduleByName('plex-rolling-pilot-sync'))?.config,
+      ).toEqual({ hours: 6 })
     })
-    expect(
-      (await booted.db.getScheduleByName('plex-rolling-auto-reset'))?.config,
-    ).toEqual({ hours: 6 })
-    expect(
-      (await booted.db.getScheduleByName('plex-rolling-pilot-sync'))?.config,
-    ).toEqual({ hours: 6 })
   })
 })

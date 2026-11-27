@@ -109,6 +109,18 @@ describe('SchedulerService', () => {
       expect(handler).not.toHaveBeenCalled()
     })
 
+    it('skips the catch-up when a longer interval set before start is not overdue', async () => {
+      createScheduler([intervalRow(completedRun(hoursAgo(30)))])
+      const handler = vi.fn().mockResolvedValue(undefined)
+
+      await scheduler.scheduleJob(JOB, handler)
+      await scheduler.updateJobSchedule(JOB, { hours: 48 })
+      scheduler.runCatchUps()
+      await vi.advanceTimersByTimeAsync(SECOND)
+
+      expect(handler).not.toHaveBeenCalled()
+    })
+
     it('keeps the next run on the original timer after catching up', async () => {
       createScheduler([intervalRow(completedRun(hoursAgo(30)))])
 
@@ -217,6 +229,59 @@ describe('SchedulerService', () => {
 
       await vi.advanceTimersByTimeAsync(50 * MINUTE)
       expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the old timer on its cadence when an update fails late in the cycle', async () => {
+      createScheduler([hourlyRow(true)])
+      const handler = vi.fn().mockResolvedValue(undefined)
+      await scheduler.scheduleJob(JOB, handler)
+      await vi.advanceTimersByTimeAsync(59 * MINUTE)
+      db.updateSchedule.mockResolvedValueOnce(false)
+
+      await expect(
+        scheduler.updateJobSchedule(JOB, { hours: 2 }),
+      ).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(MINUTE)
+
+      expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not run the new schedule before it is saved', async () => {
+      createScheduler([hourlyRow(true)])
+      const handler = vi.fn().mockResolvedValue(undefined)
+      await scheduler.scheduleJob(JOB, handler)
+      db.updateSchedule.mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5 * SECOND))
+        return false
+      })
+
+      const update = scheduler.updateJobSchedule(JOB, { seconds: 1 })
+      const outcome = expect(update).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(5 * SECOND)
+      await outcome
+
+      expect(handler).not.toHaveBeenCalled()
+    })
+
+    it('does not start a second run when the timer is replaced during a run', async () => {
+      createScheduler([hourlyRow(true)])
+      let finish: () => void = () => {}
+      const handler = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve
+          }),
+      )
+      await scheduler.scheduleJob(JOB, handler)
+      await vi.advanceTimersByTimeAsync(HOUR)
+
+      await scheduler.updateJobSchedule(JOB, { minutes: 1 })
+      await vi.advanceTimersByTimeAsync(5 * MINUTE)
+      expect(handler).toHaveBeenCalledTimes(1)
+
+      finish()
+      await vi.advanceTimersByTimeAsync(MINUTE)
+      expect(handler).toHaveBeenCalledTimes(2)
     })
 
     it('still accepts an update after one that failed', async () => {
