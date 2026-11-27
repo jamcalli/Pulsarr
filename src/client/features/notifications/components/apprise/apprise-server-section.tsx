@@ -45,8 +45,8 @@ export function AppriseServerSection({
             </ExternalLink>
           }
         >
-          Pulsarr sends to the stateless notify endpoint, so list full Apprise
-          URLs or a saved config as{' '}
+          Enter complete Apprise URLs in the fields below. To use a config saved
+          on your Apprise server, enter it as{' '}
           <InlineCode>apprise://host:8000/key</InlineCode>.
         </InfoLine>
       )}
