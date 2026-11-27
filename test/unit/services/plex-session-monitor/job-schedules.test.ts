@@ -1,4 +1,7 @@
-import { sessionMonitorJobSchedules } from '@services/plex-session-monitor/job-schedules.js'
+import {
+  isAutoResetEnabled,
+  sessionMonitorJobSchedules,
+} from '@services/plex-session-monitor/job-schedules.js'
 import { describe, expect, it } from 'vitest'
 
 const settings = (overrides: {
@@ -18,6 +21,24 @@ const enabledJobs = (
   Object.entries(schedules)
     .filter(([, schedule]) => schedule.enabled)
     .map(([name]) => name)
+
+describe('isAutoResetEnabled', () => {
+  it('is on when monitoring is on and the auto reset setting was never saved', () => {
+    expect(isAutoResetEnabled(settings({ enabled: true }))).toBe(true)
+  })
+
+  it('is off when auto reset is explicitly off', () => {
+    expect(
+      isAutoResetEnabled(settings({ enabled: true, enableAutoReset: false })),
+    ).toBe(false)
+  })
+
+  it('is off while monitoring is off', () => {
+    expect(
+      isAutoResetEnabled(settings({ enabled: false, enableAutoReset: true })),
+    ).toBe(false)
+  })
+})
 
 describe('sessionMonitorJobSchedules', () => {
   it('turns every job off while session monitoring is off', () => {

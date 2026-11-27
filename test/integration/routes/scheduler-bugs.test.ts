@@ -204,6 +204,33 @@ describe('scheduler', () => {
     })
   })
 
+  it('runs the auto reset when its setting was never saved', async () => {
+    const monitoring = app.config.plexSessionMonitoring
+    app.config.plexSessionMonitoring = {
+      enabled: true,
+      pollingIntervalMinutes: 15,
+      remainingEpisodes: 2,
+    }
+    await app.db.createSchedule({
+      name: 'plex-rolling-auto-reset',
+      type: 'interval',
+      config: { hours: 24 },
+      enabled: true,
+      last_run: null,
+    })
+    const reset = vi
+      .spyOn(app.plexSessionMonitor, 'resetInactiveRollingShows')
+      .mockResolvedValue(undefined)
+
+    try {
+      await app.scheduler.runJobNow('plex-rolling-auto-reset')
+    } finally {
+      app.config.plexSessionMonitoring = monitoring
+    }
+
+    expect(reset).toHaveBeenCalledTimes(1)
+  })
+
   it('reads unparseable run info as no run', async () => {
     await app.db.createSchedule({
       name: TEST_JOB,

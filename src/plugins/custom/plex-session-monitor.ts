@@ -1,5 +1,10 @@
 import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
-import { sessionMonitorJobSchedules } from '@services/plex-session-monitor/job-schedules.js'
+import {
+  isAutoResetEnabled,
+  SESSION_MONITOR_JOBS,
+  type SessionMonitorJob,
+  sessionMonitorJobSchedules,
+} from '@services/plex-session-monitor/job-schedules.js'
 import { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -35,13 +40,8 @@ export default fp(
           }
         })
 
-        const schedules = sessionMonitorJobSchedules(
-          fastify.config.plexSessionMonitoring,
-        )
-
-        await fastify.scheduler.scheduleJob(
-          'plex-session-monitor',
-          async () => {
+        const handlers: Record<SessionMonitorJob, () => Promise<void>> = {
+          'plex-session-monitor': async () => {
             if (!fastify.config.plexSessionMonitoring?.enabled) {
               fastify.log.debug(
                 'Plex session monitoring is disabled, skipping task',
@@ -73,19 +73,9 @@ export default fp(
               )
             }
           },
-          {
-            schedule: {
-              type: 'interval',
-              ...schedules['plex-session-monitor'],
-            },
-          },
-        )
-
-        await fastify.scheduler.scheduleJob(
-          'plex-rolling-auto-reset',
-          async () => {
+          'plex-rolling-auto-reset': async () => {
             const sessionConfig = fastify.config.plexSessionMonitoring
-            if (!sessionConfig?.enabled || !sessionConfig?.enableAutoReset) {
+            if (!isAutoResetEnabled(sessionConfig)) {
               fastify.log.debug(
                 'Plex session monitoring or auto reset is disabled, skipping auto reset task',
               )
@@ -93,7 +83,7 @@ export default fp(
             }
 
             const inactivityDays =
-              sessionConfig.inactivityResetDays ??
+              sessionConfig?.inactivityResetDays ??
               PLEX_SESSION_MONITORING_DEFAULTS.inactivityResetDays
 
             fastify.log.debug(
@@ -105,17 +95,7 @@ export default fp(
               `Automatic reset task completed for shows inactive ${inactivityDays}+ days`,
             )
           },
-          {
-            schedule: {
-              type: 'interval',
-              ...schedules['plex-rolling-auto-reset'],
-            },
-          },
-        )
-
-        await fastify.scheduler.scheduleJob(
-          'plex-rolling-pilot-sync',
-          async () => {
+          'plex-rolling-pilot-sync': async () => {
             if (!fastify.config.plexSessionMonitoring?.enabled) {
               fastify.log.debug(
                 'Plex session monitoring is disabled, skipping pilot sync task',
@@ -130,17 +110,27 @@ export default fp(
 
             fastify.log.info('New season pilot sync task completed')
           },
-          {
-            schedule: {
-              type: 'interval',
-              ...schedules['plex-rolling-pilot-sync'],
-            },
-          },
+        }
+
+        const schedules = sessionMonitorJobSchedules(
+          fastify.config.plexSessionMonitoring,
         )
+        for (const name of SESSION_MONITOR_JOBS) {
+          try {
+            await fastify.scheduler.scheduleJob(name, handlers[name], {
+              schedule: { type: 'interval', ...schedules[name] },
+            })
+          } catch (error) {
+            fastify.log.error(
+              { error, job: name },
+              'Failed to register a session monitor job',
+            )
+          }
+        }
       } catch (error) {
         fastify.log.error(
           { error },
-          'Failed to initialize plex session monitor scheduled jobs',
+          'Failed to initialize the plex session monitor',
         )
       }
     })

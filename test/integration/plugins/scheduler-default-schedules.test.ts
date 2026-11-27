@@ -268,6 +268,33 @@ describe('scheduler rows on first boot', { timeout: 30_000 }, () => {
     })
   })
 
+  it('still registers the other session monitor jobs when one cannot be saved', async () => {
+    await getTestDatabase()('schedules').insert({
+      name: 'plex-rolling-auto-reset',
+      type: 'interval',
+      config: JSON.stringify({ hours: 12 }),
+      enabled: false,
+    })
+    app = await build()
+    const booted = app
+    const updateSchedule = booted.db.updateSchedule.bind(booted.db)
+    vi.spyOn(booted.db, 'updateSchedule').mockImplementation(
+      async (name, updates) =>
+        name === 'plex-rolling-auto-reset'
+          ? false
+          : updateSchedule(name, updates),
+    )
+
+    await booted.ready()
+
+    expect(await booted.scheduler.startJob('plex-rolling-auto-reset')).toBe(
+      'unknown',
+    )
+    expect(await booted.scheduler.startJob('plex-rolling-pilot-sync')).toBe(
+      'disabled',
+    )
+  })
+
   it('creates no row for the internal pollers', async () => {
     await boot()
 
