@@ -1,6 +1,7 @@
 import {
   ConfigUpdateSchema,
   PENDING_WEBHOOK_INTERVAL_SECONDS,
+  PENDING_WEBHOOK_MAX_AGE_MINUTES,
 } from '@root/schemas/config/config.schema.js'
 import { describe, expect, it } from 'vitest'
 
@@ -37,5 +38,25 @@ describe('ConfigUpdateSchema pending webhook intervals', () => {
         [field]: PENDING_WEBHOOK_INTERVAL_SECONDS.max,
       }).success,
     ).toBe(true)
+  })
+})
+
+describe('ConfigUpdateSchema pending webhook max age', () => {
+  it.each([
+    PENDING_WEBHOOK_MAX_AGE_MINUTES.min - 1,
+    PENDING_WEBHOOK_MAX_AGE_MINUTES.max + 1,
+  ])('rejects %d minutes', (pendingWebhookMaxAge) => {
+    expect(ConfigUpdateSchema.safeParse({ pendingWebhookMaxAge }).success).toBe(
+      false,
+    )
+  })
+
+  it.each([
+    PENDING_WEBHOOK_MAX_AGE_MINUTES.min,
+    PENDING_WEBHOOK_MAX_AGE_MINUTES.max,
+  ])('accepts %d minutes', (pendingWebhookMaxAge) => {
+    expect(ConfigUpdateSchema.safeParse({ pendingWebhookMaxAge }).success).toBe(
+      true,
+    )
   })
 })

@@ -9,6 +9,7 @@ import {
   MAINTAINERR_EXCLUSION_MODES,
   NOTIFY_OPTIONS,
   PENDING_WEBHOOK_INTERVAL_SECONDS,
+  PENDING_WEBHOOK_MAX_AGE_MINUTES,
   PLEX_SERVER_URL_DEFAULT,
 } from '@root/schemas/config/config.schema.js'
 import {
@@ -214,6 +215,8 @@ const schema = {
     },
     pendingWebhookMaxAge: {
       type: 'number',
+      minimum: PENDING_WEBHOOK_MAX_AGE_MINUTES.min,
+      maximum: PENDING_WEBHOOK_MAX_AGE_MINUTES.max,
       default: STORED_CONFIG_DEFAULTS.pendingWebhookMaxAge,
     },
     pendingWebhookCleanupInterval: {

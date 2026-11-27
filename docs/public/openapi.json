@@ -1954,7 +1954,9 @@
             "maximum": 86400
           },
           "pendingWebhookMaxAge": {
-            "type": "number"
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1440
           },
           "pendingWebhookCleanupInterval": {
             "type": "number",

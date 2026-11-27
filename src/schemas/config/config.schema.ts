@@ -78,6 +78,7 @@ export const QUOTA_MONTHLY_RESET_DAY = { min: 1, max: 31 } as const
 export const PLEX_SERVER_URL_DEFAULT = ''
 export const TMDB_REGION_DEFAULT = 'US'
 export const PENDING_WEBHOOK_INTERVAL_SECONDS = { min: 1, max: 86_400 } as const
+export const PENDING_WEBHOOK_MAX_AGE_MINUTES = { min: 1, max: 1440 } as const
 export const PENDING_WEBHOOK_DEFAULTS = {
   retryIntervalSeconds: 20,
   maxAgeMinutes: 10,
@@ -529,7 +530,11 @@ export const ConfigUpdateSchema = z
       .max(PENDING_WEBHOOK_INTERVAL_SECONDS.max)
       .optional(),
     // Maximum age of a pending webhook before it expires (in minutes)
-    pendingWebhookMaxAge: z.number().optional(),
+    pendingWebhookMaxAge: z
+      .number()
+      .min(PENDING_WEBHOOK_MAX_AGE_MINUTES.min)
+      .max(PENDING_WEBHOOK_MAX_AGE_MINUTES.max)
+      .optional(),
     // How often to clean up expired webhooks (in seconds)
     pendingWebhookCleanupInterval: z
       .number()
