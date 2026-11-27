@@ -284,6 +284,21 @@ describe('SchedulerService', () => {
       expect(handler).toHaveBeenCalledTimes(2)
     })
 
+    it('leaves a job unscheduled when it was removed while an update was saving', async () => {
+      createScheduler([hourlyRow(true)])
+      const handler = vi.fn().mockResolvedValue(undefined)
+      await scheduler.scheduleJob(JOB, handler)
+      db.updateSchedule.mockImplementationOnce(async () => {
+        await scheduler.unscheduleJob(JOB)
+        return true
+      })
+
+      await scheduler.updateJobSchedule(JOB, { minutes: 1 })
+      await vi.advanceTimersByTimeAsync(5 * MINUTE)
+
+      expect(handler).not.toHaveBeenCalled()
+    })
+
     it('still accepts an update after one that failed', async () => {
       createScheduler([hourlyRow(true)])
       await scheduler.scheduleJob(JOB, vi.fn().mockResolvedValue(undefined))

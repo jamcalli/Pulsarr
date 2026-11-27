@@ -204,7 +204,8 @@ export class SchedulerService {
       throw new Error(`Could not save the schedule for ${name}`)
     }
 
-    if (registration) {
+    // An unschedule during the save removes the registration, and the job must stay removed
+    if (registration && this.jobs.get(name) === registration) {
       this.stopLiveJob(name)
       if (willRun) this.startLiveJob(name, nextSpec, registration.handler)
     }
