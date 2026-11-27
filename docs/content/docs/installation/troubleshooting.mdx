@@ -17,7 +17,7 @@ Plex mobile notifications need Plex Pass on the server, and users need notificat
 
 ## Apprise shows as not reachable
 
-Pulsarr checks the Apprise server only while it starts. Start Apprise first, or restart Pulsarr once Apprise is up. In the same Compose file, `appriseUrl` uses the container name and port, for example `http://apprise:8000`.
+Pulsarr keeps checking the Apprise server until it answers, then turns Apprise on. Set the address in the environment or under **Server URL** on **Notifications** > **Apprise**. In the same Compose file, `appriseUrl` uses the container name and port, for example `http://apprise:8000`.
 
 ## A webhook doesn't fire or its test fails
 

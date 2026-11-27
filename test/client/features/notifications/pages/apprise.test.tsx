@@ -59,7 +59,9 @@ describe('ApprisePage', () => {
     renderPage()
 
     expect(await screen.findByText('Enabled')).toBeInTheDocument()
-    expect(screen.getByText('http://apprise:8000')).toBeInTheDocument()
+    expect(screen.getByLabelText('Server URL')).toHaveValue(
+      'http://apprise:8000',
+    )
     expect(
       screen.getByRole('link', { name: 'Apprise URL formats' }),
     ).toHaveAttribute('href', 'https://appriseit.com/')
@@ -77,8 +79,29 @@ describe('ApprisePage', () => {
     expect(await screen.findByText('Changes saved')).toBeInTheDocument()
     expect(configBodies).toEqual([
       {
+        appriseUrl: savedConfig.appriseUrl,
         appriseEmailSender: savedConfig.appriseEmailSender,
         systemAppriseUrl: 'admin@example.com',
+      },
+    ])
+  })
+
+  it('saves a new server URL', async () => {
+    const user = userEvent.setup()
+    const { configBodies } = mockEndpoints()
+    renderPage()
+
+    const serverUrl = await screen.findByLabelText('Server URL')
+    await user.clear(serverUrl)
+    await user.type(serverUrl, 'http://192.168.1.100:8000')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(configBodies).toEqual([
+      {
+        appriseUrl: 'http://192.168.1.100:8000',
+        appriseEmailSender: savedConfig.appriseEmailSender,
+        systemAppriseUrl: savedConfig.systemAppriseUrl,
       },
     ])
   })
@@ -99,12 +122,18 @@ describe('ApprisePage', () => {
     mockEndpoints({ ...savedConfig, enableApprise: false })
     renderPage()
 
-    expect(await screen.findByText('Disabled')).toBeInTheDocument()
+    expect(await screen.findByText('Unreachable')).toBeInTheDocument()
     expect(
       screen.getByText(
-        'Apprise is disabled, so these settings do nothing until it is reachable.',
+        'Apprise is unreachable, so these settings do nothing until the server answers.',
       ),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Pulsarr can't reach this server. It keeps checking and turns Apprise on once the server answers.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Server URL')).toBeEnabled()
     expect(screen.getByLabelText('Email sender')).toBeDisabled()
     expect(screen.getByLabelText('Apprise URLs, URL 1')).toBeDisabled()
     expect(screen.getByRole('link', { name: 'Apprise setup' })).toHaveAttribute(
@@ -113,13 +142,18 @@ describe('ApprisePage', () => {
     )
   })
 
-  it('points to the environment when no server is set', async () => {
+  it('asks for a server URL when none is set', async () => {
     mockEndpoints({ ...savedConfig, appriseUrl: '', enableApprise: false })
     renderPage()
 
     expect(await screen.findByText('Not configured')).toBeInTheDocument()
-    expect(screen.getByText('Not set')).toBeInTheDocument()
-    expect(screen.getByText('appriseUrl')).toBeInTheDocument()
+    expect(screen.getByLabelText('Server URL')).toHaveValue('')
+    expect(screen.getByLabelText('Server URL')).toBeEnabled()
+    expect(
+      screen.getByText(
+        'Enter the address of your Apprise server to turn on Apprise notifications.',
+      ),
+    ).toBeInTheDocument()
     expect(
       screen.getByText('Set up an Apprise server to use these settings.'),
     ).toBeInTheDocument()

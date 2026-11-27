@@ -13,7 +13,7 @@ describe('apprise', () => {
         appriseUrl: 'http://a:8000',
         enableApprise: false,
       }),
-    ).toBe('disabled')
+    ).toBe('unreachable')
     expect(
       appriseStatusFromConfig({
         appriseUrl: 'http://a:8000',
@@ -24,8 +24,8 @@ describe('apprise', () => {
 
   it('locks the settings unless Apprise is enabled', () => {
     expect(appriseLockReason('enabled')).toBeNull()
-    expect(appriseLockReason('disabled')).toBe(
-      'Apprise is disabled, so these settings do nothing until it is reachable.',
+    expect(appriseLockReason('unreachable')).toBe(
+      'Apprise is unreachable, so these settings do nothing until the server answers.',
     )
     expect(appriseLockReason('not_configured')).toBe(
       'Set up an Apprise server to use these settings.',
@@ -34,8 +34,8 @@ describe('apprise', () => {
 
   it('names the lists when a page locks lists', () => {
     expect(appriseLockReason('enabled', 'lists')).toBeNull()
-    expect(appriseLockReason('disabled', 'lists')).toBe(
-      'Apprise is disabled, so these lists do nothing until it is reachable.',
+    expect(appriseLockReason('unreachable', 'lists')).toBe(
+      'Apprise is unreachable, so these lists do nothing until the server answers.',
     )
     expect(appriseLockReason('not_configured', 'lists')).toBe(
       'Set up an Apprise server to use these lists.',

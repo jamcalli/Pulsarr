@@ -1,10 +1,10 @@
 import type { AppriseStatus } from '@root/types/notification.types'
 import { TriangleAlert } from 'lucide-react'
 import { ExternalLink } from '@/components/external-link'
-import { FactList } from '@/components/fact-list'
 import { InlineCode } from '@/components/inline-code'
 import { InfoLine } from '@/components/settings/info-line'
 import { SettingsSection } from '@/components/settings/settings-section'
+import type { useAppriseForm } from '@/features/notifications/hooks/apprise/useAppriseForm'
 import {
   APPRISE_DOCS_URL,
   APPRISE_URL_FORMATS_URL,
@@ -14,24 +14,29 @@ const setupLink = (
   <ExternalLink href={APPRISE_DOCS_URL}>Apprise setup</ExternalLink>
 )
 
-export function AppriseServerSection({
-  status,
-  serverUrl,
-}: {
+interface AppriseServerSectionProps {
+  form: ReturnType<typeof useAppriseForm>['form']
   status: AppriseStatus
-  serverUrl: string
-}) {
+}
+
+export function AppriseServerSection({
+  form,
+  status,
+}: AppriseServerSectionProps) {
   return (
     <SettingsSection
       title="Apprise server"
       description="Where Pulsarr hands off notifications for delivery."
     >
-      <FactList
-        facts={[
-          { label: 'Server URL', value: serverUrl || 'Not set' },
-          { label: 'Set by', value: 'Environment, read at startup' },
-        ]}
-      />
+      <form.AppField name="appriseUrl">
+        {(field) => (
+          <field.TextField
+            label="Server URL"
+            type="url"
+            placeholder="http://apprise:8000"
+          />
+        )}
+      </form.AppField>
       {status === 'enabled' && (
         <InfoLine
           action={
@@ -45,16 +50,16 @@ export function AppriseServerSection({
           <InlineCode>apprise://host:8000/key</InlineCode>.
         </InfoLine>
       )}
-      {status === 'disabled' && (
+      {status === 'unreachable' && (
         <InfoLine icon={TriangleAlert} tone="warn" action={setupLink}>
-          Pulsarr couldn't reach this server at startup. Restart Pulsarr once
-          it's running.
+          Pulsarr can't reach this server. It keeps checking and turns Apprise
+          on once the server answers.
         </InfoLine>
       )}
       {status === 'not_configured' && (
         <InfoLine action={setupLink}>
-          Set <InlineCode>appriseUrl</InlineCode> in the environment, then
-          restart Pulsarr.
+          Enter the address of your Apprise server to turn on Apprise
+          notifications.
         </InfoLine>
       )}
     </SettingsSection>

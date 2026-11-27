@@ -6,6 +6,7 @@ type Config = components['schemas']['Config']
 
 function toConfigValues(config: Config) {
   return {
+    appriseUrl: config.appriseUrl ?? '',
     appriseEmailSender: config.appriseEmailSender ?? '',
     systemAppriseUrl: config.systemAppriseUrl ?? '',
   }

@@ -27,6 +27,8 @@ describe('progress stream', { timeout: 30_000 }, () => {
   beforeAll(async () => {
     app = await build()
     await app.ready()
+    app.config.appriseUrl = ''
+    await app.notifications.apprise.applyConfigChange()
   })
 
   afterAll(async () => {
