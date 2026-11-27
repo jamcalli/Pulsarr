@@ -8,7 +8,6 @@ import {
   getEtagFriendsList,
   startStaggeredPolling,
 } from './watchlist-workflow/etag/staggered-poller.js'
-import { fetchWatchlists as fetchWatchlistsModule } from './watchlist-workflow/fetching/watchlist-fetcher.js'
 import { schedulePeriodicReconciliation } from './watchlist-workflow/lifecycle/reconciliation-tick.js'
 import { initializeWorkflow } from './watchlist-workflow/lifecycle/workflow-starter.js'
 import { cleanupWorkflow } from './watchlist-workflow/lifecycle/workflow-stopper.js'
@@ -277,11 +276,19 @@ export class WatchlistWorkflowService {
     return true
   }
 
+  /** A full sync clears the pending periodic reconciliation, so this arms the next one when the workflow is running. */
   async reconcile(options: { mode: 'full' | 'etag' }): Promise<void> {
-    return reconcileModule(options, this.deps)
-  }
-
-  async fetchWatchlists(): Promise<void> {
-    return fetchWatchlistsModule(this.deps)
+    const { signal } = this.state
+    try {
+      await reconcileModule(options, this.deps)
+    } finally {
+      if (
+        options.mode === 'full' &&
+        this.state.status === 'running' &&
+        !signal.aborted
+      ) {
+        schedulePeriodicReconciliation(this.deps)
+      }
+    }
   }
 }
