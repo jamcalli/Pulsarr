@@ -3013,25 +3013,25 @@
           "days": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "maximum": 24
+            "maximum": 7
           },
           "hours": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "maximum": 596
+            "maximum": 168
           },
           "minutes": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "maximum": 35791
+            "maximum": 10080
           },
           "seconds": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "maximum": 2147483
+            "maximum": 604800
           }
         },
-        "description": "Time units between runs of an interval job, within what a timer can run"
+        "description": "Time units between runs of an interval job, 7 days at most"
       },
       "JobRunInfo": {
         "type": "object",

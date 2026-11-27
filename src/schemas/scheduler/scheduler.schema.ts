@@ -11,7 +11,11 @@ import { z } from 'zod'
 /** Exclusive upper bound on an interval, the longest delay a timer accepts. */
 export const INTERVAL_LIMIT_MS = 2_147_483_647
 
-const unitMax = (unitMs: number) => Math.floor((INTERVAL_LIMIT_MS - 1) / unitMs)
+/** Longest interval the API accepts. A longer period belongs on a cron schedule. */
+export const MAX_INTERVAL_DAYS = 7
+const MAX_INTERVAL_MS = MAX_INTERVAL_DAYS * MS_PER_DAY
+
+const unitMax = (unitMs: number) => MAX_INTERVAL_MS / unitMs
 
 export function intervalToMs(config: {
   days?: number
@@ -26,9 +30,6 @@ export function intervalToMs(config: {
     (config.seconds ?? 0) * MS_PER_SECOND
   )
 }
-
-const INTERVAL_LIMIT_DAYS =
-  Math.floor((INTERVAL_LIMIT_MS / MS_PER_DAY) * 10) / 10
 
 export const IntervalConfigSchema = z
   .object({
@@ -59,13 +60,12 @@ export const IntervalConfigPayloadSchema = IntervalConfigSchema.extend({
         'At least one time unit (days, hours, minutes, or seconds) must be specified',
     },
   )
-  .refine((config) => intervalToMs(config) < INTERVAL_LIMIT_MS, {
-    message: `Interval must be shorter than ${INTERVAL_LIMIT_DAYS} days`,
+  .refine((config) => intervalToMs(config) <= MAX_INTERVAL_MS, {
+    message: `Interval must be ${MAX_INTERVAL_DAYS} days or less`,
   })
   .meta({
     id: 'JobIntervalConfigPayload',
-    description:
-      'Time units between runs of an interval job, within what a timer can run',
+    description: `Time units between runs of an interval job, ${MAX_INTERVAL_DAYS} days at most`,
   })
 
 function isValidCronExpression(expression: string): boolean {

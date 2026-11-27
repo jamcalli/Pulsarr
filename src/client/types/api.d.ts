@@ -3962,7 +3962,7 @@ export interface components {
             minutes?: number;
             seconds?: number;
         };
-        /** @description Time units between runs of an interval job, within what a timer can run */
+        /** @description Time units between runs of an interval job, 7 days at most */
         JobIntervalConfigPayload: {
             days?: number;
             hours?: number;

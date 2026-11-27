@@ -2,21 +2,29 @@ import {
   CronConfigPayloadSchema,
   IntervalConfigPayloadSchema,
   IntervalConfigSchema,
+  MAX_INTERVAL_DAYS,
 } from '@root/schemas/scheduler/scheduler.schema.js'
 import { Cron } from 'croner'
 import { describe, expect, it } from 'vitest'
 
 describe('IntervalConfigPayloadSchema', () => {
-  it('rejects an interval longer than the scheduler can run', () => {
-    expect(IntervalConfigPayloadSchema.safeParse({ days: 30 }).success).toBe(
-      false,
-    )
+  it.each([
+    { days: MAX_INTERVAL_DAYS },
+    { hours: MAX_INTERVAL_DAYS * 24 },
+    { minutes: MAX_INTERVAL_DAYS * 24 * 60 },
+    { seconds: MAX_INTERVAL_DAYS * 24 * 60 * 60 },
+    { days: 6, hours: 24 },
+  ])('accepts %o, which is the longest interval allowed', (interval) => {
+    expect(IntervalConfigPayloadSchema.safeParse(interval).success).toBe(true)
   })
 
-  it('accepts an interval within what the scheduler can run', () => {
-    expect(IntervalConfigPayloadSchema.safeParse({ days: 24 }).success).toBe(
-      true,
-    )
+  it.each([
+    { days: MAX_INTERVAL_DAYS + 1 },
+    { hours: MAX_INTERVAL_DAYS * 24 + 1 },
+    { days: MAX_INTERVAL_DAYS, seconds: 1 },
+    { days: 30 },
+  ])('rejects %o, which is longer than the limit', (interval) => {
+    expect(IntervalConfigPayloadSchema.safeParse(interval).success).toBe(false)
   })
 })
 
