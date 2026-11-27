@@ -1022,9 +1022,9 @@ Pulsarr uses these only to create a first Sonarr or Radarr instance when there i
 | `approvalNotify` | `none` | Where to send approval requests. See the options below. |
 | `queueWaitTime` | `120000` | Milliseconds to collect episodes into one notification. |
 | `newEpisodeThreshold` | `172800000` | Episodes that aired within this many milliseconds count as new. |
-| `pendingWebhookRetryInterval` | `20` | Seconds between retries of webhooks Pulsarr couldn't match yet. |
-| `pendingWebhookMaxAge` | `10` | Minutes to keep retrying them. |
-| `pendingWebhookCleanupInterval` | `60` | Seconds between clean-ups of expired ones. |
+| `pendingWebhookRetryInterval` | `20` | Seconds between retries of webhooks Pulsarr couldn't match yet. From 1 to 86400. |
+| `pendingWebhookMaxAge` | `10` | Minutes to keep retrying them. From 1 to 1440. |
+| `pendingWebhookCleanupInterval` | `60` | Seconds between clean-ups of expired ones. From 1 to 86400. |
 | `publicContentNotifications` | All off | JSON. Settings from the **Public content** page. |
 
 `approvalNotify` takes `none`, `all`, `discord-only`, `apprise-only`, `webhook-only`, `dm-only`, `discord-webhook`, `discord-message` or `discord-both`.
