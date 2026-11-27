@@ -1,4 +1,5 @@
 import { PLEX_LABEL_SYNC_DEFAULTS } from '@root/schemas/plex/label-sync-config.schema.js'
+import { PLEX_SESSION_MONITORING_DEFAULTS } from '@root/schemas/session-monitoring/session-monitoring-config.schema.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -166,6 +167,41 @@ describe('scheduler', () => {
     expect(
       (await app.db.getScheduleByName('plex-label-full-sync'))?.last_run,
     ).toMatchObject({ status: 'failed', error: 'boom' })
+  })
+
+  it('records a session poll that reported errors as failed', async () => {
+    const monitoring = app.config.plexSessionMonitoring
+    app.config.plexSessionMonitoring = {
+      ...PLEX_SESSION_MONITORING_DEFAULTS,
+      enabled: true,
+    }
+    await app.db.createSchedule({
+      name: 'plex-session-monitor',
+      type: 'interval',
+      config: { minutes: 15 },
+      enabled: true,
+      last_run: null,
+    })
+    vi.spyOn(app.plexServerService, 'isSSEConnected').mockReturnValue(false)
+    vi.spyOn(app.plexSessionMonitor, 'monitorSessions').mockResolvedValue({
+      processedSessions: 0,
+      triggeredSearches: 0,
+      errors: ['Fatal error in session monitoring'],
+      rollingUpdates: [],
+    })
+
+    try {
+      await app.scheduler.runJobNow('plex-session-monitor')
+    } finally {
+      app.config.plexSessionMonitoring = monitoring
+    }
+
+    expect(
+      (await app.db.getScheduleByName('plex-session-monitor'))?.last_run,
+    ).toMatchObject({
+      status: 'failed',
+      error: 'Fatal error in session monitoring',
+    })
   })
 
   it('reads unparseable run info as no run', async () => {

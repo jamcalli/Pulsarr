@@ -62,6 +62,7 @@ export default fp(
                 { errors: result.errors },
                 `Session monitoring completed with ${result.errors.length} errors`,
               )
+              throw new Error(result.errors.join(', '))
             } else if (result.triggeredSearches > 0) {
               fastify.log.info(
                 `Session monitoring completed. Processed: ${result.processedSessions}, Triggered: ${result.triggeredSearches}`,
