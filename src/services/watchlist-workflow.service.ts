@@ -177,7 +177,6 @@ export class WatchlistWorkflowService {
           { error: syncError },
           'Error during initial reconciliation',
         )
-        schedulePeriodicReconciliation(this.deps)
         if (signal.aborted) return false
         throw new Error('Failed during initial reconciliation', {
           cause: syncError,
