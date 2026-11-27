@@ -40,7 +40,7 @@
     "develop"
   ],
   "constraints": {
-    "npm": "<12"
+    "npm": "<13"
   },
   "timezone": "UTC",
   "schedule": [
