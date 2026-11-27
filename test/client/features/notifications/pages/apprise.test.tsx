@@ -142,6 +142,30 @@ describe('ApprisePage', () => {
     )
   })
 
+  it('saves a corrected server URL while a locked target row is invalid', async () => {
+    const user = userEvent.setup()
+    const { configBodies } = mockEndpoints({
+      ...savedConfig,
+      enableApprise: false,
+      systemAppriseUrl: 'not-a-target',
+    })
+    renderPage()
+
+    const serverUrl = await screen.findByLabelText('Server URL')
+    await user.clear(serverUrl)
+    await user.type(serverUrl, 'http://192.168.1.100:8000')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(configBodies).toEqual([
+      {
+        appriseUrl: 'http://192.168.1.100:8000',
+        appriseEmailSender: savedConfig.appriseEmailSender,
+        systemAppriseUrl: 'not-a-target',
+      },
+    ])
+  })
+
   it('asks for a server URL when none is set', async () => {
     mockEndpoints({ ...savedConfig, appriseUrl: '', enableApprise: false })
     renderPage()

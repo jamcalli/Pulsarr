@@ -37,7 +37,9 @@ function AppriseSettings({
   const pill = APPRISE_STATUS_PILLS[status]
   const lockReason = appriseLockReason(status)
   const saveError = useStore(form.store, (state) =>
-    firstRowError(state.values.systemAppriseUrl, appriseRowError),
+    lockReason
+      ? null
+      : firstRowError(state.values.systemAppriseUrl, appriseRowError),
   )
 
   return (
