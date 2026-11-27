@@ -62,7 +62,7 @@ export type DiscordBotStatus = (typeof DISCORD_BOT_STATUSES)[number]
 
 export const APPRISE_STATUSES = [
   'enabled',
-  'disabled',
+  'unreachable',
   'not_configured',
 ] as const
 

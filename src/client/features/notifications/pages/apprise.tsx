@@ -37,7 +37,9 @@ function AppriseSettings({
   const pill = APPRISE_STATUS_PILLS[status]
   const lockReason = appriseLockReason(status)
   const saveError = useStore(form.store, (state) =>
-    firstRowError(state.values.systemAppriseUrl, appriseRowError),
+    lockReason
+      ? null
+      : firstRowError(state.values.systemAppriseUrl, appriseRowError),
   )
 
   return (
@@ -48,9 +50,9 @@ function AppriseSettings({
         description={DESCRIPTION}
         action={<StatusPill tone={pill.tone} label={pill.label} live />}
       />
-      <AppriseServerSection status={status} serverUrl={config.appriseUrl} />
       <form.AppForm>
         <form.Form className="flex flex-col gap-5">
+          <AppriseServerSection form={form} status={status} />
           <SettingsSection
             title="System notifications"
             description="Where Pulsarr sends admin notifications through Apprise."

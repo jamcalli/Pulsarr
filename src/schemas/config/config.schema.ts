@@ -483,7 +483,8 @@ export const ConfigUpdateSchema = z
     discordWebhookUrl: DiscordWebhookUrlListSchema.optional(),
     discordBotToken: z.string().optional(),
     discordClientId: z.string().optional(),
-    // Apprise Config (enableApprise/appriseUrl are runtime-only; not writable via API)
+    // Apprise Config (enableApprise is runtime-only and not writable via API)
+    appriseUrl: HttpUrlOptionalSchema,
     systemAppriseUrl: AppriseUrlSchema.optional(),
     appriseEmailSender: AppriseUrlSchema.optional(),
     // Public Content Notifications - broadcast ALL content availability to public channels/endpoints

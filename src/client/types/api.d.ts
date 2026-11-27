@@ -3663,6 +3663,7 @@ export interface components {
             discordWebhookUrl?: string;
             discordBotToken?: string;
             discordClientId?: string;
+            appriseUrl?: string | "";
             systemAppriseUrl?: string;
             appriseEmailSender?: string;
             publicContentNotifications?: {

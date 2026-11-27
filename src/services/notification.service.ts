@@ -74,6 +74,7 @@ export class NotificationService {
     this._discordWebhook = new DiscordWebhookService(this.log)
     this._plexMobile = new PlexMobileService(this.log, this.fastify)
     this._apprise = new AppriseService(this.log, this.fastify)
+    this._apprise.onStatusChange(() => this.emitStatusEvents())
   }
 
   get discordBot(): DiscordBotService {
@@ -151,6 +152,7 @@ export class NotificationService {
 
   async shutdown(): Promise<void> {
     this._plexMobile.shutdown()
+    this._apprise.shutdown()
     this.state.clearTimers()
     await this.drainDeliveries()
 

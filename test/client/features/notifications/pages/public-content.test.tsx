@@ -13,7 +13,7 @@ import { stubViewport } from '../../../viewport.js'
 const DISCORD_URL = 'https://discord.com/api/webhooks/1/a'
 const OFF_REASON = 'Turn on broadcast to use these lists.'
 const APPRISE_REASON =
-  'Apprise is disabled, so these lists do nothing until it is reachable.'
+  'Apprise is unreachable, so these lists do nothing until the server answers.'
 
 const lists = {
   enabled: true,
@@ -192,7 +192,7 @@ describe('PublicContentPage', () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled()
   })
 
-  it('locks only the Apprise lists on every tab while Apprise is disabled', async () => {
+  it('locks only the Apprise lists on every tab while Apprise is unreachable', async () => {
     mockEndpoints({ ...savedConfig, enableApprise: false })
     renderPage()
 

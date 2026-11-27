@@ -51,6 +51,7 @@ export class ConfigService {
     // The stored row can lag env values until the first UI save, so read what is live
     const currentTokens = fastify.config.plexTokens ?? []
     const previousMaintainerrUrl = fastify.config.maintainerrUrl
+    const previousAppriseUrl = fastify.config.appriseUrl
 
     try {
       await fastify.userTags.assertPrefixChangeAllowed(patch)
@@ -164,6 +165,13 @@ export class ConfigService {
         .catch((error) => {
           this.log.error({ error }, 'Failed to apply Maintainerr config change')
         })
+    }
+
+    if (
+      'appriseUrl' in patch &&
+      fastify.config.appriseUrl !== previousAppriseUrl
+    ) {
+      await fastify.notifications.apprise.applyConfigChange()
     }
 
     if ('plexSessionMonitoring' in patch) {
