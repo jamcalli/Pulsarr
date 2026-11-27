@@ -8,6 +8,8 @@ import {
   DELETION_MODES,
   MAINTAINERR_EXCLUSION_MODES,
   NOTIFY_OPTIONS,
+  PENDING_WEBHOOK_INTERVAL_SECONDS,
+  PENDING_WEBHOOK_MAX_AGE_MINUTES,
   PLEX_SERVER_URL_DEFAULT,
 } from '@root/schemas/config/config.schema.js'
 import {
@@ -207,14 +209,20 @@ const schema = {
     },
     pendingWebhookRetryInterval: {
       type: 'number',
+      minimum: PENDING_WEBHOOK_INTERVAL_SECONDS.min,
+      maximum: PENDING_WEBHOOK_INTERVAL_SECONDS.max,
       default: STORED_CONFIG_DEFAULTS.pendingWebhookRetryInterval,
     },
     pendingWebhookMaxAge: {
       type: 'number',
+      minimum: PENDING_WEBHOOK_MAX_AGE_MINUTES.min,
+      maximum: PENDING_WEBHOOK_MAX_AGE_MINUTES.max,
       default: STORED_CONFIG_DEFAULTS.pendingWebhookMaxAge,
     },
     pendingWebhookCleanupInterval: {
       type: 'number',
+      minimum: PENDING_WEBHOOK_INTERVAL_SECONDS.min,
+      maximum: PENDING_WEBHOOK_INTERVAL_SECONDS.max,
       default: STORED_CONFIG_DEFAULTS.pendingWebhookCleanupInterval,
     },
     sonarrBaseUrl: {

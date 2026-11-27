@@ -16,6 +16,7 @@ import {
   userNeedsSeason,
 } from '@services/plex-session-monitor/cleanup-predicates.js'
 import { EpisodeNotices } from '@services/plex-session-monitor/episode-notices.js'
+import { sessionMonitorJobSchedules } from '@services/plex-session-monitor/job-schedules.js'
 import {
   countsFromEpisodes,
   countsFromSeasonStatistics,
@@ -27,6 +28,7 @@ import {
   buildAllowedUserMatcher,
 } from '@services/plex-session-monitor/user-filter.js'
 import type { SonarrService } from '@services/sonarr.service.js'
+import { allSettledOrThrow } from '@utils/all-settled-or-throw.js'
 import { episodeCode } from '@utils/episode-code.js'
 import {
   collectGuidsFromMetadata,
@@ -132,6 +134,25 @@ export class PlexSessionMonitorService {
       throw new Error(`Sonarr instance ${instanceId} not found`)
     }
     return sonarr
+  }
+
+  /** Applies every job before throwing for one whose row is missing, is no longer an interval or could not be saved. */
+  async applyJobSchedules(): Promise<void> {
+    const schedules = sessionMonitorJobSchedules(
+      this.config.plexSessionMonitoring,
+    )
+    await allSettledOrThrow(
+      Object.entries(schedules).map(async ([name, schedule]) => {
+        const outcome = await this.fastify.scheduler.updateJobSchedule(
+          name,
+          schedule.config,
+          schedule.enabled,
+        )
+        if (outcome !== 'updated') {
+          throw new Error(`Could not apply the schedule to ${name}: ${outcome}`)
+        }
+      }),
+    )
   }
 
   async monitorSessions(): Promise<SessionMonitoringResult> {

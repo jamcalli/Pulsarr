@@ -166,6 +166,15 @@ export class ConfigService {
         })
     }
 
+    if ('plexSessionMonitoring' in patch) {
+      void fastify.plexSessionMonitor.applyJobSchedules().catch((error) => {
+        this.log.error(
+          { error },
+          'Failed to apply session monitoring job intervals',
+        )
+      })
+    }
+
     try {
       fastify.notifications.emitStatusEvents()
     } catch (error) {

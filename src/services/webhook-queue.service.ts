@@ -1,3 +1,4 @@
+import { PENDING_WEBHOOK_DEFAULTS } from '@root/schemas/config/config.schema.js'
 import type {
   RadarrPayload,
   SonarrPayload,
@@ -77,9 +78,12 @@ export class WebhookQueueService {
     this.log = createServiceLogger(baseLog, 'WEBHOOK_QUEUE')
     this._dedupeCache = createWebhookDedupeCache(fastify.caches)
     this._config = {
-      retryInterval: config?.retryInterval ?? 20,
-      maxAge: config?.maxAge ?? 10,
-      cleanupInterval: config?.cleanupInterval ?? 60,
+      retryInterval:
+        config?.retryInterval ?? PENDING_WEBHOOK_DEFAULTS.retryIntervalSeconds,
+      maxAge: config?.maxAge ?? PENDING_WEBHOOK_DEFAULTS.maxAgeMinutes,
+      cleanupInterval:
+        config?.cleanupInterval ??
+        PENDING_WEBHOOK_DEFAULTS.cleanupIntervalSeconds,
     }
   }
 
@@ -323,8 +327,7 @@ export class WebhookQueueService {
       'Processing Sonarr webhook',
     )
 
-    // Pilot handling is per-instance: a show can have different rolling options
-    // on each instance, so resolve the type for the instance that sent this.
+    // A show can have different rolling options on each instance, so resolve them for the sending instance
     let isPilotRolling = false
     if (this.fastify.config.plexSessionMonitoring?.enabled && instance) {
       const { shows: rollingShows } =
@@ -407,9 +410,7 @@ export class WebhookQueueService {
 
     ensureShowQueue(tvdbId, body.series.title, this._queue, this.log)
 
-    // Pilot-based rolling E01 - notify immediately, skip queue.
-    // Only the pilot arrives for these grabs so the queue would time out
-    // waiting for a full season that never comes.
+    // Only the pilot arrives for a pilot rolling grab, so queueing it would wait for a season that never comes
     if (isPilotRolling && episodeNumber === 1) {
       this.log.debug(
         { tvdbId, season: seasonNumber },
@@ -509,8 +510,9 @@ export class WebhookQueueService {
   }
 
   async initialize(): Promise<void> {
-    await this.fastify.scheduler.scheduleJob(
+    this.fastify.scheduler.scheduleInternalJob(
       'pending-webhooks-processor',
+      { seconds: this._config.retryInterval },
       async () => {
         const deleted = await this.processRetryWebhooks()
         if (deleted > 0) {
@@ -519,14 +521,9 @@ export class WebhookQueueService {
       },
     )
 
-    await this.fastify.db.updateSchedule('pending-webhooks-processor', {
-      type: 'interval',
-      config: { seconds: this._config.retryInterval },
-      enabled: true,
-    })
-
-    await this.fastify.scheduler.scheduleJob(
+    this.fastify.scheduler.scheduleInternalJob(
       'pending-webhooks-cleanup',
+      { seconds: this._config.cleanupInterval },
       async () => {
         const cleaned = await this.cleanupExpiredWebhooks()
         if (cleaned > 0) {
@@ -534,12 +531,6 @@ export class WebhookQueueService {
         }
       },
     )
-
-    await this.fastify.db.updateSchedule('pending-webhooks-cleanup', {
-      type: 'interval',
-      config: { seconds: this._config.cleanupInterval },
-      enabled: true,
-    })
 
     this._isRunning = true
 

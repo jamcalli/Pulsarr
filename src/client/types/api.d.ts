@@ -3947,65 +3947,75 @@ export interface components {
          * @enum {string}
          */
         InstanceType: "radarr" | "sonarr";
+        /** @description Cron expression of a cron job */
+        JobCronConfig: {
+            expression: string;
+        };
+        /** @description Cron expression of a cron job, checked by the cron parser */
+        JobCronConfigPayload: {
+            expression: string;
+        };
+        /** @description Time units between runs of an interval job */
+        JobIntervalConfig: {
+            days?: number;
+            hours?: number;
+            minutes?: number;
+            seconds?: number;
+        };
+        /** @description Time units between runs of an interval job, 7 days at most */
+        JobIntervalConfigPayload: {
+            days?: number;
+            hours?: number;
+            minutes?: number;
+            seconds?: number;
+        };
+        /** @description One past or upcoming run of a job */
+        JobRunInfo: {
+            time: string;
+            /** @enum {string} */
+            status: "completed" | "failed" | "pending";
+            error?: string;
+            estimated?: boolean;
+        };
+        /** @description New timing or enabled state for a scheduled job */
+        JobScheduleUpdatePayload: {
+            enabled?: boolean;
+            /** @constant */
+            type: "interval";
+            config?: components["schemas"]["JobIntervalConfigPayload"];
+        } | {
+            enabled?: boolean;
+            /** @constant */
+            type: "cron";
+            config?: components["schemas"]["JobCronConfigPayload"];
+        };
         /** @description A scheduled job and its run state */
         JobStatus: {
             id: number;
             name: string;
-            /** @constant */
-            type: "interval";
-            config: {
-                days?: number;
-                hours?: number;
-                minutes?: number;
-                seconds?: number;
-                runImmediately?: boolean;
-            };
             enabled: boolean;
-            last_run: {
-                time: string;
-                /** @enum {string} */
-                status: "completed" | "failed" | "pending";
-                error?: string;
-                estimated?: boolean;
-            } | null;
-            next_run: {
-                time: string;
-                /** @enum {string} */
-                status: "completed" | "failed" | "pending";
-                error?: string;
-                estimated?: boolean;
-            } | null;
+            last_run: components["schemas"]["JobRunInfo"] | null;
+            next_run: components["schemas"]["JobRunInfo"] | null;
             created_at: string;
             updated_at: string;
             /** @description True while a run of the job is in progress */
             running: boolean;
+            /** @constant */
+            type: "interval";
+            config: components["schemas"]["JobIntervalConfig"];
         } | {
             id: number;
             name: string;
-            /** @constant */
-            type: "cron";
-            config: {
-                expression: string;
-            };
             enabled: boolean;
-            last_run: {
-                time: string;
-                /** @enum {string} */
-                status: "completed" | "failed" | "pending";
-                error?: string;
-                estimated?: boolean;
-            } | null;
-            next_run: {
-                time: string;
-                /** @enum {string} */
-                status: "completed" | "failed" | "pending";
-                error?: string;
-                estimated?: boolean;
-            } | null;
+            last_run: components["schemas"]["JobRunInfo"] | null;
+            next_run: components["schemas"]["JobRunInfo"] | null;
             created_at: string;
             updated_at: string;
             /** @description True while a run of the job is in progress */
             running: boolean;
+            /** @constant */
+            type: "cron";
+            config: components["schemas"]["JobCronConfig"];
         };
         /**
          * @description Exclude Maintainerr-handled media for its current watchlisters, or globally for every user
@@ -4845,6 +4855,12 @@ export interface components {
             min_days: number;
             max_days: number;
             count: number;
+        };
+        /** @description Outcome flag with a human-readable message */
+        SuccessMessage: {
+            success: boolean;
+            /** @description Human-readable result message */
+            message: string;
         };
         /** @description Result of a full label sync. Pending counts items not in Plex yet. */
         SyncPlexLabelsResponse: {
@@ -9907,27 +9923,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description New timing or enabled state for a scheduled job */
         requestBody: {
             content: {
-                "application/json": {
-                    /** @constant */
-                    type: "interval";
-                    config?: {
-                        days?: number;
-                        hours?: number;
-                        minutes?: number;
-                        seconds?: number;
-                        runImmediately?: boolean;
-                    };
-                    enabled?: boolean;
-                } | {
-                    /** @constant */
-                    type: "cron";
-                    config?: {
-                        expression: string;
-                    };
-                    enabled?: boolean;
-                };
+                "application/json": components["schemas"]["JobScheduleUpdatePayload"];
             };
         };
         responses: {
@@ -9937,10 +9936,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["SuccessMessage"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9989,14 +9994,20 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["SuccessMessage"];
                 };
             };
             /** @description Default Response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

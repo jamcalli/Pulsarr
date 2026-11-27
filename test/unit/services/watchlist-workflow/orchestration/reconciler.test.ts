@@ -214,6 +214,25 @@ describe('reconcile', () => {
     expect(state.isReconciling).toBe(false)
   })
 
+  it('does not sync when its run ended while it waited for another reconciliation', async () => {
+    vi.useFakeTimers()
+    try {
+      state.isReconciling = true
+      const waiting = reconcile({ mode: 'full' }, deps)
+
+      state.endRun()
+      state.beginRun()
+      state.isReconciling = false
+      await vi.advanceTimersByTimeAsync(1000)
+      await waiting
+
+      expect(fetchWatchlists).not.toHaveBeenCalled()
+      expect(state.isReconciling).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('stays cancelled when a new run opens before the aborted sync resumes', async () => {
     vi.mocked(fetchWatchlists).mockImplementationOnce(async () => {
       state.endRun()
@@ -319,6 +338,30 @@ describe('reconcile', () => {
 
     expect(handleNewFriendEtagMode).toHaveBeenCalledTimes(1)
     expect(etagPollerMock.methods.checkAllEtags).not.toHaveBeenCalled()
+  })
+
+  it('does not fetch watchlists when the run ends while the last new friend is handled', async () => {
+    parts.plexService.checkFriendChanges.mockResolvedValue(
+      friendChanges({
+        added: [
+          {
+            userId: 5,
+            username: 'friend-5',
+            watchlistId: 'wl-5',
+            isPrimary: false,
+          },
+        ],
+      }),
+    )
+    vi.mocked(handleNewFriendFullMode).mockImplementationOnce(async () => {
+      state.endRun()
+      state.beginRun()
+    })
+
+    await reconcile({ mode: 'full' }, deps)
+
+    expect(handleNewFriendFullMode).toHaveBeenCalledTimes(1)
+    expect(fetchWatchlists).not.toHaveBeenCalled()
   })
 
   it('passes removed friends to the removal handler', async () => {

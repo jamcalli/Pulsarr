@@ -1,34 +1,20 @@
-/**
- * Scheduler Service
- *
- * Provides a centralized job scheduling system for the application using toad-scheduler.
- * This service manages interval and cron-based jobs, persists schedules to the database,
- * and provides an interface for managing job schedules.
- *
- * Responsible for:
- * - Managing scheduled job registration and execution
- * - Persisting job schedules in the database
- * - Handling job failures and logging
- * - Tracking job execution history
- * - Supporting both interval-based and cron-based schedules
- * - Providing manual job execution
- *
- * @example
- * // In another service:
- * const schedulerService = new SchedulerService(log, fastify);
- * await schedulerService.scheduleJob('my-job', async () => {
- *   // Job implementation
- * });
- */
-
+import { isDeepStrictEqual } from 'node:util'
+import {
+  INTERVAL_LIMIT_MS,
+  intervalToMs,
+} from '@root/schemas/scheduler/scheduler.schema.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import type {
   CronConfig,
   DbSchedule,
+  DeclaredSchedule,
   IntervalConfig,
+  JobRunInfo,
+  ScheduleSpec,
 } from '@root/types/scheduler.types.js'
+import { errorMessage } from '@utils/error-message.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { CronExpressionParser } from 'cron-parser'
+import { Cron } from 'croner'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   AsyncTask,
@@ -37,484 +23,427 @@ import {
   ToadScheduler,
 } from 'toad-scheduler'
 
-/** Handler function type for scheduled jobs */
-export type JobHandler = (jobName: string) => Promise<void>
+type JobHandler = (jobName: string) => Promise<void>
+
+interface ScheduleJobOptions {
+  /** Used only when the job has no row yet. */
+  defaultSchedule?: DeclaredSchedule
+  /** Written to the row on every registration, for jobs whose timing or enabled state comes from app config. */
+  schedule?: DeclaredSchedule
+}
+
+type RunOutcome = 'completed' | 'failed'
 
 type ScheduleWithRunState = DbSchedule & { running: boolean }
 
-/** Map to track registered jobs and their handlers */
-type JobMap = Map<
-  string,
-  {
-    job: SimpleIntervalJob | CronJob | null
-    handler: JobHandler
-  }
->
+interface LiveJob {
+  job: SimpleIntervalJob | CronJob
+  spec: ScheduleSpec
+}
+
+interface Registration {
+  handler: JobHandler
+  live: LiveJob | null
+}
+
+const FALLBACK_SCHEDULE: DeclaredSchedule = {
+  type: 'interval',
+  config: { hours: 24 },
+  enabled: true,
+}
 
 export class SchedulerService {
-  /** The scheduler instance */
-  private readonly scheduler: ToadScheduler
-
-  /** Map of job names to their job instances and handlers */
-  private readonly jobs: JobMap = new Map()
+  private readonly scheduler = new ToadScheduler()
+  private readonly jobs = new Map<string, Registration>()
+  private readonly internalJobs = new Set<string>()
+  /** Names registered in this process, since only a first registration may catch up an overdue run. */
+  private readonly registeredJobs = new Set<string>()
+  /** Overdue jobs held until every plugin has started, since a handler may use a service that starts later. */
+  private readonly pendingCatchUps = new Map<string, JobRunInfo>()
+  private readonly jobsRunSinceBoot = new Set<string>()
+  /** Scheduled runs in progress by job name, since a replaced timer gets a new task with no memory of the run. */
+  private readonly scheduledRuns = new Set<string>()
+  private appStarted = false
+  private readonly intervalTimers = new Map<
+    string,
+    { startedAt: number; intervalMs: number }
+  >()
+  /** Tail of the updates in flight per job, so each one reads the row the last one wrote. */
+  private readonly updateQueues = new Map<string, Promise<unknown>>()
   /** Runs in progress per job, since a manual run can overlap a scheduled one. */
   private readonly runningJobs = new Map<string, number>()
   private readonly log: FastifyBaseLogger
 
-  /** Track if we're in the initial startup phase */
-  private isInitializing = true
-
-  /** Expected handler count for completion tracking */
-  private expectedHandlerCount = 0
-
-  /** Flag to track if ready message has been logged */
-  private hasLoggedReady = false
-
-  /** Timer for initialization phase completion */
-  private initializationTimer: ReturnType<typeof setTimeout> | null = null
-
-  /**
-   * Creates a new SchedulerService instance
-   *
-   * @param baseLog - Fastify logger for recording operations
-   * @param fastify - Fastify instance for accessing other services
-   */
   constructor(
-    readonly baseLog: FastifyBaseLogger,
+    baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(baseLog, 'SCHEDULER')
-    this.scheduler = new ToadScheduler()
-    this.log.debug('Scheduler service initialized')
   }
 
-  /**
-   * Initialize jobs from database records
-   *
-   * Loads all job schedules from the database and starts enabled jobs
-   * that have registered handlers.
-   */
-  async initializeJobsFromDatabase(): Promise<void> {
-    try {
-      const schedules = await this.fastify.db.getAllSchedules()
-      this.log.debug(`Initializing ${schedules.length} jobs from database`)
-
-      let _jobsScheduled = 0
-      let _jobsDisabled = 0
-
-      for (const schedule of schedules) {
-        const handler = this.jobs.get(schedule.name)?.handler
-
-        if (handler && schedule.enabled) {
-          this.log.debug(`Setting up job: ${schedule.name}`)
-
-          try {
-            const job = this.createJob(
-              schedule.name,
-              schedule.type,
-              schedule.config,
-              handler,
-            )
-
-            // Remove any existing job with this name
-            if (this.jobs.has(schedule.name)) {
-              this.scheduler.removeById(schedule.name)
-            }
-
-            // Add the new job
-            if (schedule.type === 'interval') {
-              this.scheduler.addSimpleIntervalJob(job as SimpleIntervalJob)
-            } else if (schedule.type === 'cron') {
-              this.scheduler.addCronJob(job as CronJob)
-            }
-
-            // Save reference to the job
-            this.jobs.set(schedule.name, {
-              job,
-              handler,
-            })
-
-            this.log.debug(`Job ${schedule.name} scheduled successfully`)
-            _jobsScheduled++
-          } catch (error) {
-            this.log.error({ error }, `Error setting up job ${schedule.name}`)
-          }
-        } else if (!handler) {
-          // During initial startup, this is expected as services haven't registered handlers yet
-          if (this.isInitializing) {
-            this.log.debug(
-              `Job ${schedule.name} found in database - awaiting handler registration from service`,
-            )
-          } else {
-            // After initialization, this would be a real issue
-            this.log.warn(`No handler registered for job ${schedule.name}`)
-          }
-        } else if (!schedule.enabled) {
-          this.log.debug(`Job ${schedule.name} is disabled`)
-          _jobsDisabled++
-        }
-      }
-
-      // Store expected handler count for completion tracking
-      this.expectedHandlerCount = schedules.filter((s) => s.enabled).length
-
-      // Log initialization summary
-      this.log.debug(
-        {
-          scheduled: _jobsScheduled,
-          disabled: _jobsDisabled,
-          total: schedules.length,
-        },
-        'Job initialization summary',
-      )
-
-      // Start monitoring for completion
-      this.checkForCompletionReadiness()
-
-      // Mark initialization as complete after a short delay to allow services to register
-      this.initializationTimer = setTimeout(() => {
-        this.initializationTimer = null
-        this.isInitializing = false
-        this.log.debug('Scheduler initialization phase complete')
-        // Final check for completion after initialization period
-        this.checkForCompletionReadiness()
-      }, 5000)
-    } catch (error) {
-      this.log.error({ error }, 'Error initializing jobs from database')
-    }
-  }
-
-  /**
-   * Creates a job instance based on configuration
-   *
-   * @param name - Unique name for the job
-   * @param type - Type of job ('interval' or 'cron')
-   * @param config - Configuration specific to the job type
-   * @param handler - Function to execute when the job runs
-   * @returns The created job instance
-   */
-  private createJob(
+  async scheduleJob(
     name: string,
-    type: 'interval' | 'cron',
-    config: IntervalConfig | CronConfig,
     handler: JobHandler,
-  ): SimpleIntervalJob | CronJob {
-    // Create an async task that wraps the handler and adds error handling
-    const task = new AsyncTask(
-      `${name}-task`,
-      () =>
-        this.trackRun(name, async () => {
-          try {
-            // Only log the start of the job at debug level for cleaner logs
-            this.log.debug(`Running scheduled job: ${name}`)
-            await handler(name)
-
-            // Update last run time
-            await this.fastify.db.updateSchedule(name, {
-              last_run: {
-                time: new Date().toISOString(),
-                status: 'completed',
-              },
-            })
-
-            // Calculate and update next run time
-            if (type === 'interval') {
-              const intervalConfig = config as IntervalConfig
-              const nextRun = new Date()
-              if (intervalConfig.days)
-                nextRun.setDate(nextRun.getDate() + intervalConfig.days)
-              if (intervalConfig.hours)
-                nextRun.setHours(nextRun.getHours() + intervalConfig.hours)
-              if (intervalConfig.minutes)
-                nextRun.setMinutes(
-                  nextRun.getMinutes() + intervalConfig.minutes,
-                )
-              if (intervalConfig.seconds)
-                nextRun.setSeconds(
-                  nextRun.getSeconds() + intervalConfig.seconds,
-                )
-
-              await this.fastify.db.updateSchedule(name, {
-                next_run: {
-                  time: nextRun.toISOString(),
-                  status: 'pending',
-                  estimated: true,
-                },
-              })
-            } else if (type === 'cron') {
-              // For cron jobs, use the calculateNextCronRun method
-              const cronConfig = config as CronConfig
-              const nextRun = this.calculateNextCronRun(cronConfig.expression)
-
-              await this.fastify.db.updateSchedule(name, {
-                next_run: {
-                  time: nextRun.toISOString(),
-                  status: 'pending',
-                  estimated: true,
-                },
-              })
-            }
-
-            this.log.debug(`Job ${name} completed successfully`)
-            return true
-          } catch (error) {
-            this.log.error({ error }, `Error in job ${name}`)
-
-            // Update with error status
-            await this.fastify.db.updateSchedule(name, {
-              last_run: {
-                time: new Date().toISOString(),
-                status: 'failed',
-                error: error instanceof Error ? error.message : String(error),
-              },
-            })
-            return false
-          }
-        }),
-      (error) => {
-        this.log.error({ error }, `Job task error for ${name}`)
-      },
-    )
-
-    // Create the appropriate job type based on configuration
-    if (type === 'interval') {
-      const intervalConfig = config as IntervalConfig
-      return new SimpleIntervalJob(
-        {
-          ...intervalConfig,
-          runImmediately: intervalConfig.runImmediately ?? false,
-        },
-        task,
-        {
-          id: name,
-          preventOverrun: true,
-        },
-      )
-    }
-
-    if (type === 'cron') {
-      const cronConfig = config as CronConfig
-      return new CronJob(
-        {
-          cronExpression: cronConfig.expression,
-        },
-        task,
-        {
-          id: name,
-          preventOverrun: true,
-        },
-      )
-    }
-
-    throw new Error(`Unknown job type: ${type}`)
-  }
-
-  /**
-   * Register a job handler and optionally schedule it
-   *
-   * @param name - Unique name for the job
-   * @param handler - Function to execute when the job runs
-   * @returns Promise resolving to true if successful
-   */
-  async scheduleJob(name: string, handler: JobHandler): Promise<boolean> {
+    options: ScheduleJobOptions = {},
+  ): Promise<void> {
+    const row = await this.ensureRow(name, options)
+    this.stopLiveJob(name)
+    this.jobs.set(name, { handler, live: null })
+    const firstRegistration = !this.registeredJobs.has(name)
+    this.registeredJobs.add(name)
+    if (!row.enabled) return
     try {
-      // Save handler reference
-      const existingJob = this.jobs.get(name)
-
-      if (existingJob) {
-        // Update handler but keep existing job
-        this.jobs.set(name, {
-          job: existingJob.job,
-          handler,
-        })
-        this.log.debug(`Updated handler for existing job: ${name}`)
-      } else {
-        // Register new handler
-        this.jobs.set(name, {
-          job: null,
-          handler,
-        })
-        // Log at appropriate level based on initialization state
-        if (this.isInitializing) {
-          this.log.debug(
-            `Registered handler for job: ${name} (during initialization)`,
-          )
-        } else {
-          this.log.debug(`Registered handler for new job: ${name}`)
-        }
-      }
-
-      // Get schedule from database
-      let schedule = await this.fastify.db.getScheduleByName(name)
-
-      // If no schedule exists, create default
-      if (!schedule) {
-        // Use default interval of 24 hours if not specified
-        const defaultConfig = { hours: 24 }
-
-        // Calculate next run time for default config
-        const nextRun = new Date()
-        nextRun.setHours(nextRun.getHours() + 24)
-
-        await this.fastify.db.createSchedule({
-          name,
-          type: 'interval',
-          config: defaultConfig,
-          enabled: true,
-          last_run: null,
-          next_run: {
-            time: nextRun.toISOString(),
-            status: 'pending',
-            estimated: true,
-          },
-        })
-
-        schedule = await this.fastify.db.getScheduleByName(name)
-        this.log.debug(
-          `Created default schedule for job ${name} with next run at ${nextRun.toISOString()}`,
-        )
-      }
-
-      // If enabled, create and add the job
-      if (schedule?.enabled) {
-        const job = this.createJob(
-          name,
-          schedule.type,
-          schedule.config,
-          handler,
-        )
-
-        // Remove any existing job with this name
-        if (existingJob) {
-          this.scheduler.removeById(name)
-        }
-
-        // Add the new job
-        if (schedule.type === 'interval') {
-          this.scheduler.addSimpleIntervalJob(job as SimpleIntervalJob)
-        } else if (schedule.type === 'cron') {
-          this.scheduler.addCronJob(job as CronJob)
-        }
-
-        // Save reference to the job
-        this.jobs.set(name, { job, handler })
-
-        this.log.debug(`Job ${name} scheduled successfully`)
-      }
-
-      // Check if we're now ready (all handlers registered)
-      this.checkForCompletionReadiness()
-
-      return true
+      this.startLiveJob(name, row.spec, handler)
     } catch (error) {
-      this.log.error({ error }, `Error scheduling job ${name}`)
-      return false
+      this.log.error(
+        { error },
+        `Job ${name} is registered but its stored schedule cannot start`,
+      )
+      return
+    }
+    if (firstRegistration && row.lastRun && isOverdue(row.spec, row.lastRun)) {
+      this.pendingCatchUps.set(name, row.lastRun)
+      if (this.appStarted) this.runCatchUps()
     }
   }
 
-  /**
-   * Remove a job from the scheduler
-   *
-   * @param name - Name of the job to remove
-   * @returns Promise resolving to true if successful
-   */
-  async unscheduleJob(name: string): Promise<boolean> {
-    try {
-      const job = this.jobs.get(name)
-      if (job) {
-        this.scheduler.removeById(name)
-        this.jobs.delete(name)
-        this.log.debug(`Job ${name} unscheduled successfully`)
-        return true
+  /** Runs each overdue interval job once, and from then on a job registered overdue catches up at registration. */
+  runCatchUps(): void {
+    this.appStarted = true
+    for (const [name, lastRun] of this.pendingCatchUps) {
+      const live = this.jobs.get(name)?.live
+      if (
+        !(live?.job instanceof SimpleIntervalJob) ||
+        this.jobsRunSinceBoot.has(name) ||
+        !isOverdue(live.spec, lastRun)
+      ) {
+        continue
       }
-      return false
-    } catch (error) {
-      this.log.error({ error }, `Error unscheduling job ${name}`)
-      return false
+      void live.job.executeAsync()
     }
+    this.pendingCatchUps.clear()
   }
 
-  /**
-   * Run a job immediately, outside of its schedule
-   *
-   * @param name - Name of the job to run
-   * @returns Promise resolving to true if successful
-   */
-  async runJobNow(name: string): Promise<boolean> {
-    const jobData = this.jobs.get(name)
-    if (!jobData) {
-      return false
-    }
-
-    return this.trackRun(name, async () => {
-      try {
-        this.log.debug(`Manually running job: ${name}`)
-
-        // Run the handler
-        await jobData.handler(name)
-
-        // Update last run time
-        await this.fastify.db.updateSchedule(name, {
-          last_run: {
-            time: new Date().toISOString(),
-            status: 'completed',
-          },
-        })
-
-        this.log.info(`Job ${name} executed manually`)
-        return true
-      } catch (error) {
-        this.log.error({ error }, `Error executing job ${name}`)
-
-        // Update with error status
-        await this.fastify.db.updateSchedule(name, {
-          last_run: {
-            time: new Date().toISOString(),
-            status: 'failed',
-            error: error instanceof Error ? error.message : String(error),
-          },
-        })
-
-        return false
-      }
+  scheduleInternalJob(
+    name: string,
+    interval: IntervalConfig,
+    handler: () => Promise<void>,
+  ): void {
+    assertStartable(name, { type: 'interval', config: interval })
+    this.scheduler.removeById(name)
+    const task = new AsyncTask(name, handler, (error) => {
+      this.log.error({ error }, `Internal job ${name} failed`)
     })
+    const job = new SimpleIntervalJob(interval, task, {
+      id: name,
+      preventOverrun: true,
+    })
+    this.addToScheduler(name, () => this.scheduler.addSimpleIntervalJob(job))
+    this.internalJobs.add(name)
+  }
+
+  async unscheduleJob(name: string): Promise<boolean> {
+    const known = this.jobs.has(name) || this.internalJobs.has(name)
+    this.scheduler.removeById(name)
+    this.intervalTimers.delete(name)
+    this.jobs.delete(name)
+    this.internalJobs.delete(name)
+    return known
+  }
+
+  async updateJobSchedule(
+    name: string,
+    config: IntervalConfig | CronConfig | null,
+    enabled?: boolean,
+    expectedType?: DbSchedule['type'],
+  ): Promise<'updated' | 'unknown' | 'type-mismatch'> {
+    return this.queueUpdate(name, () =>
+      this.applyUpdate(name, config, enabled, expectedType),
+    )
+  }
+
+  private queueUpdate<T>(name: string, update: () => Promise<T>): Promise<T> {
+    const previous = this.updateQueues.get(name) ?? Promise.resolve()
+    const next = previous.then(update, update)
+    const tail = next.catch(() => {})
+    this.updateQueues.set(name, tail)
+    void tail.then(() => {
+      if (this.updateQueues.get(name) === tail) this.updateQueues.delete(name)
+    })
+    return next
+  }
+
+  private async applyUpdate(
+    name: string,
+    config: IntervalConfig | CronConfig | null,
+    enabled: boolean | undefined,
+    expectedType: DbSchedule['type'] | undefined,
+  ): Promise<'updated' | 'unknown' | 'type-mismatch'> {
+    const row = await this.fastify.db.getScheduleByName(name)
+    if (!row) return 'unknown'
+    if (expectedType !== undefined && expectedType !== row.type) {
+      return 'type-mismatch'
+    }
+
+    const configChanged =
+      config !== null && !isDeepStrictEqual(config, row.config)
+    const enabledChanged = enabled !== undefined && enabled !== row.enabled
+    if (!configChanged && !enabledChanged) return 'updated'
+
+    const nextSpec = configChanged ? specForType(row.type, config) : row
+    if (!nextSpec) return 'type-mismatch'
+
+    const registration = this.jobs.get(name)
+    const willRun = enabled ?? row.enabled
+    if (registration && willRun) assertStartable(name, nextSpec)
+
+    const persisted = await this.fastify.db.updateSchedule(name, {
+      config: configChanged ? nextSpec.config : undefined,
+      enabled: enabledChanged ? enabled : undefined,
+    })
+    if (!persisted) {
+      throw new Error(`Could not save the schedule for ${name}`)
+    }
+
+    // An unschedule during the save removes the registration, and the job must stay removed
+    if (registration && this.jobs.get(name) === registration) {
+      this.stopLiveJob(name)
+      if (willRun) this.startLiveJob(name, nextSpec, registration.handler)
+    }
+    return 'updated'
+  }
+
+  async runJobNow(name: string): Promise<RunOutcome | 'unknown' | 'disabled'> {
+    const gate = await this.runGate(name)
+    if (typeof gate === 'string') return gate
+    return this.runJob(name, gate)
   }
 
   /** Runs a job without waiting for it. */
-  startJob(name: string): 'started' | 'running' | 'unknown' {
-    if (!this.jobs.has(name)) return 'unknown'
+  async startJob(
+    name: string,
+  ): Promise<'started' | 'running' | 'unknown' | 'disabled'> {
+    const gate = await this.runGate(name)
+    if (typeof gate === 'string') return gate
     if (this.isJobRunning(name)) return 'running'
-    this.runJobNow(name).catch((error) => {
+    this.runJob(name, gate).catch((error) => {
       this.log.error({ error }, `Error recording the run of job ${name}`)
     })
     return 'started'
   }
 
-  isJobRunning(name: string): boolean {
+  async getSchedule(name: string): Promise<ScheduleWithRunState | null> {
+    const schedule = await this.fastify.db.getScheduleByName(name)
+    if (!schedule) return null
+    return {
+      ...schedule,
+      next_run: schedule.enabled ? this.nextRun(name) : null,
+      running: this.isJobRunning(name),
+    }
+  }
+
+  async logReadiness(): Promise<void> {
+    try {
+      const rows = await this.fastify.db.getAllSchedules()
+      const active = [...this.jobs.values()].filter((job) => job.live).length
+      this.log.info(
+        `Scheduler ready: ${active + this.internalJobs.size} jobs active`,
+      )
+      const orphaned = rows
+        .filter((row) => row.enabled && !this.jobs.has(row.name))
+        .map((row) => row.name)
+      if (orphaned.length > 0) {
+        this.log.warn(
+          { jobs: orphaned },
+          'Enabled schedules have no registered handler',
+        )
+      }
+    } catch (error) {
+      this.log.error({ error }, 'Error reading schedules for the ready log')
+    }
+  }
+
+  stop(): void {
+    this.scheduler.stop()
+  }
+
+  private async ensureRow(
+    name: string,
+    options: ScheduleJobOptions,
+  ): Promise<{
+    spec: ScheduleSpec
+    enabled: boolean
+    lastRun: JobRunInfo | null
+  }> {
+    const existing = await this.fastify.db.getScheduleByName(name)
+    const forced = options.schedule
+
+    if (existing) {
+      const specChanged = forced !== undefined && !sameSpec(existing, forced)
+      const enabled = forced?.enabled ?? existing.enabled
+      if (specChanged || enabled !== existing.enabled) {
+        const persisted = await this.fastify.db.updateSchedule(name, {
+          type: specChanged ? forced.type : undefined,
+          config: specChanged ? forced.config : undefined,
+          enabled: enabled !== existing.enabled ? enabled : undefined,
+        })
+        if (!persisted) {
+          throw new Error(`Could not save the schedule for ${name}`)
+        }
+      }
+      return {
+        spec: specChanged ? forced : existing,
+        enabled,
+        lastRun: existing.last_run,
+      }
+    }
+
+    const initial: DeclaredSchedule =
+      forced ?? options.defaultSchedule ?? FALLBACK_SCHEDULE
+    const enabled = initial.enabled ?? true
+    await this.fastify.db.createSchedule({
+      name,
+      type: initial.type,
+      config: initial.config,
+      enabled,
+      last_run: null,
+    })
+    return { spec: initial, enabled, lastRun: null }
+  }
+
+  private startLiveJob(
+    name: string,
+    spec: ScheduleSpec,
+    handler: JobHandler,
+  ): void {
+    let job: SimpleIntervalJob | CronJob
+
+    assertStartable(name, spec)
+    if (spec.type === 'interval') {
+      const intervalMs = intervalToMs(spec.config)
+      const task = this.buildTask(name, handler)
+      const interval = new SimpleIntervalJob(spec.config, task, {
+        id: name,
+        preventOverrun: true,
+      })
+      this.intervalTimers.set(name, { startedAt: Date.now(), intervalMs })
+      this.addToScheduler(name, () =>
+        this.scheduler.addSimpleIntervalJob(interval),
+      )
+      job = interval
+    } else {
+      const cron = new CronJob(
+        { cronExpression: spec.config.expression },
+        this.buildTask(name, handler),
+        { id: name, preventOverrun: true },
+      )
+      this.addToScheduler(name, () => this.scheduler.addCronJob(cron))
+      job = cron
+    }
+
+    this.jobs.set(name, { handler, live: { job, spec } })
+  }
+
+  private stopLiveJob(name: string): void {
+    this.scheduler.removeById(name)
+    this.intervalTimers.delete(name)
+    const registration = this.jobs.get(name)
+    if (registration) registration.live = null
+  }
+
+  private addToScheduler(name: string, add: () => void): void {
+    try {
+      add()
+    } catch (error) {
+      this.scheduler.removeById(name)
+      this.intervalTimers.delete(name)
+      throw error
+    }
+  }
+
+  private buildTask(name: string, handler: JobHandler): AsyncTask {
+    return new AsyncTask(
+      `${name}-task`,
+      async () => {
+        if (this.scheduledRuns.has(name)) return
+        this.scheduledRuns.add(name)
+        try {
+          await this.runJob(name, handler)
+        } finally {
+          this.scheduledRuns.delete(name)
+        }
+      },
+      (error) => {
+        this.log.error({ error }, `Error recording the run of job ${name}`)
+      },
+    )
+  }
+
+  private async runGate(
+    name: string,
+  ): Promise<JobHandler | 'unknown' | 'disabled'> {
+    const registration = this.jobs.get(name)
+    if (!registration) return 'unknown'
+    const row = await this.fastify.db.getScheduleByName(name)
+    if (!row) return 'unknown'
+    if (!row.enabled) return 'disabled'
+    return registration.handler
+  }
+
+  private runJob(name: string, handler: JobHandler): Promise<RunOutcome> {
+    this.jobsRunSinceBoot.add(name)
+    return this.trackRun(name, async () => {
+      let lastRun: JobRunInfo
+      try {
+        await handler(name)
+        lastRun = { time: new Date().toISOString(), status: 'completed' }
+      } catch (error) {
+        this.log.error({ error }, `Error in job ${name}`)
+        lastRun = {
+          time: new Date().toISOString(),
+          status: 'failed',
+          error: errorMessage(error),
+        }
+      }
+      await this.fastify.db.updateSchedule(name, { last_run: lastRun })
+      return lastRun.status === 'completed' ? 'completed' : 'failed'
+    })
+  }
+
+  private nextRun(name: string): JobRunInfo | null {
+    const live = this.jobs.get(name)?.live
+    if (!live) return null
+    const next =
+      live.spec.type === 'interval'
+        ? nextIntervalFire(this.intervalTimers.get(name))
+        : new Cron(live.spec.config.expression).nextRun()?.getTime()
+    if (next === undefined) return null
+    return {
+      time: new Date(next).toISOString(),
+      status: 'pending',
+      estimated: true,
+    }
+  }
+
+  private isJobRunning(name: string): boolean {
     return (this.runningJobs.get(name) ?? 0) > 0
   }
 
-  async getSchedule(name: string): Promise<ScheduleWithRunState | null> {
-    const schedule = await this.fastify.db.getScheduleByName(name)
-    return schedule && { ...schedule, running: this.isJobRunning(name) }
-  }
-
-  /** Holds the job in the running set until work settles, and work resolves whether it succeeded. */
   private async trackRun(
     name: string,
-    work: () => Promise<boolean>,
-  ): Promise<boolean> {
+    work: () => Promise<RunOutcome>,
+  ): Promise<RunOutcome> {
     this.runningJobs.set(name, (this.runningJobs.get(name) ?? 0) + 1)
     this.emitJobPhase(name, 'running')
-    let succeeded = false
+    let outcome: RunOutcome = 'failed'
     try {
-      succeeded = await work()
-      return succeeded
+      outcome = await work()
+      return outcome
     } finally {
       const remaining = (this.runningJobs.get(name) ?? 1) - 1
       if (remaining > 0) this.runningJobs.set(name, remaining)
       else this.runningJobs.delete(name)
-      this.emitJobPhase(name, succeeded ? 'complete' : 'failed')
+      this.emitJobPhase(name, outcome === 'completed' ? 'complete' : 'failed')
     }
   }
 
@@ -533,219 +462,52 @@ export class SchedulerService {
     }
     this.fastify.progress.emit(event)
   }
+}
 
-  /**
-   * Update a job's schedule configuration
-   *
-   * @param name - Name of the job to update
-   * @param config - New configuration for the job
-   * @param enabled - Optional flag to enable or disable the job
-   * @returns Promise resolving to true if successful
-   */
-  async updateJobSchedule(
-    name: string,
-    config: IntervalConfig | CronConfig | null,
-    enabled?: boolean,
-  ): Promise<boolean> {
-    try {
-      // Get current schedule
-      const schedule = await this.fastify.db.getScheduleByName(name)
-      if (!schedule) {
-        this.log.warn(`Cannot update non-existent schedule: ${name}`)
-        return false
-      }
-
-      // Update in database
-      const updates: Partial<
-        Omit<DbSchedule, 'id' | 'name' | 'created_at' | 'updated_at'>
-      > = {}
-
-      // Get the configuration to use for calculating next run time
-      const configToUse = config || schedule.config
-      const typeToUse = schedule.type
-
-      if (config) {
-        updates.config = config
-      }
-
-      if (enabled !== undefined) {
-        updates.enabled = enabled
-      }
-
-      // Calculate next run time based on the schedule type and config
-      let nextRun: Date | null = null
-      if (typeToUse === 'interval') {
-        const intervalConfig = configToUse as IntervalConfig
-        nextRun = new Date()
-        if (intervalConfig.days)
-          nextRun.setDate(nextRun.getDate() + intervalConfig.days)
-        if (intervalConfig.hours)
-          nextRun.setHours(nextRun.getHours() + intervalConfig.hours)
-        if (intervalConfig.minutes)
-          nextRun.setMinutes(nextRun.getMinutes() + intervalConfig.minutes)
-        if (intervalConfig.seconds)
-          nextRun.setSeconds(nextRun.getSeconds() + intervalConfig.seconds)
-      } else if (typeToUse === 'cron') {
-        const cronConfig = configToUse as CronConfig
-        nextRun = this.calculateNextCronRun(cronConfig.expression)
-      }
-
-      // Add next run time to updates if it was calculated
-      if (nextRun) {
-        updates.next_run = {
-          time: nextRun.toISOString(),
-          status: 'pending',
-          estimated: true,
-        }
-      }
-
-      await this.fastify.db.updateSchedule(name, updates)
-
-      // Get job and handler
-      const jobData = this.jobs.get(name)
-      if (!jobData) {
-        this.log.warn(`Job ${name} has no registered handler`)
-        return true // DB was updated, but no active job
-      }
-
-      // If job was enabled and should remain enabled, recreate with new config
-      if (schedule.enabled && (enabled === undefined || enabled === true)) {
-        const updatedSchedule = await this.fastify.db.getScheduleByName(name)
-        if (!updatedSchedule) return false
-
-        // Remove old job
-        this.scheduler.removeById(name)
-
-        // Create new job with updated config
-        const job = this.createJob(
-          name,
-          updatedSchedule.type,
-          updatedSchedule.config,
-          jobData.handler,
-        )
-
-        // Add the new job
-        if (updatedSchedule.type === 'interval') {
-          this.scheduler.addSimpleIntervalJob(job as SimpleIntervalJob)
-        } else if (updatedSchedule.type === 'cron') {
-          this.scheduler.addCronJob(job as CronJob)
-        }
-
-        // Update reference
-        this.jobs.set(name, { job, handler: jobData.handler })
-
-        this.log.debug(`Job ${name} updated with new configuration`)
-      }
-      // If job was disabled but should be enabled
-      else if (!schedule.enabled && enabled === true) {
-        const updatedSchedule = await this.fastify.db.getScheduleByName(name)
-        if (!updatedSchedule) return false
-
-        // Create new job
-        const job = this.createJob(
-          name,
-          updatedSchedule.type,
-          updatedSchedule.config,
-          jobData.handler,
-        )
-
-        // Add the job
-        if (updatedSchedule.type === 'interval') {
-          this.scheduler.addSimpleIntervalJob(job as SimpleIntervalJob)
-        } else if (updatedSchedule.type === 'cron') {
-          this.scheduler.addCronJob(job as CronJob)
-        }
-
-        // Update reference
-        this.jobs.set(name, { job, handler: jobData.handler })
-
-        this.log.debug(`Job ${name} enabled and scheduled`)
-      }
-      // If job was enabled but should be disabled
-      else if (schedule.enabled && enabled === false) {
-        // Remove the job but keep the handler
-        this.scheduler.removeById(name)
-        this.jobs.set(name, { job: null, handler: jobData.handler })
-
-        this.log.debug(`Job ${name} disabled`)
-      }
-
-      return true
-    } catch (error) {
-      this.log.error({ error }, `Error updating job schedule ${name}`)
-      return false
-    }
+function specForType(
+  type: DbSchedule['type'],
+  config: IntervalConfig | CronConfig,
+): ScheduleSpec | null {
+  if ('expression' in config) {
+    return type === 'cron' ? { type, config } : null
   }
+  return type === 'interval' ? { type, config } : null
+}
 
-  /**
-   * Get a list of all registered job names
-   *
-   * @returns Array of job names
-   */
-  getActiveJobs(): string[] {
-    return Array.from(this.jobs.keys())
+/** The next tick of a fixed-rate timer, which stays right when a tick was skipped for an overrun. */
+function nextIntervalFire(
+  timer: { startedAt: number; intervalMs: number } | undefined,
+): number | undefined {
+  if (!timer) return undefined
+  const elapsed = Date.now() - timer.startedAt
+  const ticks = Math.floor(elapsed / timer.intervalMs) + 1
+  return timer.startedAt + ticks * timer.intervalMs
+}
+
+function isOverdue(spec: ScheduleSpec, lastRun: JobRunInfo): boolean {
+  return (
+    spec.type === 'interval' &&
+    Date.parse(lastRun.time) + intervalToMs(spec.config) <= Date.now()
+  )
+}
+
+/** Throws for a schedule the timer library would refuse, so a caller can check before it commits. */
+function assertStartable(name: string, spec: ScheduleSpec): void {
+  if (spec.type === 'cron') {
+    if (new Cron(spec.config.expression).getPattern() === undefined) {
+      throw new Error(`Schedule ${name} has no cron pattern`)
+    }
+    return
   }
-
-  /**
-   * Stop the scheduler and all running jobs
-   *
-   * Should be called during application shutdown.
-   */
-  stop(): void {
-    this.log.debug('Stopping all scheduled jobs')
-    if (this.initializationTimer) {
-      clearTimeout(this.initializationTimer)
-      this.initializationTimer = null
-    }
-    this.scheduler.stop()
+  const intervalMs = intervalToMs(spec.config)
+  if (intervalMs <= 0) {
+    throw new Error(`Schedule ${name} has an interval with no time units`)
   }
-
-  /**
-   * Calculate the next run time for a cron expression
-   */
-  private calculateNextCronRun(expression: string): Date {
-    try {
-      const interval = CronExpressionParser.parse(expression, {
-        currentDate: new Date(),
-      })
-      return interval.next().toDate()
-    } catch (err) {
-      this.log.warn(
-        { err, expression },
-        'Invalid cron expression; defaulting to +24h',
-      )
-      const next = new Date()
-      next.setHours(next.getHours() + 24)
-      return next
-    }
+  if (intervalMs >= INTERVAL_LIMIT_MS) {
+    throw new Error(`Schedule ${name} has an interval too long to schedule`)
   }
+}
 
-  /**
-   * Check if all expected handlers are registered and log completion message
-   */
-  private checkForCompletionReadiness(): void {
-    // Don't check if we've already logged ready or have no expected handlers
-    if (this.hasLoggedReady || this.expectedHandlerCount === 0) {
-      return
-    }
-
-    // Count currently active (scheduled) jobs
-    let activeJobCount = 0
-    for (const [_name, jobData] of this.jobs) {
-      if (jobData.job !== null) {
-        activeJobCount++
-      }
-    }
-
-    // Count total registered handlers
-    const registeredHandlerCount = this.jobs.size
-
-    // Check if we have handlers for all expected jobs
-    if (registeredHandlerCount >= this.expectedHandlerCount) {
-      this.hasLoggedReady = true
-      this.log.info(
-        `Scheduler ready: ${activeJobCount} jobs scheduled and active`,
-      )
-    }
-  }
+function sameSpec(a: ScheduleSpec, b: ScheduleSpec): boolean {
+  return a.type === b.type && isDeepStrictEqual(a.config, b.config)
 }

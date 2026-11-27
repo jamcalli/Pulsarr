@@ -1,12 +1,12 @@
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { MessageResponseSchema } from '@schemas/common/message.schema.js'
+import { SuccessMessageResponseSchema } from '@schemas/common/success-message.schema.js'
 import {
   DeleteSyncDryRunResponseSchema,
   DeleteSyncDryRunStatusSchema,
-  ErrorResponseSchema,
   JobStatusSchema,
   type ScheduleUpdate,
   ScheduleUpdateSchema,
-  SuccessResponseSchema,
 } from '@schemas/scheduler/scheduler.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -16,7 +16,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get a specific job schedule
   fastify.get<{
     Params: { name: string }
-    Reply: z.infer<typeof JobStatusSchema> | z.infer<typeof ErrorResponseSchema>
+    Reply: z.infer<typeof JobStatusSchema> | z.infer<typeof ErrorSchema>
   }>(
     '/schedules/:name',
     {
@@ -27,8 +27,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         params: z.object({ name: z.string() }),
         response: {
           200: JobStatusSchema,
-          404: ErrorResponseSchema,
-          500: ErrorResponseSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Scheduler'],
       },
@@ -58,8 +58,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     Params: { name: string }
     Body: ScheduleUpdate
     Reply:
-      | z.infer<typeof SuccessResponseSchema>
-      | z.infer<typeof ErrorResponseSchema>
+      | z.infer<typeof SuccessMessageResponseSchema>
+      | z.infer<typeof ErrorSchema>
   }>(
     '/schedules/:name',
     {
@@ -70,9 +70,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         params: z.object({ name: z.string() }),
         body: ScheduleUpdateSchema,
         response: {
-          200: SuccessResponseSchema,
-          404: ErrorResponseSchema,
-          500: ErrorResponseSchema,
+          200: SuccessMessageResponseSchema,
+          400: ErrorSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Scheduler'],
       },
@@ -82,22 +83,18 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { name } = request.params
         const updates = request.body
 
-        const existing = await fastify.db.getScheduleByName(name)
-        if (!existing) {
+        const outcome = await fastify.scheduler.updateJobSchedule(
+          name,
+          updates.config ?? null,
+          updates.enabled,
+          updates.type,
+        )
+        if (outcome === 'unknown') {
           return reply.notFound(`Schedule "${name}" not found`)
         }
-
-        const configToUpdate =
-          updates.config === undefined ? null : updates.config
-        const success = await fastify.scheduler.updateJobSchedule(
-          name,
-          configToUpdate,
-          updates.enabled,
-        )
-
-        if (!success) {
-          return reply.internalServerError(
-            `Failed to update schedule "${name}"`,
+        if (outcome === 'type-mismatch') {
+          return reply.badRequest(
+            `Schedule "${name}" does not have type "${updates.type}"`,
           )
         }
 
@@ -116,8 +113,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post<{
     Params: { name: string }
     Reply:
-      | z.infer<typeof SuccessResponseSchema>
-      | z.infer<typeof ErrorResponseSchema>
+      | z.infer<typeof SuccessMessageResponseSchema>
+      | z.infer<typeof ErrorSchema>
   }>(
     '/schedules/:name/run',
     {
@@ -129,9 +126,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         deprecated: true,
         params: z.object({ name: z.string() }),
         response: {
-          200: SuccessResponseSchema,
-          404: ErrorResponseSchema,
-          500: ErrorResponseSchema,
+          200: SuccessMessageResponseSchema,
+          404: ErrorSchema,
+          409: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Scheduler'],
       },
@@ -140,13 +138,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const { name } = request.params
 
-        const existing = await fastify.db.getScheduleByName(name)
-        if (!existing) {
+        const outcome = await fastify.scheduler.runJobNow(name)
+        if (outcome === 'unknown') {
           return reply.notFound(`Schedule "${name}" not found`)
         }
-
-        const success = await fastify.scheduler.runJobNow(name)
-        if (!success) {
+        if (outcome === 'disabled') {
+          return reply.conflict(`Job "${name}" is disabled`)
+        }
+        if (outcome === 'failed') {
           return reply.internalServerError(`Failed to run job "${name}"`)
         }
 
@@ -175,9 +174,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         params: z.object({ name: z.string() }),
         response: {
           202: MessageResponseSchema,
-          404: ErrorResponseSchema,
-          409: ErrorResponseSchema,
-          500: ErrorResponseSchema,
+          404: ErrorSchema,
+          409: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Scheduler'],
       },
@@ -186,14 +185,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const { name } = request.params
 
-        const existing = await fastify.db.getScheduleByName(name)
-        if (!existing) {
+        const outcome = await fastify.scheduler.startJob(name)
+        if (outcome === 'unknown') {
           return reply.notFound(`Schedule "${name}" not found`)
         }
-
-        const outcome = fastify.scheduler.startJob(name)
-        if (outcome === 'unknown') {
-          return reply.notFound(`Job "${name}" has no handler`)
+        if (outcome === 'disabled') {
+          return reply.conflict(`Job "${name}" is disabled`)
         }
         if (outcome === 'running') {
           return reply.conflict(`Job "${name}" is already running`)
@@ -222,8 +219,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         deprecated: true,
         response: {
           200: DeleteSyncDryRunResponseSchema,
-          404: ErrorResponseSchema,
-          500: ErrorResponseSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Scheduler'],
       },
@@ -258,9 +255,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Starts a delete sync dry run in the background and returns at once. Read the dry run status route for the outcome.',
         response: {
           202: MessageResponseSchema,
-          404: ErrorResponseSchema,
-          409: ErrorResponseSchema,
-          500: ErrorResponseSchema,
+          404: ErrorSchema,
+          409: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Scheduler'],
       },
@@ -301,7 +298,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Whether a delete sync dry run is running and how the latest one ended. Resets when the server restarts.',
         response: {
           200: DeleteSyncDryRunStatusSchema,
-          500: ErrorResponseSchema,
+          500: ErrorSchema,
         },
         tags: ['Scheduler'],
       },

@@ -136,6 +136,51 @@ describe('watchlist workflow full reconcile', { timeout: 30_000 }, () => {
     )
     expect(checkFriendChanges).toHaveBeenCalledTimes(1)
   })
+
+  async function bootWithoutAutoStart(): Promise<FastifyInstance> {
+    const knex = getTestDatabase()
+    await seedAll(knex)
+    await patchConfigSettings(knex, { _isReady: false })
+    useArrHandlers()
+    app = await build()
+    await app.ready()
+    vi.spyOn(app.plexWatchlist, 'checkFriendChanges').mockResolvedValue({
+      added: [],
+      removed: [],
+      userMap: new Map(),
+    })
+    return app
+  }
+
+  it('arms the next periodic reconciliation after a full sync requested while running', async () => {
+    const booted = await bootWithoutAutoStart()
+    const state = workflowState(booted.watchlistWorkflow)
+    const status = state.status
+    state.beginRun()
+    state.status = 'running'
+    try {
+      await booted.watchlistWorkflow.reconcile({ mode: 'full' })
+
+      expect(state.reconciliationTimer).not.toBeNull()
+    } finally {
+      state.clearReconciliationTimer()
+      state.status = status
+      state.endRun()
+    }
+  })
+
+  it('arms nothing after a full sync requested while the workflow is stopped', async () => {
+    const booted = await bootWithoutAutoStart()
+    const state = workflowState(booted.watchlistWorkflow)
+    state.beginRun()
+    try {
+      await booted.watchlistWorkflow.reconcile({ mode: 'full' })
+
+      expect(state.reconciliationTimer).toBeNull()
+    } finally {
+      state.endRun()
+    }
+  })
 })
 
 describe('watchlist workflow rss mode', { timeout: 30_000 }, () => {

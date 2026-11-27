@@ -1,4 +1,5 @@
 import type { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import type { WatchlistWorkflowService } from '@services/watchlist-workflow.service.js'
 import type { Knex } from 'knex'
 import { HttpResponse, http } from 'msw'
@@ -39,6 +40,11 @@ export function workflowState(
 ): WorkflowState {
   // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
   return workflow['state']
+}
+
+export function workflowDeps(workflow: WatchlistWorkflowService): WorkflowDeps {
+  // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+  return workflow['deps']
 }
 
 export async function seedAll(knex: Knex): Promise<void> {

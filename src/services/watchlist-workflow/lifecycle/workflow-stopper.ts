@@ -1,9 +1,6 @@
 import type { WorkflowDeps } from '../types.js'
-import { cleanupExistingManualSync } from './scheduler.js'
 
-export async function cleanupWorkflow(
-  deps: Pick<WorkflowDeps, 'logger' | 'fastify' | 'state'>,
-): Promise<void> {
+export function cleanupWorkflow(deps: Pick<WorkflowDeps, 'state'>): void {
   const { state } = deps
 
   state.endRun()
@@ -17,14 +14,7 @@ export async function cleanupWorkflow(
     state.statusSyncDebounceTimer = null
   }
 
-  try {
-    await cleanupExistingManualSync(deps)
-  } catch (error) {
-    deps.logger.error(
-      { error },
-      'Error cleaning up periodic reconciliation during shutdown',
-    )
-  }
+  state.clearReconciliationTimer()
 
   if (state.etagPoller) {
     state.etagPoller.stopStaggeredPolling()

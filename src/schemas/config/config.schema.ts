@@ -24,6 +24,7 @@ import {
 } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
+import { MS_PER_HOUR, MS_PER_MINUTE } from '@root/schemas/shared/time-units.js'
 import type { ConfigLogLevel } from '@root/types/config.types.js'
 import {
   longestQuotaWindowDays,
@@ -67,8 +68,6 @@ export const NEW_EPISODE_THRESHOLD_MS = {
   default: 172_800_000,
 } as const
 
-export const MS_PER_MINUTE = 60_000
-export const MS_PER_HOUR = 60 * MS_PER_MINUTE
 const QUEUE_WAIT_TIME_ERROR = `Enter ${QUEUE_WAIT_TIME_MS.min / MS_PER_MINUTE} to ${QUEUE_WAIT_TIME_MS.max / MS_PER_MINUTE} minutes.`
 const NEW_EPISODE_THRESHOLD_ERROR = `Enter ${NEW_EPISODE_THRESHOLD_MS.min / MS_PER_HOUR} to ${NEW_EPISODE_THRESHOLD_MS.max / MS_PER_HOUR} hours.`
 export const EXPIRED_APPROVAL_CLEANUP_DAYS = { min: 1, max: 365 } as const
@@ -78,6 +77,8 @@ export const QUOTA_MONTHLY_RESET_DAY = { min: 1, max: 31 } as const
 /** Empty means Pulsarr negotiates the Plex server connection itself. */
 export const PLEX_SERVER_URL_DEFAULT = ''
 export const TMDB_REGION_DEFAULT = 'US'
+export const PENDING_WEBHOOK_INTERVAL_SECONDS = { min: 1, max: 86_400 } as const
+export const PENDING_WEBHOOK_MAX_AGE_MINUTES = { min: 1, max: 1440 } as const
 export const PENDING_WEBHOOK_DEFAULTS = {
   retryIntervalSeconds: 20,
   maxAgeMinutes: 10,
@@ -523,11 +524,23 @@ export const ConfigUpdateSchema = z
     notifyOnAvailability: z.boolean().optional(),
     // Pending Webhooks Config
     // How often to retry processing pending webhooks (in seconds)
-    pendingWebhookRetryInterval: z.number().optional(),
+    pendingWebhookRetryInterval: z
+      .number()
+      .min(PENDING_WEBHOOK_INTERVAL_SECONDS.min)
+      .max(PENDING_WEBHOOK_INTERVAL_SECONDS.max)
+      .optional(),
     // Maximum age of a pending webhook before it expires (in minutes)
-    pendingWebhookMaxAge: z.number().optional(),
+    pendingWebhookMaxAge: z
+      .number()
+      .min(PENDING_WEBHOOK_MAX_AGE_MINUTES.min)
+      .max(PENDING_WEBHOOK_MAX_AGE_MINUTES.max)
+      .optional(),
     // How often to clean up expired webhooks (in seconds)
-    pendingWebhookCleanupInterval: z.number().optional(),
+    pendingWebhookCleanupInterval: z
+      .number()
+      .min(PENDING_WEBHOOK_INTERVAL_SECONDS.min)
+      .max(PENDING_WEBHOOK_INTERVAL_SECONDS.max)
+      .optional(),
     // Other configs
     plexTokens: PlexTokensSchema.optional(),
     skipFriendSync: z.boolean().optional(),

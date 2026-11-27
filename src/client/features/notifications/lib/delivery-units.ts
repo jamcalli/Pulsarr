@@ -1,9 +1,8 @@
 import {
-  MS_PER_HOUR,
-  MS_PER_MINUTE,
   NEW_EPISODE_THRESHOLD_MS,
   QUEUE_WAIT_TIME_MS,
 } from '@root/schemas/config/config.schema'
+import { MS_PER_HOUR, MS_PER_MINUTE } from '@root/schemas/shared/time-units'
 
 export function minutesToMs(minutes: number): number {
   return Math.round(minutes * MS_PER_MINUTE)

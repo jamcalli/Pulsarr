@@ -65,7 +65,6 @@ describe('scheduler background runs', () => {
         config: { hours: 24 },
         enabled: true,
         last_run: null,
-        next_run: null,
       })
       app.config.deleteMovie = true
       vi.spyOn(app.sonarrManager, 'fetchAllSeries').mockResolvedValue([])

@@ -95,46 +95,23 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         .catch((error) => {
           fastify.log.warn(
             { error },
-            'Boot-time update-check dispatch failed; cron will retry',
+            'Boot-time update-check dispatch failed, cron will retry',
           )
         })
 
-      const existingSchedule = await fastify.db.getScheduleByName(JOB_NAME)
-      if (!existingSchedule) {
-        const now = new Date()
-        const nextRun = new Date(now)
-        nextRun.setMinutes(0, 0, 0)
-        if (nextRun <= now) {
-          nextRun.setHours(nextRun.getHours() + 1)
-        }
-        await fastify.db.createSchedule({
-          name: JOB_NAME,
-          type: 'cron',
-          config: { expression: CRON_EXPRESSION },
-          enabled: true,
-          last_run: null,
-          next_run: {
-            time: nextRun.toISOString(),
-            status: 'pending',
-            estimated: true,
-          },
-        })
-      }
-
-      await fastify.scheduler.scheduleJob(JOB_NAME, async (jobName) => {
-        try {
-          const currentSchedule = await fastify.db.getScheduleByName(jobName)
-          if (!currentSchedule?.enabled) {
-            fastify.log.debug(`Job ${jobName} is disabled, skipping`)
-            return
-          }
+      await fastify.scheduler.scheduleJob(
+        JOB_NAME,
+        async () => {
           await service.refresh()
           await handleNotification()
-        } catch (error) {
-          fastify.log.error({ error }, `Error in scheduled job ${jobName}:`)
-          throw error
-        }
-      })
+        },
+        {
+          defaultSchedule: {
+            type: 'cron',
+            config: { expression: CRON_EXPRESSION },
+          },
+        },
+      )
     } catch (error) {
       fastify.log.error(
         { error },

@@ -99,8 +99,11 @@ export async function reconcile(
   options: { mode: 'full' | 'etag' },
   deps: WorkflowDeps,
 ): Promise<void> {
+  // a restart mid-sync opens a new signal, and this sync answers only to the one it started under
+  const { signal } = deps.state
   if (options.mode === 'full') {
     await waitForInProgressReconciliation(deps.state, deps.logger)
+    if (signal.aborted) return
   } else {
     if (deps.state.isReconciling) {
       deps.logger.debug(
@@ -112,8 +115,6 @@ export async function reconcile(
   }
 
   deps.state.isReconciling = true
-  // a restart mid-sync opens a new signal; this sync answers only to the one it started under
-  const { signal } = deps.state
   const startTime = Date.now()
 
   try {
@@ -141,6 +142,7 @@ export async function reconcile(
         await handleNewFriendFullMode(newFriend, deps)
       }
     }
+    if (signal.aborted) return
 
     for (const removedFriend of friendChanges.removed) {
       handleRemovedFriend(removedFriend, deps)
