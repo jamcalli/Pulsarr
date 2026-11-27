@@ -158,6 +158,33 @@ describe('scheduler rows on first boot', { timeout: 30_000 }, () => {
       })
     })
 
+    it('apply the other jobs when one schedule cannot be applied', async () => {
+      const booted = await boot()
+      booted.config.plexSessionMonitoring = {
+        enabled: true,
+        pollingIntervalMinutes: 5,
+        remainingEpisodes: 2,
+        enableAutoReset: true,
+        autoResetIntervalHours: 6,
+      }
+      const update = booted.scheduler.updateJobSchedule.bind(booted.scheduler)
+      vi.spyOn(booted.scheduler, 'updateJobSchedule').mockImplementation(
+        async (name, ...rest) =>
+          name === 'plex-session-monitor' ? 'unknown' : update(name, ...rest),
+      )
+
+      await expect(
+        booted.plexSessionMonitor.applyJobSchedules(),
+      ).rejects.toThrow()
+
+      expect(
+        (await booted.db.getScheduleByName('plex-rolling-auto-reset'))?.config,
+      ).toEqual({ hours: 6 })
+      expect(
+        (await booted.db.getScheduleByName('plex-rolling-pilot-sync'))?.config,
+      ).toEqual({ hours: 6 })
+    })
+
     it('stop only the auto reset job when auto reset is turned off', async () => {
       const booted = await boot()
       booted.config.authenticationMethod = 'disabled'
