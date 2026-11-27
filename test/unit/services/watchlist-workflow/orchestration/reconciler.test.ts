@@ -340,6 +340,30 @@ describe('reconcile', () => {
     expect(etagPollerMock.methods.checkAllEtags).not.toHaveBeenCalled()
   })
 
+  it('does not fetch watchlists when the run ends while the last new friend is handled', async () => {
+    parts.plexService.checkFriendChanges.mockResolvedValue(
+      friendChanges({
+        added: [
+          {
+            userId: 5,
+            username: 'friend-5',
+            watchlistId: 'wl-5',
+            isPrimary: false,
+          },
+        ],
+      }),
+    )
+    vi.mocked(handleNewFriendFullMode).mockImplementationOnce(async () => {
+      state.endRun()
+      state.beginRun()
+    })
+
+    await reconcile({ mode: 'full' }, deps)
+
+    expect(handleNewFriendFullMode).toHaveBeenCalledTimes(1)
+    expect(fetchWatchlists).not.toHaveBeenCalled()
+  })
+
   it('passes removed friends to the removal handler', async () => {
     const removedFriend = {
       userId: 6,

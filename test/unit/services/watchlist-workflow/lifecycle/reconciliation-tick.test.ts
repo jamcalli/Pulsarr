@@ -1,6 +1,7 @@
 import type { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createDeferred } from '../../../../helpers/deferred.js'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/watchlist-workflow/orchestration/reconciler.js', () => ({
@@ -144,18 +145,23 @@ describe('periodic reconciliation', () => {
       expect(vi.getTimerCount()).toBe(0)
     })
 
-    it('does not reschedule into a run that replaced it', async () => {
+    it('leaves the timer of a run that replaced it untouched', async () => {
       state.status = 'running'
-      vi.mocked(reconcile).mockImplementation(async () => {
-        state.endRun()
-        state.beginRun()
-        state.status = 'running'
-      })
+      const syncing = createDeferred<void>()
+      vi.mocked(reconcile).mockReturnValue(syncing.promise)
 
-      await runPeriodicReconciliation(deps)
+      const tick = runPeriodicReconciliation(deps)
+      state.endRun()
+      state.beginRun()
+      state.status = 'running'
+      schedulePeriodicReconciliation(deps)
+      const replacementTimer = state.reconciliationTimer
+      syncing.resolve()
+      await tick
 
-      expect(state.reconciliationTimer).toBeNull()
-      expect(vi.getTimerCount()).toBe(0)
+      expect(replacementTimer).not.toBeNull()
+      expect(state.reconciliationTimer).toBe(replacementTimer)
+      expect(vi.getTimerCount()).toBe(1)
     })
   })
 })

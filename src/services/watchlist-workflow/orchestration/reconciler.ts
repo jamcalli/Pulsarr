@@ -142,6 +142,7 @@ export async function reconcile(
         await handleNewFriendFullMode(newFriend, deps)
       }
     }
+    if (signal.aborted) return
 
     for (const removedFriend of friendChanges.removed) {
       handleRemovedFriend(removedFriend, deps)
